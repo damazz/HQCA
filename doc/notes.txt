@@ -1,0 +1,54 @@
+# 11.18
+
+Changing the structure of the work - adding in fermionic mapping
+
+
+# 7.10.18
+
+So far, have added orbital optimizations to the program pretty successfully.
+Unfortunately, large changes were made to the IBM code, and so now a slew of
+things need to be carried out. 
+
+1. Essentially, rebuild the framework. We know now more or less what we need, we
+can keep the standalone aspect of the ibmqx machine, but we need to incorporate
+it as module into our work. Concerning this, ibmqx module should be able to:
+   
+a. Run designated circuits
+b. Interact effectively with the IBM device
+c. Return counts for a variety of different devices
+d. Optional communication with IBM server
+
+Optionally:
+
+i  .  read in qasm
+ii .  use the error simulator
+iii.
+iv .
+v  .
+
+ 
+
+# 5.11.18 
+
+Plan for constructing program. Need to edit output so it can be handled better.
+Namely, need to:
+- Change the output format of the QC code 
+- Include a 'write input file', i.e., a write config text, for the main program
+- Make components
+
+Program should be as follows:
+1. Generate starting file. File has locations for:
+    - 1 and 2 electron integrals
+    Also, includes the information for the run.
+
+2. Begin run. Generate an input file, test the quantum computer or simulator, and
+   return the 1-RDM or respective values. 
+
+3. Evaluate Hamiltonian to calculate trial energy. 
+
+4. Run optimizer to generate new points
+
+5. Call subroutine again to recalculate the energy.  
+
+
+------------

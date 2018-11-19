@@ -1,0 +1,597 @@
+----------
+--START---
+----------
+Taking parameters from config file. Must be specified elsewhere.
+Importing run parameters.
+----------
+Run on: 2018-09-07T16:46:07.364775
+----------
+#
+# ./ibm.txt
+# reused as heh2_0.txt
+#
+# IBM specific input for runs with ./main.py
+#
+#
+
+# General
+restart= no
+print= yes
+wait= yes
+max_iter= 10
+mapping= zeta
+chem_orb= HF
+#opt_crit= 0.000001
+#opt_crit= 0.001
+opt_crit= 0.0001
+
+# Occupation Number optimizers
+occ_method= stretch
+occ_seed= user
+occ_optimizer= NM
+occ_opt_crit= default
+occ_opt_thresh= 0.1
+occ_increase= no
+occ_energy= qc
+occ_nm_simplex= 30
+occ_gd_gradient= numerical
+occ_max_iter= 40
+occ_load_triangle= no
+occ_method_Ntri= 3
+
+# Input for the orbital optimizer (for chem_orb /= FCI)
+orb_nm_simplex= 15
+orb_optimizer= NM
+orb_opt_crit= default
+# for GD
+#orb_opt_thresh= 0.00000001
+# for NM
+orb_opt_thresh= 0.0001
+orb_method= givens
+orb_max_iter= 2000
+orb_gd_gradient= analytical
+orb_print= no
+
+# Input for the quantum algorithm
+qc_backend= ibmqx4
+qc_num_shots= 4096
+qc_order= default
+qc_algorithm= affine_2p_curved_tenerife
+qc_combine= no
+qc_verbose= yes
+qc_connect= yes
+$ 0 0 
+----------
+Hello. Beginning a hybrid quantum classical optimization
+to find the ground state energy of your target molecule. 
+Let's begin!
+----------
+Molecular parameters:
+mol = gto.Mole()
+mol.atom = '''He 0 0 0; H -0.943 0 0; H 0.943 0 0 '''
+mol.basis = 'sto-3g'
+mol.spin=1
+mol.charge=1
+mol.verbose=2
+mol.build()
+----------
+Run is connected to the IBMQuantumExperience.
+Checking for config file.
+----------
+Backend configuration file already written.
+Stored in following location:
+/home/sesmart/3_vqa/hqca/results/logs/20180907_ibmqx4
+----------
+Getting the electron integrals in the Hartree-Fock basis.
+Electron integrals obtained. Moving forward.
+----------
+Wavefunction mapping is: zeta
+Nuclear energy: 2.52523590 Hartrees
+Quantum algorithm: affine_2p_curved_tenerife
+Quantum backend: ibmqx4
+----------
+Measuring triangle for generating an  affine transformation.
+Please make sure your circuit rotation is in 2D.
+----------
+Iteration: 0, Length: 0.8456486010028472, Difference:0.15435139899715278
+--- Final f,x: [array([ 0.69134172,  0.69134172,  0.5732233 ])],[33.75] --- 
+Iteration: 1, Length: 0.8603471610579805, Difference:0.014698560055133258
+Difference in points: 14.0625
+Iteration: 2, Length: 0.8763740208045012, Difference:0.01602685974652074
+Difference in points: 0.703125
+Iteration: 3, Length: 0.8867191039948074, Difference:0.010345083190306137
+Difference in points: 0.87890625
+Iteration: 4, Length: 0.8925716254780285, Difference:0.005852521483221129
+Difference in points: 0.5712890625
+Iteration: 5, Length: 0.895683848378818, Difference:0.0031122229007894964
+Difference in points: 0.37353515625
+Iteration: 6, Length: 0.8972885342945068, Difference:0.0016046859156888527
+Difference in points: 0.16204833984375
+Iteration: 7, Length: 0.8981032807479221, Difference:0.0008147464534152826
+Difference in points: 0.092010498046875
+Iteration: 8, Length: 0.8985137870912561, Difference:0.00041050634333394953
+Difference in points: 0.0460052490234375
+Iteration: 9, Length: 0.8987198275507802, Difference:0.00020604045952410388
+Difference in points: 0.02300262451171875
+Iteration: 10, Length: 0.8988230451020512, Difference:0.00010321755127107313
+Difference in points: 0.011501312255859375
+Iteration: 11, Length: 0.8988747032704, Difference:5.1658168348733824e-05
+Difference in points: 0.00523298978805542
+Iteration: 0, Length: 0.6123724356957945, Difference:0.38762756430420553
+--- Final f,x: [array([ 0.8125,  0.8125,  0.625 ])],[0.75] --- 
+Iteration: 1, Length: 0.6123724356957945, Difference:0.0
+Difference in points: 0.3125
+Iteration: 2, Length: 0.6123724356957946, Difference:1.1102230246251565e-16
+Difference in points: 0.09375
+Iteration: 3, Length: 0.6123724356957946, Difference:0.0
+Difference in points: 0.01171875
+Iteration: 4, Length: 0.6123724356957944, Difference:2.220446049250313e-16
+Difference in points: 0.021484375
+Iteration: 5, Length: 0.6123724356957942, Difference:1.1102230246251565e-16
+Difference in points: 0.004638671875
+Targets: [[1, 1, 1], [0.91534423828125, 0.91534423828125, 0.8306884765625], [0.8345947265625, 0.8345947265625, 0.669189453125], [0.75, 0.75, 0.5]]
+Parameters: [[0, 45], [0, 0], [21.462046802043915, 21.462046802043915]]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 20, '01101': 8, '01000': 77, '00000': 1336, '11010': 3, '00100': 61, '11101': 2, '01001': 12, '01110': 6, '00001': 137, '00011': 1315, '00010': 157, '00111': 47, '10111': 11, '01011': 73, '01100': 41, '10101': 3, '11000': 13, '10011': 304, '10110': 6, '11110': 2, '11111': 6, '10100': 9, '10000': 315, '01111': 21, '10001': 36, '01010': 7, '11001': 2, '10010': 34, '11011': 15, '11100': 6, '00110': 11}}
+Time to get backend : 5.256757140159607e-05
+Time to run tomography : 1219.2127424739301
+Total time: 1219.2127950415015
+{'ii': {'00101': 20, '01101': 8, '01000': 77, '10110': 6, '11010': 3, '00100': 61, '11101': 2, '01001': 12, '01110': 6, '00001': 137, '00011': 1315, '00010': 157, '10011': 304, '10111': 11, '01011': 73, '01100': 41, '10101': 3, '11000': 13, '00111': 47, '00000': 1336, '10000': 315, '11111': 6, '10100': 9, '11110': 2, '01111': 21, '10001': 36, '01010': 7, '11001': 2, '10010': 34, '11011': 15, '11100': 6, '00110': 11}}
+Vertex: [ 0.06347656  0.49121094  0.49267578  0.50732422  0.50878906  0.93652344]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 015 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 14, '01101': 10, '01000': 290, '11010': 2, '00100': 96, '00001': 45, '01001': 5, '11101': 5, '00011': 42, '00010': 27, '10011': 14, '01011': 6, '01100': 58, '10101': 2, '11000': 80, '00111': 6, '00000': 2622, '11111': 1, '10100': 30, '10000': 693, '01111': 2, '10001': 18, '01010': 2, '11001': 2, '10010': 6, '11011': 1, '11100': 17}}
+Time to get backend : 7.579848170280457e-05
+Time to run tomography : 976.2725803777575
+Total time: 976.2726561762393
+{'ii': {'00101': 14, '01101': 10, '01000': 290, '11010': 2, '00100': 96, '00001': 45, '01001': 5, '11101': 5, '00011': 42, '00010': 27, '00111': 6, '01011': 6, '01100': 58, '10101': 2, '11000': 80, '10011': 14, '00000': 2622, '11111': 1, '10100': 30, '10000': 693, '01111': 2, '10001': 18, '01010': 2, '11001': 2, '10010': 6, '11011': 1, '11100': 17}}
+Vertex: [ 0.02661133  0.04223633  0.05883789  0.94116211  0.95776367  0.97338867]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 179, '01101': 127, '01000': 183, '00000': 2009, '11010': 3, '00100': 81, '11101': 32, '01001': 12, '01110': 28, '00001': 86, '00011': 355, '00010': 61, '00111': 26, '10111': 4, '01011': 38, '01100': 57, '10101': 46, '11000': 42, '10011': 82, '10110': 9, '11110': 3, '11111': 1, '10100': 20, '10000': 501, '01111': 4, '10001': 20, '01010': 6, '11001': 1, '10010': 12, '11011': 12, '11100': 18, '00110': 38}}
+Time to get backend : 8.165836334228516e-05
+Time to run tomography : 912.3172589950264
+Total time: 912.3173406533897
+{'ii': {'00101': 179, '01101': 127, '01000': 183, '10110': 9, '11010': 3, '00100': 81, '11101': 32, '01001': 12, '01110': 28, '00001': 86, '00011': 355, '00010': 61, '10011': 82, '10111': 4, '01011': 38, '01100': 57, '10101': 46, '11000': 42, '00111': 26, '00000': 2009, '10000': 501, '11111': 1, '10100': 20, '11110': 3, '01111': 4, '10001': 20, '01010': 6, '11001': 1, '10010': 12, '11011': 12, '11100': 18, '00110': 38}}
+Vertex: [ 0.16430664  0.16650391  0.25024414  0.74975586  0.83349609  0.83569336]
+Parameters: [[0, 45], [21.462046802043915, 21.462046802043915], [33.115695118904114, 33.115695118904114]]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 17, '01101': 12, '01000': 106, '00000': 1301, '11010': 3, '00100': 42, '11101': 2, '01001': 10, '01110': 10, '00001': 107, '00011': 1319, '00010': 151, '00111': 50, '10111': 8, '01011': 102, '01100': 31, '10101': 4, '11000': 25, '10011': 305, '10110': 2, '11110': 4, '11111': 7, '10100': 15, '10000': 322, '01111': 20, '10001': 37, '01010': 13, '11001': 3, '10010': 23, '11011': 22, '11100': 10, '00110': 13}}
+Time to get backend : 5.8434903621673584e-05
+Time to run tomography : 866.9562425352633
+Total time: 866.9563009701669
+{'ii': {'00101': 17, '01101': 12, '01000': 106, '10110': 2, '11010': 3, '00100': 42, '11101': 2, '01001': 10, '01110': 10, '00001': 107, '00011': 1319, '00010': 151, '10011': 305, '10111': 8, '01011': 102, '01100': 31, '10101': 4, '11000': 25, '00111': 50, '00000': 1301, '10000': 322, '11111': 7, '10100': 15, '11110': 4, '01111': 20, '10001': 37, '01010': 13, '11001': 3, '10010': 23, '11011': 22, '11100': 10, '00110': 13}}
+Vertex: [ 0.06030273  0.49438477  0.49902344  0.50097656  0.50561523  0.93969727]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 015 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 190, '01101': 135, '01000': 214, '00000': 1874, '11010': 2, '00100': 113, '11101': 33, '01001': 8, '01110': 17, '00001': 101, '00011': 373, '00010': 67, '00111': 14, '10111': 1, '01011': 31, '01100': 60, '10101': 51, '11000': 48, '10011': 68, '10110': 10, '11110': 4, '11111': 2, '10100': 40, '10000': 515, '01111': 9, '10001': 18, '01010': 3, '11001': 1, '10010': 10, '11011': 12, '11100': 20, '00110': 52}}
+Time to get backend : 5.283951759338379e-05
+Time to run tomography : 1075.6798509284854
+Total time: 1075.679903768003
+{'ii': {'00101': 190, '01101': 135, '01000': 214, '10110': 10, '11010': 2, '00100': 113, '11101': 33, '01001': 8, '01110': 17, '00001': 101, '00011': 373, '00010': 67, '10011': 68, '10111': 1, '01011': 31, '01100': 60, '10101': 51, '11000': 48, '00111': 14, '00000': 1874, '10000': 515, '11111': 2, '10100': 40, '11110': 4, '01111': 9, '10001': 18, '01010': 3, '11001': 1, '10010': 10, '11011': 12, '11100': 20, '00110': 52}}
+Vertex: [ 0.16479492  0.18334961  0.25561523  0.74438477  0.81665039  0.83520508]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 355, '01101': 224, '01000': 132, '00000': 1211, '11010': 2, '00100': 109, '11101': 49, '01001': 14, '01110': 116, '00001': 123, '00011': 528, '00010': 106, '00111': 30, '10111': 9, '01011': 68, '01100': 70, '10101': 86, '11000': 34, '10011': 128, '10110': 28, '11110': 32, '11111': 4, '10100': 27, '10000': 306, '01111': 18, '10001': 35, '01010': 11, '11001': 10, '10010': 24, '11011': 17, '11100': 18, '00110': 172}}
+Time to get backend : 5.329400300979614e-05
+Time to run tomography : 959.6338705830276
+Total time: 959.6339238770306
+{'ii': {'00101': 355, '01101': 224, '01000': 132, '10110': 28, '11010': 2, '00100': 109, '11101': 49, '01001': 14, '01110': 116, '00001': 123, '00011': 528, '00010': 106, '10011': 128, '10111': 9, '01011': 68, '01100': 70, '10101': 86, '11000': 34, '00111': 30, '00000': 1211, '10000': 306, '11111': 4, '10100': 27, '11110': 32, '01111': 18, '10001': 35, '01010': 11, '11001': 10, '10010': 24, '11011': 17, '11100': 18, '00110': 172}}
+Vertex: [ 0.31567383  0.32885742  0.41455078  0.58544922  0.67114258  0.68432617]
+Parameters: [[0, 45], [33.115695118904114, 33.115695118904114], [45, 45]]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 012 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 10, '01101': 7, '01000': 125, '00000': 1270, '11010': 2, '00100': 51, '11101': 2, '01001': 10, '01110': 3, '00001': 134, '00011': 1142, '00010': 141, '00111': 46, '10111': 14, '01011': 135, '01100': 33, '10101': 3, '11000': 39, '10011': 343, '10110': 4, '11110': 3, '11111': 6, '10100': 17, '10000': 371, '01111': 33, '10001': 27, '01010': 18, '11001': 2, '10010': 36, '11011': 44, '11100': 8, '00110': 17}}
+Time to get backend : 5.161017179489136e-05
+Time to run tomography : 912.1897728815675
+Total time: 912.1898244917393
+{'ii': {'00101': 10, '01101': 7, '01000': 125, '10110': 4, '11010': 2, '00100': 51, '11101': 2, '01001': 10, '01110': 3, '00001': 134, '00011': 1142, '00010': 141, '10011': 343, '10111': 14, '01011': 135, '01100': 33, '10101': 3, '11000': 39, '00111': 46, '00000': 1270, '10000': 371, '11111': 6, '10100': 17, '11110': 3, '01111': 33, '10001': 27, '01010': 18, '11001': 2, '10010': 36, '11011': 44, '11100': 8, '00110': 17}}
+Vertex: [ 0.06274414  0.47802734  0.48510742  0.51489258  0.52197266  0.93725586]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 318, '01101': 210, '01000': 134, '00000': 1175, '11010': 3, '00100': 102, '11101': 57, '01001': 6, '01110': 112, '00001': 125, '00011': 504, '00010': 92, '00111': 36, '10111': 16, '01011': 61, '01100': 69, '10101': 102, '11000': 50, '10011': 129, '10110': 39, '11110': 32, '11111': 8, '10100': 32, '10000': 377, '01111': 22, '10001': 37, '01010': 5, '11001': 6, '10010': 35, '11011': 21, '11100': 21, '00110': 160}}
+Time to get backend : 5.273893475532532e-05
+Time to run tomography : 968.7890916951001
+Total time: 968.7891444340348
+{'ii': {'00101': 318, '01101': 210, '01000': 134, '10110': 39, '11010': 3, '00100': 102, '11101': 57, '01001': 6, '01110': 112, '00001': 125, '00011': 504, '00010': 92, '10011': 129, '10111': 16, '01011': 61, '01100': 69, '10101': 102, '11000': 50, '00111': 36, '00000': 1175, '10000': 377, '11111': 8, '10100': 32, '11110': 32, '01111': 22, '10001': 37, '01010': 5, '11001': 6, '10010': 35, '11011': 21, '11100': 21, '00110': 160}}
+Vertex: [ 0.3112793   0.32617188  0.40478516  0.59521484  0.67382812  0.6887207 ]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 015 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 381, '01101': 256, '01000': 65, '00000': 634, '11010': 1, '00100': 133, '11101': 60, '01001': 8, '01110': 296, '00001': 154, '00011': 592, '00010': 143, '00111': 38, '10111': 9, '01011': 58, '01100': 82, '10101': 110, '11000': 14, '10011': 126, '10110': 91, '11110': 82, '11111': 10, '10100': 32, '10000': 160, '01111': 25, '10001': 22, '01010': 18, '11001': 4, '10010': 24, '11011': 16, '11100': 24, '00110': 428}}
+Time to get backend : 5.449727177619934e-05
+Time to run tomography : 4002.6701741740108
+Total time: 4002.6702286712825
+{'ii': {'00101': 381, '01101': 256, '01000': 65, '10110': 91, '11010': 1, '00100': 133, '11101': 60, '01001': 8, '01110': 296, '00001': 154, '00011': 592, '00010': 143, '10011': 126, '10111': 9, '01011': 58, '01100': 82, '10101': 110, '11000': 14, '00111': 38, '00000': 634, '10000': 160, '11111': 10, '10100': 32, '11110': 82, '01111': 25, '10001': 22, '01010': 18, '11001': 4, '10010': 24, '11011': 16, '11100': 24, '00110': 428}}
+Vertex: [ 0.45629883  0.4777832   0.49780273  0.50219727  0.5222168   0.54370117]
+Succefully have the triangulation. Proceeding with optimization.
+----------
+Optimizing the wavefunction.
+Initializing the Nelder-Mead optimization class.
+---------- 
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 23, '01101': 16, '01000': 259, '11010': 1, '00100': 124, '11101': 3, '01001': 5, '01110': 1, '00001': 76, '00011': 54, '00010': 22, '10011': 18, '01011': 4, '01100': 60, '10101': 4, '11000': 78, '00111': 6, '00000': 2496, '11111': 2, '10100': 26, '10000': 733, '01111': 1, '10001': 38, '01010': 1, '11001': 3, '10010': 10, '11011': 6, '11100': 20, '00110': 6}}
+Time to get backend : 7.30268657207489e-05
+Time to run tomography : 1183.7374044954777
+Total time: 1183.7374775223434
+{'ii': {'00101': 23, '01101': 16, '01000': 259, '11010': 1, '00100': 124, '11101': 3, '01001': 5, '01110': 1, '00001': 76, '00011': 54, '00010': 22, '00111': 6, '01011': 4, '01100': 60, '10101': 4, '11000': 78, '10011': 18, '00000': 2496, '11111': 2, '10100': 26, '10000': 733, '01111': 1, '10001': 38, '01010': 1, '11001': 3, '10010': 10, '11011': 6, '11100': 20, '00110': 6}}
+Measure ON: [[ 0.96777344  0.93676758  0.92871094  1.        ]]
+Rotated ON: [[ 0.99793673  0.98106082  0.98102488  0.99797266]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 0.  0.]
+Fitted wavefunction: 
+Alpha: 0.9901258029276633, Beta: 0.13514215164141927, Gamma: 0.0372490701438013
+Distance from GPC plane: 0.0011704827753477572
+Total Energy: -3.2869566183559074 Hartrees
+----------
+Really long run time. Not good.
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 473, '01101': 261, '01000': 222, '00000': 1943, '00100': 142, '00001': 97, '01001': 9, '01110': 7, '11101': 55, '00011': 49, '00010': 23, '10011': 19, '10111': 1, '01011': 7, '01100': 59, '10101': 91, '11000': 52, '00111': 10, '10110': 5, '11110': 1, '10100': 36, '10000': 461, '01111': 1, '10001': 24, '01010': 2, '11001': 1, '10010': 3, '11100': 27, '00110': 15}}
+Time to get backend : 5.7306140661239624e-05
+Time to run tomography : 979.6733298636973
+Total time: 979.673387169838
+{'ii': {'00101': 473, '01101': 261, '01000': 222, '10110': 5, '00100': 142, '00001': 97, '01001': 9, '01110': 7, '11101': 55, '00011': 49, '00010': 23, '00111': 10, '10111': 1, '01011': 7, '01100': 59, '10101': 91, '11000': 52, '10011': 19, '00000': 1943, '10000': 461, '10100': 36, '11110': 1, '01111': 1, '10001': 24, '01010': 2, '11001': 1, '10010': 3, '11100': 27, '00110': 15}}
+Measure ON: [[ 0.96509  0.73193  0.71094  1.     ]]
+Rotated ON: [[ 0.99955  0.74891  0.74926  0.9992 ]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 30.   0.]
+Fitted wavefunction: 
+Alpha: 0.8653747170341635, Beta: 0.5007099964486824, Gamma: 0.020398494415077458
+Distance from GPC plane: 5.692104996954384e-05
+Total Energy: -3.0954932209963695 Hartrees
+----------
+----------------------------------------
+--- There are 015 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'00101': 22, '01101': 12, '01000': 162, '00000': 1978, '00100': 78, '00001': 130, '01001': 10, '01110': 6, '11101': 3, '00011': 653, '00010': 89, '00111': 22, '10111': 7, '01011': 69, '01100': 44, '10101': 6, '11000': 52, '10011': 172, '10110': 1, '11110': 3, '11111': 5, '10100': 29, '10000': 427, '01111': 10, '10001': 38, '01010': 9, '11001': 6, '10010': 24, '11011': 9, '11100': 10, '00110': 10}}
+Time to get backend : 5.1662325859069824e-05
+Time to run tomography : 860.6722709797323
+Total time: 860.6723226420581
+{'ii': {'00101': 22, '01101': 12, '01000': 162, '10110': 1, '00100': 78, '00001': 130, '01001': 10, '01110': 6, '11101': 3, '00011': 653, '00010': 89, '10011': 172, '10111': 7, '01011': 69, '01100': 44, '10101': 6, '11000': 52, '00111': 22, '00000': 1978, '10000': 427, '11111': 5, '10100': 29, '11110': 3, '01111': 10, '10001': 38, '01010': 9, '11001': 6, '10010': 24, '11011': 9, '11100': 10, '00110': 10}}
+Measure ON: [[ 0.93457  0.73413  0.71338  1.     ]]
+Rotated ON: [[ 0.9864   0.7595   0.74586  1.00005]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[  0.  30.]
+Fitted wavefunction: 
+Alpha: 0.8636410014595637, Beta: 0.49042020812521336, Gamma: 0.11667150492020084
+Distance from GPC plane: 2.8684042775811717e-05
+Total Energy: -3.100790691361103 Hartrees
+----------
+Step:-01, Init. Energy: -3.28695662 Hartrees
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+'"{\'status\': 400, \'code\': \'GENERIC_ERROR\', \'message\': \'Generic error\'}"'
+Circuit counts:{}
+Time to get backend : 5.33275306224823e-05
+Time to run tomography : 243.9533585011959
+Total time: 243.95341182872653
+----------
+----------
+Error in run. Saving optimization object to file.
+Optimizing the orbitals.
+Initializing the Nelder-Mead optimization class.
+---------- 
+Step:-01, Init. Energy: -3.28695662 Hartrees
+Step: 00, Total Energy: -3.28695662 Sigma: 5.61295324  
+Step: 01, Total Energy: -3.28695662 Sigma: 5.78645377  
+Step: 02, Total Energy: -3.28695662 Sigma: 5.69477882  
+Step: 03, Total Energy: -3.28695662 Sigma: 5.01753694  
+Step: 04, Total Energy: -3.28695662 Sigma: 5.44417486  
+Step: 05, Total Energy: -3.28695662 Sigma: 5.43644491  
+Step: 06, Total Energy: -3.28695662 Sigma: 5.51242894  
+Step: 07, Total Energy: -3.28715269 Sigma: 4.97760124  
+Step: 08, Total Energy: -3.28715269 Sigma: 4.72562497  
+Step: 09, Total Energy: -3.28868937 Sigma: 4.73796875  
+Step: 10, Total Energy: -3.28868937 Sigma: 4.37737176  
+Step: 11, Total Energy: -3.28868937 Sigma: 3.88973930  
+Step: 12, Total Energy: -3.28886947 Sigma: 3.88358695  
+Step: 13, Total Energy: -3.28901709 Sigma: 3.78022513  
+Step: 14, Total Energy: -3.28920447 Sigma: 2.27204103  
+Step: 15, Total Energy: -3.28932362 Sigma: 1.96875875  
+Step: 16, Total Energy: -3.28932362 Sigma: 1.84308428  
+Step: 17, Total Energy: -3.28932362 Sigma: 1.71233723  
+Step: 18, Total Energy: -3.28966821 Sigma: 1.70914483  
+Step: 19, Total Energy: -3.28966821 Sigma: 1.66555401  
+Step: 20, Total Energy: -3.28966821 Sigma: 1.67049185  
+Step: 21, Total Energy: -3.28966821 Sigma: 1.55449193  
+Step: 22, Total Energy: -3.28966821 Sigma: 1.58335182  
+Step: 23, Total Energy: -3.28978662 Sigma: 1.22209676  
+Step: 24, Total Energy: -3.28978662 Sigma: 1.21639930  
+Step: 25, Total Energy: -3.28978662 Sigma: 1.11236696  
+Step: 26, Total Energy: -3.28981726 Sigma: 0.83176764  
+Step: 27, Total Energy: -3.28981726 Sigma: 0.80370876  
+Step: 28, Total Energy: -3.28981726 Sigma: 0.70456831  
+Step: 29, Total Energy: -3.28986381 Sigma: 0.52095849  
+Step: 30, Total Energy: -3.28986381 Sigma: 0.52260735  
+Step: 31, Total Energy: -3.28987685 Sigma: 0.46974913  
+Step: 32, Total Energy: -3.28987685 Sigma: 0.47152704  
+Step: 33, Total Energy: -3.28989156 Sigma: 0.47681907  
+Step: 34, Total Energy: -3.28989156 Sigma: 0.40561377  
+Step: 35, Total Energy: -3.28989156 Sigma: 0.37340482  
+Step: 36, Total Energy: -3.28989916 Sigma: 0.36762160  
+Step: 37, Total Energy: -3.28990865 Sigma: 0.25415327  
+Step: 38, Total Energy: -3.28990865 Sigma: 0.25776830  
+Step: 39, Total Energy: -3.28990865 Sigma: 0.26203924  
+Step: 40, Total Energy: -3.28991921 Sigma: 0.26225275  
+Step: 41, Total Energy: -3.28992016 Sigma: 0.25846509  
+Step: 42, Total Energy: -3.28992016 Sigma: 0.25386685  
+Step: 43, Total Energy: -3.28992016 Sigma: 0.20925552  
+Step: 44, Total Energy: -3.28992016 Sigma: 0.20914120  
+Step: 45, Total Energy: -3.28992079 Sigma: 0.20915325  
+Step: 46, Total Energy: -3.28992554 Sigma: 0.20803713  
+Step: 47, Total Energy: -3.28992559 Sigma: 0.20542709  
+Step: 48, Total Energy: -3.28992583 Sigma: 0.20014026  
+Step: 49, Total Energy: -3.28992583 Sigma: 0.20058588  
+Step: 50, Total Energy: -3.28992644 Sigma: 0.20113940  
+Step: 51, Total Energy: -3.28992644 Sigma: 0.20043072  
+Step: 52, Total Energy: -3.28992644 Sigma: 0.20249068  
+Step: 53, Total Energy: -3.28992761 Sigma: 0.20246758  
+Step: 54, Total Energy: -3.28992843 Sigma: 0.18673554  
+Step: 55, Total Energy: -3.28992843 Sigma: 0.16939416  
+Step: 56, Total Energy: -3.28992912 Sigma: 0.13036117  
+Step: 57, Total Energy: -3.28993464 Sigma: 0.17599096  
+Step: 58, Total Energy: -3.28993464 Sigma: 0.17283036  
+Step: 59, Total Energy: -3.28993464 Sigma: 0.17047240  
+Step: 60, Total Energy: -3.28993464 Sigma: 0.16894725  
+Step: 61, Total Energy: -3.28993464 Sigma: 0.16860612  
+Step: 62, Total Energy: -3.28993464 Sigma: 0.16604056  
+Step: 63, Total Energy: -3.28993464 Sigma: 0.16448186  
+Step: 64, Total Energy: -3.28993464 Sigma: 0.15004751  
+Step: 65, Total Energy: -3.28993464 Sigma: 0.15005494  
+Step: 66, Total Energy: -3.28993464 Sigma: 0.10318620  
+Step: 67, Total Energy: -3.28993464 Sigma: 0.10438368  
+Step: 68, Total Energy: -3.28993464 Sigma: 0.10462412  
+Step: 69, Total Energy: -3.28993464 Sigma: 0.09684677  
+Step: 70, Total Energy: -3.28993464 Sigma: 0.09685116  
+Step: 71, Total Energy: -3.28993470 Sigma: 0.09670835  
+Step: 72, Total Energy: -3.28993485 Sigma: 0.09629822  
+Step: 73, Total Energy: -3.28993673 Sigma: 0.10217571  
+Step: 74, Total Energy: -3.28993928 Sigma: 0.15131089  
+Step: 75, Total Energy: -3.28993928 Sigma: 0.15005134  
+Step: 76, Total Energy: -3.28994188 Sigma: 0.18407296  
+Step: 77, Total Energy: -3.28994188 Sigma: 0.18388568  
+Step: 78, Total Energy: -3.28994572 Sigma: 0.21715008  
+Step: 79, Total Energy: -3.28994572 Sigma: 0.21469000  
+Step: 80, Total Energy: -3.28994572 Sigma: 0.20594046  
+Step: 81, Total Energy: -3.28995216 Sigma: 0.26847386  
+Step: 82, Total Energy: -3.28995216 Sigma: 0.26712587  
+Step: 83, Total Energy: -3.28995216 Sigma: 0.26256224  
+Step: 84, Total Energy: -3.28995258 Sigma: 0.33974493  
+Step: 85, Total Energy: -3.28995383 Sigma: 0.34340178  
+Step: 86, Total Energy: -3.28995702 Sigma: 0.39556493  
+Step: 87, Total Energy: -3.28995954 Sigma: 0.36576344  
+Step: 88, Total Energy: -3.28995954 Sigma: 0.35651276  
+Step: 89, Total Energy: -3.28995954 Sigma: 0.34213891  
+Step: 90, Total Energy: -3.28995954 Sigma: 0.26058734  
+Step: 91, Total Energy: -3.28995967 Sigma: 0.26446997  
+Step: 92, Total Energy: -3.28996140 Sigma: 0.26257135  
+Step: 93, Total Energy: -3.28996140 Sigma: 0.18834266  
+Step: 94, Total Energy: -3.28996140 Sigma: 0.19521911  
+Step: 95, Total Energy: -3.28996175 Sigma: 0.19937129  
+Step: 96, Total Energy: -3.28996316 Sigma: 0.20598295  
+Step: 97, Total Energy: -3.28996316 Sigma: 0.20119359  
+Step: 98, Total Energy: -3.28996316 Sigma: 0.19757297  
+Step: 99, Total Energy: -3.28996548 Sigma: 0.19695879  
+Step: 100, Total Energy: -3.28996579 Sigma: 0.19308479  
+Step: 101, Total Energy: -3.28996579 Sigma: 0.17991394  
+Step: 102, Total Energy: -3.28996579 Sigma: 0.17789325  
+Step: 103, Total Energy: -3.28996584 Sigma: 0.17478834  
+Step: 104, Total Energy: -3.28996692 Sigma: 0.13830627  
+Step: 105, Total Energy: -3.28996692 Sigma: 0.13047610  
+Step: 106, Total Energy: -3.28996703 Sigma: 0.12783096  
+Step: 107, Total Energy: -3.28996772 Sigma: 0.05828867  
+Step: 108, Total Energy: -3.28996825 Sigma: 0.06542026  
+Step: 109, Total Energy: -3.28996868 Sigma: 0.06681972  
+Step: 110, Total Energy: -3.28996868 Sigma: 0.06605421  
+Step: 111, Total Energy: -3.28996868 Sigma: 0.06649969  
+Step: 112, Total Energy: -3.28996868 Sigma: 0.06603718  
+Step: 113, Total Energy: -3.28996868 Sigma: 0.06567058  
+Step: 114, Total Energy: -3.28996868 Sigma: 0.06303830  
+Step: 115, Total Energy: -3.28996890 Sigma: 0.06374917  
+Step: 116, Total Energy: -3.28996890 Sigma: 0.02716703  
+Step: 117, Total Energy: -3.28996920 Sigma: 0.02141441  
+Step: 118, Total Energy: -3.28996928 Sigma: 0.02201839  
+Step: 119, Total Energy: -3.28996928 Sigma: 0.01590819  
+Step: 120, Total Energy: -3.28996960 Sigma: 0.01645361  
+Step: 121, Total Energy: -3.28996960 Sigma: 0.02571618  
+Step: 122, Total Energy: -3.28996960 Sigma: 0.02762505  
+Step: 123, Total Energy: -3.28996960 Sigma: 0.02383310  
+Step: 124, Total Energy: -3.28996960 Sigma: 0.03090959  
+Step: 125, Total Energy: -3.28996968 Sigma: 0.03121451  
+Step: 126, Total Energy: -3.28996968 Sigma: 0.03067402  
+Step: 127, Total Energy: -3.28996968 Sigma: 0.01670125  
+Step: 128, Total Energy: -3.28996973 Sigma: 0.01969795  
+Step: 129, Total Energy: -3.28996975 Sigma: 0.02080965  
+Step: 130, Total Energy: -3.28997002 Sigma: 0.02009457  
+Step: 131, Total Energy: -3.28997002 Sigma: 0.01802430  
+Step: 132, Total Energy: -3.28997002 Sigma: 0.01768587  
+Step: 133, Total Energy: -3.28997002 Sigma: 0.01189617  
+Step: 134, Total Energy: -3.28997002 Sigma: 0.01152463  
+Step: 135, Total Energy: -3.28997002 Sigma: 0.01008552  
+Step: 136, Total Energy: -3.28997002 Sigma: 0.00920173  
+Step: 137, Total Energy: -3.28997006 Sigma: 0.00893152  
+Step: 138, Total Energy: -3.28997009 Sigma: 0.00924328  
+Step: 139, Total Energy: -3.28997009 Sigma: 0.00919822  
+Step: 140, Total Energy: -3.28997010 Sigma: 0.00731372  
+Step: 141, Total Energy: -3.28997010 Sigma: 0.00731171  
+Step: 142, Total Energy: -3.28997014 Sigma: 0.00701360  
+Step: 143, Total Energy: -3.28997014 Sigma: 0.00568805  
+Step: 144, Total Energy: -3.28997014 Sigma: 0.00534936  
+Step: 145, Total Energy: -3.28997014 Sigma: 0.00527573  
+Step: 146, Total Energy: -3.28997014 Sigma: 0.00412672  
+Step: 147, Total Energy: -3.28997014 Sigma: 0.00419079  
+Step: 148, Total Energy: -3.28997014 Sigma: 0.00416350  
+Step: 149, Total Energy: -3.28997016 Sigma: 0.00400246  
+Step: 150, Total Energy: -3.28997016 Sigma: 0.00411727  
+Step: 151, Total Energy: -3.28997016 Sigma: 0.00404603  
+Step: 152, Total Energy: -3.28997016 Sigma: 0.00404670  
+Step: 153, Total Energy: -3.28997016 Sigma: 0.00342696  
+Step: 154, Total Energy: -3.28997016 Sigma: 0.00333700  
+Step: 155, Total Energy: -3.28997016 Sigma: 0.00333528  
+Step: 156, Total Energy: -3.28997017 Sigma: 0.00347272  
+Step: 157, Total Energy: -3.28997017 Sigma: 0.00341275  
+Step: 158, Total Energy: -3.28997017 Sigma: 0.00281444  
+Step: 159, Total Energy: -3.28997017 Sigma: 0.00270968  
+Step: 160, Total Energy: -3.28997017 Sigma: 0.00261156  
+Step: 161, Total Energy: -3.28997017 Sigma: 0.00260365  
+Step: 162, Total Energy: -3.28997018 Sigma: 0.00258363  
+Step: 163, Total Energy: -3.28997018 Sigma: 0.00246225  
+Step: 164, Total Energy: -3.28997018 Sigma: 0.00248424  
+Step: 165, Total Energy: -3.28997018 Sigma: 0.00215929  
+Step: 166, Total Energy: -3.28997018 Sigma: 0.00218075  
+Step: 167, Total Energy: -3.28997018 Sigma: 0.00171478  
+Step: 168, Total Energy: -3.28997018 Sigma: 0.00171982  
+Step: 169, Total Energy: -3.28997018 Sigma: 0.00150016  
+Step: 170, Total Energy: -3.28997018 Sigma: 0.00142970  
+Step: 171, Total Energy: -3.28997018 Sigma: 0.00141650  
+Step: 172, Total Energy: -3.28997018 Sigma: 0.00111997  
+Step: 173, Total Energy: -3.28997018 Sigma: 0.00092556  
+Step: 174, Total Energy: -3.28997018 Sigma: 0.00092526  
+Step: 175, Total Energy: -3.28997018 Sigma: 0.00088781  
+Step: 176, Total Energy: -3.28997018 Sigma: 0.00088875  
+Step: 177, Total Energy: -3.28997018 Sigma: 0.00088828  
+Step: 178, Total Energy: -3.28997018 Sigma: 0.00087685  
+Step: 179, Total Energy: -3.28997018 Sigma: 0.00076739  
+Step: 180, Total Energy: -3.28997018 Sigma: 0.00074411  
+Step: 181, Total Energy: -3.28997018 Sigma: 0.00074334  
+Step: 182, Total Energy: -3.28997018 Sigma: 0.00052616  
+Step: 183, Total Energy: -3.28997018 Sigma: 0.00052694  
+Step: 184, Total Energy: -3.28997018 Sigma: 0.00044359  
+Step: 185, Total Energy: -3.28997018 Sigma: 0.00039679  
+Step: 186, Total Energy: -3.28997018 Sigma: 0.00038697  
+Step: 187, Total Energy: -3.28997018 Sigma: 0.00038770  
+Step: 188, Total Energy: -3.28997018 Sigma: 0.00038888  
+Step: 189, Total Energy: -3.28997018 Sigma: 0.00038887  
+Step: 190, Total Energy: -3.28997018 Sigma: 0.00038798  
+Step: 191, Total Energy: -3.28997018 Sigma: 0.00038083  
+Step: 192, Total Energy: -3.28997018 Sigma: 0.00037996  
+Step: 193, Total Energy: -3.28997018 Sigma: 0.00037944  
+Step: 194, Total Energy: -3.28997018 Sigma: 0.00037976  
+Step: 195, Total Energy: -3.28997018 Sigma: 0.00035657  
+Step: 196, Total Energy: -3.28997018 Sigma: 0.00024808  
+Step: 197, Total Energy: -3.28997018 Sigma: 0.00023872  
+Step: 198, Total Energy: -3.28997018 Sigma: 0.00022099  
+Step: 199, Total Energy: -3.28997018 Sigma: 0.00018012  
+Step: 200, Total Energy: -3.28997018 Sigma: 0.00017999  
+Step: 201, Total Energy: -3.28997018 Sigma: 0.00017690  
+Step: 202, Total Energy: -3.28997018 Sigma: 0.00016194  
+Step: 203, Total Energy: -3.28997018 Sigma: 0.00013876  
+Step: 204, Total Energy: -3.28997018 Sigma: 0.00012943  
+Step: 205, Total Energy: -3.28997018 Sigma: 0.00011390  
+Step: 206, Total Energy: -3.28997018 Sigma: 0.00011392  
+Step: 207, Total Energy: -3.28997018 Sigma: 0.00009612  
+Criteria met for convergence.
+----------
+Checking orbital and occupation energies for convergence...
+----------
+Total number of iterations: 1
+##########
+ERROR: encountered some error along the way. Run is likely
+not fully converged. Check what went wrong.
+##########
+------------------------------
+------------------------------
+## Energy Evaluation ## 
+Final energy                : -3.28997018 Hartrees
+Final sigma                 : 0.00301356
+
+Hartree Fock Energy         : -3.27383373 Hartrees
+Full CI energy              : -3.29313279 Hartrees
+Difference in target and FCI  :  3.16261 mHartrees
+----------
+Correlation energy recovered: -16.13645 mHartrees
+Correlation energy recovered: 83.613 %
+------------------------------
+------------------------------
+Wavefunction (Hamiltonian basis):
+ |110100>: 0.9901258029276633
+ |101010>: 0.13514215164141927
+ |011001>: 0.0372490701438013
+----------
+1-Electron Reduced Density Matrix:
+[[ 0.99861+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.98174+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.01965+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.98035+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.01826+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00139+0.j]]
+Total orbital energy evaluations   : 459
+Total occupation energy evaluations: 3

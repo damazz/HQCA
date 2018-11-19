@@ -1,0 +1,1082 @@
+un on: 2018-06-05T22:14:21.071281
+----------
+Hello. Beginning a hybrid quantum classical optimization
+to find the ground state energy of your target molecule. 
+Let's begin!
+----------
+Computational parameters are taken from: ./test/h3_dis/h3.txt
+Molecular parameters are taken from: ./test/h3_dis/h3_2.py
+Importing run parameters.
+Calculating electron integrals in the spin natural orbital basis (FCI).
+Electron integrals obtained. Moving forward.
+----------
+Wavefunction mapping is: zeta
+Nuclear energy: 1.41128977 Hartrees
+Quantum algorithm: ry2p_raven_diag
+Quantum backend: ibmqx4
+----------
+Beginning a Nelder-Mead Optimization
+---------- 
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+Results for circuit: main
+{'00000': 821, '00100': 135, '00001': 28, '00011': 10, '00111': 3, '00110': 2, '00010': 10, '00101': 15}
+Parameters: 
+[3.379 5.48 ]
+Fitted wavefunction: 
+Alpha: -0.9341955652681437, Beta: 0.28067069969390596, Gamma: -0.2202330678319374
+Distance from GPC plane: 0.04172257804690656
+Total Energy: -1.3656690245982603 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00000': 824, '00001': 21, '00010': 5, '00101': 14, '00100': 137, '00111': 2, '00011': 20, '00110': 1}
+Parameters: 
+[5.129 5.48 ]
+Fitted wavefunction: 
+Alpha: -0.9338470498427459, Beta: 0.2795084971874737, Gamma: 0.22316963839196408
+Distance from GPC plane: 0.0389034849356291
+Total Energy: -1.5116970805075978 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+Results for circuit: main
+{'00111': 4, '00000': 811, '00110': 1, '00010': 7, '00100': 136, '00001': 36, '00011': 11, '00101': 18}
+Parameters: 
+[3.379 7.23 ]
+Fitted wavefunction: 
+Alpha: -0.9308794005312038, Beta: -0.29865148305898864, Gamma: -0.2104063528825431
+Distance from GPC plane: 0.0377758476911181
+Total Energy: -1.2798130042470368 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [5.129 3.73 ]
+-1.2490875119573785
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00111': 4, '00110': 1, '00011': 11, '00010': 8, '00101': 29, '00001': 30, '00100': 124, '00000': 817}
+Parameters: 
+[3.8165 6.355 ]
+Fitted wavefunction: 
+Alpha: -0.930179754133576, Beta: -0.30297999108852075, Gamma: -0.2072890493972125
+Distance from GPC plane: 0.03382911733532964
+Total Energy: -1.2796947260773996 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+Results for circuit: main
+{'00100': 142, '00101': 18, '00001': 41, '00011': 16, '00110': 1, '00000': 800, '00111': 3, '00010': 3}
+Parameters: 
+[4.6915 4.605 ]
+Fitted wavefunction: 
+Alpha: 0.9275513799784894, Beta: 0.3109335740958189, Gamma: -0.2072890493972125
+Distance from GPC plane: 0.035520573202096124
+Total Energy: -1.3331309699901301 Hartrees
+----------
+NM: Contracting the triangle.
+[4.6915 4.605 ]
+Maximum distance from centroid: 0.978279740156158
+----------
+----------
+Step: 00, Total Energy: -1.51169708 Sigma: 0.01898333  
+----------
+----------
+Best simplex: [5.129 5.48 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [3.8165 6.355 ]
+-1.311593400810371
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00110': 1, '00101': 17, '00111': 1, '00011': 21, '00000': 821, '00001': 41, '00010': 6, '00100': 116}
+Parameters: 
+[4.47275 5.0425 ]
+Fitted wavefunction: 
+Alpha: -0.9362839335194568, Beta: 0.2942593102463654, Gamma: -0.19179117332835405
+Distance from GPC plane: 0.014659284178642854
+Total Energy: -1.3921931830320982 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+Results for circuit: main
+{'00101': 17, '00000': 817, '00010': 4, '00011': 12, '00111': 1, '00100': 133, '00110': 2, '00001': 38}
+Parameters: 
+[4.03525 5.9175 ]
+Fitted wavefunction: 
+Alpha: -0.9338470498427459, Beta: 0.29646353064078557, Gamma: -0.20009763241977652
+Distance from GPC plane: 0.03721202906886261
+Total Energy: -1.382239848334478 Hartrees
+----------
+NM: Contracting the triangle.
+[4.47275 5.0425 ]
+Maximum distance from centroid: 1.4386035166525204
+----------
+----------
+Step: 01, Total Energy: -1.51169708 Sigma: 0.01797523  
+----------
+----------
+Best simplex: [5.129 5.48 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [6.22275 5.0425 ]
+-1.5048763626388877
+NM: Reflected point soso.
+Maximum distance from centroid: 1.2228496751951974
+----------
+----------
+Step: 02, Total Energy: -1.51169708 Sigma: 0.02086905  
+----------
+----------
+Best simplex: [5.129 5.48 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [6.879 5.48 ]
+-1.358264297097595
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00110': 2, '00000': 826, '00101': 19, '00100': 128, '00011': 13, '00001': 30, '00111': 1, '00010': 5}
+Parameters: 
+[5.0743125 5.151875 ]
+Fitted wavefunction: 
+Alpha: -0.9354143466934853, Beta: 0.2881107642904027, Gamma: 0.2049199538844375
+Distance from GPC plane: 0.03721202906886261
+Total Energy: -1.5184456897854521 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+Results for circuit: main
+{'00110': 2, '00010': 7, '00101': 21, '00100': 110, '00001': 23, '00111': 4, '00011': 13, '00000': 844}
+Parameters: 
+[6.2774375 5.370625 ]
+Fitted wavefunction: 
+Alpha: -0.9394077810869286, Beta: 0.2754021680500475, Gamma: 0.2041241452319317
+Distance from GPC plane: 0.028190931112774698
+Total Energy: -1.5224794778875368 Hartrees
+----------
+NM: Contracting the triangle.
+[6.2774375 5.370625 ]
+Maximum distance from centroid: 0.6453356722534502
+----------
+----------
+Step: 03, Total Energy: -1.52247948 Sigma: 0.01256382  
+----------
+----------
+Best simplex: [6.2774375 5.370625 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [5.1836875 5.808125 ]
+-1.5164546050824899
+NM: Reflected point soso.
+Maximum distance from centroid: 0.6114248375975987
+----------
+----------
+Step: 04, Total Energy: -1.52247948 Sigma: 0.01247746  
+----------
+----------
+Best simplex: [6.2774375 5.370625 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [6.332125 5.69875 ]
+-1.3488116769060299
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+status = RUNNING (205 seconds)
+status = RUNNING (210 seconds)
+status = RUNNING (215 seconds)
+status = RUNNING (220 seconds)
+status = RUNNING (225 seconds)
+status = RUNNING (230 seconds)
+status = RUNNING (235 seconds)
+status = RUNNING (240 seconds)
+status = RUNNING (245 seconds)
+status = RUNNING (250 seconds)
+status = RUNNING (255 seconds)
+status = RUNNING (260 seconds)
+status = RUNNING (265 seconds)
+status = RUNNING (270 seconds)
+status = RUNNING (275 seconds)
+status = RUNNING (280 seconds)
+status = RUNNING (285 seconds)
+status = RUNNING (290 seconds)
+status = RUNNING (295 seconds)
+status = RUNNING (300 seconds)
+status = RUNNING (305 seconds)
+status = RUNNING (310 seconds)
+status = RUNNING (315 seconds)
+status = RUNNING (320 seconds)
+status = RUNNING (325 seconds)
+status = RUNNING (330 seconds)
+status = RUNNING (335 seconds)
+status = RUNNING (340 seconds)
+status = RUNNING (345 seconds)
+status = RUNNING (350 seconds)
+status = RUNNING (355 seconds)
+status = RUNNING (360 seconds)
+status = RUNNING (365 seconds)
+status = RUNNING (370 seconds)
+status = RUNNING (375 seconds)
+status = RUNNING (380 seconds)
+status = RUNNING (385 seconds)
+status = RUNNING (390 seconds)
+status = RUNNING (395 seconds)
+status = RUNNING (400 seconds)
+status = RUNNING (405 seconds)
+status = RUNNING (410 seconds)
+status = RUNNING (415 seconds)
+status = RUNNING (420 seconds)
+status = RUNNING (425 seconds)
+status = RUNNING (430 seconds)
+status = RUNNING (435 seconds)
+status = RUNNING (440 seconds)
+status = RUNNING (445 seconds)
+status = RUNNING (450 seconds)
+status = RUNNING (455 seconds)
+status = RUNNING (460 seconds)
+status = RUNNING (465 seconds)
+status = RUNNING (470 seconds)
+status = RUNNING (475 seconds)
+status = RUNNING (480 seconds)
+status = RUNNING (485 seconds)
+status = RUNNING (490 seconds)
+status = RUNNING (495 seconds)
+status = RUNNING (500 seconds)
+status = RUNNING (505 seconds)
+status = RUNNING (510 seconds)
+status = RUNNING (515 seconds)
+status = RUNNING (520 seconds)
+status = RUNNING (525 seconds)
+status = RUNNING (530 seconds)
+status = RUNNING (535 seconds)
+status = RUNNING (540 seconds)
+status = RUNNING (545 seconds)
+status = RUNNING (550 seconds)
+status = RUNNING (555 seconds)
+status = RUNNING (560 seconds)
+status = RUNNING (565 seconds)
+status = RUNNING (570 seconds)
+status = RUNNING (575 seconds)
+status = RUNNING (580 seconds)
+status = RUNNING (585 seconds)
+status = RUNNING (590 seconds)
+status = RUNNING (595 seconds)
+status = RUNNING (600 seconds)
+status = RUNNING (605 seconds)
+status = RUNNING (610 seconds)
+status = RUNNING (615 seconds)
+status = RUNNING (620 seconds)
+status = RUNNING (625 seconds)
+status = RUNNING (630 seconds)
+status = RUNNING (635 seconds)
+status = RUNNING (640 seconds)
+status = RUNNING (645 seconds)
+status = RUNNING (650 seconds)
+status = RUNNING (655 seconds)
+status = RUNNING (660 seconds)
+status = RUNNING (665 seconds)
+status = RUNNING (670 seconds)
+status = RUNNING (675 seconds)
+status = RUNNING (680 seconds)
+status = RUNNING (685 seconds)
+status = RUNNING (690 seconds)
+status = RUNNING (695 seconds)
+status = RUNNING (700 seconds)
+status = RUNNING (705 seconds)
+status = RUNNING (710 seconds)
+status = RUNNING (715 seconds)
+status = RUNNING (720 seconds)
+status = RUNNING (725 seconds)
+status = RUNNING (730 seconds)
+status = RUNNING (735 seconds)
+status = RUNNING (740 seconds)
+Results for circuit: main
+{'00111': 3, '00100': 114, '00110': 2, '00011': 13, '00101': 20, '00001': 17, '00010': 4, '00000': 851}
+Parameters: 
+[5.42978125 5.5346875 ]
+Fitted wavefunction: 
+Alpha: -0.9407928283279658, Beta: 0.26942744075786573, Gamma: 0.2057126839388696
+Distance from GPC plane: 0.036084391824351615
+Total Energy: -1.5233284826392155 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+status = RUNNING (205 seconds)
+status = RUNNING (210 seconds)
+status = RUNNING (215 seconds)
+status = RUNNING (220 seconds)
+status = RUNNING (225 seconds)
+status = RUNNING (230 seconds)
+status = RUNNING (235 seconds)
+status = RUNNING (240 seconds)
+status = RUNNING (245 seconds)
+status = RUNNING (250 seconds)
+status = RUNNING (255 seconds)
+status = RUNNING (260 seconds)
+status = RUNNING (265 seconds)
+status = RUNNING (270 seconds)
+status = RUNNING (275 seconds)
+status = RUNNING (280 seconds)
+status = RUNNING (285 seconds)
+status = RUNNING (290 seconds)
+status = RUNNING (295 seconds)
+status = RUNNING (300 seconds)
+status = RUNNING (305 seconds)
+status = RUNNING (310 seconds)
+status = RUNNING (315 seconds)
+status = RUNNING (320 seconds)
+status = RUNNING (325 seconds)
+status = RUNNING (330 seconds)
+status = RUNNING (335 seconds)
+status = RUNNING (340 seconds)
+status = RUNNING (345 seconds)
+status = RUNNING (350 seconds)
+status = RUNNING (355 seconds)
+status = RUNNING (360 seconds)
+status = RUNNING (365 seconds)
+status = RUNNING (370 seconds)
+status = RUNNING (375 seconds)
+status = RUNNING (380 seconds)
+status = RUNNING (385 seconds)
+status = RUNNING (390 seconds)
+status = RUNNING (395 seconds)
+status = RUNNING (400 seconds)
+status = RUNNING (405 seconds)
+status = RUNNING (410 seconds)
+status = RUNNING (415 seconds)
+status = RUNNING (420 seconds)
+status = RUNNING (425 seconds)
+status = RUNNING (430 seconds)
+status = RUNNING (435 seconds)
+status = RUNNING (440 seconds)
+status = RUNNING (445 seconds)
+status = RUNNING (450 seconds)
+status = RUNNING (455 seconds)
+status = RUNNING (460 seconds)
+status = RUNNING (465 seconds)
+status = RUNNING (470 seconds)
+status = RUNNING (475 seconds)
+status = RUNNING (480 seconds)
+status = RUNNING (485 seconds)
+status = RUNNING (490 seconds)
+status = RUNNING (495 seconds)
+status = RUNNING (500 seconds)
+status = RUNNING (505 seconds)
+status = RUNNING (510 seconds)
+status = RUNNING (515 seconds)
+status = RUNNING (520 seconds)
+status = RUNNING (525 seconds)
+status = RUNNING (530 seconds)
+status = RUNNING (535 seconds)
+status = RUNNING (540 seconds)
+status = RUNNING (545 seconds)
+status = RUNNING (550 seconds)
+status = RUNNING (555 seconds)
+status = RUNNING (560 seconds)
+status = RUNNING (565 seconds)
+status = RUNNING (570 seconds)
+status = RUNNING (575 seconds)
+status = RUNNING (580 seconds)
+status = RUNNING (585 seconds)
+status = RUNNING (590 seconds)
+status = RUNNING (595 seconds)
+status = RUNNING (600 seconds)
+status = RUNNING (605 seconds)
+status = RUNNING (610 seconds)
+status = RUNNING (615 seconds)
+status = RUNNING (620 seconds)
+status = RUNNING (625 seconds)
+status = RUNNING (630 seconds)
+status = RUNNING (635 seconds)
+status = RUNNING (640 seconds)
+status = RUNNING (645 seconds)
+status = RUNNING (650 seconds)
+status = RUNNING (655 seconds)
+status = RUNNING (660 seconds)
+status = RUNNING (665 seconds)
+status = RUNNING (670 seconds)
+status = RUNNING (675 seconds)
+status = RUNNING (680 seconds)
+status = RUNNING (685 seconds)
+status = RUNNING (690 seconds)
+status = RUNNING (695 seconds)
+status = RUNNING (700 seconds)
+status = RUNNING (705 seconds)
+status = RUNNING (710 seconds)
+status = RUNNING (715 seconds)
+status = RUNNING (720 seconds)
+Results for circuit: main
+{'00001': 34, '00100': 111, '00000': 818, '00110': 1, '00111': 3, '00011': 24, '00101': 25, '00010': 8}
+Parameters: 
+[6.03134375 5.6440625 ]
+Fitted wavefunction: 
+Alpha: -0.9322771181360187, Beta: 0.2997394702070448, Gamma: 0.20252314682524564
+Distance from GPC plane: 0.010148735200598892
+Total Energy: -1.5158938226676004 Hartrees
+----------
+NM: Contracting the triangle.
+[5.42978125 5.5346875 ]
+Maximum distance from centroid: 0.7583886542071144
+----------
+----------
+Step: 05, Total Energy: -1.52332848 Sigma: 0.00929498  
+----------
+----------
+Best simplex: [5.42978125 5.5346875 ]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [6.52353125 5.0971875 ]
+-1.3680606977533034
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+Results for circuit: main
+{'00010': 3, '00100': 120, '00111': 4, '00110': 3, '00101': 17, '00001': 39, '00000': 831, '00011': 7}
+Parameters: 
+[5.51864844 5.63039063]
+Fitted wavefunction: 
+Alpha: -0.9375, Beta: 0.2914805954090255, Gamma: 0.19008632907181935
+Distance from GPC plane: 0.033829117335329645
+Total Energy: -1.5239189807261986 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+Results for circuit: main
+{'00111': 2, '00001': 32, '00101': 18, '00000': 830, '00010': 9, '00011': 20, '00110': 1, '00100': 112}
+Parameters: 
+[6.18857031 5.27492188]
+Fitted wavefunction: 
+Alpha: -0.9378471579456146, Beta: 0.2824050356609578, Gamma: 0.2017178826149698
+Distance from GPC plane: 0.01635074004540932
+Total Energy: -1.521617130025621 Hartrees
+----------
+NM: Contracting the triangle.
+[5.51864844 5.63039063]
+Maximum distance from centroid: 0.8307070514920164
+----------
+----------
+Step: 06, Total Energy: -1.52391898 Sigma: 0.00861492  
+----------
+----------
+Best simplex: [5.51864844 5.63039063]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [4.67099219 5.79445313]
+-1.3894581477962284
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00010': 1, '00111': 2, '00000': 820, '00001': 31, '00100': 134, '00011': 14, '00110': 2, '00101': 20}
+Parameters: 
+[5.87582617 5.47658203]
+Fitted wavefunction: 
+Alpha: -0.9322771181360187, Beta: 0.29810600044279534, Gamma: 0.2049199538844375
+Distance from GPC plane: 0.040594940802395584
+Total Energy: -1.5153182384050203 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Results for circuit: main
+{'00111': 4, '00101': 16, '00001': 26, '00000': 797, '00010': 7, '00110': 2, '00011': 7, '00100': 165}
+Parameters: 
+[5.07260352 5.68849609]
+Fitted wavefunction: 
+Alpha: -0.924387466109315, Beta: 0.2981060004427955, Gamma: 0.23799290955824715
+Distance from GPC plane: 0.06427532293712633
+Total Energy: -1.4976389013145295 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+Results for circuit: main
+{'00011': 16, '00111': 4, '00110': 2, '00100': 140, '00000': 811, '00001': 20, '00010': 5, '00101': 26}
+Parameters: 
+[5.47421484 5.58253906]
+Fitted wavefunction: 
+Alpha: -0.9261465304331348, Beta: 0.30028198552915747, Gamma: 0.22821773229381906
+Distance from GPC plane: 0.04454167115818403
+Total Energy: -1.5026272631971378 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+Results for circuit: main
+{'00011': 17, '00000': 807, '00111': 3, '00110': 1, '00001': 33, '00101': 20, '00010': 6, '00100': 137}
+Parameters: 
+[5.89804297 5.50050781]
+Fitted wavefunction: 
+Alpha: -0.9287788802149484, Beta: 0.30190368221227987, Gamma: 0.21499757750573203
+Distance from GPC plane: 0.03439293595758513
+Total Energy: -1.5091637966575182 Hartrees
+----------
+NM: Had to shrink..
+[[5.51864844 5.63039063]
+ [5.47421484 5.58253906]
+  [5.89804297 5.50050781]]
+  Maximum distance from centroid: 0.2347537477253035
+  ----------
+  ----------
+  Step: 07, Total Energy: -1.52391898 Sigma: 0.00416587  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  NM: Reflection: [5.94247656 5.54835938]
+  -1.4979822929591537
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  status = RUNNING (30 seconds)
+  status = RUNNING (35 seconds)
+  status = RUNNING (40 seconds)
+  status = RUNNING (45 seconds)
+  status = RUNNING (50 seconds)
+  status = RUNNING (55 seconds)
+  status = RUNNING (60 seconds)
+  status = RUNNING (65 seconds)
+  status = RUNNING (70 seconds)
+  status = RUNNING (75 seconds)
+  status = RUNNING (80 seconds)
+  status = RUNNING (85 seconds)
+  status = RUNNING (90 seconds)
+  status = RUNNING (95 seconds)
+  status = RUNNING (100 seconds)
+  status = RUNNING (105 seconds)
+  status = RUNNING (110 seconds)
+  Results for circuit: main
+  {'00100': 125, '00010': 8, '00000': 811, '00111': 2, '00001': 34, '00110': 2, '00101': 21, '00011': 21}
+  Parameters: 
+  [5.59128027 5.57399414]
+  Fitted wavefunction: 
+  Alpha: -0.9307045382397144, Beta: 0.29810600044279534, Gamma: 0.21194781197266463
+  Distance from GPC plane: 0.02198892626796427
+  Total Energy: -1.5119340773606145 Hartrees
+  ----------
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  Results for circuit: main
+  {'00111': 3, '00100': 139, '00000': 817, '00011': 15, '00110': 2, '00001': 19, '00101': 23, '00010': 6}
+  Parameters: 
+  [5.82541113 5.5569043 ]
+  Fitted wavefunction: 
+  Alpha: -0.9291292967074066, Beta: 0.29148059540902527, Gamma: 0.2275034340400162
+  Distance from GPC plane: 0.045669308402695015
+  Total Energy: -1.5058004244271133 Hartrees
+  ----------
+  NM: Contracting the triangle.
+  [5.59128027 5.57399414]
+  Maximum distance from centroid: 0.35783052794671283
+  ----------
+  ----------
+  Step: 08, Total Energy: -1.52391898 Sigma: 0.00331212  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  NM: Reflection: [5.21188574 5.70387695]
+  -1.5093143699509555
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  Results for circuit: main
+  {'00101': 22, '00000': 795, '00100': 140, '00001': 40, '00110': 4, '00010': 5, '00111': 1, '00011': 17}
+  Parameters: 
+  [5.72650366 5.5513501 ]
+  Fitted wavefunction: 
+  Alpha: -0.925443305935053, Beta: 0.3125, Gamma: 0.21423920626253262
+  Distance from GPC plane: 0.033829117335329645
+  Total Energy: -1.5059194951947168 Hartrees
+  ----------
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  status = RUNNING (30 seconds)
+  status = RUNNING (35 seconds)
+  status = RUNNING (40 seconds)
+  status = RUNNING (45 seconds)
+  status = RUNNING (50 seconds)
+  status = RUNNING (55 seconds)
+  status = RUNNING (60 seconds)
+  status = RUNNING (65 seconds)
+  status = RUNNING (70 seconds)
+  status = RUNNING (75 seconds)
+  status = RUNNING (80 seconds)
+  status = RUNNING (85 seconds)
+  status = RUNNING (90 seconds)
+  status = RUNNING (95 seconds)
+  status = RUNNING (100 seconds)
+  Results for circuit: main
+  {'00111': 1, '00100': 130, '00010': 6, '00101': 17, '00000': 823, '00001': 30, '00011': 13, '00110': 4}
+  Parameters: 
+  [5.38342505 5.65303467]
+  Fitted wavefunction: 
+  Alpha: -0.9345439507232035, Beta: 0.2852721653672737, Gamma: 0.21271435267356376
+  Distance from GPC plane: 0.03777584769111809
+  Total Energy: -1.5155105736178949 Hartrees
+  ----------
+  NM: Contracting the triangle.
+  [5.38342505 5.65303467]
+  Maximum distance from centroid: 0.15573709840427485
+  ----------
+  ----------
+  Step: 09, Total Energy: -1.52391898 Sigma: 0.00157964  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  NM: Reflection: [5.31079321 5.70943115]
+  -1.517477136470776
+  NM: Reflected point soso.
+  Maximum distance from centroid: 0.11118812814346662
+  ----------
+  ----------
+  Step: 10, Total Energy: -1.52391898 Sigma: 0.00155329  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  NM: Reflection: [5.4460166  5.68678711]
+  -1.503099320281105
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  Results for circuit: main
+  {'00000': 791, '00011': 14, '00110': 2, '00101': 18, '00010': 5, '00100': 142, '00111': 5, '00001': 47}
+  Parameters: 
+  [5.39907294 5.66147278]
+  Fitted wavefunction: 
+  Alpha: -0.9249155366842964, Beta: 0.31715286140913185, Gamma: 0.2096313728906053
+  Distance from GPC plane: 0.032137661468563165
+  Total Energy: -1.5065169949719137 Hartrees
+  ----------
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  status = RUNNING (30 seconds)
+  status = RUNNING (35 seconds)
+  status = RUNNING (40 seconds)
+  status = RUNNING (45 seconds)
+  status = RUNNING (50 seconds)
+  status = RUNNING (55 seconds)
+  status = RUNNING (60 seconds)
+  status = RUNNING (65 seconds)
+  status = RUNNING (70 seconds)
+  status = RUNNING (75 seconds)
+  status = RUNNING (80 seconds)
+  status = RUNNING (85 seconds)
+  status = RUNNING (90 seconds)
+  status = RUNNING (95 seconds)
+  status = RUNNING (100 seconds)
+  status = RUNNING (105 seconds)
+  status = RUNNING (110 seconds)
+  Results for circuit: main
+  {'00101': 23, '00000': 826, '00110': 2, '00010': 6, '00001': 32, '00011': 13, '00100': 122}
+  Parameters: 
+  [5.43036871 5.678349  ]
+  Fitted wavefunction: 
+  Alpha: -0.9355883287179962, Beta: 0.29203845351825375, Gamma: 0.19846415503393366
+  Distance from GPC plane: 0.03270148009081865
+  Total Energy: -1.5201820454356607 Hartrees
+  ----------
+  NM: Contracting the triangle.
+  [5.43036871 5.678349  ]
+  Maximum distance from centroid: 0.17272657911755795
+  ----------
+  ----------
+  Step: 11, Total Energy: -1.52391898 Sigma: 0.00144353  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  NM: Reflection: [5.63822394 5.59930847]
+  -1.5011460992678773
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  status = RUNNING (30 seconds)
+  status = RUNNING (35 seconds)
+  status = RUNNING (40 seconds)
+  status = RUNNING (45 seconds)
+  status = RUNNING (50 seconds)
+  status = RUNNING (55 seconds)
+  status = RUNNING (60 seconds)
+  status = RUNNING (65 seconds)
+  status = RUNNING (70 seconds)
+  status = RUNNING (75 seconds)
+  status = RUNNING (80 seconds)
+  status = RUNNING (85 seconds)
+  status = RUNNING (90 seconds)
+  status = RUNNING (95 seconds)
+  status = RUNNING (100 seconds)
+  status = RUNNING (105 seconds)
+  Results for circuit: main
+  {'00011': 26, '00001': 38, '00101': 26, '00010': 5, '00000': 800, '00100': 126, '00110': 2, '00111': 1}
+  Parameters: 
+  [5.39265089 5.68190048]
+  Fitted wavefunction: 
+  Alpha: -0.9264979425233496, Beta: 0.3140586131600278, Gamma: 0.2072890493972125
+  Distance from GPC plane: 0.016914558667664822
+  Total Energy: -1.508758265468059 Hartrees
+  ----------
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  running on backend: ibmqx4
+  status = RUNNING (5 seconds)
+  status = RUNNING (10 seconds)
+  status = RUNNING (15 seconds)
+  status = RUNNING (20 seconds)
+  status = RUNNING (25 seconds)
+  status = RUNNING (30 seconds)
+  status = RUNNING (35 seconds)
+  Results for circuit: main
+  {'00111': 1, '00101': 18, '00110': 1, '00100': 128, '00001': 28, '00010': 6, '00000': 827, '00011': 15}
+  Parameters: 
+  [5.55636626 5.62683914]
+  Fitted wavefunction: 
+  Alpha: -0.935936195741996, Beta: 0.2847010493482595, Gamma: 0.2072890493972125
+  Distance from GPC plane: 0.03552057320209613
+  Total Energy: -1.5183382669025853 Hartrees
+  ----------
+  NM: Contracting the triangle.
+  [5.55636626 5.62683914]
+  Maximum distance from centroid: 0.08636328955877898
+  ----------
+  ----------
+  Step: 12, Total Energy: -1.52391898 Sigma: 0.00083121  
+  ----------
+  ----------
+  Best simplex: [5.51864844 5.63039063]
+  Increasing number of shots to 2048.
+  {'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+  WARNING:IBMQuantumExperience.IBMQuantumExperience:Got a 403 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=D8potvkIq07p5rNvgKD3yWpbECFPNHis3AyrbJvsb6EVGnyvXP8cRvpYtY630Xrz: {"error":{"status":403,"message":"Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.","code":"MAX_CREDITS_EXCEEDED","statusCode":403}}
+  WARNING:IBMQuantumExperience.IBMQuantumExperience:Got a 403 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=D8potvkIq07p5rNvgKD3yWpbECFPNHis3AyrbJvsb6EVGnyvXP8cRvpYtY630Xrz: {"error":{"status":403,"message":"Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.","code":"MAX_CREDITS_EXCEEDED","statusCode":403}}
+  WARNING:IBMQuantumExperience.IBMQuantumExperience:Got a 403 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=D8potvkIq07p5rNvgKD3yWpbECFPNHis3AyrbJvsb6EVGnyvXP8cRvpYtY630Xrz: {"error":{"status":403,"message":"Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.","code":"MAX_CREDITS_EXCEEDED","statusCode":403}}
+  WARNING:IBMQuantumExperience.IBMQuantumExperience:Got a 403 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=D8potvkIq07p5rNvgKD3yWpbECFPNHis3AyrbJvsb6EVGnyvXP8cRvpYtY630Xrz: {"error":{"status":403,"message":"Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.","code":"MAX_CREDITS_EXCEEDED","statusCode":403}}
+  WARNING:IBMQuantumExperience.IBMQuantumExperience:Got a 403 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=D8potvkIq07p5rNvgKD3yWpbECFPNHis3AyrbJvsb6EVGnyvXP8cRvpYtY630Xrz: {"error":{"status":403,"message":"Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.","code":"MAX_CREDITS_EXCEEDED","statusCode":403}}
+  Traceback (most recent call last):
+    File "/home/scott/Documents/research/3_vqa/hqca/ibmqx/qfunc/quantum.py", line 845, in Run
+        circuit_run.start(tomography)
+          File "/home/scott/Documents/research/3_vqa/hqca/ibmqx/qfunc/quantum.py", line 711, in start
+              self.results, self.circs = self.circuit.execute(self.num_shots,nmeasure=self.nmeasure,verbose=self.verbose)
+                File "/home/scott/Documents/research/3_vqa/hqca/ibmqx/qfunc/quantum.py", line 550, in execute
+                    self.results = self.qp.run(self.qobj,wait=5,timeout=3600,silent=not(verbose))
+                      File "/home/scott/.local/lib/python3.5/site-packages/qiskit/_quantumprogram.py", line 994, in run
+                          raise ResultError(output['error'])
+                          qiskit._quantumprogram.ResultError: 'Your credits are not enough. 5 credits are needed to launch this job. You set maxCredits to 3.'
+                          Got a qiskit error
+                          Traceback (most recent call last):
+                            File "./ibmqx/main.py", line 95, in <module>
+                                data = quantum.Run(st.run_type,st.algorithm,st.parameters,st.qubit_order,n_qubits,st.num_shots,Qconfig.APItoken,Qconfig.config['url'],name=file_name, backend=st.use_backend,tomography=st.run_tomography,combine=st.combine_run,ibm_connect=st.connect,verbose=st.verbose)
+                                  File "/home/scott/Documents/research/3_vqa/hqca/ibmqx/qfunc/quantum.py", line 850, in Run
+                                      run_item['data'][n]['status'] = circuit_run.results.__str__()
+                                      AttributeError: 'Quant_Algorithms' object has no attribute 'results'
+                                      Traceback (most recent call last):
+                                        File "main.py", line 102, in <module>
+                                            Run.next_step(**keys)
+                                              File "/home/scott/Documents/research/3_vqa/hqca/tools/optimizers.py", line 32, in next_step
+                                                  self.opt.next_step(**kwargs)
+                                                    File "/home/scott/Documents/research/3_vqa/hqca/tools/optimizers.py", line 82, in next_step
+                                                        self.R_f = function_call(self.R_x,**kwargs)
+                                                          File "/home/scott/Documents/research/3_vqa/hqca/tools/optimizers.py", line 6, in function_call
+                                                              return En.energy_eval_qc(par,**kwargs)
+                                                                File "/home/scott/Documents/research/3_vqa/hqca/tools/energy.py", line 72, in energy_eval_qc
+                                                                    '{}'.format(work_loc)]
+                                                                      File "/usr/lib/python3.5/subprocess.py", line 581, in check_call
+                                                                          raise CalledProcessError(retcode, cmd)
+                                                                          subprocess.CalledProcessError: Command '['python3', './ibmqx/main.py', 'var_test_000.qc', './ibmqx/work/']' returned non-zero exit status 1
+

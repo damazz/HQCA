@@ -1,0 +1,26 @@
+#!/bin/bash 
+#
+# Script to run a pyscf on python3.5 on sequoia. Can be used in tandem with the
+# hqca package. 
+#
+#PBS -N h3_6
+#PBS -o ./results/h3_6.out
+#PBS -e ./results/h3_6.err
+
+SCR_PATH="/state/partition1/scr/sesmart"
+
+if [ ! -e $SCR_PATH ]; then
+mkdir -p $SCR_PATH
+fi
+
+module load gcc/6.1.0
+module load intel/2013
+module load cmake/2.8.8
+module load mpich2/1.4.1p1
+module load g09/b.01
+
+export LD_PRELOAD=/share/apps/intel/2013/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_avx.so:/share/apps/intel/2013/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.so:/share/apps/intel/2013/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_def.so:/share/apps/intel/2013/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_sequential.so
+
+cd $PBS_O_WORKDIR
+
+python /home/sesmart/3_vqa/hqca/main.py /home/sesmart/3_vqa/hqca/test/h3_dis/h3.txt /home/sesmart/3_vqa/hqca/test/h3_dis/h3_6.py

@@ -1,0 +1,32 @@
+08.28.18 
+
+Finished a number of jobs over weekend and on Monday. Still, need to restart a
+few:
+h3_7 - almost done, need to restart
+h3_6 - needs more time, def need to restart 
+h3_5 - very close, just needs a little more time
+h3_0 - need to restart completely
+
+
+08.11.2018
+
+Calculated the triangle with the ibm.txt file, going to try convergence for some
+simple points in the h3 curve and see what happens with it. 
+
+tri: 20180811.default.tri 
+
+3 point calibration, ran successfully
+run on the ibmqx4
+20180811.default.txt - contains run parameter
+
+08.15.2018
+
+Found a good time to run the samples, also changed how the runs are loaded.
+Sadly however, the run couldnt be completed, so might need to start over
+depending on the calibration date. 
+
+Also, found out that previous runs were not run on the ibmqx4 machine, and so
+had to delete them. There is hope for running samples, but it needs likely
+90-120 minutes of free time, so the weekend is probably gonig to be the only
+time to run samples. Or have it running on a server where the runs can just keep
+going. i.e. set up for smart-home. 

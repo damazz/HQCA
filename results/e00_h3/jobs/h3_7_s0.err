@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 164, in next_step
+    self.opt.next_step()
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 482, in next_step
+    self.Crm_f = function_call(self.Crm_x,**self.kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 69, in function_call
+    E_t = En.energy_eval_qc(**kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Energy.py", line 304, in energy_eval_qc
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumFramework.py", line 68, in evaluate
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumTomography.py", line 258, in add_data
+    QuantTomoInst.counts[circuit]
+KeyError: 'ii0'

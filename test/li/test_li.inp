@@ -1,0 +1,22 @@
+# test input for the variational quantum algorithm
+# and input for the quantum mechanical program
+# needs to have input for 1e integral
+# 2e integrals 
+
+
+1e_int_loc= ./test/li1.ei
+2e_int_loc= ./test/li2.ei
+optimize= GD
+purify= no
+seed= user
+
+# Input for the quantum algorithm
+
+backend= local_qasm_simulator
+num_shots= 1024
+order= default
+algorithm= ry3p
+combine= no 
+pass= no
+connect= no
+$ 5 0 0

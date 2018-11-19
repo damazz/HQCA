@@ -1,0 +1,83 @@
+Got a 502 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b8299bff4b9aa0041bf61a7?access_token=7BpJVNCHsLDMkOpPiTJXAIXbovIstTKPKE6qklchckabWnXkEIuTw68cTYx4179F: 502 Bad Gateway: Registered endpoint failed to handle the request.
+
+Got a 502 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b832808841166004dfbd63d?access_token=7BpJVNCHsLDMkOpPiTJXAIXbovIstTKPKE6qklchckabWnXkEIuTw68cTYx4179F: 502 Bad Gateway: Registered endpoint failed to handle the request.
+
+Traceback (most recent call last):
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 601, in urlopen
+    chunked=chunked)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 387, in _make_request
+    six.raise_from(e, None)
+  File "<string>", line 2, in raise_from
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 383, in _make_request
+    httplib_response = conn.getresponse()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 1198, in getresponse
+    response.begin()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 297, in begin
+    version, status, reason = self._read_status()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 266, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+http.client.RemoteDisconnected: Remote end closed connection without response
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/adapters.py", line 440, in send
+    timeout=timeout
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 639, in urlopen
+    _stacktrace=sys.exc_info()[2])
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/util/retry.py", line 357, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/packages/six.py", line 685, in reraise
+    raise value.with_traceback(tb)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 601, in urlopen
+    chunked=chunked)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 387, in _make_request
+    six.raise_from(e, None)
+  File "<string>", line 2, in raise_from
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/urllib3/connectionpool.py", line 383, in _make_request
+    httplib_response = conn.getresponse()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 1198, in getresponse
+    response.begin()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 297, in begin
+    version, status, reason = self._read_status()
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/http/client.py", line 266, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/qiskit/backends/ibmq/ibmqbackend.py", line 150, in status
+    status = self._api.backend_status(backend_name)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/IBMQuantumExperience/IBMQuantumExperience.py", line 879, in backend_status
+    with_token=False)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/IBMQuantumExperience/IBMQuantumExperience.py", line 362, in get
+    **self.extra_args)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/api.py", line 72, in get
+    return request('get', url, params=params, **kwargs)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/api.py", line 58, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/sessions.py", line 508, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/sessions.py", line 618, in send
+    r = adapter.send(request, **kwargs)
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/requests/adapters.py", line 490, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 164, in next_step
+    self.opt.next_step()
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 499, in next_step
+    self.simp_f[i]=function_call(self.simp_x[i,:],**self.kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 68, in function_call
+    wait_for_machine(backend)
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumFramework.py", line 140, in wait_for_machine
+    use,pending = check(qo)
+  File "/home/sesmart/3_vqa/hqca/tools/IBM_check.py", line 27, in check
+    test = backend_object.status
+  File "/home/sesmart/.conda/envs/scott/lib/python3.5/site-packages/qiskit/backends/ibmq/ibmqbackend.py", line 171, in status
+    "Couldn't get backend status: {0}".format(ex))
+LookupError: Couldn't get backend status: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))

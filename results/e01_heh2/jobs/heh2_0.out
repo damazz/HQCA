@@ -1,0 +1,1056 @@
+----------
+--START---
+----------
+Taking parameters from config file. Must be specified elsewhere.
+Importing run parameters.
+----------
+Run on: 2018-09-08T07:08:26.952299
+----------
+#
+# ./ibm.txt
+# reused as heh2_0.txt
+#
+# IBM specific input for runs with ./main.py
+#
+#
+
+# General
+restart= yes
+print= yes
+wait= yes
+max_iter= 10
+mapping= zeta
+chem_orb= HF
+#opt_crit= 0.000001
+#opt_crit= 0.001
+opt_crit= 0.0001
+
+# Occupation Number optimizers
+occ_method= stretch
+occ_seed= user
+occ_optimizer= NM
+occ_opt_crit= default
+occ_opt_thresh= 0.1
+occ_increase= no
+occ_energy= qc
+occ_nm_simplex= 30
+occ_gd_gradient= numerical
+occ_max_iter= 40
+occ_load_triangle= no
+occ_method_Ntri= 3
+
+# Input for the orbital optimizer (for chem_orb /= FCI)
+orb_nm_simplex= 15
+orb_optimizer= NM
+orb_opt_crit= default
+# for GD
+#orb_opt_thresh= 0.00000001
+# for NM
+orb_opt_thresh= 0.0001
+orb_method= givens
+orb_max_iter= 2000
+orb_gd_gradient= analytical
+orb_print= no
+
+# Input for the quantum algorithm
+qc_backend= ibmqx4
+qc_num_shots= 4096
+qc_order= default
+qc_algorithm= affine_2p_curved_tenerife
+qc_combine= no
+qc_verbose= yes
+qc_connect= yes
+$ 0 0 
+----------
+Hello. Beginning a hybrid quantum classical optimization
+to find the ground state energy of your target molecule. 
+Let's begin!
+----------
+Molecular parameters:
+mol = gto.Mole()
+mol.atom = '''He 0 0 0; H -0.943 0 0; H 0.943 0 0 '''
+mol.basis = 'sto-3g'
+mol.spin=1
+mol.charge=1
+mol.verbose=2
+mol.build()
+----------
+Run is connected to the IBMQuantumExperience.
+Checking for config file.
+----------
+Backend configuration file already written.
+Stored in following location:
+/home/sesmart/3_vqa/hqca/results/logs/20180908_ibmqx4
+----------
+Getting the electron integrals in the Hartree-Fock basis.
+Electron integrals obtained. Moving forward.
+----------
+Wavefunction mapping is: zeta
+Nuclear energy: 2.52523590 Hartrees
+Quantum algorithm: affine_2p_curved_tenerife
+Quantum backend: ibmqx4
+----------
+Optimizing the orbitals.
+Initializing the Nelder-Mead optimization class.
+---------- 
+Step:-01, Init. Energy: -3.28695662 Hartrees
+Step: 00, Total Energy: -3.28695662 Sigma: 5.61295324  
+Step: 01, Total Energy: -3.28695662 Sigma: 5.78645377  
+Step: 02, Total Energy: -3.28695662 Sigma: 5.69477882  
+Step: 03, Total Energy: -3.28695662 Sigma: 5.01753694  
+Step: 04, Total Energy: -3.28695662 Sigma: 5.44417486  
+Step: 05, Total Energy: -3.28695662 Sigma: 5.43644491  
+Step: 06, Total Energy: -3.28695662 Sigma: 5.51242894  
+Step: 07, Total Energy: -3.28715269 Sigma: 4.97760124  
+Step: 08, Total Energy: -3.28715269 Sigma: 4.72562497  
+Step: 09, Total Energy: -3.28868937 Sigma: 4.73796875  
+Step: 10, Total Energy: -3.28868937 Sigma: 4.37737176  
+Step: 11, Total Energy: -3.28868937 Sigma: 3.88973930  
+Step: 12, Total Energy: -3.28886947 Sigma: 3.88358695  
+Step: 13, Total Energy: -3.28901709 Sigma: 3.78022513  
+Step: 14, Total Energy: -3.28920447 Sigma: 2.27204103  
+Step: 15, Total Energy: -3.28932362 Sigma: 1.96875875  
+Step: 16, Total Energy: -3.28932362 Sigma: 1.84308428  
+Step: 17, Total Energy: -3.28932362 Sigma: 1.71233723  
+Step: 18, Total Energy: -3.28966821 Sigma: 1.70914483  
+Step: 19, Total Energy: -3.28966821 Sigma: 1.66555401  
+Step: 20, Total Energy: -3.28966821 Sigma: 1.67049185  
+Step: 21, Total Energy: -3.28966821 Sigma: 1.55449193  
+Step: 22, Total Energy: -3.28966821 Sigma: 1.58335182  
+Step: 23, Total Energy: -3.28978662 Sigma: 1.22209676  
+Step: 24, Total Energy: -3.28978662 Sigma: 1.21639930  
+Step: 25, Total Energy: -3.28978662 Sigma: 1.11236696  
+Step: 26, Total Energy: -3.28981726 Sigma: 0.83176764  
+Step: 27, Total Energy: -3.28981726 Sigma: 0.80370876  
+Step: 28, Total Energy: -3.28981726 Sigma: 0.70456831  
+Step: 29, Total Energy: -3.28986381 Sigma: 0.52095849  
+Step: 30, Total Energy: -3.28986381 Sigma: 0.52260735  
+Step: 31, Total Energy: -3.28987685 Sigma: 0.46974913  
+Step: 32, Total Energy: -3.28987685 Sigma: 0.47152704  
+Step: 33, Total Energy: -3.28989156 Sigma: 0.47681907  
+Step: 34, Total Energy: -3.28989156 Sigma: 0.40561377  
+Step: 35, Total Energy: -3.28989156 Sigma: 0.37340482  
+Step: 36, Total Energy: -3.28989916 Sigma: 0.36762160  
+Step: 37, Total Energy: -3.28990865 Sigma: 0.25415327  
+Step: 38, Total Energy: -3.28990865 Sigma: 0.25776830  
+Step: 39, Total Energy: -3.28990865 Sigma: 0.26203924  
+Step: 40, Total Energy: -3.28991921 Sigma: 0.26225275  
+Step: 41, Total Energy: -3.28992016 Sigma: 0.25846509  
+Step: 42, Total Energy: -3.28992016 Sigma: 0.25386685  
+Step: 43, Total Energy: -3.28992016 Sigma: 0.20925552  
+Step: 44, Total Energy: -3.28992016 Sigma: 0.20914120  
+Step: 45, Total Energy: -3.28992079 Sigma: 0.20915325  
+Step: 46, Total Energy: -3.28992554 Sigma: 0.20803713  
+Step: 47, Total Energy: -3.28992559 Sigma: 0.20542709  
+Step: 48, Total Energy: -3.28992583 Sigma: 0.20014026  
+Step: 49, Total Energy: -3.28992583 Sigma: 0.20058588  
+Step: 50, Total Energy: -3.28992644 Sigma: 0.20113940  
+Step: 51, Total Energy: -3.28992644 Sigma: 0.20043072  
+Step: 52, Total Energy: -3.28992644 Sigma: 0.20249068  
+Step: 53, Total Energy: -3.28992761 Sigma: 0.20246758  
+Step: 54, Total Energy: -3.28992843 Sigma: 0.18673554  
+Step: 55, Total Energy: -3.28992843 Sigma: 0.16939416  
+Step: 56, Total Energy: -3.28992912 Sigma: 0.13036117  
+Step: 57, Total Energy: -3.28993464 Sigma: 0.17599096  
+Step: 58, Total Energy: -3.28993464 Sigma: 0.17283036  
+Step: 59, Total Energy: -3.28993464 Sigma: 0.17047240  
+Step: 60, Total Energy: -3.28993464 Sigma: 0.16894725  
+Step: 61, Total Energy: -3.28993464 Sigma: 0.16860612  
+Step: 62, Total Energy: -3.28993464 Sigma: 0.16604056  
+Step: 63, Total Energy: -3.28993464 Sigma: 0.16448186  
+Step: 64, Total Energy: -3.28993464 Sigma: 0.15004751  
+Step: 65, Total Energy: -3.28993464 Sigma: 0.15005494  
+Step: 66, Total Energy: -3.28993464 Sigma: 0.10318620  
+Step: 67, Total Energy: -3.28993464 Sigma: 0.10438368  
+Step: 68, Total Energy: -3.28993464 Sigma: 0.10462412  
+Step: 69, Total Energy: -3.28993464 Sigma: 0.09684677  
+Step: 70, Total Energy: -3.28993464 Sigma: 0.09685116  
+Step: 71, Total Energy: -3.28993470 Sigma: 0.09670835  
+Step: 72, Total Energy: -3.28993485 Sigma: 0.09629822  
+Step: 73, Total Energy: -3.28993673 Sigma: 0.10217571  
+Step: 74, Total Energy: -3.28993928 Sigma: 0.15131089  
+Step: 75, Total Energy: -3.28993928 Sigma: 0.15005134  
+Step: 76, Total Energy: -3.28994188 Sigma: 0.18407296  
+Step: 77, Total Energy: -3.28994188 Sigma: 0.18388568  
+Step: 78, Total Energy: -3.28994572 Sigma: 0.21715008  
+Step: 79, Total Energy: -3.28994572 Sigma: 0.21469000  
+Step: 80, Total Energy: -3.28994572 Sigma: 0.20594046  
+Step: 81, Total Energy: -3.28995216 Sigma: 0.26847386  
+Step: 82, Total Energy: -3.28995216 Sigma: 0.26712587  
+Step: 83, Total Energy: -3.28995216 Sigma: 0.26256224  
+Step: 84, Total Energy: -3.28995258 Sigma: 0.33974493  
+Step: 85, Total Energy: -3.28995383 Sigma: 0.34340178  
+Step: 86, Total Energy: -3.28995702 Sigma: 0.39556493  
+Step: 87, Total Energy: -3.28995954 Sigma: 0.36576344  
+Step: 88, Total Energy: -3.28995954 Sigma: 0.35651276  
+Step: 89, Total Energy: -3.28995954 Sigma: 0.34213891  
+Step: 90, Total Energy: -3.28995954 Sigma: 0.26058734  
+Step: 91, Total Energy: -3.28995967 Sigma: 0.26446997  
+Step: 92, Total Energy: -3.28996140 Sigma: 0.26257135  
+Step: 93, Total Energy: -3.28996140 Sigma: 0.18834266  
+Step: 94, Total Energy: -3.28996140 Sigma: 0.19521911  
+Step: 95, Total Energy: -3.28996175 Sigma: 0.19937129  
+Step: 96, Total Energy: -3.28996316 Sigma: 0.20598295  
+Step: 97, Total Energy: -3.28996316 Sigma: 0.20119359  
+Step: 98, Total Energy: -3.28996316 Sigma: 0.19757297  
+Step: 99, Total Energy: -3.28996548 Sigma: 0.19695879  
+Step: 100, Total Energy: -3.28996579 Sigma: 0.19308479  
+Step: 101, Total Energy: -3.28996579 Sigma: 0.17991394  
+Step: 102, Total Energy: -3.28996579 Sigma: 0.17789325  
+Step: 103, Total Energy: -3.28996584 Sigma: 0.17478834  
+Step: 104, Total Energy: -3.28996692 Sigma: 0.13830627  
+Step: 105, Total Energy: -3.28996692 Sigma: 0.13047610  
+Step: 106, Total Energy: -3.28996703 Sigma: 0.12783096  
+Step: 107, Total Energy: -3.28996772 Sigma: 0.05828867  
+Step: 108, Total Energy: -3.28996825 Sigma: 0.06542026  
+Step: 109, Total Energy: -3.28996868 Sigma: 0.06681972  
+Step: 110, Total Energy: -3.28996868 Sigma: 0.06605421  
+Step: 111, Total Energy: -3.28996868 Sigma: 0.06649969  
+Step: 112, Total Energy: -3.28996868 Sigma: 0.06603718  
+Step: 113, Total Energy: -3.28996868 Sigma: 0.06567058  
+Step: 114, Total Energy: -3.28996868 Sigma: 0.06303830  
+Step: 115, Total Energy: -3.28996890 Sigma: 0.06374917  
+Step: 116, Total Energy: -3.28996890 Sigma: 0.02716703  
+Step: 117, Total Energy: -3.28996920 Sigma: 0.02141441  
+Step: 118, Total Energy: -3.28996928 Sigma: 0.02201839  
+Step: 119, Total Energy: -3.28996928 Sigma: 0.01590819  
+Step: 120, Total Energy: -3.28996960 Sigma: 0.01645361  
+Step: 121, Total Energy: -3.28996960 Sigma: 0.02571618  
+Step: 122, Total Energy: -3.28996960 Sigma: 0.02762505  
+Step: 123, Total Energy: -3.28996960 Sigma: 0.02383310  
+Step: 124, Total Energy: -3.28996960 Sigma: 0.03090959  
+Step: 125, Total Energy: -3.28996968 Sigma: 0.03121451  
+Step: 126, Total Energy: -3.28996968 Sigma: 0.03067402  
+Step: 127, Total Energy: -3.28996968 Sigma: 0.01670125  
+Step: 128, Total Energy: -3.28996973 Sigma: 0.01969795  
+Step: 129, Total Energy: -3.28996975 Sigma: 0.02080965  
+Step: 130, Total Energy: -3.28997002 Sigma: 0.02009457  
+Step: 131, Total Energy: -3.28997002 Sigma: 0.01802430  
+Step: 132, Total Energy: -3.28997002 Sigma: 0.01768587  
+Step: 133, Total Energy: -3.28997002 Sigma: 0.01189617  
+Step: 134, Total Energy: -3.28997002 Sigma: 0.01152463  
+Step: 135, Total Energy: -3.28997002 Sigma: 0.01008552  
+Step: 136, Total Energy: -3.28997002 Sigma: 0.00920173  
+Step: 137, Total Energy: -3.28997006 Sigma: 0.00893152  
+Step: 138, Total Energy: -3.28997009 Sigma: 0.00924328  
+Step: 139, Total Energy: -3.28997009 Sigma: 0.00919822  
+Step: 140, Total Energy: -3.28997010 Sigma: 0.00731372  
+Step: 141, Total Energy: -3.28997010 Sigma: 0.00731171  
+Step: 142, Total Energy: -3.28997014 Sigma: 0.00701360  
+Step: 143, Total Energy: -3.28997014 Sigma: 0.00568805  
+Step: 144, Total Energy: -3.28997014 Sigma: 0.00534936  
+Step: 145, Total Energy: -3.28997014 Sigma: 0.00527573  
+Step: 146, Total Energy: -3.28997014 Sigma: 0.00412672  
+Step: 147, Total Energy: -3.28997014 Sigma: 0.00419079  
+Step: 148, Total Energy: -3.28997014 Sigma: 0.00416350  
+Step: 149, Total Energy: -3.28997016 Sigma: 0.00400246  
+Step: 150, Total Energy: -3.28997016 Sigma: 0.00411727  
+Step: 151, Total Energy: -3.28997016 Sigma: 0.00404603  
+Step: 152, Total Energy: -3.28997016 Sigma: 0.00404670  
+Step: 153, Total Energy: -3.28997016 Sigma: 0.00342696  
+Step: 154, Total Energy: -3.28997016 Sigma: 0.00333700  
+Step: 155, Total Energy: -3.28997016 Sigma: 0.00333528  
+Step: 156, Total Energy: -3.28997017 Sigma: 0.00347272  
+Step: 157, Total Energy: -3.28997017 Sigma: 0.00341275  
+Step: 158, Total Energy: -3.28997017 Sigma: 0.00281444  
+Step: 159, Total Energy: -3.28997017 Sigma: 0.00270968  
+Step: 160, Total Energy: -3.28997017 Sigma: 0.00261156  
+Step: 161, Total Energy: -3.28997017 Sigma: 0.00260365  
+Step: 162, Total Energy: -3.28997018 Sigma: 0.00258363  
+Step: 163, Total Energy: -3.28997018 Sigma: 0.00246225  
+Step: 164, Total Energy: -3.28997018 Sigma: 0.00248424  
+Step: 165, Total Energy: -3.28997018 Sigma: 0.00215929  
+Step: 166, Total Energy: -3.28997018 Sigma: 0.00218075  
+Step: 167, Total Energy: -3.28997018 Sigma: 0.00171478  
+Step: 168, Total Energy: -3.28997018 Sigma: 0.00171982  
+Step: 169, Total Energy: -3.28997018 Sigma: 0.00150016  
+Step: 170, Total Energy: -3.28997018 Sigma: 0.00142970  
+Step: 171, Total Energy: -3.28997018 Sigma: 0.00141650  
+Step: 172, Total Energy: -3.28997018 Sigma: 0.00111997  
+Step: 173, Total Energy: -3.28997018 Sigma: 0.00092556  
+Step: 174, Total Energy: -3.28997018 Sigma: 0.00092526  
+Step: 175, Total Energy: -3.28997018 Sigma: 0.00088781  
+Step: 176, Total Energy: -3.28997018 Sigma: 0.00088875  
+Step: 177, Total Energy: -3.28997018 Sigma: 0.00088828  
+Step: 178, Total Energy: -3.28997018 Sigma: 0.00087685  
+Step: 179, Total Energy: -3.28997018 Sigma: 0.00076739  
+Step: 180, Total Energy: -3.28997018 Sigma: 0.00074411  
+Step: 181, Total Energy: -3.28997018 Sigma: 0.00074334  
+Step: 182, Total Energy: -3.28997018 Sigma: 0.00052616  
+Step: 183, Total Energy: -3.28997018 Sigma: 0.00052694  
+Step: 184, Total Energy: -3.28997018 Sigma: 0.00044359  
+Step: 185, Total Energy: -3.28997018 Sigma: 0.00039679  
+Step: 186, Total Energy: -3.28997018 Sigma: 0.00038697  
+Step: 187, Total Energy: -3.28997018 Sigma: 0.00038770  
+Step: 188, Total Energy: -3.28997018 Sigma: 0.00038888  
+Step: 189, Total Energy: -3.28997018 Sigma: 0.00038887  
+Step: 190, Total Energy: -3.28997018 Sigma: 0.00038798  
+Step: 191, Total Energy: -3.28997018 Sigma: 0.00038083  
+Step: 192, Total Energy: -3.28997018 Sigma: 0.00037996  
+Step: 193, Total Energy: -3.28997018 Sigma: 0.00037944  
+Step: 194, Total Energy: -3.28997018 Sigma: 0.00037976  
+Step: 195, Total Energy: -3.28997018 Sigma: 0.00035657  
+Step: 196, Total Energy: -3.28997018 Sigma: 0.00024808  
+Step: 197, Total Energy: -3.28997018 Sigma: 0.00023872  
+Step: 198, Total Energy: -3.28997018 Sigma: 0.00022099  
+Step: 199, Total Energy: -3.28997018 Sigma: 0.00018012  
+Step: 200, Total Energy: -3.28997018 Sigma: 0.00017999  
+Step: 201, Total Energy: -3.28997018 Sigma: 0.00017690  
+Step: 202, Total Energy: -3.28997018 Sigma: 0.00016194  
+Step: 203, Total Energy: -3.28997018 Sigma: 0.00013876  
+Step: 204, Total Energy: -3.28997018 Sigma: 0.00012943  
+Step: 205, Total Energy: -3.28997018 Sigma: 0.00011390  
+Step: 206, Total Energy: -3.28997018 Sigma: 0.00011392  
+Step: 207, Total Energy: -3.28997018 Sigma: 0.00009612  
+Criteria met for convergence.
+----------
+Checking orbital and occupation energies for convergence...
+Difference in orbital and occupation energies: 3.013561 mH
+----------
+Total number of iterations: 1
+----------
+Finished orbital optimization. Optimizing determinants.
+----------
+Optimizing the wavefunction.
+Initializing the Nelder-Mead optimization class.
+---------- 
+----------------------------------------
+--- There are 046 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 050 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 065 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 063 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 064 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 063 runs in queue. -----
+--- Waited 00025 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 062 runs in queue. -----
+--- Waited 00030 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 060 runs in queue. -----
+--- Waited 00035 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 058 runs in queue. -----
+--- Waited 00040 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 056 runs in queue. -----
+--- Waited 00045 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 056 runs in queue. -----
+--- Waited 00050 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 049 runs in queue. -----
+--- Waited 00055 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 041 runs in queue. -----
+--- Waited 00060 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 039 runs in queue. -----
+--- Waited 00065 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 037 runs in queue. -----
+--- Waited 00070 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 036 runs in queue. -----
+--- Waited 00075 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00080 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00085 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00090 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 032 runs in queue. -----
+--- Waited 00095 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 030 runs in queue. -----
+--- Waited 00100 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 032 runs in queue. -----
+--- Waited 00105 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 030 runs in queue. -----
+--- Waited 00110 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00115 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 028 runs in queue. -----
+--- Waited 00120 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 027 runs in queue. -----
+--- Waited 00125 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 025 runs in queue. -----
+--- Waited 00130 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 023 runs in queue. -----
+--- Waited 00135 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 020 runs in queue. -----
+--- Waited 00140 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 019 runs in queue. -----
+--- Waited 00145 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00150 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00155 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00160 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00165 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00170 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00175 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 1, '01111': 1, '10100': 30, '11000': 38, '00101': 34, '01001': 10, '00000': 2701, '11001': 1, '10011': 10, '10001': 24, '00110': 7, '01101': 14, '00011': 57, '00001': 76, '11101': 4, '01011': 4, '10101': 8, '01110': 1, '00010': 23, '00111': 4, '11011': 2, '01010': 3, '01000': 209, '00100': 144, '11100': 15, '01100': 64, '10000': 608, '10010': 3}}
+Time to get backend : 7.071346044540405e-05
+Time to run tomography : 1921.6293944492936
+Total time: 1921.629465162754
+{'ii': {'10110': 1, '01111': 1, '10100': 30, '11000': 38, '00101': 34, '01001': 10, '00000': 2701, '11001': 1, '10011': 10, '10001': 24, '00110': 7, '01101': 14, '00011': 57, '00001': 76, '11101': 4, '01011': 4, '10101': 8, '01110': 1, '00010': 23, '00111': 4, '11011': 2, '01010': 3, '01000': 209, '00100': 144, '11100': 15, '01100': 64, '10000': 608, '10010': 3}}
+Measure ON: [[ 0.97167969  0.93920898  0.92016602  1.        ]]
+Rotated ON: [[ 0.99972282  0.97858534  0.97770827  1.00059989]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 0.  0.]
+Fitted wavefunction: 
+Alpha: 0.9888924264158954, Beta: 0.14701912288028052, Gamma: 0.021843682949445806
+Distance from GPC plane: 0.000346348465566769
+Total Energy: -3.2866672078749866 Hartrees
+----------
+Really long run time. Not good.
+----------------------------------------
+--- There are 024 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 023 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 021 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 019 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 4, '01111': 3, '11010': 2, '10100': 22, '11000': 54, '00101': 431, '01001': 11, '00000': 1973, '11110': 1, '10011': 11, '10001': 25, '00110': 6, '01101': 281, '00011': 36, '00001': 116, '11101': 55, '10111': 2, '01011': 6, '10101': 73, '01110': 1, '00010': 22, '00111': 16, '11011': 1, '01010': 5, '01000': 152, '00100': 127, '11100': 22, '01100': 103, '10000': 529, '10010': 6}}
+Time to get backend : 6.810575723648071e-05
+Time to run tomography : 2045.753479667008
+Total time: 2045.7535477727652
+{'ii': {'10110': 4, '01111': 3, '01000': 152, '10100': 22, '11000': 54, '00101': 431, '01001': 11, '00000': 1973, '11110': 1, '10011': 11, '10001': 25, '00110': 6, '01101': 281, '00011': 36, '00001': 116, '11101': 55, '10111': 2, '01011': 6, '10101': 73, '01110': 1, '00010': 22, '00111': 16, '11011': 1, '01010': 5, '11010': 2, '00100': 127, '11100': 22, '01100': 103, '10000': 529, '10010': 6}}
+Measure ON: [[ 0.97021  0.7395   0.71997  1.     ]]
+Rotated ON: [[ 1.00212  0.75525  0.75828  0.99909]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 30.   0.]
+Fitted wavefunction: 
+Alpha: 0.8700399973180664, Beta: 0.4929811386521588, Gamma: 0.0
+Distance from GPC plane: 0.002971020070009933
+Total Energy: -3.094498383854076 Hartrees
+----------
+Really long run time. Not good.
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 019 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 5, '01111': 16, '10100': 12, '11000': 31, '00101': 27, '01001': 7, '00000': 1945, '11110': 3, '11001': 4, '10011': 227, '10001': 32, '00110': 11, '00001': 95, '00011': 669, '10010': 13, '11101': 1, '10111': 9, '01011': 36, '10101': 6, '01110': 6, '00010': 106, '00111': 36, '01101': 14, '01010': 4, '01000': 111, '00100': 95, '11011': 9, '11100': 10, '01100': 54, '10000': 499, '11111': 3}}
+Time to get backend : 7.13244080543518e-05
+Time to run tomography : 2387.216509349644
+Total time: 2387.2165806740522
+{'ii': {'10110': 5, '01111': 16, '10100': 12, '11000': 31, '00101': 27, '01001': 7, '00000': 1945, '11110': 3, '11001': 4, '10011': 227, '10001': 32, '00110': 11, '00001': 95, '00011': 669, '10010': 13, '11101': 1, '10111': 9, '01011': 36, '10101': 6, '01110': 6, '00010': 106, '00111': 36, '01101': 14, '01010': 4, '01000': 111, '00100': 95, '11011': 9, '11100': 10, '01100': 54, '10000': 499, '11111': 3}}
+Measure ON: [[ 0.9248   0.71851  0.70923  1.     ]]
+Rotated ON: [[ 0.98159  0.75007  0.73479  0.99687]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[  0.  30.]
+Fitted wavefunction: 
+Alpha: 0.8565887845559773, Beta: 0.49888444007683436, Gamma: 0.13179518057249706
+Distance from GPC plane: 0.001805642456036011
+Total Energy: -3.0875070787204435 Hartrees
+----------
+Really long run time. Not good.
+Step:-01, Init. Energy: -3.28666721 Hartrees
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 21, '01111': 16, '10100': 30, '11000': 25, '00101': 373, '01001': 5, '00000': 1585, '11110': 15, '11001': 1, '10011': 89, '10001': 35, '00110': 121, '00001': 122, '00011': 410, '10010': 10, '11101': 57, '10111': 9, '01011': 17, '10101': 86, '01110': 61, '00010': 65, '00111': 38, '01101': 200, '01010': 7, '01000': 94, '00100': 140, '11011': 4, '11100': 20, '01100': 72, '10000': 365, '11111': 3}}
+Time to get backend : 7.009506225585938e-05
+Time to run tomography : 1871.8806403428316
+Total time: 1871.8807104378939
+{'ii': {'10110': 21, '01111': 16, '10100': 30, '11000': 25, '00101': 373, '01001': 5, '00000': 1585, '11110': 15, '11001': 1, '10011': 89, '10001': 35, '00110': 121, '00001': 122, '00011': 410, '10010': 10, '11101': 57, '10111': 9, '01011': 17, '10101': 86, '01110': 61, '00010': 65, '00111': 38, '01101': 200, '01010': 7, '01000': 94, '00100': 140, '11011': 4, '11100': 20, '01100': 72, '10000': 365, '11111': 3}}
+Measure ON: [[ 0.78369  0.69189  0.64233  1.     ]]
+Rotated ON: [[ 0.89309  0.80911  0.70354  0.99866]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 30. -30.]
+Fitted wavefunction: 
+Alpha: 0.8385053822457993, Beta: -0.43639435712320496, Gamma: 0.32629540146292396
+Distance from GPC plane: 0.0007709919282311019
+Total Energy: -2.7797559045580535 Hartrees
+----------
+Really long run time. Not good.
+NM: Reflection: [ 30. -30.]
+-2.77975590456
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 024 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 031 runs in queue. -----
+--- Waited 00025 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 032 runs in queue. -----
+--- Waited 00030 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 031 runs in queue. -----
+--- Waited 00035 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00040 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 028 runs in queue. -----
+--- Waited 00045 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 026 runs in queue. -----
+--- Waited 00050 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 025 runs in queue. -----
+--- Waited 00055 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 024 runs in queue. -----
+--- Waited 00060 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 022 runs in queue. -----
+--- Waited 00065 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 022 runs in queue. -----
+--- Waited 00070 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 022 runs in queue. -----
+--- Waited 00075 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 021 runs in queue. -----
+--- Waited 00080 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 021 runs in queue. -----
+--- Waited 00085 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00090 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00095 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00100 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 1, '01111': 6, '11010': 4, '10100': 12, '11000': 34, '00101': 56, '01001': 5, '00000': 2476, '11110': 5, '11001': 1, '10011': 48, '10001': 17, '00110': 7, '00001': 103, '00011': 271, '10010': 11, '11101': 8, '10111': 1, '01011': 13, '10101': 18, '01110': 7, '00010': 60, '00111': 15, '01101': 39, '01010': 6, '01000': 128, '00100': 109, '11011': 3, '11100': 18, '01100': 62, '10000': 551, '11111': 1}}
+Time to get backend : 6.803125143051147e-05
+Time to run tomography : 1639.4561880379915
+Total time: 1639.456256069243
+{'ii': {'10110': 1, '01111': 6, '01000': 128, '10100': 12, '11000': 34, '00101': 56, '01001': 5, '00000': 2476, '11110': 5, '11001': 1, '10011': 48, '10001': 17, '00110': 7, '00001': 103, '00011': 271, '10010': 11, '11101': 8, '10111': 1, '01011': 13, '10101': 18, '01110': 7, '00010': 60, '00111': 15, '01101': 39, '01010': 6, '11010': 4, '00100': 109, '11011': 3, '11100': 18, '01100': 62, '10000': 551, '11111': 1}}
+Measure ON: [[ 0.91089  0.88794  0.85229  1.     ]]
+Rotated ON: [[ 0.96284  0.94907  0.91401  0.9979 ]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[  7.5  15. ]
+Fitted wavefunction: 
+Alpha: 0.9556726658363837, Beta: 0.22412948713404535, Gamma: 0.19093383348744045
+Distance from GPC plane: 0.001211199365790859
+Total Energy: -3.228385363022967 Hartrees
+----------
+Really long run time. Not good.
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 3, '01111': 5, '10100': 22, '11000': 21, '00101': 254, '00000': 2324, '11110': 1, '11001': 3, '10011': 32, '10001': 25, '00110': 27, '01101': 159, '00011': 156, '00001': 95, '11101': 32, '10111': 1, '01011': 2, '10101': 48, '01110': 11, '00010': 41, '00111': 2, '11011': 1, '01010': 3, '01000': 72, '00100': 107, '11100': 18, '01100': 50, '10000': 578, '10010': 3}}
+Time to get backend : 6.81951642036438e-05
+Time to run tomography : 1406.913825571537
+Total time: 1406.9138937667012
+{'ii': {'10110': 3, '01111': 5, '10100': 22, '11000': 21, '00101': 254, '00000': 2324, '11110': 1, '11001': 3, '10011': 32, '10001': 25, '00110': 27, '01101': 159, '00011': 156, '00001': 95, '11101': 32, '10111': 1, '01011': 2, '10101': 48, '01110': 11, '00010': 41, '00111': 2, '11011': 1, '01010': 3, '01000': 72, '00100': 107, '11100': 18, '01100': 50, '10000': 578, '10010': 3}}
+Measure ON: [[ 0.92969  0.81934  0.80103  1.     ]]
+Rotated ON: [[ 0.97914  0.86275  0.84426  0.99763]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 22.5 -15. ]
+Fitted wavefunction: 
+Alpha: 0.9184045007988929, Beta: 0.3694075871216586, Gamma: -0.1416728890412364
+Distance from GPC plane: 0.0013692392240364783
+Total Energy: -3.1024428012634497 Hartrees
+----------
+Really long run time. Not good.
+NM: Contracting the triangle.
+[  7.5  15. ]
+Maximum distance from centroid: 27.300412084801945
+----------
+----------
+Step: 00, Total Energy: -3.28666721 Sigma: 12.27585439  
+----------
+----------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 10, '01111': 6, '11010': 2, '10100': 28, '11000': 70, '00101': 215, '01001': 10, '00000': 1938, '11110': 5, '11001': 4, '10011': 75, '10001': 21, '00110': 26, '00001': 87, '00011': 208, '10010': 11, '11101': 29, '10111': 3, '01011': 21, '10101': 56, '01110': 7, '00010': 53, '00111': 5, '01101': 124, '01010': 3, '01000': 215, '00100': 98, '11011': 7, '11100': 14, '01100': 43, '10000': 701, '11111': 1}}
+Time to get backend : 0.00018330663442611694
+Time to run tomography : 725.2762298882008
+Total time: 725.2764131948352
+{'ii': {'10110': 10, '01111': 6, '01000': 215, '10100': 28, '11000': 70, '00101': 215, '01001': 10, '00000': 1938, '11110': 5, '11001': 4, '10011': 75, '10001': 21, '00110': 26, '00001': 87, '00011': 208, '10010': 11, '11101': 29, '10111': 3, '01011': 21, '10101': 56, '01110': 7, '00010': 53, '00111': 5, '01101': 124, '01010': 3, '11010': 2, '00100': 98, '11011': 7, '11100': 14, '01100': 43, '10000': 701, '11111': 1}}
+Measure ON: [[ 0.89185  0.83643  0.78711  1.     ]]
+Rotated ON: [[ 0.95264  0.89595  0.84924  0.99934]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[-22.5  15. ]
+Fitted wavefunction: 
+Alpha: 0.9214254826779023, Beta: -0.32223056269608297, Gamma: 0.21712333899505268
+Distance from GPC plane: 0.00037887061702236724
+Total Energy: -3.0286854237352796 Hartrees
+----------
+NM: Reflection: [-22.5  15. ]
+-3.02868542374
+----------------------------------------
+--- There are 012 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 1, '01111': 2, '10100': 23, '11000': 38, '00101': 166, '01001': 5, '00000': 2286, '11111': 1, '11001': 6, '10011': 19, '10001': 32, '00110': 4, '01101': 94, '00011': 65, '00001': 84, '11101': 31, '10111': 2, '01011': 3, '10101': 32, '01110': 2, '00010': 29, '00111': 6, '11011': 2, '01010': 1, '01000': 179, '00100': 107, '11100': 14, '01100': 67, '10000': 786, '10010': 9}}
+Time to get backend : 6.653368473052979e-05
+Time to run tomography : 741.6990158557892
+Total time: 741.6990823894739
+{'ii': {'10110': 1, '01111': 2, '10100': 23, '11000': 38, '00101': 166, '01001': 5, '00000': 2286, '11111': 1, '11001': 6, '10011': 19, '10001': 32, '00110': 4, '01101': 94, '00011': 65, '00001': 84, '11101': 31, '10111': 2, '01011': 3, '10101': 32, '01110': 2, '00010': 29, '00111': 6, '11011': 2, '01010': 1, '01000': 179, '00100': 107, '11100': 14, '01100': 67, '10000': 786, '10010': 9}}
+Measure ON: [[ 0.96436  0.86572  0.86523  1.     ]]
+Rotated ON: [[ 0.99974  0.90199  0.90453  0.9972 ]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ 16.875   3.75 ]
+Fitted wavefunction: 
+Alpha: 0.9501332937289059, Beta: 0.3102034027959088, Gamma: 0.03194640890146951
+Distance from GPC plane: 0.0013161709708810825
+Total Energy: -3.235674361810936 Hartrees
+----------
+----------------------------------------
+--- There are 012 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'10110': 2, '01111': 3, '11010': 1, '10100': 22, '11000': 44, '00101': 49, '01001': 7, '00000': 2577, '11110': 3, '11001': 1, '10011': 35, '10001': 17, '00110': 8, '00001': 105, '00011': 182, '10010': 13, '11101': 5, '10111': 1, '01011': 14, '10101': 10, '01110': 5, '00010': 50, '00111': 6, '01101': 42, '01010': 5, '01000': 180, '00100': 98, '11011': 2, '11100': 12, '01100': 55, '10000': 542}}
+Time to get backend : 6.608664989471436e-05
+Time to run tomography : 741.1746955290437
+Total time: 741.1747616156936
+{'ii': {'10110': 2, '01111': 3, '01000': 180, '10100': 22, '11000': 44, '00101': 49, '01001': 7, '00000': 2577, '11110': 3, '11001': 1, '10011': 35, '10001': 17, '00110': 8, '00001': 105, '00011': 182, '10010': 13, '11101': 5, '10111': 1, '01011': 14, '10101': 10, '01110': 5, '00010': 50, '00111': 6, '01101': 42, '01010': 5, '11010': 1, '00100': 98, '11011': 2, '11100': 12, '01100': 55, '10000': 542}}
+Measure ON: [[ 0.92163  0.91943  0.88306  1.     ]]
+Rotated ON: [[ 0.96804  0.97952  0.9488   0.99876]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[ -9.375  11.25 ]
+Fitted wavefunction: 
+Alpha: 0.9738507257801104, Beta: 0.17761114076326087, Gamma: -0.14166526241222793
+Distance from GPC plane: 0.0007163373462186832
+Total Energy: -3.1897826833355247 Hartrees
+----------
+NM: Contracting the triangle.
+[ 16.875   3.75 ]
+Maximum distance from centroid: 13.158439544642063
+----------
+----------
+Step: 01, Total Energy: -3.28666721 Sigma: 8.03011361  
+----------
+----------
+----------------------------------------
+--- There are 012 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'01111': 5, '10100': 19, '11000': 71, '00101': 70, '01001': 7, '00000': 2593, '11110': 2, '10011': 21, '10001': 22, '00110': 8, '01101': 55, '00011': 116, '00001': 86, '11101': 13, '10111': 4, '01011': 12, '11111': 1, '10101': 19, '01110': 1, '00010': 27, '00111': 1, '11011': 2, '01010': 2, '01000': 170, '00100': 104, '11100': 24, '01100': 46, '10000': 590, '10010': 5}}
+Time to get backend : 6.44102692604065e-05
+Time to run tomography : 757.6824532449245
+Total time: 757.6825176551938
+{'ii': {'01111': 5, '10010': 5, '10100': 19, '11000': 71, '00101': 70, '01001': 7, '00000': 2593, '11110': 2, '10011': 21, '10001': 22, '00110': 8, '01101': 55, '00011': 116, '00001': 86, '11101': 13, '10111': 4, '01011': 12, '10101': 19, '01110': 1, '00010': 27, '00111': 1, '11011': 2, '01010': 2, '01000': 170, '00100': 104, '11100': 24, '01100': 46, '10000': 590, '11111': 1}}
+Measure ON: [[ 0.94946  0.90918  0.89404  1.     ]]
+Rotated ON: [[ 0.98733  0.95737  0.94693  0.99778]]
+Point on the GPC surface. Proceeding.
+Parameters: 
+[  9.375 -11.25 ]
+Fitted wavefunction: 
+Alpha: 0.972720762950134, Beta: -0.2046657581887339, Gamma: 0.10920734751261067
+Distance from GPC plane: 0.0012834795462413687
+Total Energy: -3.187615749343434 Hartrees
+----------
+NM: Reflection: [  9.375 -11.25 ]
+-3.18761574934
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+"('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))"
+Circuit counts:{}
+Time to get backend : 6.475299596786499e-05
+Time to run tomography : 1048.9049070104957
+Total time: 1048.9049717634916
+----------
+----------
+Step: 02, Total Energy: -3.28666721 Sigma: 8.03011361  
+----------
+----------
+Error in run. Saving optimization object to file.
+Optimizing the orbitals.
+Initializing the Nelder-Mead optimization class.
+---------- 
+Step:-01, Init. Energy: -3.28997018 Hartrees
+Step: 00, Total Energy: -3.28997018 Sigma: 2.70467208  
+Step: 01, Total Energy: -3.28997018 Sigma: 2.68788783  
+Step: 02, Total Energy: -3.28997018 Sigma: 2.57617037  
+Step: 03, Total Energy: -3.28997018 Sigma: 2.55088481  
+Step: 04, Total Energy: -3.28997018 Sigma: 2.37122703  
+Step: 05, Total Energy: -3.28997018 Sigma: 2.36197046  
+Step: 06, Total Energy: -3.28997018 Sigma: 2.35975730  
+Step: 07, Total Energy: -3.28997018 Sigma: 2.35421438  
+Step: 08, Total Energy: -3.28997018 Sigma: 2.43030636  
+Step: 09, Total Energy: -3.28997018 Sigma: 2.41269450  
+Step: 10, Total Energy: -3.28997018 Sigma: 2.38742768  
+Step: 11, Total Energy: -3.28997018 Sigma: 2.42735441  
+Step: 12, Total Energy: -3.28997018 Sigma: 2.44140908  
+Step: 13, Total Energy: -3.28997018 Sigma: 2.38438593  
+Step: 14, Total Energy: -3.28997018 Sigma: 2.35735639  
+Step: 15, Total Energy: -3.28997018 Sigma: 2.36964258  
+Step: 16, Total Energy: -3.28997018 Sigma: 2.08359120  
+Step: 17, Total Energy: -3.28997018 Sigma: 1.68306666  
+Step: 18, Total Energy: -3.28997018 Sigma: 1.67950756  
+Step: 19, Total Energy: -3.28997018 Sigma: 1.67149374  
+Step: 20, Total Energy: -3.28997018 Sigma: 1.61130610  
+Step: 21, Total Energy: -3.28997018 Sigma: 1.61732291  
+Step: 22, Total Energy: -3.28997018 Sigma: 1.60216618  
+Step: 23, Total Energy: -3.28997018 Sigma: 1.59871342  
+Step: 24, Total Energy: -3.28997018 Sigma: 1.47381067  
+Step: 25, Total Energy: -3.28997018 Sigma: 1.45981953  
+Step: 26, Total Energy: -3.28997018 Sigma: 1.46360567  
+Step: 27, Total Energy: -3.28997018 Sigma: 1.18902928  
+Step: 28, Total Energy: -3.28997018 Sigma: 1.18995040  
+Step: 29, Total Energy: -3.28997018 Sigma: 1.19242860  
+Step: 30, Total Energy: -3.28997018 Sigma: 1.03723047  
+Step: 31, Total Energy: -3.28997018 Sigma: 1.02498243  
+Step: 32, Total Energy: -3.28997018 Sigma: 1.01293399  
+Step: 33, Total Energy: -3.28997018 Sigma: 1.01124056  
+Step: 34, Total Energy: -3.28997018 Sigma: 1.01053523  
+Step: 35, Total Energy: -3.28997018 Sigma: 0.88941931  
+Step: 36, Total Energy: -3.28997018 Sigma: 0.80283720  
+Step: 37, Total Energy: -3.28997018 Sigma: 0.81765245  
+Step: 38, Total Energy: -3.28997018 Sigma: 0.81604935  
+Step: 39, Total Energy: -3.28997018 Sigma: 0.72781311  
+Step: 40, Total Energy: -3.28997018 Sigma: 0.59973617  
+Step: 41, Total Energy: -3.28997018 Sigma: 0.43186861  
+Step: 42, Total Energy: -3.28997018 Sigma: 0.43098496  
+Step: 43, Total Energy: -3.28997018 Sigma: 0.44371982  
+Step: 44, Total Energy: -3.28997018 Sigma: 0.45353999  
+Step: 45, Total Energy: -3.28997018 Sigma: 0.25099961  
+Step: 46, Total Energy: -3.28997018 Sigma: 0.22560808  
+Step: 47, Total Energy: -3.28997018 Sigma: 0.22646267  
+Step: 48, Total Energy: -3.28997018 Sigma: 0.32848049  
+Step: 49, Total Energy: -3.28997018 Sigma: 0.32519317  
+Step: 50, Total Energy: -3.28997018 Sigma: 0.32636473  
+Step: 51, Total Energy: -3.28997018 Sigma: 0.32167315  
+Step: 52, Total Energy: -3.28997018 Sigma: 0.31981691  
+Step: 53, Total Energy: -3.28997018 Sigma: 0.33848805  
+Step: 54, Total Energy: -3.28997018 Sigma: 0.34016025  
+Step: 55, Total Energy: -3.28997018 Sigma: 0.22014382  
+Step: 56, Total Energy: -3.28997018 Sigma: 0.22727190  
+Step: 57, Total Energy: -3.28997018 Sigma: 0.22807129  
+Step: 58, Total Energy: -3.28997018 Sigma: 0.23813745  
+Step: 59, Total Energy: -3.28997018 Sigma: 0.23811466  
+Step: 60, Total Energy: -3.28997018 Sigma: 0.23134411  
+Step: 61, Total Energy: -3.28997018 Sigma: 0.15785479  
+Step: 62, Total Energy: -3.28997018 Sigma: 0.15317087  
+Step: 63, Total Energy: -3.28997018 Sigma: 0.15368768  
+Step: 64, Total Energy: -3.28997018 Sigma: 0.14833311  
+Step: 65, Total Energy: -3.28997018 Sigma: 0.15006710  
+Step: 66, Total Energy: -3.28997018 Sigma: 0.14985636  
+Step: 67, Total Energy: -3.28997018 Sigma: 0.12060687  
+Step: 68, Total Energy: -3.28997018 Sigma: 0.11850406  
+Step: 69, Total Energy: -3.28997018 Sigma: 0.11283784  
+Step: 70, Total Energy: -3.28997018 Sigma: 0.11798985  
+Step: 71, Total Energy: -3.28997018 Sigma: 0.08661032  
+Step: 72, Total Energy: -3.28997018 Sigma: 0.08741559  
+Step: 73, Total Energy: -3.28997018 Sigma: 0.07318112  
+Step: 74, Total Energy: -3.28997018 Sigma: 0.07983295  
+Step: 75, Total Energy: -3.28997018 Sigma: 0.08107967  
+Step: 76, Total Energy: -3.28997018 Sigma: 0.07277298  
+Step: 77, Total Energy: -3.28997018 Sigma: 0.07228996  
+Step: 78, Total Energy: -3.28997018 Sigma: 0.05570780  
+Step: 79, Total Energy: -3.28997018 Sigma: 0.07208405  
+Step: 80, Total Energy: -3.28997018 Sigma: 0.07448562  
+Step: 81, Total Energy: -3.28997018 Sigma: 0.07513846  
+Step: 82, Total Energy: -3.28997018 Sigma: 0.05107363  
+Step: 83, Total Energy: -3.28997018 Sigma: 0.04797293  
+Step: 84, Total Energy: -3.28997018 Sigma: 0.03950033  
+Step: 85, Total Energy: -3.28997018 Sigma: 0.05136586  
+Step: 86, Total Energy: -3.28997018 Sigma: 0.05112059  
+Step: 87, Total Energy: -3.28997018 Sigma: 0.04803478  
+Step: 88, Total Energy: -3.28997018 Sigma: 0.04916403  
+Step: 89, Total Energy: -3.28997018 Sigma: 0.04440025  
+Step: 90, Total Energy: -3.28997018 Sigma: 0.04445754  
+Step: 91, Total Energy: -3.28997018 Sigma: 0.04395359  
+Step: 92, Total Energy: -3.28997018 Sigma: 0.04515549  
+Step: 93, Total Energy: -3.28997018 Sigma: 0.04659901  
+Step: 94, Total Energy: -3.28997018 Sigma: 0.04625832  
+Step: 95, Total Energy: -3.28997018 Sigma: 0.04529091  
+Step: 96, Total Energy: -3.28997018 Sigma: 0.01972291  
+Step: 97, Total Energy: -3.28997018 Sigma: 0.01981327  
+Step: 98, Total Energy: -3.28997018 Sigma: 0.02034793  
+Step: 99, Total Energy: -3.28997018 Sigma: 0.02064975  
+Step: 100, Total Energy: -3.28997018 Sigma: 0.02050730  
+Step: 101, Total Energy: -3.28997018 Sigma: 0.02433361  
+Step: 102, Total Energy: -3.28997018 Sigma: 0.02465872  
+Step: 103, Total Energy: -3.28997018 Sigma: 0.01208554  
+Step: 104, Total Energy: -3.28997018 Sigma: 0.01235027  
+Step: 105, Total Energy: -3.28997018 Sigma: 0.01237660  
+Step: 106, Total Energy: -3.28997018 Sigma: 0.01196709  
+Step: 107, Total Energy: -3.28997018 Sigma: 0.01187749  
+Step: 108, Total Energy: -3.28997018 Sigma: 0.01179848  
+Step: 109, Total Energy: -3.28997018 Sigma: 0.01402459  
+Step: 110, Total Energy: -3.28997018 Sigma: 0.01176028  
+Step: 111, Total Energy: -3.28997018 Sigma: 0.01204477  
+Step: 112, Total Energy: -3.28997018 Sigma: 0.01193941  
+Step: 113, Total Energy: -3.28997018 Sigma: 0.00856812  
+Step: 114, Total Energy: -3.28997018 Sigma: 0.00857004  
+Step: 115, Total Energy: -3.28997018 Sigma: 0.00840222  
+Step: 116, Total Energy: -3.28997018 Sigma: 0.00814095  
+Step: 117, Total Energy: -3.28997018 Sigma: 0.00908061  
+Step: 118, Total Energy: -3.28997018 Sigma: 0.00937878  
+Step: 119, Total Energy: -3.28997018 Sigma: 0.00937761  
+Step: 120, Total Energy: -3.28997018 Sigma: 0.00997886  
+Step: 121, Total Energy: -3.28997018 Sigma: 0.00998463  
+Step: 122, Total Energy: -3.28997018 Sigma: 0.01006603  
+Step: 123, Total Energy: -3.28997018 Sigma: 0.00619634  
+Step: 124, Total Energy: -3.28997018 Sigma: 0.00587460  
+Step: 125, Total Energy: -3.28997018 Sigma: 0.00587507  
+Step: 126, Total Energy: -3.28997018 Sigma: 0.00579773  
+Step: 127, Total Energy: -3.28997018 Sigma: 0.00588685  
+Step: 128, Total Energy: -3.28997018 Sigma: 0.00417242  
+Step: 129, Total Energy: -3.28997018 Sigma: 0.00405284  
+Step: 130, Total Energy: -3.28997018 Sigma: 0.00262436  
+Step: 131, Total Energy: -3.28997018 Sigma: 0.00188458  
+Step: 132, Total Energy: -3.28997018 Sigma: 0.00192527  
+Step: 133, Total Energy: -3.28997018 Sigma: 0.00186439  
+Step: 134, Total Energy: -3.28997018 Sigma: 0.00198256  
+Step: 135, Total Energy: -3.28997018 Sigma: 0.00205487  
+Step: 136, Total Energy: -3.28997018 Sigma: 0.00173062  
+Step: 137, Total Energy: -3.28997018 Sigma: 0.00180542  
+Step: 138, Total Energy: -3.28997018 Sigma: 0.00246765  
+Step: 139, Total Energy: -3.28997018 Sigma: 0.00231537  
+Step: 140, Total Energy: -3.28997018 Sigma: 0.00226364  
+Step: 141, Total Energy: -3.28997018 Sigma: 0.00233761  
+Step: 142, Total Energy: -3.28997018 Sigma: 0.00173849  
+Step: 143, Total Energy: -3.28997018 Sigma: 0.00173558  
+Step: 144, Total Energy: -3.28997018 Sigma: 0.00197794  
+Step: 145, Total Energy: -3.28997018 Sigma: 0.00197534  
+Step: 146, Total Energy: -3.28997018 Sigma: 0.00198930  
+Step: 147, Total Energy: -3.28997018 Sigma: 0.00201168  
+Step: 148, Total Energy: -3.28997018 Sigma: 0.00196160  
+Step: 149, Total Energy: -3.28997018 Sigma: 0.00193910  
+Step: 150, Total Energy: -3.28997018 Sigma: 0.00191347  
+Step: 151, Total Energy: -3.28997018 Sigma: 0.00191374  
+Step: 152, Total Energy: -3.28997018 Sigma: 0.00192775  
+Step: 153, Total Energy: -3.28997018 Sigma: 0.00192800  
+Step: 154, Total Energy: -3.28997018 Sigma: 0.00192873  
+Step: 155, Total Energy: -3.28997018 Sigma: 0.00096419  
+Step: 156, Total Energy: -3.28997018 Sigma: 0.00084990  
+Step: 157, Total Energy: -3.28997018 Sigma: 0.00080282  
+Step: 158, Total Energy: -3.28997018 Sigma: 0.00080389  
+Step: 159, Total Energy: -3.28997018 Sigma: 0.00081436  
+Step: 160, Total Energy: -3.28997018 Sigma: 0.00073591  
+Step: 161, Total Energy: -3.28997018 Sigma: 0.00059727  
+Step: 162, Total Energy: -3.28997018 Sigma: 0.00068959  
+Step: 163, Total Energy: -3.28997018 Sigma: 0.00059727  
+Step: 164, Total Energy: -3.28997018 Sigma: 0.00059676  
+Step: 165, Total Energy: -3.28997018 Sigma: 0.00059915  
+Step: 166, Total Energy: -3.28997018 Sigma: 0.00059895  
+Step: 167, Total Energy: -3.28997018 Sigma: 0.00047731  
+Step: 168, Total Energy: -3.28997018 Sigma: 0.00051769  
+Step: 169, Total Energy: -3.28997018 Sigma: 0.00039838  
+Step: 170, Total Energy: -3.28997018 Sigma: 0.00036922  
+Step: 171, Total Energy: -3.28997018 Sigma: 0.00033022  
+Step: 172, Total Energy: -3.28997018 Sigma: 0.00032937  
+Step: 173, Total Energy: -3.28997018 Sigma: 0.00028859  
+Step: 174, Total Energy: -3.28997018 Sigma: 0.00029295  
+Step: 175, Total Energy: -3.28997018 Sigma: 0.00025979  
+Step: 176, Total Energy: -3.28997018 Sigma: 0.00023119  
+Step: 177, Total Energy: -3.28997018 Sigma: 0.00022622  
+Step: 178, Total Energy: -3.28997018 Sigma: 0.00020450  
+Step: 179, Total Energy: -3.28997018 Sigma: 0.00016817  
+Step: 180, Total Energy: -3.28997018 Sigma: 0.00016508  
+Step: 181, Total Energy: -3.28997018 Sigma: 0.00015482  
+Step: 182, Total Energy: -3.28997018 Sigma: 0.00015444  
+Step: 183, Total Energy: -3.28997018 Sigma: 0.00014776  
+Step: 184, Total Energy: -3.28997018 Sigma: 0.00010932  
+Step: 185, Total Energy: -3.28997018 Sigma: 0.00010907  
+Step: 186, Total Energy: -3.28997018 Sigma: 0.00008173  
+Criteria met for convergence.
+----------
+Checking orbital and occupation energies for convergence...
+----------
+Total number of iterations: 2
+##########
+ERROR: encountered some error along the way. Run is likely
+not fully converged. Check what went wrong.
+##########
+------------------------------
+------------------------------
+## Energy Evaluation ## 
+Final energy                : -3.28997018 Hartrees
+Final sigma                 : 0.00301356
+
+Hartree Fock Energy         : -3.27383373 Hartrees
+Full CI energy              : -3.29313279 Hartrees
+Difference in target and FCI  :  3.16261 mHartrees
+----------
+Correlation energy recovered: -16.13645 mHartrees
+Correlation energy recovered: 83.613 %
+------------------------------
+------------------------------
+Wavefunction (Hamiltonian basis):
+ |101010>: 0.13514215164141927
+ |011001>: 0.0372490701438013
+ |110100>: 0.9901258029276633
+----------
+1-Electron Reduced Density Matrix:
+[[ 0.99861+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.98174+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.01965+0.j  0.00000+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.98035+0.j  0.00000+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.01826+0.j
+   0.00000+0.j]
+ [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j
+   0.00139+0.j]]
+Total orbital energy evaluations   : 867
+Total occupation energy evaluations: 13

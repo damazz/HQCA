@@ -1,0 +1,5 @@
+e01 and e04 contain the 6 paramteres and 4 paramter sequences, respectivelys
+
+e01 should ahve 59 results, while e04 has 62? 
+wait time between results is something like.....5 minutes
+going to have to recover the results in the morning

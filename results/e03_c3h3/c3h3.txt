@@ -1,0 +1,55 @@
+#
+# ./ibm.txt
+# reused as c3h3.txt
+#
+# IBM specific input for runs with ./main.py
+#
+#
+
+# General
+restart= no
+print= yes
+wait= yes
+max_iter= 10
+mapping= zeta
+chem_orb= HF
+#opt_crit= 0.000001
+#opt_crit= 0.001
+opt_crit= 0.0001
+
+# Occupation Number optimizers
+occ_method= stretch
+occ_seed= user
+occ_optimizer= NM
+occ_opt_crit= default
+occ_opt_thresh= 0.1
+occ_increase= no
+occ_energy= qc
+occ_nm_simplex= 30
+occ_gd_gradient= numerical
+occ_max_iter= 60
+occ_load_triangle= no
+occ_method_Ntri= 3
+
+# Input for the orbital optimizer (for chem_orb /= FCI)
+orb_nm_simplex= 15
+orb_optimizer= NM
+orb_opt_crit= default
+# for GD
+#orb_opt_thresh= 0.00000001
+# for NM
+orb_opt_thresh= 0.00001
+orb_method= givens
+orb_max_iter= 2000
+orb_gd_gradient= analytical
+orb_print= no
+
+# Input for the quantum algorithm
+qc_backend= ibmqx4
+qc_num_shots= 4096
+qc_order= default
+qc_algorithm= affine_2p_curved_tenerife
+qc_combine= no
+qc_verbose= no
+qc_connect= no
+$ 0 0 

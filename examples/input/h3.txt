@@ -1,0 +1,50 @@
+# test input for the variational quantum algorithm
+# and input for the quantum mechanical program
+# needs to have input for 1e integral
+# 2e integrals 
+
+# General
+restart= no
+print= no
+wait= yes
+max_iter= 10
+mapping= zeta
+chem_orb= HF
+opt_crit= 0.00001
+#opt_crit= 0.001
+
+# Occupation Number optimizers
+occ_method= stretch
+occ_seed= user
+occ_optimizer= NM
+occ_opt_crit= default
+occ_opt_thresh= 0.01
+occ_increase= no
+occ_energy= qc
+occ_nm_simplex= 35
+occ_gd_gradient= numerical
+occ_max_iter= 100
+occ_method_Ntr= 3
+w
+# Input for the orbital optimizer (for chem_orb /= FCI)
+orb_nm_simplex= 15
+orb_optimizer= NM
+orb_opt_crit= default
+#orb_opt_thresh= 0.00000001
+# for GD
+orb_opt_thresh= 0.001
+# for NM
+orb_method= givens
+orb_max_iter= 2000
+orb_gd_gradient= analytical
+orb_print= no
+
+# Input for the quantum algorithm
+qc_backend= local_qasm_simulator
+qc_num_shots= 2048
+qc_order= default
+qc_algorithm= affine_2p_curved_tenerife
+qc_combine= yes
+qc_verbose= no
+qc_connect= no
+$ 0 0

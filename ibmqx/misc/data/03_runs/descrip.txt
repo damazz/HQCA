@@ -1,0 +1,14 @@
+Here there is basic processing for the march runs. In particular, in our
+original runs iht the 6 parameter quantum algrithm, there was a CNOT gate
+which was switched and so some of the point in the set were no longer a
+certain distance apart from one another.
+
+So, e06 was a solution to this. with _1 _2 _3 contaiing the new runs for this
+data set. However, only _2 completed correctly, with _3 having a partial
+finish, and so there are singular runs which will need to be discarded. 
+_4 and _5 finished the set, although there are a few erronious _4 runs as
+well. 
+
+The filtering in this folder is to reconcile all of the data points so that we
+have a cohesive set, and eventually to combine it with the March data set as
+well. 

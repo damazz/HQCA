@@ -1,0 +1,25 @@
+Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=LsLOs5ZtRxGh4H369bwoNlUA8BbOsE8q9LDk8cLr0HigTyPeNhnAmtMMHCoFuvx9: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
+Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=LsLOs5ZtRxGh4H369bwoNlUA8BbOsE8q9LDk8cLr0HigTyPeNhnAmtMMHCoFuvx9: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
+Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=LsLOs5ZtRxGh4H369bwoNlUA8BbOsE8q9LDk8cLr0HigTyPeNhnAmtMMHCoFuvx9: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
+Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=LsLOs5ZtRxGh4H369bwoNlUA8BbOsE8q9LDk8cLr0HigTyPeNhnAmtMMHCoFuvx9: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
+Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=LsLOs5ZtRxGh4H369bwoNlUA8BbOsE8q9LDk8cLr0HigTyPeNhnAmtMMHCoFuvx9: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/main.py", line 299, in <module>
+    **keys)
+  File "/home/sesmart/3_vqa/hqca/tools/Energy.py", line 713, in find_triangle
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumFramework.py", line 68, in evaluate
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumTomography.py", line 258, in add_data
+    QuantTomoInst.counts[circuit]
+KeyError: 'ii0'
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 140, in __init__
+    self.opt.initialize(self.start)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 412, in initialize
+    self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 69, in function_call
+    E_t = En.energy_eval_qc(**kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Energy.py", line 334, in energy_eval_qc
+    tri  = triangle.map([m_on[0],m_on[1],m_on[2]])
+AttributeError: 'NoneType' object has no attribute 'map'

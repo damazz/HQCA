@@ -1,0 +1,628 @@
+----------
+Run on: 2018-06-06T00:11:37.994277
+----------
+Hello. Beginning a hybrid quantum classical optimization
+to find the ground state energy of your target molecule. 
+Let's begin!
+----------
+Computational parameters are taken from: ./test/h3_dis/h3.txt
+Molecular parameters are taken from: ./test/h3_dis/h3_2.py
+Importing run parameters.
+Calculating electron integrals in the spin natural orbital basis (FCI).
+Electron integrals obtained. Moving forward.
+----------
+Wavefunction mapping is: zeta
+Nuclear energy: 1.41128977 Hartrees
+Quantum algorithm: ry2p_raven_diag
+Quantum backend: ibmqx4
+----------
+Beginning a Nelder-Mead Optimization
+---------- 
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+Circuit counts for main:
+{'date': '2018-06-06T05:12:50.176Z', 'time': 24.031033992767334, 'counts': {'00100': 175, '00110': 2, '00010': 4, '00011': 11, '00000': 773, '00111': 4, '00001': 38, '00101': 17}}
+Results for circuit: main
+{'00100': 175, '00110': 2, '00010': 4, '00011': 11, '00000': 773, '00111': 4, '00001': 38, '00101': 17}
+Parameters: 
+[5.5564  5.62684]
+Fitted wavefunction: 
+Alpha: -0.9173174773036141, Beta: 0.32123216552311, Gamma: 0.23524145397158797
+Distance from GPC plane: 0.06032859258133786
+Total Energy: -1.4913152198450006 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+status = RUNNING (205 seconds)
+status = RUNNING (210 seconds)
+status = RUNNING (215 seconds)
+status = RUNNING (220 seconds)
+status = RUNNING (225 seconds)
+status = RUNNING (230 seconds)
+status = RUNNING (235 seconds)
+status = RUNNING (240 seconds)
+status = RUNNING (245 seconds)
+status = RUNNING (250 seconds)
+status = RUNNING (255 seconds)
+status = RUNNING (260 seconds)
+status = RUNNING (265 seconds)
+status = RUNNING (270 seconds)
+status = RUNNING (275 seconds)
+status = RUNNING (280 seconds)
+status = RUNNING (285 seconds)
+status = RUNNING (290 seconds)
+status = RUNNING (295 seconds)
+status = RUNNING (300 seconds)
+status = RUNNING (305 seconds)
+status = RUNNING (310 seconds)
+status = RUNNING (315 seconds)
+status = RUNNING (320 seconds)
+status = RUNNING (325 seconds)
+status = RUNNING (330 seconds)
+status = RUNNING (335 seconds)
+status = RUNNING (340 seconds)
+status = RUNNING (345 seconds)
+status = RUNNING (350 seconds)
+status = RUNNING (355 seconds)
+status = RUNNING (360 seconds)
+status = RUNNING (365 seconds)
+Circuit counts for main:
+{'date': '2018-06-06T05:19:59.955Z', 'counts': {'00111': 2, '00001': 32, '00010': 7, '00100': 116, '00101': 11, '00000': 834, '00011': 20, '00110': 2}, 'time': 23.913043975830078}
+Results for circuit: main
+{'00111': 2, '00001': 32, '00010': 7, '00100': 116, '00101': 11, '00000': 834, '00011': 20, '00110': 2}
+Parameters: 
+[5.6564  5.62684]
+Fitted wavefunction: 
+Alpha: -0.9399274129775483, Beta: 0.27362344867841026, Gamma: 0.2041241452319317
+Distance from GPC plane: 0.0197336517789423
+Total Energy: -1.522963825429033 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+status = RUNNING (205 seconds)
+status = RUNNING (210 seconds)
+status = RUNNING (215 seconds)
+status = RUNNING (220 seconds)
+Circuit counts for main:
+{'time': 25.592528104782104, 'date': '2018-06-06T05:24:31.126Z', 'counts': {'00110': 1, '00100': 103, '00001': 41, '00011': 15, '00101': 25, '00000': 832, '00111': 4, '00010': 3}}
+Results for circuit: main
+{'00110': 1, '00100': 103, '00001': 41, '00011': 15, '00101': 25, '00000': 832, '00111': 4, '00010': 3}
+Parameters: 
+[5.5564  5.72684]
+Fitted wavefunction: 
+Alpha: -0.9371527134535402, Beta: 0.30190368221228003, Gamma: 0.17492557941402756
+Distance from GPC plane: 0.014095465556387344
+Total Energy: -1.5262457937485916 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [5.6564  5.72684]
+-1.5233742936059174
+NM: Reflected point soso.
+Maximum distance from centroid: 0.11180339887498908
+----------
+----------
+Step: 00, Total Energy: -1.52624579 Sigma: 0.00132748  
+----------
+----------
+Best simplex: [5.5564  5.72684]
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [5.5564  5.82684]
+-1.5186145741662367
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+Circuit counts for main:
+{'counts': {'00101': 21, '00001': 28, '00010': 7, '00100': 116, '00011': 16, '00111': 3, '00110': 2, '00000': 831}, 'time': 24.24919295310974, 'date': '2018-06-06T05:35:42.777Z'}
+Results for circuit: main
+{'00101': 21, '00001': 28, '00010': 7, '00100': 116, '00011': 16, '00111': 3, '00110': 2, '00000': 831}
+Parameters: 
+[5.6314  5.67684]
+Fitted wavefunction: 
+Alpha: -0.9361100807775404, Beta: 0.28527216536727407, Gamma: 0.2057126839388696
+Distance from GPC plane: 0.02593565662375272
+Total Energy: -1.5189203293486533 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+Circuit counts for main:
+{'counts': {'00110': 2, '00000': 790, '00100': 152, '00101': 14, '00111': 2, '00011': 13, '00010': 4, '00001': 47}, 'date': '2018-06-06T05:38:56.907Z', 'time': 24.15211820602417}
+Results for circuit: main
+{'00110': 2, '00000': 790, '00100': 152, '00101': 14, '00111': 2, '00011': 13, '00010': 4, '00001': 47}
+Parameters: 
+[5.5814  5.77684]
+Fitted wavefunction: 
+Alpha: -0.9261465304331348, Beta: 0.31302040002743137, Gamma: 0.2104063528825431
+Distance from GPC plane: 0.04115875942465107
+Total Energy: -1.5076312885593244 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+Circuit counts for main:
+{'counts': {'00001': 25, '00110': 2, '00010': 11, '00101': 18, '00000': 829, '00100': 123, '00011': 14, '00111': 2}, 'date': '2018-06-06T05:40:16.236Z', 'time': 24.286382913589478}
+Results for circuit: main
+{'00001': 25, '00110': 2, '00010': 11, '00101': 18, '00000': 829, '00100': 123, '00011': 14, '00111': 2}
+Parameters: 
+[5.6064  5.72684]
+Fitted wavefunction: 
+Alpha: -0.9364577539857311, Beta: 0.27599252707274524, Gamma: 0.21650635094610965
+Distance from GPC plane: 0.032137661468563165
+Total Energy: -1.5162108071110665 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+Circuit counts for main:
+{'date': '2018-06-06T05:42:43.748Z', 'counts': {'00101': 19, '00100': 122, '00001': 34, '00111': 3, '00011': 22, '00000': 819, '00010': 5}, 'time': 23.874659061431885}
+Results for circuit: main
+{'00101': 19, '00100': 122, '00001': 34, '00111': 3, '00011': 22, '00000': 819, '00010': 5}
+Parameters: 
+[5.6064  5.67684]
+Fitted wavefunction: 
+Alpha: -0.9333240326917549, Beta: 0.29646353064078557, Gamma: 0.20252314682524564
+Distance from GPC plane: 0.0202974704011978
+Total Energy: -1.516956249961377 Hartrees
+----------
+NM: Had to shrink..
+[[5.5564  5.72684]
+[5.6064  5.72684]
+[5.6064  5.67684]]
+Maximum distance from centroid: 0.03535533905932788
+----------
+----------
+Step: 01, Total Energy: -1.52624579 Sigma: 0.00066527  
+----------
+----------
+Best simplex: [5.5564  5.72684]
+Increasing number of shots to 2048.
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+NM: Reflection: [5.5564  5.67684]
+-1.5160355313735443
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Circuit counts for main:
+{'counts': {'00000': 776, '00111': 3, '00101': 25, '00010': 4, '00011': 11, '00001': 35, '00100': 170}, 'date': '2018-06-06T05:47:49.810Z', 'time': 24.084238052368164}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+Circuit counts for main:
+{'counts': {'00000': 827, '00110': 1, '00111': 3, '00101': 21, '00010': 1, '00011': 17, '00001': 25, '00100': 129}, 'date': '2018-06-06T05:50:11.332Z', 'time': 24.018421173095703}
+Results for circuit: main
+{'00000': 1603, '00110': 1, '00111': 6, '00101': 46, '00010': 5, '00011': 28, '00001': 60, '00100': 299}
+Parameters: 
+[5.5939  5.71434]
+Fitted wavefunction: 
+Alpha: -0.9252674163001022, Beta: 0.3104096755364862, Gamma: 0.21800468267142048
+Distance from GPC plane: 0.04848840151397249
+Total Energy: -1.5047319462293234 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+Circuit counts for main:
+{'time': 23.949762105941772, 'date': '2018-06-06T05:51:13.089Z', 'counts': {'00011': 13, '00111': 3, '00010': 6, '00110': 5, '00101': 24, '00100': 110, '00000': 829, '00001': 34}}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Circuit counts for main:
+{'time': 23.997276067733765, 'date': '2018-06-06T05:51:42.675Z', 'counts': {'00011': 13, '00111': 6, '00010': 5, '00110': 2, '00101': 20, '00100': 159, '00000': 796, '00001': 23}}
+Results for circuit: main
+{'00011': 26, '00111': 9, '00010': 11, '00110': 7, '00101': 44, '00100': 269, '00000': 1625, '00001': 57}
+Parameters: 
+[5.5689  5.68934]
+Fitted wavefunction: 
+Alpha: -0.928515981059741, Beta: 0.29865148305898864, Gamma: 0.22060227692236828
+Distance from GPC plane: 0.03946730355788458
+Total Energy: -1.5073152352603953 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+Circuit counts for main:
+{'counts': {'00110': 2, '00100': 121, '00001': 42, '00011': 9, '00010': 4, '00101': 26, '00000': 820}, 'time': 23.986178874969482, 'date': '2018-06-06T05:54:57.720Z'}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+Circuit counts for main:
+{'counts': {'00110': 3, '00100': 188, '00001': 37, '00011': 18, '00010': 5, '00101': 17, '00000': 756}, 'time': 24.406558990478516, 'date': '2018-06-06T05:55:31.124Z'}
+Results for circuit: main
+{'00110': 5, '00100': 309, '00001': 79, '00011': 27, '00010': 9, '00101': 43, '00000': 1576}
+Parameters: 
+[5.5814  5.70184]
+Fitted wavefunction: 
+Alpha: -0.9235066774708959, Beta: 0.316124810531115, Gamma: 0.21725680848556453
+Distance from GPC plane: 0.04707885495833375
+Total Energy: -1.5030876243308247 Hartrees
+----------
+{'maxUserType': 15, 'promotional': 0, 'remaining': 6}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+status = RUNNING (75 seconds)
+status = RUNNING (80 seconds)
+status = RUNNING (85 seconds)
+status = RUNNING (90 seconds)
+status = RUNNING (95 seconds)
+status = RUNNING (100 seconds)
+status = RUNNING (105 seconds)
+status = RUNNING (110 seconds)
+status = RUNNING (115 seconds)
+status = RUNNING (120 seconds)
+status = RUNNING (125 seconds)
+status = RUNNING (130 seconds)
+status = RUNNING (135 seconds)
+status = RUNNING (140 seconds)
+status = RUNNING (145 seconds)
+status = RUNNING (150 seconds)
+status = RUNNING (155 seconds)
+status = RUNNING (160 seconds)
+status = RUNNING (165 seconds)
+status = RUNNING (170 seconds)
+status = RUNNING (175 seconds)
+status = RUNNING (180 seconds)
+status = RUNNING (185 seconds)
+status = RUNNING (190 seconds)
+status = RUNNING (195 seconds)
+status = RUNNING (200 seconds)
+status = RUNNING (205 seconds)
+status = RUNNING (210 seconds)
+status = RUNNING (215 seconds)
+status = RUNNING (220 seconds)
+status = RUNNING (225 seconds)
+status = RUNNING (230 seconds)
+status = RUNNING (235 seconds)
+status = RUNNING (240 seconds)
+status = RUNNING (245 seconds)
+status = RUNNING (250 seconds)
+status = RUNNING (255 seconds)
+status = RUNNING (260 seconds)
+status = RUNNING (265 seconds)
+Circuit counts for main:
+{'counts': {'00000': 796, '00011': 15, '00110': 1, '00101': 20, '00100': 155, '00111': 2, '00010': 5, '00001': 30}, 'date': '2018-06-06T06:00:28.095Z', 'time': 24.25257396697998}
+running on backend: ibmqx4
+status = RUNNING (5 seconds)
+status = RUNNING (10 seconds)
+status = RUNNING (15 seconds)
+status = RUNNING (20 seconds)
+status = RUNNING (25 seconds)
+status = RUNNING (30 seconds)
+status = RUNNING (35 seconds)
+status = RUNNING (40 seconds)
+status = RUNNING (45 seconds)
+status = RUNNING (50 seconds)
+status = RUNNING (55 seconds)
+status = RUNNING (60 seconds)
+status = RUNNING (65 seconds)
+status = RUNNING (70 seconds)
+Circuit counts for main:
+{'counts': {'00000': 803, '00011': 16, '00110': 2, '00101': 21, '00100': 144, '00111': 4, '00010': 6, '00001': 28}, 'date': '2018-06-06T06:01:46.887Z', 'time': 23.88114595413208}
+Results for circuit: main
+{'00000': 1599, '00011': 31, '00110': 3, '00101': 41, '00100': 299, '00111': 6, '00010': 11, '00001': 58}
+Parameters: 
+[5.5814  5.72684]
+Fitted wavefunction: 
+Alpha: -0.9251794589429664, Beta: 0.3045873232752801, Gamma: 0.22642776165920997
+Distance from GPC plane: 0.04566930840269503
+Total Energy: -1.5022064914827409 Hartrees
+----------
+NM: Had to shrink..
+[[5.5564  5.72684]
+[5.5814  5.70184]
+[5.5814  5.72684]]
+Maximum distance from centroid: 0.01767766952966394
+----------
+----------
+Step: 02, Total Energy: -1.52624579 Sigma: 0.00033302  
+----------
+----------
+Best simplex: [5.5564  5.72684]
+Criteria met for convergence.
+----------
+--Energy Evaluation--
+Final energy: -1.52624579
+Final sigma:  0.00033302
+
+Target full CI energy was: -1.57110702 Hartrees
+Difference in energies: 44.86122 mHartrees
+----------
+--Optimization Performance--
+Final parameters: [5.5564  5.72684]
+Final simplex: 
+[[5.5564  5.72684]
+ [5.5814  5.70184]
+  [5.5814  5.72684]]
+Final simplex values: 
+[[-1.52624579]
+ [-1.50308762]
+ [-1.50220649]]
+Total energy evaluations: 14
+Goodbye!
+

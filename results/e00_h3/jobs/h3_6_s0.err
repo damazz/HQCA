@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 164, in next_step
+    self.opt.next_step()
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 482, in next_step
+    self.Crm_f = function_call(self.Crm_x,**self.kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 68, in function_call
+    wait_for_machine(backend)
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumFramework.py", line 165, in wait_for_machine
+    raise NotAvailableError
+NameError: name 'NotAvailableError' is not defined

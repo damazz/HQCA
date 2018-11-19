@@ -1,0 +1,15 @@
+Got a 500 code response to https://quantumexperience.ng.bluemix.net/api/Jobs?access_token=uaSAD1L5IoVpm3gWv7zCaR6W5vdHEtvw1GxqufSv0dFfPF4ZCgzmXBMlAXc2pUcg: 500 Error: Failed to establish a backside connection
+Traceback (most recent call last):
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 140, in __init__
+    self.opt.initialize(self.start)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 412, in initialize
+    self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Optimizers.py", line 69, in function_call
+    E_t = En.energy_eval_qc(**kwargs)
+  File "/home/sesmart/3_vqa/hqca/tools/Energy.py", line 304, in energy_eval_qc
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumFramework.py", line 68, in evaluate
+    **kwargs
+  File "/home/sesmart/3_vqa/hqca/tools/QuantumTomography.py", line 258, in add_data
+    QuantTomoInst.counts[circuit]
+KeyError: 'ii0'

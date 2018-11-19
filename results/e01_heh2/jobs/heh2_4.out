@@ -1,0 +1,371 @@
+----------
+--START---
+----------
+Taking parameters from config file. Must be specified elsewhere.
+Importing run parameters.
+----------
+Run on: 2018-09-08T00:50:38.728951
+----------
+#
+# ./ibm.txt
+# reused as heh2_0.txt
+#
+# IBM specific input for runs with ./main.py
+#
+#
+
+# General
+restart= no
+print= yes
+wait= yes
+max_iter= 10
+mapping= zeta
+chem_orb= HF
+#opt_crit= 0.000001
+#opt_crit= 0.001
+opt_crit= 0.0001
+
+# Occupation Number optimizers
+occ_method= stretch
+occ_seed= user
+occ_optimizer= NM
+occ_opt_crit= default
+occ_opt_thresh= 0.1
+occ_increase= no
+occ_energy= qc
+occ_nm_simplex= 30
+occ_gd_gradient= numerical
+occ_max_iter= 40
+occ_load_triangle= no
+occ_method_Ntri= 3
+
+# Input for the orbital optimizer (for chem_orb /= FCI)
+orb_nm_simplex= 15
+orb_optimizer= NM
+orb_opt_crit= default
+# for GD
+#orb_opt_thresh= 0.00000001
+# for NM
+orb_opt_thresh= 0.0001
+orb_method= givens
+orb_max_iter= 2000
+orb_gd_gradient= analytical
+orb_print= no
+
+# Input for the quantum algorithm
+qc_backend= ibmqx4
+qc_num_shots= 4096
+qc_order= default
+qc_algorithm= affine_2p_curved_tenerife
+qc_combine= no
+qc_verbose= yes
+qc_connect= yes
+$ 0 0 
+----------
+Hello. Beginning a hybrid quantum classical optimization
+to find the ground state energy of your target molecule. 
+Let's begin!
+----------
+Molecular parameters:
+mol = gto.Mole()
+mol.atom = '''He 0 0 0; H -1.343 0 0; H 1.343 0 0 '''
+mol.basis = 'sto-3g'
+mol.spin=1
+mol.charge=1
+mol.verbose=2
+mol.build()
+----------
+Run is connected to the IBMQuantumExperience.
+Checking for config file.
+----------
+Backend configuration file already written.
+Stored in following location:
+/home/sesmart/3_vqa/hqca/results/logs/20180908_ibmqx4
+----------
+Getting the electron integrals in the Hartree-Fock basis.
+Electron integrals obtained. Moving forward.
+----------
+Wavefunction mapping is: zeta
+Nuclear energy: 1.77311798 Hartrees
+Quantum algorithm: affine_2p_curved_tenerife
+Quantum backend: ibmqx4
+----------
+Measuring triangle for generating an  affine transformation.
+Please make sure your circuit rotation is in 2D.
+----------
+Iteration: 0, Length: 0.8456486010028472, Difference:0.15435139899715278
+--- Final f,x: [array([ 0.69134172,  0.69134172,  0.5732233 ])],[33.75] --- 
+Iteration: 1, Length: 0.8603471610579805, Difference:0.014698560055133258
+Difference in points: 14.0625
+Iteration: 2, Length: 0.8763740208045012, Difference:0.01602685974652074
+Difference in points: 0.703125
+Iteration: 3, Length: 0.8867191039948074, Difference:0.010345083190306137
+Difference in points: 0.87890625
+Iteration: 4, Length: 0.8925716254780285, Difference:0.005852521483221129
+Difference in points: 0.5712890625
+Iteration: 5, Length: 0.895683848378818, Difference:0.0031122229007894964
+Difference in points: 0.37353515625
+Iteration: 6, Length: 0.8972885342945068, Difference:0.0016046859156888527
+Difference in points: 0.16204833984375
+Iteration: 7, Length: 0.8981032807479221, Difference:0.0008147464534152826
+Difference in points: 0.092010498046875
+Iteration: 8, Length: 0.8985137870912561, Difference:0.00041050634333394953
+Difference in points: 0.0460052490234375
+Iteration: 9, Length: 0.8987198275507802, Difference:0.00020604045952410388
+Difference in points: 0.02300262451171875
+Iteration: 10, Length: 0.8988230451020512, Difference:0.00010321755127107313
+Difference in points: 0.011501312255859375
+Iteration: 11, Length: 0.8988747032704, Difference:5.1658168348733824e-05
+Difference in points: 0.00523298978805542
+Iteration: 0, Length: 0.6123724356957945, Difference:0.38762756430420553
+--- Final f,x: [array([ 0.8125,  0.8125,  0.625 ])],[0.75] --- 
+Iteration: 1, Length: 0.6123724356957945, Difference:0.0
+Difference in points: 0.3125
+Iteration: 2, Length: 0.6123724356957946, Difference:1.1102230246251565e-16
+Difference in points: 0.09375
+Iteration: 3, Length: 0.6123724356957946, Difference:0.0
+Difference in points: 0.01171875
+Iteration: 4, Length: 0.6123724356957944, Difference:2.220446049250313e-16
+Difference in points: 0.021484375
+Iteration: 5, Length: 0.6123724356957942, Difference:1.1102230246251565e-16
+Difference in points: 0.004638671875
+Targets: [[1, 1, 1], [0.91534423828125, 0.91534423828125, 0.8306884765625], [0.8345947265625, 0.8345947265625, 0.669189453125], [0.75, 0.75, 0.5]]
+Parameters: [[0, 45], [0, 0], [21.462046802043915, 21.462046802043915]]
+'The same provider has already been registered!'
+----------------------------------------
+--- There are 032 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 046 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 051 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 066 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 064 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 064 runs in queue. -----
+--- Waited 00025 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 063 runs in queue. -----
+--- Waited 00030 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 061 runs in queue. -----
+--- Waited 00035 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 060 runs in queue. -----
+--- Waited 00040 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 058 runs in queue. -----
+--- Waited 00045 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 057 runs in queue. -----
+--- Waited 00050 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 056 runs in queue. -----
+--- Waited 00055 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 050 runs in queue. -----
+--- Waited 00060 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 042 runs in queue. -----
+--- Waited 00065 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 039 runs in queue. -----
+--- Waited 00070 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 038 runs in queue. -----
+--- Waited 00075 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 036 runs in queue. -----
+--- Waited 00080 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00085 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00090 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 034 runs in queue. -----
+--- Waited 00095 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 033 runs in queue. -----
+--- Waited 00100 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 031 runs in queue. -----
+--- Waited 00105 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 032 runs in queue. -----
+--- Waited 00110 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00115 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00120 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00125 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 027 runs in queue. -----
+--- Waited 00130 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 026 runs in queue. -----
+--- Waited 00135 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 024 runs in queue. -----
+--- Waited 00140 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 022 runs in queue. -----
+--- Waited 00145 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 019 runs in queue. -----
+--- Waited 00150 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 018 runs in queue. -----
+--- Waited 00155 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 017 runs in queue. -----
+--- Waited 00160 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 015 runs in queue. -----
+--- Waited 00165 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00170 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 013 runs in queue. -----
+--- Waited 00175 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 014 runs in queue. -----
+--- Waited 00180 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00185 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00190 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 011 runs in queue. -----
+--- Waited 00195 minutes so far. ----
+----------------------------------------
+'"{\'status\': 400, \'code\': \'GENERIC_ERROR\', \'message\': \'Generic error\'}"'
+Circuit counts:{}
+Time to get backend : 8.153170347213745e-05
+Time to run tomography : 36.83808442950249
+Total time: 36.83816596120596
+Error in start. Goodbye!
+Succefully have the triangulation. Proceeding with optimization.
+----------
+Optimizing the wavefunction.
+Initializing the Nelder-Mead optimization class.
+---------- 
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00000 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 027 runs in queue. -----
+--- Waited 00005 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 029 runs in queue. -----
+--- Waited 00010 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 026 runs in queue. -----
+--- Waited 00015 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 024 runs in queue. -----
+--- Waited 00020 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 022 runs in queue. -----
+--- Waited 00025 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 020 runs in queue. -----
+--- Waited 00030 minutes so far. ----
+----------------------------------------
+----------------------------------------
+--- There are 016 runs in queue. -----
+--- Waited 00035 minutes so far. ----
+----------------------------------------
+Circuit counts:{'ii0': {'01111': 1, '00001': 62, '10001': 29, '10100': 36, '11000': 81, '10011': 20, '10000': 785, '10010': 4, '00111': 5, '11001': 1, '01000': 197, '01001': 10, '10111': 1, '01110': 2, '00101': 25, '00000': 2513, '11010': 1, '01011': 2, '00010': 23, '00110': 4, '11100': 27, '11101': 5, '01101': 15, '10101': 6, '01100': 63, '00100': 124, '00011': 54}}
+Time to get backend : 5.9835612773895264e-05
+Time to run tomography : 1566.5968709364533
+Total time: 1566.5969307720661
+{'ii': {'01111': 1, '00001': 62, '10100': 36, '11000': 81, '10011': 20, '10000': 785, '10010': 4, '00111': 5, '11001': 1, '01000': 197, '01001': 10, '10111': 1, '01110': 2, '00011': 54, '00000': 2513, '11010': 1, '01011': 2, '00010': 23, '00110': 4, '11100': 27, '10001': 29, '01101': 15, '10101': 6, '01100': 63, '00100': 124, '11101': 5, '00101': 25}}
+##########
+Encountered error in initialization.
+##########
+----------
+------------------------------
+------------------------------
+## Energy Evaluation ## 
+Final energy                : 0.00000000 Hartrees
+Final sigma                 : 0.00000000
+
+Hartree Fock Energy         : -3.29324811 Hartrees
+Full CI energy              : -3.30483912 Hartrees
+Difference in target and FCI  :  3304.83912 mHartrees
+----------
+Correlation energy recovered: 3293.24811 mHartrees
+Correlation energy recovered: -28412.098 %
+------------------------------
+------------------------------
+Wavefunction (Hamiltonian basis):
+----------
+1-Electron Reduced Density Matrix:
+[[ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+ [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]]
+Total orbital energy evaluations   : 0
+Total occupation energy evaluations: 0
