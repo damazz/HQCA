@@ -2,39 +2,62 @@ import numpy as np
 import pickle
 import subprocess
 import traceback
-from tools.QuantumAlgorithms import algorithm_tomography
+from hqca.tools.QuantumAlgorithms import algorithm_tomography
+
+
+def switch(mat):
+    size = len(mat.shape)
+    L = mat.shape[0]
+    if size==2:
+        mat = np.reshape(
+                mat,
+                (
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L))
+                    )
+                )
+    elif size==4:
+        mat = np.reshape(
+                mat,
+                (
+                    L**2,
+                    L**2
+                    )
+                )
+    return mat
+
+def contract(mat):
+    size = len(mat.shape)
+    L = mat.shape[0]
+    if size==4:
+        mat = np.reshape(
+                mat,
+                (
+                    L**2,
+                    L**2
+                    )
+                )
+    return mat
+
+def expand(mat):
+    size = len(mat.shape)
+    L = mat.shape[0]
+    if size==2:
+        mat = np.reshape(
+                mat,
+                (
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L))
+                    )
+                )
+    return mat
 
 
 
-# File including functions to use.
-
-def write_input_file(name,loc,parameters,algorithm,backend='local_qasm_simulator',order='default',num_shots='1024',combine='yes',connect='yes',pass_true='yes',verbose='no'):
-    parameters = [parameters]
-    # Function to write an input file 
-    file_in = loc + name
-    with open(file_in,'w') as fp:
-        fp.write('backend= {}\n'.format(backend))
-        fp.write('run_type= user\n')
-        fp.write('num_shots= {}\n'.format(num_shots))
-        fp.write('order= {}\n'.format(order))
-        fp.write('save_file= yes\n')
-        fp.write('algorithm= {}\n'.format(algorithm))
-        fp.write('connect= {}\n'.format(connect))
-        fp.write('pass= {}\n'.format(pass_true))
-        fp.write('verbose= {}\n'.format(verbose))
-        if combine==True:
-            fp.write('combine= yes\n')
-        elif combine==False:
-            fp.write('combine= no\n')
-        else:
-            fp.write('combine= {}\n'.format(combine))
-
-        for run in parameters:
-            fp.write('$ ')
-            for item in run:
-                fp.write('{} '.format(item))
-            fp.write('\n')
-    return
 
 def UnitaryToCounts(Unitary,precision=9):
     '''

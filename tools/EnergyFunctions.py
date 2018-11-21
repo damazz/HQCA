@@ -1,23 +1,28 @@
 import numpy as np
 import sys
 from functools import reduce
-from tools import RDMFunctions as rdmf
-from tools import Chem as chem
-
+from hqca.tools import RDMFunctions as rdmf
+from hqca.tools import Chem as chem
+from hqca.tools import EnergyFunctions as enf
+from hqca.tools import EnergyDeterminant as end
+from hqca.tools import EnergyOrbital as eno
 '''
 ./tools/EnergyFunctions.py
 
 Module for optimizer or energy functions, i.e. for rotations, etc.
 
 '''
-class NotAvailableError(Exception):
-    '''
-    Means what it says.
-    '''
-class SpinError(Exception):
-    '''
-    Wrong active space selection. OR at least, not supported.
-    '''
+
+
+def find_function(run_type,spec):
+    if run_type=='noft':
+        if spec=='main':
+            return end.energy_eval_nordm
+        elif spec=='sub':
+            return eno.energy_eval_orbitals
+    elif run_type=='rdm':
+        return end.energy_eval_rdm
+
 
 class Storage:
     '''
@@ -278,11 +283,13 @@ def rotation_parameter_generation(
 
 
 
-
-
-
-
-
-
+class NotAvailableError(Exception):
+    '''
+    Means what it says.
+    '''
+class SpinError(Exception):
+    '''
+    Wrong active space selection. OR at least, not supported.
+    '''
 
 

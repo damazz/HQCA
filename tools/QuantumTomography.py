@@ -1,36 +1,41 @@
-try:
-    from QuantumAlgorithms import GenerateCircuit
-    from QuantumAlgorithms import algorithm_tomography
-    import Functions as fx
-except ImportError:
-    from tools.QuantumAlgorithms import GenerateCircuit
-    from tools.QuantumAlgorithms import algorithm_tomography
-    import tools.RDMFunctions as rdmf
-    from tools import Functions as fx
+from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
+from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
+from hqca.tools.QuantumAlgorithms import algorithm_tomography
+from hqca.tools import RDMFunctions as rdmf
+from hqca.tools import Functions as fx
+from hqca.tools import IBM_check
 
 import sys,time
 import timeit
 import traceback
-from qiskit import register,available_backends
-from qiskit import execute, get_backend
+from qiskit import Aer,IBMQ
+from qiskit import execute
 from qiskit import QISKitError
 import qiskit
-from tools import IBM_check
 from numpy import log10,floor
 from numpy import zeros,multiply,real
 
-backend_list = available_backends()
 SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             ' /qiskit/backends/qasm_simulator_cpp')
 
 
-class GenerateTomography:
-    ''' Module for measurements.'''
+class GenerateDirectTomography:
+    '''
+    Class for carrying out direct measurements
+
+    '''
+
+
+
+
+class GenerateCompactTomography:
+    ''' Class for carrying out compact measurements.'''
 
     def __init__(
             self,
             connect,
             backend,
+            qc_provider,
             algorithm,
             tomography='default',
             _num_runs=2,
@@ -47,7 +52,7 @@ class GenerateTomography:
         self.qc_kwargs = kwargs
         self.qc_kwargs['algorithm']=algorithm
         self.tomo_get_backend(
-                connect,
+                qc_provider,
                 self.backend)
         self.circuit_list = []
         self.circuits = []
@@ -75,34 +80,17 @@ class GenerateTomography:
 
 
     def tomo_get_backend(self,
-            connect,
+            provider,
             backend
             ):
-        local = not connect
-        '''
-        if local:
-            backend_list = ['local_qasm_simulator']
-            #backend_list = available_backends({'local':True})
-        else:
-            #try:
-            #    import Qconfig
-            #except ImportError:
-            #    from ibmqx import Qconfig
-            #try:
-            #    register(Qconfig.APItoken)
-            #except QISKitError:
-            #    pass
-        '''
-        if backend in backend_list:
-            self.b = get_backend(backend)
-        elif backend=='ibmqx4':
-            self.b = get_backend('ibmq_5_tenerife')
-        elif backend=='qasm_simulator_cpp':
-            import qiskit.backends.local.qasm_simulator_cpp as qs
-            self.b = qs
-        else:
-            print('Error in selection of backend.')
-            sys.exit()
+        if provider=='Aer':
+            self.prov=Aer
+        elif provider=='IBMQ':
+            self.prov=IBMQ
+        try:
+            self.b = self.prov.get_backend(backend)
+        except Exception:
+            pass
 
 
     def tomo_get_counts(self,qo):

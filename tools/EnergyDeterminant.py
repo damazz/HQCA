@@ -8,176 +8,26 @@ import time
 import timeit
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from tools.QuantumFramework import evaluate
-from tools.QuantumFramework import wait_for_machine
+from hqca.tools.QuantumFramework import evaluate
+from hqca.tools.QuantumFramework import wait_for_machine
 try:
-    from tools import Functions as fx
-    from tools import Chem as chem
-    from tools import RDMFunctions as rdmf
+    from hqca.tools import Functions as fx
+    from hqca.tools import Chem as chem
+    from hqca.tools import RDMFunctions as rdmf
 except ImportError:
     import Functions as fx
     import Chem as chem
     import RDMFunctions as rdmf
 
-def energy_eval_classical(
-        parameters,
-        wf_mapping,
-        store,
-        print_run=False,
-        method='default',
-        **kwargs
-        ):
-    ''' Energy evaluation for a 3-qubit simulator. Takes in 2 angular
-    parameters, the wave function mapping, and the 1 and 2 electron integrals.
+def energy_eval_rdm():
+    
+    pass
 
-    Procedure takes parameters (in degrees), and generates values of
-    determinants from  unit sphere for alpha, beta, gamma, as follows: alpha
-    |111000> beta  |100110> gamma |010101>
-
-    Note the sign of each determinant is okay because of the unit sphere aspect.
-    Also requires nuclear energy. The procedure generates the 2-RDM, and then
-    calculated the total energy.  
-
-    Integrals are the spin orbitals (i.e., dimension of orbitals)
-    '''
-    if method=='diagnostic':
-        R = len(store.ints_1e)
-        N = R//2
-        if N==3:
-            Theta = (parameters[0]+45)%90 - 45
-            Phi = (parameters[1]+45)%90 - 45
-            pt = (parameters[0]+45)//90
-            pp = (parameters[1]+45)//90
-            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
-            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
-
-
-            #theta,phi = (theta_mod,phi_mod
-            theta = (np.pi/180)*Theta
-            #parameters[0] # input degrees, output radians
-            phi   = (np.pi/180)*Phi
-            #parameters[1] # 
-            #theta = (np.pi/180)*parameters[0] # input degrees, output radians
-            #phi   = (np.pi/180)*parameters[1] # 
-            gam = np.sin(theta)*np.sin(phi)
-            bet = np.sin(theta)*np.cos(phi)
-            alp = np.cos(theta)
-            if abs(bet)<abs(gam):
-                bet,gam = gam,bet
-            if abs(alp)<abs(bet):
-                alp,bet = bet,alp
-            if abs(bet)<abs(gam):
-                bet,gam = gam,bet
-            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
-            #print(wf)
-        elif N==4:
-            theta = (np.pi/180)*parameters[0] # input degrees, output radians
-            phi   = (np.pi/180)*parameters[1] # 
-            psi   = (np.pi/180)*parameters[1] # 
-            gam = np.sin(theta)*np.cos(phi)
-            bet = np.sin(theta)*np.sin(phi)
-            alp = np.cos(theta)
-            
-            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
-        wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
-
-        wf = fx.extend_wf(
-                wf,
-                store.Norb_tot,
-                store.Nels_tot,
-                store.alpha_mo,
-                store.beta_mo)
-        #print(wf,alp,bet)
-
-        rdm2 = rdmf.build_2rdm(
-                wf,
-                alpha=alp,
-                beta=bet
-                ) # build the 2RDM (spin 2RDM)
-        rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
-        on, onv = np.linalg.eig(rdm1)
-        on.sort()
-        on = on[::-1]
-        if on[0]+on[1]-on[2]-1 <= -0.2:
-            print(wf)
-            print(on)
-        rdm2 = np.reshape(rdm2,(36,36)) # reshape to ik form
-        E_h1 = np.dot(ints_1e_no,rdm1).trace()      # take trace of 1RDM*1e int
-        E_h2 = 0.5*np.dot(ints_2e_no,rdm2.T).trace()  # take trace of 2RDM*2e int
-        E_t = np.real(E_h1+E_h2+store.E_ne)
-        return on[0:3], E_t
-    else:
-        R = len(ints_1e_no)
-        N = R//2
-        if N==3:
-            # try to cut...
-            '''
-            theta_mod = ((parameters[0]+90)%180)-90
-            theta_div = (parameters[0]+45)//90
-            phi_mod = ((parameters[0]+90)%180)-90
-            phi_div = (parameters[0]+45)//90
-            if (theta_mod<=45 or theta_mod>=-45):
-                pass
-            else:
-                theta_mod+=90
-            if (phi_mod<=45 or phi_mod>=-45):
-                pass
-            else:
-                theta_mod+=90
-            '''
-            
-            pt = (parameters[0]+45)//90
-            pp = (parameters[1]+45)//90
-            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
-            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
-            
-            theta = (np.pi/180)*Theta
-            phi   = (np.pi/180)*Phi
-            gam = np.sin(theta)*np.sin(phi)
-            bet = np.sin(theta)*np.cos(phi)
-            alp = np.cos(theta)
-            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
-        elif N==4:
-            theta = (np.pi/180)*parameters[0] # input degrees, output radians
-            phi   = (np.pi/180)*parameters[1] # 
-            psi   = (np.pi/180)*parameters[1] # 
-            gam = np.sin(theta)*np.cos(phi)
-            bet = np.sin(theta)*np.sin(phi)
-            alp = np.cos(theta)
-            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
-        wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
-        wf = fx.extend_wf(
-                wf,
-                store.Norb_tot,
-                store.Nels_tot,
-                store.alpha_mo,
-                store.beta_mo)
-        rdm2 = rdmf.build_2rdm(
-                wf,
-                alpha=alp,
-                beta=bet
-                )
-        rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
-    rdm2 = np.reshape(rdm2,((2*norb)**2,(2*norb)**2)) # reshape to ik form
-    E_h1 = np.dot(ints_1e_no,rdm1).trace()      # take trace of 1RDM*1e int
-    E_h2 = 0.5*np.dot(ints_2e_no,rdm2).trace()  # take trace of 2RDM*2e int
-    E_t = np.real(E_h1+E_h2+store.E_ne)
-    if print_run:
-        print('Alpha: {}, Beta: {}, Gamma: {}'.format(alp,bet,gam))
-        print('One Electron Energy: {}'.format(E_h1))
-        print('Two Electron Energy: {}'.format(np.real(E_h2)))
-        print('Nuclear Repulsion Energy: {}'.format(store.E_ne))
-        print('Total Energy: {} Hartrees'.format(E_t))
-    store.opt_update_wf(E_t,wf,parameters)
-    return E_t
-
-
-def energy_eval_quantum(
+def energy_eval_nordm(
         para,
         wf_mapping, 
         algorithm,
         method='stretch',
-        energy='qc',
         print_run=False,
         triangle=None,
         store='default',
@@ -301,6 +151,107 @@ def energy_eval_quantum(
             return m_on[0:3],r_on[0:3],p_on[0:3],E_t
     elif method=='measure_2rdm':
         sys.exit('Not configured yet. Goodbye!')
+    elif method=='classical-diagnostic':
+        R = len(store.ints_1e)
+        N = R//2
+        if N==3:
+            Theta = (parameters[0]+45)%90 - 45
+            Phi = (parameters[1]+45)%90 - 45
+            pt = (parameters[0]+45)//90
+            pp = (parameters[1]+45)//90
+            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
+            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
+
+
+            #theta,phi = (theta_mod,phi_mod
+            theta = (np.pi/180)*Theta
+            #parameters[0] # input degrees, output radians
+            phi   = (np.pi/180)*Phi
+            #parameters[1] # 
+            #theta = (np.pi/180)*parameters[0] # input degrees, output radians
+            #phi   = (np.pi/180)*parameters[1] # 
+            gam = np.sin(theta)*np.sin(phi)
+            bet = np.sin(theta)*np.cos(phi)
+            alp = np.cos(theta)
+            if abs(bet)<abs(gam):
+                bet,gam = gam,bet
+            if abs(alp)<abs(bet):
+                alp,bet = bet,alp
+            if abs(bet)<abs(gam):
+                bet,gam = gam,bet
+            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
+            #print(wf)
+        elif N==4:
+            theta = (np.pi/180)*parameters[0] # input degrees, output radians
+            phi   = (np.pi/180)*parameters[1] # 
+            psi   = (np.pi/180)*parameters[1] # 
+            gam = np.sin(theta)*np.cos(phi)
+            bet = np.sin(theta)*np.sin(phi)
+            alp = np.cos(theta)
+            
+            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
+        wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
+
+        wf = fx.extend_wf(
+                wf,
+                store.Norb_tot,
+                store.Nels_tot,
+                store.alpha_mo,
+                store.beta_mo)
+        #print(wf,alp,bet)
+
+        rdm2 = rdmf.build_2rdm(
+                wf,
+                alpha=alp,
+                beta=bet
+                ) # build the 2RDM (spin 2RDM)
+        rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
+        on, onv = np.linalg.eig(rdm1)
+        on.sort()
+        on = on[::-1]
+        if on[0]+on[1]-on[2]-1 <= -0.2:
+            print(wf)
+            print(on)
+        rdm2 = np.reshape(rdm2,(36,36)) # reshape to ik form
+        E_h1 = np.dot(ints_1e_no,rdm1).trace()      # take trace of 1RDM*1e int
+        E_h2 = 0.5*np.dot(ints_2e_no,rdm2.T).trace()  # take trace of 2RDM*2e int
+        E_t = np.real(E_h1+E_h2+store.E_ne)
+        return on[0:3], E_t
+    elif method=='classical-default':
+        R = len(ints_1e_no)
+        N = R//2
+        if N==3:
+            pt = (parameters[0]+45)//90
+            pp = (parameters[1]+45)//90
+            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
+            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
+            theta = (np.pi/180)*Theta
+            phi   = (np.pi/180)*Phi
+            gam = np.sin(theta)*np.sin(phi)
+            bet = np.sin(theta)*np.cos(phi)
+            alp = np.cos(theta)
+            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
+        elif N==4:
+            theta = (np.pi/180)*parameters[0] # input degrees, output radians
+            phi   = (np.pi/180)*parameters[1] # 
+            psi   = (np.pi/180)*parameters[1] # 
+            gam = np.sin(theta)*np.cos(phi)
+            bet = np.sin(theta)*np.sin(phi)
+            alp = np.cos(theta)
+            wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
+        wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
+        wf = fx.extend_wf(
+                wf,
+                store.Norb_tot,
+                store.Nels_tot,
+                store.alpha_mo,
+                store.beta_mo)
+        rdm2 = rdmf.build_2rdm(
+                wf,
+                alpha=alp,
+                beta=bet
+                )
+        rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
     else:
         sys.exit('Not configured yet. Goodbye!')
     E_h1 = np.dot(store.ints_1e,rdm1).trace()

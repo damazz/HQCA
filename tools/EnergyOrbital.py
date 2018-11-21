@@ -9,13 +9,13 @@ import timeit
 from functools import reduce
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from tools.QuantumFramework import evaluate
-from tools.QuantumFramework import wait_for_machine
+from hqca.tools.QuantumFramework import evaluate
+from hqca.tools.QuantumFramework import wait_for_machine
 try:
-    from tools import Functions as fx
-    from tools import Chem as chem
-    from tools import RDMFunctions as rdmf
-    from tools import EnergyFunctions as enf
+    from hqca.tools import Functions as fx
+    from hqca.tools import Chem as chem
+    from hqca.tools import RDMFunctions as rdmf
+    from hqca.tools import EnergyFunctions as enf
 except ImportError:
     import Functions as fx
     import Chem as chem

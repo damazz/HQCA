@@ -1,11 +1,12 @@
-from qiskit import register, available_backends, get_backend
+#from qiskit import register, available_backends, get_backend
 from qiskit import execute
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
 from math import pi
 
-
-#README
 '''
+
+./tools/QuantumAlgorithms.py
+
 Please note, if an algorithm is updated or added, it should be added in 3
 places, or completely specified via input. 
 
@@ -27,7 +28,20 @@ def read_qasm(input_qasm):
     pass
 
 
-class GenerateCircuit:
+class GenerateDirectCircuit:
+    def __init__(
+            self,
+            para,
+            algorithm,
+            order='default',
+            _name=False,
+            verbose=False,
+            **kwargs
+            ):
+        pass
+
+
+class GenerateCompactCircuit:
     '''
     Class for initializing quantum algorithms. Has the quantum circuit
     attribute 

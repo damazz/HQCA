@@ -1,19 +1,7 @@
 import numpy as np
 import sys
-if __name__=='__main__':
-    try:
-        sys.path.insert(0,'/home/scott/Documents/research/3_vqa')
-        import hqca.tools.EnergyDeterminant as end
-        import hqca.tools.EnergyOrbital as eno
-    except ImportError:
-        sys.path.insert(0,'/home/sesmart/3_vqa')
-        import hqca.tools.EnergyDeterminant as end
-        import hqca.tools.EnergyOrbital as eno
-else:
-    from tools import EnergyDeterminant as end
-    from tools import EnergyOrbital as eno
-    from tools.IBM_check import check, get_backend_object
-    from tools.QuantumFramework import wait_for_machine
+from hqca.tools.IBM_check import check, get_backend_object
+from hqca.tools.QuantumFramework import wait_for_machine
 from subprocess import CalledProcessError, check_output
 import traceback
 import timeit
@@ -52,35 +40,27 @@ def g_x(par,print_run=False,**kwargs):
 
 
 def function_call(
-        par,backend='local_qasm_simulator',
-        energy='qc',wait_for_runs=False,
+        par,
+        function=f_x,
+        backend='local_qasm_simulator',
+        wait_for_runs=False,
         **kwargs
         ):
-    '''
-    Assigns an energy call to the propery form of energy based on the keyword:
-    'energy' (note, probably should change this, but okay). For instance, energy
-    can be equal to 'orbitals' (optimizing integrals), 'qc' (quantum computer
-    energy calculation), 'classical' (uses classical energy evaluation of
-    determinants), or 'test' (tests some standard scalar function to make sure
-    the function is working properly).
-
-    In general, a parameter and set of keywords is passed through. Optimizer is
-    optimizing the parameters, while the kwargs includes anything constant in
-    the optimization.
-    '''
     tic = timeit.default_timer()
-    if energy=='qc':
-        kwargs['para']=par
-        kwargs['backend']=backend
-        if wait_for_runs and (backend in ['ibmqx2','ibmqx4']):
-            wait_for_machine(backend)
-        E_t = end.energy_eval_quantum(**kwargs)
-    elif energy=='classical':
-        E_t = end.energy_eval_classical(par,**kwargs)
-    elif energy=='orbitals':
-        E_t = eno.energy_eval_orbitals(par,**kwargs)
-    elif energy=='test':
-        E_t = f_x(par,**kwargs)
+    #
+    #if energy=='qc':
+    #    kwargs['para']=par
+    #    kwargs['backend']=backend
+    #    if wait_for_runs and (backend in ['ibmqx2','ibmqx4']):
+    #        wait_for_machine(backend)
+    ##    E_t = end.energy_eval_quantum(**kwargs)
+    #elif energy=='classical':
+    #    E_t = end.energy_eval_classical(par,**kwargs)
+    #elif energy=='orbitals':
+    #    E_t = eno.energy_eval_orbitals(par,**kwargs)
+    #elif energy=='test':
+    #    E_t = f_x(par,**kwargs)
+    E_t = function(par,**kwargs)
     toc = timeit.default_timer()
     if toc-tic > 1800:
         print('Really long run time. Not good.')
@@ -184,26 +164,41 @@ class Optimizer:
             self.error = True
             self.opt_done=True
 
-    def check(self):
+    def check(self,
+            cache=False
+            ):
+        '''
+        '''
         try:
             self.opt.crit
-            if self.opt.crit<=self.opt._conv_thresh:
-                self.opt_done=True
-                print('Criteria met for convergence.')
-                print('----------')
-                #print(self.opt.best_x)
-            elif self.error:
-                self.opt_done=True
-            elif self.error =='time':
-                self.opt_done=True
+            if not cache:
+                if self.opt.crit<=self.opt._conv_thresh:
+                    self.opt_done=True
+                    print('Criteria met for convergence.')
+                    print('----------')
+                elif self.error in [True,'time']:
+                    self.opt_done=True
+                else:
+                    self.opt_done=False
             else:
-                self.opt_done=False
+                cache.crit = self.opt.crit
+                if self.opt.crit<=self.opt._conv_thresh:
+                    cache.done=True
+                    print('Criteria met for convergence.')
+                    print('----------')
+                elif self.error in [True,'time']:
+                    cache.done=True
+                    cache.err=True
+                else:
+                    cache.done=False
         except AttributeError as e:
-            if self.error:
+            if self.error and not cache:
                 self.opt_done=True
+            elif self.error:
+                cache.done=True
+                cache.err=True
         except Exception as e:
             traceback.print_exc()
-
 
 #
 #

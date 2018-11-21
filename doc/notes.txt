@@ -1,3 +1,47 @@
+# 11.19
+
+Next changes in version. Including an error simulating circuit. Implementation
+of the Jordan-Wigner mapping. How to perform a compact versus direct mapping.
+Lots of things to change, big question is how to change everything efficiently. 
+
+Need to do a couple things however. First, figure out a way to split the compact
+and direct mapping. Next, need to figure out what the actual code is. Maybe also
+input different optimizers, or have different ones available for the
+optimization. Natural orbital basis? Don't think so.....hrm. 
+
+Basic idea is to have a 2 electron system, and do tomography on it to obtain a
+more accurate energy. 1-RDM tomography. And select 2-RDM tomography for getting
+the phase. 
+
+In summary:
+- Update QISKit throughout
+- Need to update the energy evaluation routine
+- Splitting compact and direct mapping (algorithms, tomography, optimizers)
+- Create mappings, coding in different implementations
+- Finding simple circuits (need to do some reading, design, etc.)
+- Want to also incorporate an error model (needs to be implemented in backend)
+- Add option to attach H to output
+- change main a little, so that orb is seperate, maybe more simple - maybe
+  subroutines for orbital optimization and occupation? transition to qc? 
+- Maybe incorporate the HF package (smart HF)
+- Add MO outputs (i.e., clean and save the Store object)
+- Need to add different optimizers
+- Reimplement compact tomography
+x Remove outdated keywords, including:
+    run_type  
+    occ_increase
+    qc_combine
+    qc_order
+    chem_orb -> 
+    mapping -> move to compact
+    chem_orb -> ? guess not always needed 
+x Add new keywords:
+    qc_provider
+    qc_algorithm -> qa_alg
+
+    
+
+
 # 11.18
 
 Changing the structure of the work - adding in fermionic mapping

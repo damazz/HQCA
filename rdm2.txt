@@ -11,10 +11,11 @@ print= no
 wait= yes
 max_iter= 10
 mapping= zeta
-chem_orb= HF 
-#opt_crit= 0.000001
-opt_crit= 0.001
+chem_orb= HF
 opt_crit= 0.00001
+
+qb_mapping= JW
+
 
 # Occupation Number optimizers
 occ_method= stretch
@@ -32,7 +33,7 @@ occ_load_triangle= no
 occ_method_Ntri= 3
 
 
-# Input for the orbital optimizer (for chem_orb /= FCI)
+# Input for the orbital optimizer (for orbital method)
 orb_nm_simplex= 15
 orb_optimizer= NM
 orb_opt_crit= default
@@ -50,7 +51,6 @@ orb_seed= no
 # Input for the quantum algorithm
 qc_backend= local_qasm_simulator
 qc_num_shots= 4096
-qc_order= default
 qc_algorithm= affine_2p_curved_tenerife
 qc_combine= no
 # if no, then all shots are as one. if yes, then shot sare split, and the result

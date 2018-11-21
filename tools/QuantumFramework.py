@@ -9,15 +9,11 @@ quite sure why though.
 
 import time
 import timeit
-try:
-    from QuantumTomography import GenerateTomography
-    from QuantumTomography import ProcessToRDM
-    from IBM_check import check,get_backend_object
-except ImportError as e:
-    from tools.QuantumTomography import GenerateTomography
-    from tools.QuantumTomography import ProcessToRDM
-    from tools.IBM_check import check,get_backend_object
-    from tools.Functions import get_reading_material
+from hqca.tools.QuantumTomography import GenerateCompactTomography
+from hqca.tools.QuantumTomography import GenerateDirectTomography
+from hqca.tools.QuantumTomography import ProcessToRDM
+from hqca.tools.IBM_check import check,get_backend_object
+from hqca.tools.Functions import get_reading_material
 
 
 #import qiskit.backends.local.qasm_simulator_cpp as qs

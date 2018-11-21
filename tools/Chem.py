@@ -4,8 +4,8 @@ try:
     import RDMFunctions as rdmf
     import Functions as fx
 except ImportError:
-    import tools.RDMFunctions as rdmf
-    import tools.Functions as fx
+    import hqca.tools.RDMFunctions as rdmf
+    import hqca.tools.Functions as fx
 from pyscf import scf, gto, mcscf, ao2mo
 from functools import reduce
 import traceback
