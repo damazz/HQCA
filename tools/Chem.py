@@ -187,68 +187,6 @@ def get_ei(mol,elect,orbit):
 
     return ints_1e_no, ints_2e_no
 
-
-def h_1(rdm1,ints_1e_no):
-    return np.dot(ints_1e_no,rdm1).trace()
-
-def h_2(rdm2,ints_2e_no):
-    return 0.5*np.dot(ints_2e_no,rdm2).trace()
-
-
-def parse_1ei(loc,NO=True):
-    if NO:
-        ei = np.loadtxt(loc)
-    else:
-        old_ei = np.loadtxt(loc)
-        N = len(old_ei)
-        ei = np.zeros((3,3))
-        ind = 0
-        for i in range(0,3):
-            for j in range(0,3):
-                if j<i:
-                    ei[i,j] = old_ei[ind]
-                    ei[j,i] = old_ei[ind]
-                    ind+=1
-                elif j==i:
-                    ei[i,j] = old_ei[ind]
-                    ind+=1
-    #print(ei)
-    return ei
-
-def parse_2ei(loc,spatial=True):
-    if spatial:
-        ei = np.loadtxt(loc)
-    return ei
-
-
-def hamiltonian_1e(ei1,rdm1):
-    N = len(rdm1)
-    energy = 0
-    for i in range(0,3):
-        energy += ei1[i,i]*(rdm1[2*i,2*i]+rdm1[2*i+1,2*i+1])
-    return energy
-
-def hamiltonian_2e(ei2,rdm2,N):
-    energy = 0
-    for i in range(0,N):
-        for j in range(0,N):
-            for k in range(0,N):
-                for l in range(0,N):
-                    if rdm2[i,k,l,j]==0:
-                        continue
-                    else:
-                        #check = np.asarray(sS_mapping(i,k,l,j))
-                        check = np.asarray(sS_mapping(i,j,k,l))
-                        #print(check,np.array([i,k,l,j]))
-                        for items in ei2:
-                            if np.array_equal(check,items[0:4].astype(int)):
-                                energy+= items[-1]*rdm2[i,k,l,j]
-                                #print('Current Energy: {}'.format(energy))
-                                #print(check,items[-1],[i,k,l,j],rdm2[i,k,l,j],'\n')
-                                #break
-    energy*=0.5
-    return energy
-
 def gen_spin_1ei(
         ei1,
         U_a,
@@ -347,7 +285,7 @@ def gen_spin_2ei(
     Output is a matrix with indices, i,k,l,j
 
     '''
-
+    ei2 = fx.expand(ei2)
     N = len(U_a)
     if region=='full':
         alpha = alpha['inactive']+alpha['active']+alpha['virtual']

@@ -100,9 +100,11 @@ class sp:
             'moc_beta':self.C,
             'ints_1e_ao':self.ints_1e,
             'ints_2e_ao':self.ints_2e,
-            'E_ne':mol.energy_nuc}
+            'E_ne':mol.energy_nuc()}
         self.Store = enf.Storage(
             **store_kw)
+        self.Store.update_full_ints()
+
 
     def _load_restart(self):
         pass

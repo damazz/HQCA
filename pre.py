@@ -8,22 +8,23 @@
 
 def NOFT():
     var = {
-        'qc_backend':'qasm_simulator',
-        'qc_num_shots':'4096',
-        'qc_tomography':'1RDM',
-        'qc_verbose':True,
-        'qc_provider':'Aer',
-        'qa_fermion':'compact',
-        'qa_gpc_mapping':False,
         'max_iter':25,
         'restart':False,
         'wait':True,
         'prolix':True,
         'chem_orb':'HF',
-        'opt_thresh':0.0001,
-        'run_type':'rdm',
+        'opt_thresh':0.00001,
         'main':{
-            'algorithm':'test',
+            'qc_backend':'qasm_simulator',
+            'qc_num_shots':4096,
+            'qc_tomography':'1RDM',
+            'qc_verbose':True,
+            'qc_provider':'Aer',
+            'qa_fermion':'compact',
+            'tri':True,
+            'method_Ntri':3,
+            'load_triangle':False,
+            'algorithm':'affine_2p_curved_tenerife',
             'wf_mapping':'zeta',
             'method':'stretch',
             'optimizer':'NM',
@@ -33,20 +34,18 @@ def NOFT():
             'gd_gradient':'numerical',
             'gd_gradient_distance':0.01,
             'nm_simplex':10,
-            'verbose':True},
+            'verbose':False},
         'sub':{
             'method':'givens',
             'optimizer':'NM',
             'opt_thresh':0.00001,
             'opt_crit':'default',
+            'region':'active_space',
             'max_iter':1000,
             'gd_gradient':'numerical',
             'gd_gradient_distance':0.01,
             'nm_simplex':5,
-            'verbose':True,
-            'tri':True,
-            'method_Ntri':3,
-            'load_triangle':False}
+            'verbose':False}
         }
     return var
 

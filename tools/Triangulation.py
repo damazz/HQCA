@@ -191,13 +191,13 @@ class Triangle:
         return x[0:3,0]
 
 def find_triangle(
-        backend,
+        qc_backend,
         wf_mapping,
         store,
         method,
         algorithm,
         Ntri='default',
-        print_run=False,
+        verbose=False,
         wait_for_runs=True,
         energy='qc',
         **kwargs
@@ -239,7 +239,7 @@ def find_triangle(
                     [1,0.5,0.5],
                     [0.75,0.75,0.5]]
                 )
-        if print_run:
+        if verbose:
             print('Triangle: \n{}\n{}\n{}'.format(t1.v1,t1.v2,t1.v3))
             print('Transformation: \n {}'.format(aU))
     elif algorithm=='affine_2p_curved_tenerife':
@@ -259,8 +259,8 @@ def find_triangle(
         par_list = [[0,45],[0,0]]
         targets = [[1,1,1]]
         if Ntri>1:
-            tri_par = get_points(f,Ntri,0,45,print_run=print_run)
-            tar_tri = get_points(gpc,Ntri,0,1,print_run=print_run)
+            tri_par = get_points(f,Ntri,0,45,print_run=verbose)
+            tar_tri = get_points(gpc,Ntri,0,1,print_run=verbose)
             for i in tri_par: 
                 try:
                     par_list.append([i[0],i[0]])
@@ -277,9 +277,9 @@ def find_triangle(
             par = [par_list[0]]+par_list[i+1:i+3]
             print('Parameters: {}'.format(par))
             tri = []
-            kwargs['backend']=backend
+            kwargs['qc_backend']=qc_backend
             for item in par:
-                if wait_for_runs and (backend in ['ibmqx4','ibmqx2']):
+                if wait_for_runs and (qc_backend in ['ibmqx4','ibmqx2']):
                     from qiskit import register
                     try:
                         import Qconfig

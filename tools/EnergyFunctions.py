@@ -45,6 +45,7 @@ class Storage:
         self.rdm2=None
         self.ints_1e =None
         self.ints_2e = None
+        self.parameters=[0,0]
         self.ints_1e_ao = ints_1e_ao
         self.ints_2e_ao = ints_2e_ao
         self.E_ne = E_ne

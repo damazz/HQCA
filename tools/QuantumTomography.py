@@ -33,8 +33,7 @@ class GenerateCompactTomography:
 
     def __init__(
             self,
-            connect,
-            backend,
+            qc_backend,
             qc_provider,
             algorithm,
             tomography='default',
@@ -47,7 +46,7 @@ class GenerateCompactTomography:
         self.Nq = algorithm_tomography[algorithm]['Nq']
         self.qb_orbs = algorithm_tomography[algorithm]['qb_to_orb']
         self.No = len(self.qb_orbs)
-        self.backend = backend
+        self.backend = qc_backend
         self.verbose = verbose
         self.qc_kwargs = kwargs
         self.qc_kwargs['algorithm']=algorithm
@@ -150,7 +149,7 @@ class GenerateCompactTomography:
         self.get_qb_parity()
         for i in range(0,self._Nr):
             self.Q.append(
-                    GenerateCircuit(**self.qc_kwargs,_name='ii{}'.format(i))
+                    GenerateCompactCircuit(**self.qc_kwargs,_name='ii{}'.format(i))
                     )
             self.Q[i].qc.measure(self.Q[i].q,self.Q[i].c)
             self.circuits.append(self.Q[i].qc)

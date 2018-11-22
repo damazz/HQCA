@@ -22,8 +22,7 @@ SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             '/qiskit/backends/qasm_simulator_cpp')
 
 def evaluate(
-        num_shots,
-        split_runs=True,
+        qc_num_shots,
         verbose=False,
         **kwargs
         ):
@@ -49,28 +48,18 @@ def evaluate(
     ProcessToRDM:
         combine
     '''
-    if split_runs:
-        Nr = num_shots//1024
-        num_shots = 1024
-    else:
-        Nr = 1
     kwargs['verbose']=verbose
-    kwargs['_num_shots']=num_shots
-    kwargs['_num_runs'] = Nr
+    kwargs['_num_shots']=qc_num_shots
+    kwargs['_num_runs'] = 1
     Data = ProcessToRDM(
-            combine=split_runs
+            combine=False
+
             )
     Data.add_data(
-            GenerateTomography(
+            GenerateCompactTomography(
                 **kwargs
                 )
             )
-    #for inst in range(0,Ns):
-    #    qo = GenerateTomography(
-    #            **kwargs
-    #            )
-    #    #print(qo)
-    #    Data.add_instance(qo)
     Data.build_rdm(**kwargs)
     return Data
 

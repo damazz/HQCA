@@ -181,7 +181,7 @@ class Optimizer:
                 else:
                     self.opt_done=False
             else:
-                cache.crit = self.opt.crit
+                cache.crit = self.opt.best_f
                 if self.opt.crit<=self.opt._conv_thresh:
                     cache.done=True
                     print('Criteria met for convergence.')
