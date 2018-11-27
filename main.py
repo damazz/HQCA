@@ -112,6 +112,8 @@ class sp:
     def _choose_theory(self):
         if self.theory in ['NOFT','noft']:
             self.run = sub.RunNOFT(self.Store)
+        elif self.theory in ['rdm','RDM']:
+            self.run = sub.RunRDM(self.Store)
 
     def update_var(self,
             args={}):

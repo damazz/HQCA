@@ -60,6 +60,7 @@ class Storage:
         self.active_space_calc='FCI'
         self._generate_active_space(**kwargs)
         self._generate_spin2spac_mapping()
+        self._orb_to_qb()
 
     def _generate_active_space(self,
             Nels_tot,

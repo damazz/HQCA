@@ -9,6 +9,7 @@ import timeit
 import sys
 np.set_printoptions(precision=6,suppress=True)
 from hqca.tools.QuantumFramework import evaluate
+from hqca.tools.QuantumTomography import GenerateTomography
 from hqca.tools.QuantumFramework import wait_for_machine
 try:
     from hqca.tools import Functions as fx
@@ -20,7 +21,10 @@ except ImportError:
     import RDMFunctions as rdmf
 
 def energy_eval_rdm():
-    
+    '''
+    Energy evaluation for single shot quantum computer where we measure the full
+    1-RDM. Phase cna be assigned with some 2-RDM values. 
+    '''
     pass
 
 def energy_eval_nordm(

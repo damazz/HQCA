@@ -9,8 +9,7 @@ quite sure why though.
 
 import time
 import timeit
-from hqca.tools.QuantumTomography import GenerateCompactTomography
-from hqca.tools.QuantumTomography import GenerateDirectTomography
+from hqca.tools.QuantumTomography import GenerateTomography
 from hqca.tools.QuantumTomography import ProcessToRDM
 from hqca.tools.IBM_check import check,get_backend_object
 from hqca.tools.Functions import get_reading_material
@@ -53,10 +52,9 @@ def evaluate(
     kwargs['_num_runs'] = 1
     Data = ProcessToRDM(
             combine=False
-
             )
     Data.add_data(
-            GenerateCompactTomography(
+            GenerateTomography(
                 **kwargs
                 )
             )

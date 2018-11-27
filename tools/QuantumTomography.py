@@ -19,33 +19,38 @@ SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             ' /qiskit/backends/qasm_simulator_cpp')
 
 
-class GenerateDirectTomography:
-    '''
-    Class for carrying out direct measurements
-
-    '''
-
-
-
-
-class GenerateCompactTomography:
+class GenerateTomography:
     ''' Class for carrying out compact measurements.'''
 
     def __init__(
             self,
             qc_backend,
             qc_provider,
+            qa_fermion,
             algorithm,
+            qb2so_map='default',
             tomography='default',
-            _num_runs=2,
-            _num_shots=1024,
+            _num_runs=1,
+            qc_num_shots=1024,
+            store=None,
             verbose=False,
             **kwargs):
         kwargs['verbose']=verbose
         tic = timeit.default_timer()
-        self.Nq = algorithm_tomography[algorithm]['Nq']
-        self.qb_orbs = algorithm_tomography[algorithm]['qb_to_orb']
-        self.No = len(self.qb_orbs)
+        if qa_fermion=='compact':
+            self.Nq = algorithm_tomography[algorithm]['Nq']
+            self.qb_orbs = algorithm_tomography[algorithm]['qb_to_orb']
+            self.No = len(self.qb_orbs)
+        else:
+            self.alpha = store.alpha_mo['active']
+            self.beta = store.beta_mo['active']
+            self._get_map()
+            self.qc_kwargs['alpha_so']=self.alpha
+            self.qc_kwargs['beta_so']=self.beta
+            self.qc_kwargs['so2qb']=self.so_to_qb
+            self.qc_kwargs['qb2so']=self.qb_to_so
+            self.qc_kwargs['Nq']=Nq
+        self.fermi=qa_fermion
         self.backend = qc_backend
         self.verbose = verbose
         self.qc_kwargs = kwargs
@@ -57,19 +62,18 @@ class GenerateCompactTomography:
         self.circuits = []
         self.Q = []
         self.counts = {}
-        self._Ns = _num_shots
-        self._Nr = _num_runs
+        self._Ns = qc_num_shots
+        self._Nr = 1
         t1 = timeit.default_timer()
         if tomography=='default':
-            tomo = algorithm_tomography[algorithm]['tomo']
+            self.tomo = algorithm_tomography[algorithm]['tomo']
         else:
-            tomo = tomography
-        self.tomo = tomo
-        if tomo=='d1rdm':
+            self.tomo = tomography
+        if self.tomo=='d1rdm':
             self.tomo_d1rdm()
-        elif tomo=='1rdm':
+        elif self.tomo=='1rdm':
             self.tomo_1rdm()
-        elif tomo=='2rdm':
+        elif self.tomo=='2rdm':
             self.tomo_2rdm()
         toc = timeit.default_timer()
         if verbose:
@@ -77,6 +81,16 @@ class GenerateCompactTomography:
             print('Time to run tomography : {}'.format(toc-t1))
             print('Total time: {}'.format(toc-tic))
 
+    def _get_map(self):
+        if qb2so_map=='default':
+            self.so_to_qb = {}
+            self.qb_to_so = {}
+            for qb,so in enumerate(self.alpha):
+                self.so_to_qb[so]=qb
+                self.qb_to_so[qb]=so
+            for qb,so in enumerate(self.beta):
+                self.so_to_qb[so]=qb+len(self.alpha)
+                self.so_to_qb[qb+len(self.alpha)]=so
 
     def tomo_get_backend(self,
             provider,
@@ -91,6 +105,40 @@ class GenerateCompactTomography:
         except Exception:
             pass
 
+    pairs = {
+            3:[
+                ['12'],['13'],['23']],
+            4:[
+                ['12','34'],['23','14'],
+                ['13','24']],
+            5:[
+                ['12','34'],['15','23'],
+                ['13','45'],['24','35'],
+                ['14','25']],
+            6:[
+                ['12','34','56'],
+                ['13','25','46'],
+                ['24','15','36'],
+                ['14','35','26'],
+                ['23','45','16']],
+            7:[
+                ['12','34','57'],
+                ['13','24','67'],
+                ['14','25','36'],
+                ['15','26','37'],
+                ['16','27','45'],
+                ['17','35','46'],
+                ['23','47','56']],
+            8:[
+                ['12','35','46','78'],
+                ['13','25','47','68'],
+                ['14','26','37','58'],
+                ['15','23','67','48'],
+                ['16','24','38','57'],
+                ['17','28','34','56'],
+                ['18','27','36','45']
+
+            }
 
     def tomo_get_counts(self,qo):
         '''
@@ -132,17 +180,28 @@ class GenerateCompactTomography:
         '''
         Given a qubit to fermion mapping, which is specified below, returns the
         parity mapping for orbitals.
-
-        qb_to_orb should be the array of qubits which map to the sequence of
-        orbitals, from high to low. I.e., for a mapping where you have qubits
-        0,1,and 2 mapping to 0/5, 1/4, and 2/3 respectively, specify qb_to_orb
-        as [0,1,2].
         '''
         ind = 0
         self.qb_sign = {}
         for item in reversed(self.qb_orbs):
             self.qb_sign[item]=(-1)**ind
             ind+=1
+
+    def _get_pairs(self):
+        self.rdm_alp = pairs[len(self.alpha)]
+        temp = pairs[len(self.beta)]
+        self.rdm_bet = []
+        a = len(self.alpha)
+        for circ in temp:
+            temp_arr = []
+            for pair in circ:
+                temp_arr.append('{}{}'.format(
+                        str(int(pair[0])+a),
+                        str(int(pair[1])+a)
+                        )
+                    )
+            self.rdm_bet.append(temp_arr)
+        self.circ_pairs = zip(self.rdm_alp,self.rdm_bet)
 
     def tomo_d1rdm(self):
         self.type = '1RDM'
@@ -162,40 +221,82 @@ class GenerateCompactTomography:
         self.tomo_get_counts(self.qo)
 
     def tomo_1rdm(self):
+        def apply_1rdm_tomo(self,qc,qr,i,j):
+            qc.cx(qr[j],qr[i])
+            qc.x(qr[j])
+            qc.ry(theta/2,qr[j])
+            qc.cx(qr[i],qr[j])
+            qc.ry(-theta/2,qr[j])
+            qc.cx(qr[i],qr[j])
+            qc.x(qr[j])
+            qc.cx(qr[j],qr[i])
+
         self.type='1RDM'
-        self.get_qb_parity()
-        for i in range(0,self._Nr):
-            self.Q.append(
-                    GenerateCircuit(**self.qc_kwargs,_name='ii{}'.format(i))
-                    )
-            self.Q[i].qc.measure(self.Q[i].q,self.Q[i].c)
-            self.circuit_list.append('ii{}'.format(i))
-            self.circuits.append(self.Q[i].qc)
-        for i in range(self._Nr,2*self._Nr):
-            self.Q.append(
-                    GenerateCircuit(**self.qc_kwargs,_name='ij{}'.format(
-                        i-self._Nr)
+        if self.fermi=='compact':
+            for i in range(0,self._Nr):
+                self.Q.append(
+                        GenerateCircuit(**self.qc_kwargs,_name='ii{}'.format(i))
                         )
+                self.Q[i].qc.measure(self.Q[i].q,self.Q[i].c)
+                self.circuit_list.append('ii{}'.format(i))
+                self.circuits.append(self.Q[i].qc)
+            for i in range(self._Nr,2*self._Nr):
+                self.Q.append(
+                        GenerateCircuit(**self.qc_kwargs,_name='ij{}'.format(
+                            i-self._Nr)
+                            )
+                        )
+                for j in self.qb_orbs:
+                    if self.qb_sign[j]==-1:
+                        self.Q[i].qc.z(self.Q[i].q[j])
+                        self.Q[i].qc.h(self.Q[i].q[j])
+                    elif self.qb_sign[j]==1:
+                        self.Q[i].qc.h(self.Q[i].q[j])
+                        self.Q[i].qc.z(self.Q[i].q[j])
+                    else:
+                        sys.exit('Error in performing 1RDM tomography.')
+                self.Q[i].qc.measure(self.Q[i].q,self.Q[i].c)
+                self.circuit_list.append('ij{}'.format(i-self._Nr))
+                self.circuits.append(self.Q[i].qc)
+        elif self.fermi=='direct':
+            i = 0 
+            self.Q.append(
+                    GenerateDirectCircuit(**self.qc_kwargs,
+                        _name='ii')
                     )
-            for j in self.qb_orbs:
-                if self.qb_sign[j]==-1:
-                    self.Q[i].qc.z(self.Q[i].q[j])
-                    self.Q[i].qc.h(self.Q[i].q[j])
-                elif self.qb_sign[j]==1:
-                    self.Q[i].qc.h(self.Q[i].q[j])
-                    self.Q[i].qc.z(self.Q[i].q[j])
-                else:
-                    sys.exit('Error in performing 1RDM tomography.')
+            for ca,cb in self.circ_pairs:
+                    self.Q.append(
+                            GenerateDirectCircuit(
+                                **self.qc_kwargs,
+                                _name='ij')
+                            )
+                for pair in ca:
+                    self.apply_1rdm_tomo(
+                            self.Q[i].qc,
+                            self.Q[i].q,
+                            int(pair[0]),
+                            int(pair[1]))
+                for pair in cb:
+                    self.apply_1rdm_tomo(
+                            self.Q[i].qc,
+                            self.Q[i].q,
+                            int(pair[0]),
+                            int(pair[1]))
             self.Q[i].qc.measure(self.Q[i].q,self.Q[i].c)
-            self.circuit_list.append('ij{}'.format(i-self._Nr))
+            self.circuit_list.append(
+                    [ca,cb])
             self.circuits.append(self.Q[i].qc)
+            i+=1 
         self.qo = qiskit.compile(
                 self.circuits,
                 shots=self._Ns,
                 backend=self.b
                 )
         self.tomo_get_counts(self.qo)
-
+        if self.fermi=='direct':
+            pass
+            for ca,cb in self.circ_pairs:
+                pass
 
     def tomo_2rdm(self):
         self.type='2RDM'
@@ -205,10 +306,6 @@ class GenerateCompactTomography:
         cc = -1
         for i in range(0,self._Nr): #note, only 1 place
             for k,p in self.pairs.items():
-
-                #
-                # Starting with unique iklj elements
-                #
                 self.Q.append(
                         GenerateCircuit(
                             **self.qc_kwargs,
@@ -223,7 +320,6 @@ class GenerateCompactTomography:
                 for j in range(0,Npair):
                     a,b = int(pairs[j][0]),int(pairs[j][1])
                     sa,sb = self.qb_sign[a],self.qb_sign[b]
-
                     self.Q[cc].qc.cx(self.Q[cc].q[a],self.Q[cc].q[b])
                     if sa*sb==1:
                         self.Q[cc].qc.h(self.Q[cc].q[a])
@@ -233,16 +329,13 @@ class GenerateCompactTomography:
                         self.Q[cc].qc.h(self.Q[cc].q[a])
                     self.Q[cc].qc.cx(self.Q[cc].q[a],self.Q[cc].q[b])
                 self.Q[cc].qc.measure(self.Q[cc].q,self.Q[cc].c)
-
                 self.circuit_list.append('iklj{}{}'.format(
                                 k,i
                                 ))
                 self.circuits.append(self.Q[cc].qc)
-
                 #
                 # Now adding the rotated off-pieces, ikli
                 #
-
                 self.Q.append(
                         GenerateCircuit(
                             **self.qc_kwargs,
@@ -305,11 +398,9 @@ class GenerateCompactTomography:
                                 k,i
                                 ))
                 self.circuits.append(self.Q[cc].qc)
-
                 #
                 # Finally, the identity elements. 
                 #
-
                 self.Q.append(
                         GenerateCircuit(
                             **self.qc_kwargs,
@@ -419,6 +510,9 @@ def gen_2rdm_pairs(Nq):
         circuit_pair_map[i]=pair_list.pop()
     print('Mapping: {}'.format(circuit_pair_map))
     return circuit_pair_map
+
+
+
 
 
 

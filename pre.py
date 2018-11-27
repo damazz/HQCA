@@ -49,4 +49,38 @@ def NOFT():
         }
     return var
 
+def RDM():
+    var = {
+        'max_iter':25,
+        'restart':False,
+        'wait':True,
+        'prolix':True,
+        'chem_orb':'HF',
+        'opt_thresh':0.00001,
+        'qc':{
+            'qc_backend':'qasm _simulator',
+            'qc_num_shots':4096,
+            'qc_tomography':'1RDM',
+            'qc_verbose':True,
+            'qc_provider':'Aer',
+            'qa_fermion':'direct',
+            'tomography':'1rdm',
+            'tri':False,
+            'method_Ntri':3,
+            'load_triangle':False,
+            'algorithm':'affine_2p_curved_tenerife',
+            'method':'stretch',
+            'optimizer':'NM',
+            'opt_thresh':0.01,
+            'opt_crit':'default',
+            'max_iter':100,
+            'gd_gradient':'numerical',
+            'gd_gradient_distance':0.01,
+            'nm_simplex':10,
+            'verbose':False}
+        }
+    return var
+
+
+
 

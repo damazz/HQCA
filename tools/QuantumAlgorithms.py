@@ -27,18 +27,100 @@ tf_ibm_qx4 = {'01':False,'02':False, '12':False, '10':True,'20':True, '21':True}
 def read_qasm(input_qasm):
     pass
 
-
 class GenerateDirectCircuit:
     def __init__(
             self,
             para,
             algorithm,
+            Nq,
+            alpha_so,
+            beta_so,
+            so2qb,
+            qb2so,
+            store=None
             order='default',
             _name=False,
             verbose=False,
+            pairing='full',
+            depth=1,
+            entangler='Ry_cN',
+            ec=None,
             **kwargs
             ):
+        '''
+        Want to do a different approach than previously. Want to make a
+        simulated one that has variable size constraints.
+        '''
+        self.q = QuantumRegister(self.Nq,name='q')
+        self.c = ClassicalRegister(self.Nq,name='c')
+        self.ec = ec
+        if _name==False:
+            self.qc = QuantumCircuit(self.q,self.c)
+        else:
+            self.qc = QuantumCircuit(self.q,self.c,name=_name)
+        self._gen_entangling_pairs(pairing)
+        self._gen_circuit(para)
+
+
+    def _gen_circuit(self,para):
+        for i,pair in enumerate(self.ent_pairs):
+            self._gen_entangler(para[i],pair[0],pair[1])
+        if ec==None:
+            pass
+        else:
+            pass
+
+
+
+    def _gen_entangling_pairs(self,pairing):
+        self.ent_pairs = []
+        if pairing=='full':
+            for i,o1 in enumerate(self.alpha):
+                for j,o2 in enumerate(self.alpha):
+                    if i<j:
+                        self.ent_pair.append(
+                                [
+                                    self.so_to_qb[o1],
+                                    self.so_to_qb[o2]
+                                    ]
+                                )
+            for i,o1 in enumerate(self.beta):
+                for j,o2 in enumerate(self.beta):
+                    if i<j:
+                        self.ent_pair.append(
+                                [
+                                    self.so_to_qb[o1],
+                                    self.so_to_qb[o2]
+                                    ]
+                                )
+        elif pairing=='sequential':
+            for i,o1 in enumerate(self.alpha):
+                if i==0:
+                    last = o1
+                else:
+                    self.ent_pair.append(
+                            [
+                                self.so_to_qb[o1],
+                                self.so_to_qb[last]
+                                ]
+                            )
+                    last = o1
+
+    def _get_entangler(self):
+        if entangler=='Ry_cN':
+            return self._ent1_Ry_cN
         pass
+
+    def _ent1_Ry_cN(self,phi,i,j):
+        self.qc.cx(self.q[j],self.q[i])
+        #self.qc.x(self.q[j])
+        self.qc.ry(phi/2,self.q[j])
+        self.qc.cx(self.q[i],self.q[j])
+        self.qc.ry(-phi/2,self.q[j])
+        #self.qc.cx(self.q[i],self.q[j])
+        self.qc.x(self.q[j])
+        self.qc.cx(self.q[j],self.q[i])
+
 
 
 class GenerateCompactCircuit:

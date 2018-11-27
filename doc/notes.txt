@@ -1,4 +1,4 @@
-# 11.19
+# 11.19 - 11.22
 
 Next changes in version. Including an error simulating circuit. Implementation
 of the Jordan-Wigner mapping. How to perform a compact versus direct mapping.
@@ -14,15 +14,16 @@ more accurate energy. 1-RDM tomography. And select 2-RDM tomography for getting
 the phase. 
 
 In summary:
-- Update QISKit throughout
-- Need to update the energy evaluation routine
-- Splitting compact and direct mapping (algorithms, tomography, optimizers)
+x Clean up code
+x Update QISKi throughout
+x Need to update the energy evaluation routine
+x Splitting compact and direct mapping (algorithms, tomography, optimizers)
 - Create mappings, coding in different implementations
 - Finding simple circuits (need to do some reading, design, etc.)
 - Want to also incorporate an error model (needs to be implemented in backend)
 - Add option to attach H to output
-- change main a little, so that orb is seperate, maybe more simple - maybe
-  subroutines for orbital optimization and occupation? transition to qc? 
+x change main a little, so that orb is seperate, maybe more simple - maybe
+x subroutines for orbital optimization and occupation? transition to qc? 
 - Maybe incorporate the HF package (smart HF)
 - Add MO outputs (i.e., clean and save the Store object)
 - Need to add different optimizers
