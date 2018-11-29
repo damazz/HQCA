@@ -8,7 +8,7 @@ import time
 import timeit
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import evaluate
+from hqca.tools.QuantumFramework import build_circuits,run_circuits,construct
 from hqca.tools.QuantumFramework import wait_for_machine
 
 #
@@ -225,9 +225,9 @@ def find_triangle(
             else:
                 pass
             kwargs['para']=item
-            data = evaluate(
-                    **kwargs
-                    )
+            qc,qcl = build_circuits(para,**kwargs)
+            qco = run_circuits(qc,qcl,**kwargs)
+            rdm1 = construct(qco,**kwargs)
             on = data.on
             rdm = data.rdm1
             on.sort()
@@ -294,11 +294,11 @@ def find_triangle(
                 else:
                     pass
                 kwargs['para']=item
-                data = evaluate(
-                        **kwargs
-                        )
-                on = data.on
-                rdm = data.rdm1
+                qc,qcl,q = build_circuits(**kwargs)
+                kwargs['qb2so']=q
+                qco = run_circuits(qc,qcl,**kwargs)
+                rdm = construct(qco,**kwargs)
+                on,norbs = np.linalg.eig(rdm)
                 on.sort()
                 print('Vertex: {}'.format(on))
                 tri.append([on[5],on[4],on[3]])

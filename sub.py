@@ -38,9 +38,18 @@ class RunRDM:
     wavefunction.
     '''
     def __init__(self,
-            store):
+            store,
+            entangled_pairs,**kw
+            ):
         self.store=store
+        self.store.sp='rdm'
+        self.store.kw['entangled_pairs']=entangled_pairs
+        self.store.gas()
+        self.store.gsm()
+        self.store.gip()
+        self.store.update_full_ints()
         self.kw = pre.RDM()
+        self.run=Cache()
         self.kw_qc = self.kw['qc']
         self.pr = self.kw['prolix']
         if self.pr:
@@ -54,7 +63,14 @@ class RunRDM:
             self.kw[k]=v
         self.kw_qc = self.kw['qc']
 
-    def go():
+    def go(self):
+        while not self.run.done:
+            self._OptRDM()
+            self._check(self.kw['opt_thresh'],self.kw['max_iter'])
+
+    def _OptRDM(self,
+            *kw):
+        pass
 
 
 
@@ -63,7 +79,6 @@ class RunRDM:
 class RunNOFT:
     '''
     Subroutine for a natural-orbital function theory approach
-    Methods - 
     stretch
 
     '''
@@ -71,13 +86,18 @@ class RunNOFT:
             store
             ):
         self.store=store
+        self.store.sp='noft'
+        self.store.gas()
+        self.store.gsm()
+        self.store.gip()
+        self.store.update_full_ints()
         self.kw=pre.NOFT()
         self.total=Cache()
         self.kw_main={}
         self.kw_sub={}
         self.load=False
         self.kw_main = self.kw['main']
-        self.kw_sub = self.kw['lsub']
+        self.kw_sub = self.kw['sub']
         self.kw_main['store']=self.store
         self.kw_sub['store']=self.store
         self.Np = enf.rotation_parameter_generation(

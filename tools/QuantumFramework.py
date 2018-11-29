@@ -9,10 +9,17 @@ quite sure why though.
 
 import time
 import timeit
-from hqca.tools.QuantumTomography import GenerateTomography
-from hqca.tools.QuantumTomography import ProcessToRDM
+from hqca.tools._Tomography import Process
+from hqca.tools._Tomography import efficient_qubit_tomo_pairs as eqtp
+from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
+from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
+from hqca.tools.QuantumAlgorithms import algorithm_tomography
 from hqca.tools.IBM_check import check,get_backend_object
 from hqca.tools.Functions import get_reading_material
+import sys, traceback
+from qiskit import Aer,IBMQ
+from qiskit import compile as compileqp
+
 
 
 #import qiskit.backends.local.qasm_simulator_cpp as qs
@@ -20,46 +27,264 @@ from hqca.tools.Functions import get_reading_material
 SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             '/qiskit/backends/qasm_simulator_cpp')
 
-def evaluate(
-        qc_num_shots,
-        verbose=False,
-        **kwargs
+def build_circuits(
+        qa_fermion,
+        verbose=True,
+        **kw
         ):
-    '''
-    Total list of kwargs:
-    
-    num_shots
-    split_runs
-    verbose
-     
-    GenerateTomography:
-        connect
-        **verbose
-        **backend
-        **algorithm
-        **tomography
-        _num_shots
-        GenerateCircuit:
-            **parameters
-            algorithm
-            **order
-            _name
-    ProcessToRDM:
-        combine
-    '''
-    kwargs['verbose']=verbose
-    kwargs['_num_shots']=qc_num_shots
-    kwargs['_num_runs'] = 1
-    Data = ProcessToRDM(
-            combine=False
-            )
-    Data.add_data(
-            GenerateTomography(
-                **kwargs
+    def _init_compact(
+            algorithm,
+            **kw
+            ):
+        Nq = algorithm_tomography[algorithm]['Nq']
+        qb_orbs = algorithm_tomography[algorithm]['qb_to_orb']
+        No = len(qb_orbs)
+        return Nq,qb_orbs,No
+
+    def _init_direct(
+            alpha_mo,
+            beta_mo,
+            Nqb=1,
+            qb2so='default',
+            **kw,
+            ):
+        alpha = alpha_mo['active']
+        beta  = beta_mo['active']
+        so2qb,qb2so = _get_map(
+                qb2so,alpha,beta
                 )
+
+        return alpha,beta,so2qb,qb2so
+    def _get_map(
+            qb2so,alpha,beta
+            ):
+        if qb2so=='default':
+            so2qb = {}
+            qb2so = {}
+            for qb,so in enumerate(alpha):
+                so2qb[so]=qb
+                qb2so[qb]=so
+            for qb,so in enumerate(beta):
+                so2qb[so]=qb+len(alpha)
+                so2qb[qb+len(alpha)]=so
+        else:
+            try:
+                so2qb = {v:k for k,v in qb2so.items()}
+            except Exception:
+                traceback.print_exc()
+        return so2qb,qb2so
+
+    '''
+    Begin actual circuit generation. 
+    '''
+    kw['verbose']=verbose
+    #tic = timeit.default_timer()
+    if qa_fermion=='compact':
+        Nq,qb_orbs,No = _init_compact(**kw)
+        kw['Nq']=Nq
+        kw['qb_orbs']=qb_orbs
+        kw['No']=No
+        q2s = {}
+        circ, circ_list = _compact_tomography(**kw)
+    elif qa_fermion=='direct':
+        alp,bet, s2q,q2s = _init_direct(**kw)
+        kw['alpha']=alp
+        kw['beta']=bet
+        kw['so2qb']=s2q
+        kw['qb2so']=q2s
+        circ, circ_list = _direct_tomography(**kw)
+    return circ,circ_list,q2s
+
+
+def _direct_tomography(
+    alpha,
+    beta,
+    tomo_rdm='1rdm',
+    tomo_basis='bch',
+    tomo_extra=False,
+    verbose=True,
+    **kw
+        ):
+    def _get_pairs(alp,bet):
+        rdm_alp = eqtp[len(alp)]
+        temp = eqtp[len(bet)]
+        rdm_bet = []
+        a = len(alp)
+        for circ in temp:
+            temp_arr = []
+            for pair in circ:
+                temp_arr.append('{}{}'.format(
+                        str(int(pair[0])+a),
+                        str(int(pair[1])+a)
+                        )
+                    )
+            rdm_bet.append(temp_arr)
+        circ_pairs = zip(self.rdm_alp,self.rdm_bet)
+        return circ_pairs
+
+    def apply_1rdm_basis_tomo(Q,i,j):
+        '''
+        generic 1rdm circuit for ses method
+        '''
+        Q.qc.cx(Q.q[j],Q.q[i])
+        Q.qc.x(qr[j])
+        Q.qc.ry(np.pi/4,Q.q[j])
+        Q.qc.cx(Q.q[i],Q.q[j])
+        Q.qc.ry(-np.pi/4,Q.q[j])
+        Q.qc.cx(Q.q[i],Q.q[j])
+        Q.qc.x(Q.q[j])
+        Q.qc.cx(Q.q[j],Q.q[i])
+    '''
+    Begin direct tomography
+    '''
+    circuit,circuit_list = [],[]
+    circ_pair = _get_pairs(alpha,beta)
+    if tomo_rdm=='1rdm':
+        if tomo_basis in ['no','NO']:
+            print('Do you think we are in the natural orbitals? Wrong method!')
+            sys.exit()
+        elif tomo_basis=='bch':
+            Q =  GenerateDirectCircuit(**kw,_name='ii')
+            Q.qc.measure(Q.q,Q.c)
+            circuit.append(Q.qc)
+            circuit.append('ii')
+            i=0
+            for ca,cb in circ_pair:
+                Q = GenerateDirectCircuit(**kw,_name='ij')
+                for pair in ca:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]))
+                for pair in cb:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]))
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append(['ij',ca,cb])
+                circuit.append(Q.qc)
+        elif tomo_basis=='pauli':
+            # projection into the pauli basis now...
+            pass
+    if tomo_extra:
+        # looking at tomo of RDM with 
+        pass
+    return circuit,circuit_list
+
+def _compact_tomography(
+        qb_orbs,
+        tomo_rdm,
+        tomo_basis,
+        **kw
+        ):
+    def get_qb_parity(
+            qb_orbs,
+            ):
+        ind = 0
+        qb_sign = {}
+        for item in reversed(qb_orbs):
+            qb_sign[item]=(-1)**ind
+            ind+=1
+        return qb_sign
+    '''
+    '''
+    circuit,circuit_list = [],[]
+    if tomo_rdm=='1rdm' and tomo_basis=='no':
+        qb_sign = get_qb_parity(qb_orbs)
+        Q = GenerateCompactCircuit(**kw,_name='ii')
+        Q.qc.measure(Q.q,Q.c)
+        circuit.append(Q.qc)
+        circuit_list.append(['ii'])
+    elif tomo_rdm=='1rdm' and tomo_basis=='bch':
+        Q = GenerateCompactCircuit(**kw,_name='ii')
+        Q.qc.measure(Q.q,Q.c)
+        circuit_list.append(['ii'])
+        circuit.append(self.Q[i].qc)
+        Q = GenerateCircuit(**kw,_name='ij')
+        for j in qb_orbs:
+            if qb_sign[j]==-1:
+                Q.qc.z(Q.q[j])
+                Q.qc.h(Q.q[j])
+            elif self.qb_sign[j]==1:
+                Q.qc.h(Q.q[j])
+                Q.qc.z(Q.q[j])
+            else:
+                sys.exit('Error in performing 1RDM tomography.')
+        Q.qc.measure(Q.q,Q.c)
+        circuit_list.append(['ij'])
+        circuit.append(Q.qc)
+    elif tomo_rdm=='2rdm':
+        print('Why are you doing 2-RDM tomography on a compact system?')
+        print('Unnecessary!')
+        sys.exit()
+    return circuit, circuit_list
+
+
+
+
+def run_circuits(
+        circuits,
+        circuit_list,
+        qc_backend,
+        qc_provider,
+        qc_num_shots,
+        verbose=True,
+        **kw
+        ):
+    def _tomo_get_backend(
+            provider,
+            backend
+            ):
+        if provider=='Aer':
+            prov=Aer
+        elif provider=='IBMQ':
+            prov=IBMQ
+        try:
+            return prov.get_backend(backend)
+        except Exception:
+            sys.exit()
+    beo = _tomo_get_backend(
+            qc_provider,
+            qc_backend)
+    qo = compileqp(
+            circuits,
+            shots=qc_num_shots,
+            backend=beo
             )
-    Data.build_rdm(**kwargs)
-    return Data
+    counts = []
+    if qc_backend=='local_unitary_simulator':
+        qr = beo.run(qo,timeout=6000)
+        for circ in circuit_list:
+            U = qr.result().get_data(circ)['unitary']
+            counts[circuit] = fx.UnitaryToCounts(U)
+    else:
+        try:
+            job = beo.run(qo)
+            for circuit in circuit_list:
+                name = circuit[0]
+                counts.append(job.result().get_counts(name))
+        except Exception as e:
+            print('Error: ')
+            print(e)
+            traceback.print_exc()
+    if verbose:
+        print('Circuit counts:')
+        for i in counts:
+            for k,v in i.items():
+                print('  {}:{}'.format(k,v))
+    return zip(circuit_list,counts)
+
+def construct(
+        data,
+        **kw):
+    qo = Process(data,**kw)
+    qo.build_rdm()
+    return qo.rdm
+    
+
+
+
+
+
+
+
 
 def add_to_config_log(backend,connect):
     '''

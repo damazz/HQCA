@@ -62,12 +62,11 @@ class sp:
     def __init__(self,
             mol,
             theory,
-            run_type='sp',
             restart=False):
         '''start function,
         assigns the chemical things and gets stuff going
         '''
-        self.run_type = run_type
+        self.run_type = 'sp'
         self.theory=theory
         self._load_mol(mol)
         if restart:
@@ -93,7 +92,7 @@ class sp:
             mol.as_No= self.C.shape[0]
         store_kw = {
             'Nels_tot':mol.nelec[0]+mol.nelec[1],
-            'Norb_tot':self.C.shape[0],
+            'Norb_tot':self.C.shape[0], #spatial
             'Nels_as':mol.as_Ne,
             'Norb_as':mol.as_No,
             'moc_alpha':self.C,
@@ -103,7 +102,6 @@ class sp:
             'E_ne':mol.energy_nuc()}
         self.Store = enf.Storage(
             **store_kw)
-        self.Store.update_full_ints()
 
 
     def _load_restart(self):
@@ -120,7 +118,7 @@ class sp:
         self.run.update_var(args)
 
     def execute(self):
-        self.run.cycle()
+        self.run.go()
 
 
 #print('Run on: {}'.format(datetime.datetime.now().isoformat()))

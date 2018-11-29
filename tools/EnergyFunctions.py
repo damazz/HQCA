@@ -45,7 +45,6 @@ class Storage:
         self.rdm2=None
         self.ints_1e =None
         self.ints_2e = None
-        self.parameters=[0,0]
         self.ints_1e_ao = ints_1e_ao
         self.ints_2e_ao = ints_2e_ao
         self.E_ne = E_ne
@@ -58,9 +57,28 @@ class Storage:
         self.occ_energy_calls = 0
         self.orb_energy_calls = 0
         self.active_space_calc='FCI'
-        self._generate_active_space(**kwargs)
+        self.kw = kwargs
+
+    def gip(self):
+        try:
+            if self.sp=='noft':
+                self.parameters=[0,0]
+            elif self.sp=='rdm':
+                if self.kw['entangled_pairs']=='full':
+                    N = self.Norb_as**2-self.Norb_as
+                elif self.kw['entangled_pairs']=='sequential':
+                    N = self.Norb_as-1
+                self.para = [0 for i in range(N)]
+
+
+        except AttributeError:
+            print('Not assigned.')
+
+    def gsm(self):
         self._generate_spin2spac_mapping()
-        self._orb_to_qb()
+
+    def gas(self):
+        self._generate_active_space(**self.kw)
 
     def _generate_active_space(self,
             Nels_tot,

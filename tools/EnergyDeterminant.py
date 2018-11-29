@@ -8,8 +8,7 @@ import time
 import timeit
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import evaluate
-from hqca.tools.QuantumTomography import GenerateTomography
+from hqca.tools.QuantumFramework import build_circuits,run_circuits,construct
 from hqca.tools.QuantumFramework import wait_for_machine
 try:
     from hqca.tools import Functions as fx
@@ -20,12 +19,91 @@ except ImportError:
     import Chem as chem
     import RDMFunctions as rdmf
 
-def energy_eval_rdm():
+def energy_eval_rdm(
+        para,
+        method,
+        store,
+        ec=False,
+        triangle=False,
+        verbose=True,
+        S2=0,
+        **kwargs
+        ):
     '''
     Energy evaluation for single shot quantum computer where we measure the full
     1-RDM. Phase cna be assigned with some 2-RDM values. 
     '''
-    pass
+    def build_2e_2rdm(
+            store,
+            nocc,
+            norb,
+            verbose=True,
+            S2=0
+            ):
+        '''
+        builds and returns 2rdm for a wavefunction in the NO basis
+        '''
+        Nso = nocc.shape[0]
+        Ne_tot = nocc.trace()
+        wf = {}
+        for i in range(0,Nso//2):
+            if S2==0:
+                if verbose:
+                    print('Difference in alpha/beta occupations')
+                    print(nocc[2*i]-nocc[2*i+1])
+                term ='0'*(i)+'1'+'0'*(Nso//2-i-1)
+                term += term
+                wf[term]=(nocc[2*i]+nocc[2*i+1])/2
+        wf = fx.extend_wf(wf,
+                store.Norb_tot,
+                store.Nels_tot,
+                store.alpha,
+                store.beta)
+        rdm2 = rdmf.build_2rdm(
+                wf,
+                store.alpha,
+                store.beta)
+        return rdm2
+    kwargs['store']=store
+    kwargs['verbose']=verbose
+    qc,qcl,q = build_circuits(**kwargs)
+    kwargs['qb2so']=q
+    qco = run_circuits(qc,qcl,**kwargs)
+    rdm1 = construct(qco,**kwargs)
+    Nso = rdm1.shape[0]
+    rdma = rdm1[0:Nso,0:Nso]
+    rdmb = rdm1[Nso:,Nso:]
+    noccs,norbs = rdm1.eig()
+    noca,nora = rdm1a.eig()
+    nocb,norb = rdm1b.eig()
+    idxa = noca.argsort()[::-1]
+    idxb = nocb.argsort()[::-1]
+    idx = noccs.argsort()[::-1]
+    noca = noca[idxa]
+    nocb = nocb[idxb]
+    noccs = noccs[idx]
+    nora = nora[:,idxa]
+    norb = norb[:,idxb]
+    norbs = norbs[:,idx]
+    rdm2 = build_2e_2rdm(store,noccs,norbs,verbose,S2)
+    rdm2 = rotate_2rdm(rdm2,
+            nora,
+            norb,
+            store.alpha,
+            store.beta,
+            store.spin2spac,
+            region='active')
+    rdm1 = rdmf.check_2rdm(rdm2,2)
+    rdm2 = fx.contract(rdm2)
+    E1 = reduce(np.dot, (store.ints_1e,rdm1))
+    E2 = reduce(np.dot, (store.ints_2e,rdm2))
+    return E1+0.5*E2+store.E_ne
+
+
+
+
+
+
 
 def energy_eval_nordm(
         para,
@@ -57,11 +135,16 @@ def energy_eval_nordm(
             not be generalizable.
     '''
     if method in ['stretch','stretched','diagnostic']:
-        data = evaluate(
-                **kwargs
-                )
-        on = data.on
-        rdm = data.rdm1
+        #data = evaluate(
+        #        **kwargs
+        #        )
+        #on = data.on
+        #rdm = data.rdm1
+        qc,qcl,q = build_circuits(**kwargs)
+        kwargs['qb2so']=q
+        qco = run_circuits(qc,qcl,**kwargs)
+        rdm = construct(qco,**kwargs)
+        on, onv = np.linalg.eig(rdm)
         R = len(store.ints_1e)
         N = R//2
         p = len(para)

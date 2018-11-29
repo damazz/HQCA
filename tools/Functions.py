@@ -112,6 +112,7 @@ def get_trace(Nq,active):
             trace_list.append(i)
     return trace_list
 
+
 def construct_rdm(diag,rot):
     Nq = len(diag)
     qb_sign = {}
@@ -193,7 +194,7 @@ def counts_to_1rdm(
                 )
         Nq = algorithm_tomography[algorithm]['Nq']
     except Exception:
-        traceback.print_exception()
+        traceback.print_exc()
     if not use_err:
         err_elements = [0.5 for i in range(0,Nq)]
     else:
@@ -239,6 +240,7 @@ def map_wf(wf,mapping):
             new_det = new_det[:ind]+det[i]+new_det[ind+1:]
         new_wf[new_det]=val
     return new_wf
+
 
 
 def extend_wf(wf,

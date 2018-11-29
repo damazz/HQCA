@@ -32,16 +32,16 @@ class GenerateDirectCircuit:
             self,
             para,
             algorithm,
-            Nq,
+            Nqb,
             alpha_so,
             beta_so,
             so2qb,
             qb2so,
-            store=None
+            store=None,
             order='default',
             _name=False,
             verbose=False,
-            pairing='full',
+            entangled_pairs='full',
             depth=1,
             entangler='Ry_cN',
             ec=None,
@@ -51,6 +51,7 @@ class GenerateDirectCircuit:
         Want to do a different approach than previously. Want to make a
         simulated one that has variable size constraints.
         '''
+        self.Nq = Nqb
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.ec = ec
@@ -58,8 +59,8 @@ class GenerateDirectCircuit:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
-        self._gen_entangling_pairs(pairing)
-        self._gen_circuit(para)
+        self._gen_entangling_pairs(entangled_pairs)
+        self._gen_circuit(para,entangler)
 
 
     def _gen_circuit(self,para):
@@ -107,7 +108,7 @@ class GenerateDirectCircuit:
                     last = o1
 
     def _get_entangler(self):
-        if entangler=='Ry_cN':
+        if self.entangler=='Ry_cN':
             return self._ent1_Ry_cN
         pass
 
