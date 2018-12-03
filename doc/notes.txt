@@ -1,3 +1,9 @@
+12.3 
+Still a few things to do, but have the essentials:
+- Error modelling
+- 
+
+
 # 11.19 - 11.22
 
 Next changes in version. Including an error simulating circuit. Implementation
@@ -18,8 +24,8 @@ x Clean up code
 x Update QISKi throughout
 x Need to update the energy evaluation routine
 x Splitting compact and direct mapping (algorithms, tomography, optimizers)
-- Create mappings, coding in different implementations
-- Finding simple circuits (need to do some reading, design, etc.)
+x Create mappings, coding in different implementations
+x Finding simple circuits (need to do some reading, design, etc.)
 - Want to also incorporate an error model (needs to be implemented in backend)
 - Add option to attach H to output
 x change main a little, so that orb is seperate, maybe more simple - maybe
@@ -27,7 +33,7 @@ x subroutines for orbital optimization and occupation? transition to qc?
 - Maybe incorporate the HF package (smart HF)
 - Add MO outputs (i.e., clean and save the Store object)
 - Need to add different optimizers
-- Reimplement compact tomography
+x Reimplement compact tomography
 x Remove outdated keywords, including:
     run_type  
     occ_increase

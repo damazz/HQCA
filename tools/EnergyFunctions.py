@@ -14,7 +14,7 @@ Module for optimizer or energy functions, i.e. for rotations, etc.
 '''
 
 
-def find_function(run_type,spec):
+def find_function(run_type,spec='main'):
     if run_type=='noft':
         if spec=='main':
             return end.energy_eval_nordm
@@ -68,9 +68,7 @@ class Storage:
                     N = self.Norb_as**2-self.Norb_as
                 elif self.kw['entangled_pairs']=='sequential':
                     N = self.Norb_as-1
-                self.para = [0 for i in range(N)]
-
-
+                self.parameters = [0 for i in range(N)]
         except AttributeError:
             print('Not assigned.')
 
@@ -84,7 +82,8 @@ class Storage:
             Nels_tot,
             Norb_tot,
             Nels_as,
-            Norb_as
+            Norb_as,
+            **kw
             ):
         '''
         Note, all orb references are in spatial orbitals. 

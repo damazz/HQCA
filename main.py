@@ -114,8 +114,8 @@ class sp:
             self.run = sub.RunRDM(self.Store)
 
     def update_var(self,
-            args={}):
-        self.run.update_var(args)
+            **kw):
+        self.run.update_var(**kw)
 
     def execute(self):
         self.run.go()

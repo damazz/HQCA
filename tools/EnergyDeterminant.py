@@ -1,4 +1,5 @@
 import subprocess
+from functools import reduce
 import pickle
 import os
 import numpy as np
@@ -7,6 +8,7 @@ warnings.simplefilter(action='ignore',category=FutureWarning)
 import time
 import timeit
 import sys
+from math import pi
 np.set_printoptions(precision=6,suppress=True)
 from hqca.tools.QuantumFramework import build_circuits,run_circuits,construct
 from hqca.tools.QuantumFramework import wait_for_machine
@@ -21,8 +23,8 @@ except ImportError:
 
 def energy_eval_rdm(
         para,
-        method,
         store,
+        method='default',
         ec=False,
         triangle=False,
         verbose=True,
@@ -44,7 +46,7 @@ def energy_eval_rdm(
         builds and returns 2rdm for a wavefunction in the NO basis
         '''
         Nso = nocc.shape[0]
-        Ne_tot = nocc.trace()
+        Ne_tot = np.sum(nocc)
         wf = {}
         for i in range(0,Nso//2):
             if S2==0:
@@ -53,29 +55,38 @@ def energy_eval_rdm(
                     print(nocc[2*i]-nocc[2*i+1])
                 term ='0'*(i)+'1'+'0'*(Nso//2-i-1)
                 term += term
-                wf[term]=(nocc[2*i]+nocc[2*i+1])/2
+                val = max(0,min(1,nocc[2*i]+nocc[2*i+1]/2))
+                wf[term]=val
         wf = fx.extend_wf(wf,
                 store.Norb_tot,
                 store.Nels_tot,
-                store.alpha,
-                store.beta)
+                store.alpha_mo,
+                store.beta_mo)
         rdm2 = rdmf.build_2rdm(
                 wf,
-                store.alpha,
-                store.beta)
+                store.alpha_mo,
+                store.beta_mo)
         return rdm2
+    para = [i*pi/180 for i in para]
+    kwargs['para']=para
     kwargs['store']=store
     kwargs['verbose']=verbose
     qc,qcl,q = build_circuits(**kwargs)
     kwargs['qb2so']=q
     qco = run_circuits(qc,qcl,**kwargs)
     rdm1 = construct(qco,**kwargs)
+    if verbose:
+        print(rdm1)
     Nso = rdm1.shape[0]
-    rdma = rdm1[0:Nso,0:Nso]
-    rdmb = rdm1[Nso:,Nso:]
-    noccs,norbs = rdm1.eig()
-    noca,nora = rdm1a.eig()
-    nocb,norb = rdm1b.eig()
+    rdma = rdm1[0:Nso//2,0:Nso//2]
+    rdmb = rdm1[Nso//2:,Nso//2:]
+    noccs,norbs = np.linalg.eig(rdm1)
+    noca,nora = np.linalg.eig(rdma)
+    nocb,norb = np.linalg.eig(rdmb)
+    if verbose:
+        print('Natural ocupations: ')
+        print('alpha: {}'.format(noca))
+        print('beta: {}'.format(nocb))
     idxa = noca.argsort()[::-1]
     idxb = nocb.argsort()[::-1]
     idx = noccs.argsort()[::-1]
@@ -86,18 +97,22 @@ def energy_eval_rdm(
     norb = norb[:,idxb]
     norbs = norbs[:,idx]
     rdm2 = build_2e_2rdm(store,noccs,norbs,verbose,S2)
-    rdm2 = rotate_2rdm(rdm2,
+    rdm2 = rdmf.rotate_2rdm(rdm2,
             nora,
             norb,
-            store.alpha,
-            store.beta,
-            store.spin2spac,
+            store.alpha_mo,
+            store.beta_mo,
+            store.s2s,
             region='active')
     rdm1 = rdmf.check_2rdm(rdm2,2)
     rdm2 = fx.contract(rdm2)
-    E1 = reduce(np.dot, (store.ints_1e,rdm1))
-    E2 = reduce(np.dot, (store.ints_2e,rdm2))
-    return E1+0.5*E2+store.E_ne
+    E1 = reduce(np.dot, (store.ints_1e,rdm1)).trace()
+    E2 = reduce(np.dot, (store.ints_2e,rdm2)).trace()
+    E_t = np.real(E1+0.5*E2+store.E_ne)
+    if verbose:
+        print('Energy: {}'.format(E_t))
+        print('')
+    return E_t
 
 
 

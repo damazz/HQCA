@@ -39,38 +39,88 @@ class RunRDM:
     '''
     def __init__(self,
             store,
-            entangled_pairs,**kw
+            **kw
             ):
         self.store=store
         self.store.sp='rdm'
-        self.store.kw['entangled_pairs']=entangled_pairs
-        self.store.gas()
-        self.store.gsm()
-        self.store.gip()
-        self.store.update_full_ints()
         self.kw = pre.RDM()
-        self.run=Cache()
+        self.rc=Cache()
         self.kw_qc = self.kw['qc']
+        self.kw_qc['store']=self.store
         self.pr = self.kw['prolix']
+        qc_func = enf.find_function('rdm','main')
+        self.kw_qc['function']=qc_func
         if self.pr:
             print('Starting an optimization of the RDM.')
 
 
 
 
-    def update_var(self,args):
-        for k,v in args.items():
-            self.kw[k]=v
-        self.kw_qc = self.kw['qc']
+    def update_var(
+            self,
+            qc=False,
+            **args):
+        if not qc:
+            for k,v in args.items():
+                self.kw[k]=v
+        elif qc:
+            for k,v in args.items():
+                self.kw_qc[k] = v
+        self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
 
     def go(self):
-        while not self.run.done:
-            self._OptRDM()
-            self._check(self.kw['opt_thresh'],self.kw['max_iter'])
+        self.store.gas()
+        self.store.gsm()
+        self.store.gip()
+        self.store.update_full_ints()
+        self._OptRDM()
+        self._analyze()
 
     def _OptRDM(self,
-            *kw):
+            **kw
+            ):
+        if self.kw['restart']==True:
+            self._load()
+        else:
+            Run = opt.Optimizer(
+                    parameters=[self.kw_qc['store'].parameters],
+                    **self.kw_qc
+                    )
+        if Run.error:
+            print('##########')
+            print('Encountered error in initialization.')
+            print('##########')
+            self.rc.done=True
+        while not self.rc.done:
+            Run.next_step(**self.kw_qc)
+            print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
+                self.rc.iter,
+                Run.opt.best_f,
+                Run.opt.crit)
+                )
+            Run.check(self.rc)
+            if self.rc.iter==self.kw_qc['max_iter'] and not(self.rc.done):
+                self.rc.error=False
+                Run.opt_done=True
+                self.rc.done=True
+            elif Run.opt_done:
+                if Run.error:
+                    print('Error in run.')
+                    Store.opt_done=True
+                continue
+            self.rc.iter+=1
+        self.store.update_rdm2()
+
+    def _load(self):
         pass
+
+    def _analyze(self,
+            ):
+        if self.rc.err:
+            self.rc.done= True
+            print(self.rc.msg)
+            print(self.rc.msg)
+        print('done!')
 
 
 

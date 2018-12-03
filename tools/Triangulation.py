@@ -211,6 +211,7 @@ def find_triangle(
     Currently, configured just for the algorithm 'ry2p_raven_diag'.  
     '''
     kwargs['algorithm']=algorithm
+    kwargs['verbose']=verbose
     if algorithm in ['affine_2p_flat_tenerife','affine_2p_flatfish_tenerife']:
 
         if algorithm=='affine_2p_flatfish_tenerife':

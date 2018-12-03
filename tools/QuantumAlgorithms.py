@@ -2,6 +2,7 @@
 from qiskit import execute
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
 from math import pi
+import traceback
 
 '''
 
@@ -31,12 +32,10 @@ class GenerateDirectCircuit:
     def __init__(
             self,
             para,
-            algorithm,
             Nqb,
-            alpha_so,
-            beta_so,
             so2qb,
             qb2so,
+            algorithm='default',
             store=None,
             order='default',
             _name=False,
@@ -52,21 +51,38 @@ class GenerateDirectCircuit:
         simulated one that has variable size constraints.
         '''
         self.Nq = Nqb
+        self.alpha = store.alpha_mo['active']
+        self.beta = store.beta_mo['active']
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.ec = ec
+        self.qb2so=qb2so
+        self.so2qb=so2qb
+        self.Ne = store.Nels_as
         if _name==False:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
-        self._gen_entangling_pairs(entangled_pairs)
-        self._gen_circuit(para,entangler)
+        try:
+            self._gen_entangling_pairs(entangled_pairs)
+        except Exception:
+            traceback.print_exc()
+        self.ent = self._get_entangler(entangler)
+        self._gen_circuit(para)
+
+    def _initialize(self):
+        for a in range(self.Ne//2+self.Ne%2):
+            self.qc.x(self.q[a])
+        for b in range(self.Ne//2):
+            self.qc.x(self.q[b+len(self.alpha)])
 
 
     def _gen_circuit(self,para):
+        self._initialize()
         for i,pair in enumerate(self.ent_pairs):
-            self._gen_entangler(para[i],pair[0],pair[1])
-        if ec==None:
+            #print(para[i])
+            self.ent(para[i],pair[0],pair[1])
+        if self.ec==None:
             pass
         else:
             pass
@@ -79,19 +95,19 @@ class GenerateDirectCircuit:
             for i,o1 in enumerate(self.alpha):
                 for j,o2 in enumerate(self.alpha):
                     if i<j:
-                        self.ent_pair.append(
+                        self.ent_pairs.append(
                                 [
-                                    self.so_to_qb[o1],
-                                    self.so_to_qb[o2]
+                                    self.so2qb[o1],
+                                    self.so2qb[o2]
                                     ]
                                 )
             for i,o1 in enumerate(self.beta):
                 for j,o2 in enumerate(self.beta):
                     if i<j:
-                        self.ent_pair.append(
+                        self.ent_pairs.append(
                                 [
-                                    self.so_to_qb[o1],
-                                    self.so_to_qb[o2]
+                                    self.so2qb[o1],
+                                    self.so2qb[o2]
                                     ]
                                 )
         elif pairing=='sequential':
@@ -99,28 +115,30 @@ class GenerateDirectCircuit:
                 if i==0:
                     last = o1
                 else:
-                    self.ent_pair.append(
+                    self.ent_pairs.append(
                             [
-                                self.so_to_qb[o1],
-                                self.so_to_qb[last]
+                                self.so2qb[o1],
+                                self.so2qb[last]
                                 ]
                             )
                     last = o1
 
-    def _get_entangler(self):
-        if self.entangler=='Ry_cN':
+    def _get_entangler(self,entangler):
+        if entangler=='Ry_cN':
             return self._ent1_Ry_cN
         pass
 
-    def _ent1_Ry_cN(self,phi,i,j):
-        self.qc.cx(self.q[j],self.q[i])
-        #self.qc.x(self.q[j])
-        self.qc.ry(phi/2,self.q[j])
-        self.qc.cx(self.q[i],self.q[j])
-        self.qc.ry(-phi/2,self.q[j])
-        #self.qc.cx(self.q[i],self.q[j])
-        self.qc.x(self.q[j])
-        self.qc.cx(self.q[j],self.q[i])
+    def _ent1_Ry_cN(self,phi,i,k):
+        self.qc.cx(self.q[k],self.q[i])
+        self.qc.x(self.q[k])
+        self.qc.ry(phi/2,self.q[k])
+        self.qc.cx(self.q[i],self.q[k])
+        self.qc.ry(-phi/2,self.q[k])
+        self.qc.cx(self.q[i],self.q[k])
+        self.qc.x(self.q[k])
+        self.qc.cx(self.q[k],self.q[i])
+        for s in range(i,k):
+            self.qc.z(self.q[s])
 
 
 

@@ -44,7 +44,7 @@ class Process:
             **kw
             ):
         # First, want to combine results
-        self.data = {'ii':{},'ij':{},'ijkl':{}}
+        self.data = {'ii':{},'ij':[],'ijkl':[],'iIj':[],'iZj':[]}
         self.tomo_rdm = tomo_rdm
         self.tomo_basis = tomo_basis
         self.tomo_extra = tomo_extra
@@ -52,7 +52,7 @@ class Process:
         self.add_data(output)
         self.occ_qb = []
         self.kw = kw
-        for v,k in qb2so:
+        for v,k in qb2so.items():
             self.occ_qb.append(v)
         self.Nq_act = len(self.occ_qb)
         if actqb2beqb=='default':
@@ -62,20 +62,32 @@ class Process:
 
 
     def add_data(self,output):
-        i=0
+        i,k,j=0,0,0
         for name,counts in output:
             if i==0:
-                self.Nq_tot = len(list(counts.items())[0])
+                self.Nq_tot = len(list(counts.keys())[0])
             prbdis = self.proc_counts(counts)
             if name[0]=='ii':
                 self.data['ii']['counts']=counts
                 self.data['ii']['pd']=prbdis
             elif name[0]=='ij':
-                self.data['ij'][i]={}
+                self.data['ij'].append({})
                 self.data['ij'][i]['qb']=name[1:]
                 self.data['ij'][i]['counts']=counts
                 self.data['ij'][i]['pd']=prbdis
                 i+=1
+            elif name[0][0:3]=='iIj':
+                self.data['iIj'].append({})
+                self.data['iIj'][k]['qb']=name[1:]
+                self.data['iIj'][k]['counts']=counts
+                self.data['iIj'][k]['pd']=prbdis
+                k+=1
+            elif name[0][0:3]=='iZj':
+                self.data['iZj'].append({})
+                self.data['iZj'][j]['qb']=name[1:]
+                self.data['iZj'][j]['counts']=counts
+                self.data['iZj'][j]['pd']=prbdis
+                j+=1
             else:
                 pass
 
@@ -85,7 +97,7 @@ class Process:
         for qb_state,outcome in counts.items():
             for i in range(0,self.Nq_tot):
                 if qb_state[i]=='1':
-                    r[self.Nq-1-i]+=outcome
+                    r[self.Nq_tot-1-i]+=outcome
             Nc += outcome
         r = r*(1/Nc)
         return r
@@ -98,21 +110,36 @@ class Process:
 
 
     def _build_direct_rdm(self):
+        #for i in self.data['iIj']:
+        #    for k,v in i.items():
+        #        print(k,v)
+        #for i in self.data['iZj']:
+        #    for k,v in i.items():
+        #        print(k,v)
         if self.tomo_basis=='bch':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
                 ind = self.a2b[actqb]
                 temp = self.data['ii']['pd'][ind]
                 self.rdm[actqb,actqb]=temp
-            for item in self.data['ij']:
+            for item in self.data['iIj']:
                 for pair in item['qb']:
                     i1,i2 = int(pair[0]),int(pair[1])
                     i1,i2 = self.a2b[i1],self.a2b[i2]
-                    val = item['pd'][i1]
-                    val -= 0.5*(self.rdm[i1,i1]+self.rdm[i1,i1])
-                    self.rdm[i1,i2]=val
-                    self.rdm[i2,i1]=val
-
+                    val = item['pd'][i1]*0.5
+                    val -= 0.25*(self.rdm[i2,i2]+self.rdm[i1,i1])
+                    self.rdm[i2,i1]+=val
+                    self.rdm[i1,i2]+=val
+                    print(pair,val)
+            for item in self.data['iZj']:
+                for pair in item['qb']:
+                    i1,i2 = int(pair[0]),int(pair[1])
+                    i1,i2 = self.a2b[i1],self.a2b[i2]
+                    val = item['pd'][i1]*0.5
+                    val -= 0.25*(self.rdm[i2,i2]+self.rdm[i1,i1])
+                    self.rdm[i1,i2]+=val
+                    self.rdm[i2,i1]+=val
+                    print(pair,val)
 
     def _build_compact_rdm(self,**kwargs):
         if self.tomo_rdm=='1rdm':
@@ -122,8 +149,6 @@ class Process:
             except KeyError:
                 self.data['ij']={'counts':None}
                 use_err=False
-            for k,v in kwargs.items():
-                print(k,v)
             self.on, self.rdm = fx.counts_to_1rdm(
                 self.data['ii']['counts'],
                 self.data['ij']['counts'],
@@ -377,10 +402,13 @@ class Process:
 
 
 efficient_qubit_tomo_pairs = {
+        2:[
+            ['01']],
         3:[
             ['01'],['02'],['12']],
         4:[
-            ['01','23'],['12','03'],
+            ['01','23'],
+            ['12','03'],
             ['02','13']],
         5:[
             ['01','23'],['04','12'],

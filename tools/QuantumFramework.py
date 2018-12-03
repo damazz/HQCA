@@ -15,10 +15,10 @@ from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
 from hqca.tools.IBM_check import check,get_backend_object
-from hqca.tools.Functions import get_reading_material
 import sys, traceback
 from qiskit import Aer,IBMQ
 from qiskit import compile as compileqp
+from math import pi
 
 
 
@@ -42,14 +42,13 @@ def build_circuits(
         return Nq,qb_orbs,No
 
     def _init_direct(
-            alpha_mo,
-            beta_mo,
+            store,
             Nqb=1,
             qb2so='default',
             **kw,
             ):
-        alpha = alpha_mo['active']
-        beta  = beta_mo['active']
+        alpha = store.alpha_mo['active']
+        beta  = store.beta_mo['active']
         so2qb,qb2so = _get_map(
                 qb2so,alpha,beta
                 )
@@ -66,7 +65,7 @@ def build_circuits(
                 qb2so[qb]=so
             for qb,so in enumerate(beta):
                 so2qb[so]=qb+len(alpha)
-                so2qb[qb+len(alpha)]=so
+                qb2so[qb+len(alpha)]=so
         else:
             try:
                 so2qb = {v:k for k,v in qb2so.items()}
@@ -119,21 +118,34 @@ def _direct_tomography(
                         )
                     )
             rdm_bet.append(temp_arr)
-        circ_pairs = zip(self.rdm_alp,self.rdm_bet)
+        circ_pairs = zip(rdm_alp,rdm_bet)
         return circ_pairs
 
-    def apply_1rdm_basis_tomo(Q,i,j):
+    def apply_1rdm_basis_tomo(Q,i,k,Z=False):
         '''
         generic 1rdm circuit for ses method
         '''
-        Q.qc.cx(Q.q[j],Q.q[i])
-        Q.qc.x(qr[j])
-        Q.qc.ry(np.pi/4,Q.q[j])
-        Q.qc.cx(Q.q[i],Q.q[j])
-        Q.qc.ry(-np.pi/4,Q.q[j])
-        Q.qc.cx(Q.q[i],Q.q[j])
-        Q.qc.x(Q.q[j])
-        Q.qc.cx(Q.q[j],Q.q[i])
+        if Z:
+            for l in range(i,k):
+                Q.qc.z(Q.q[l])
+            Q.qc.cx(Q.q[k],Q.q[i])
+            Q.qc.ry(pi/4,Q.q[k])
+            Q.qc.cx(Q.q[i],Q.q[k])
+            Q.qc.ry(-pi/4,Q.q[k])
+            Q.qc.cx(Q.q[i],Q.q[k])
+            Q.qc.cx(Q.q[k],Q.q[i])
+        else:
+            Q.qc.cx(Q.q[k],Q.q[i])
+            #Q.qc.x(Q.q[j])
+            Q.qc.ry(-pi/4,Q.q[k])
+            #Q.qc.ry(pi/4,Q.q[j])
+            Q.qc.cx(Q.q[i],Q.q[k])
+            Q.qc.ry(+pi/4,Q.q[k])
+            #Q.qc.ry(-pi/4,Q.q[j])
+            Q.qc.cx(Q.q[i],Q.q[k])
+            #Q.qc.x(Q.q[j])
+            Q.qc.cx(Q.q[k],Q.q[i])
+        return Q
     '''
     Begin direct tomography
     '''
@@ -144,22 +156,41 @@ def _direct_tomography(
             print('Do you think we are in the natural orbitals? Wrong method!')
             sys.exit()
         elif tomo_basis=='bch':
-            Q =  GenerateDirectCircuit(**kw,_name='ii')
+            Q = GenerateDirectCircuit(**kw,_name='ii')
             Q.qc.measure(Q.q,Q.c)
             circuit.append(Q.qc)
-            circuit.append('ii')
+            circuit_list.append(['ii'])
             i=0
             for ca,cb in circ_pair:
-                Q = GenerateDirectCircuit(**kw,_name='ij')
+                Q = GenerateDirectCircuit(**kw,_name='iIj{}'.format(i))
+                temp = ['iIj{}'.format(i)]
                 for pair in ca:
                     Q = apply_1rdm_basis_tomo(
                             Q,int(pair[0]),int(pair[1]))
+                    temp.append(pair)
                 for pair in cb:
                     Q = apply_1rdm_basis_tomo(
                             Q,int(pair[0]),int(pair[1]))
+                    temp.append(pair)
                 Q.qc.measure(Q.q,Q.c)
-                circuit_list.append(['ij',ca,cb])
+                circuit_list.append(temp)
                 circuit.append(Q.qc)
+                Q = GenerateDirectCircuit(**kw,_name='iZj{}'.format(i))
+                temp = ['iZj{}'.format(i)]
+                for pair in ca:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]),
+                            Z=True)
+                    temp.append(pair)
+                for pair in cb:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]),
+                            Z=True)
+                    temp.append(pair)
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append(temp)
+                circuit.append(Q.qc)
+                i+=1 
         elif tomo_basis=='pauli':
             # projection into the pauli basis now...
             pass
@@ -225,7 +256,7 @@ def run_circuits(
         qc_backend,
         qc_provider,
         qc_num_shots,
-        verbose=True,
+        verbose=False,
         **kw
         ):
     def _tomo_get_backend(
@@ -239,10 +270,13 @@ def run_circuits(
         try:
             return prov.get_backend(backend)
         except Exception:
-            sys.exit()
+            traceback.print_exc()
     beo = _tomo_get_backend(
             qc_provider,
             qc_backend)
+    #for i in circuits:
+    #    print(i.qasm())
+    #    print('')
     qo = compileqp(
             circuits,
             shots=qc_num_shots,
@@ -277,7 +311,6 @@ def construct(
     qo = Process(data,**kw)
     qo.build_rdm()
     return qo.rdm
-    
 
 
 
