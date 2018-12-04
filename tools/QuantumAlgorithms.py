@@ -128,17 +128,19 @@ class GenerateDirectCircuit:
             return self._ent1_Ry_cN
         pass
 
-    def _ent1_Ry_cN(self,phi,i,k):
-        self.qc.cx(self.q[k],self.q[i])
-        self.qc.x(self.q[k])
-        self.qc.ry(phi/2,self.q[k])
-        self.qc.cx(self.q[i],self.q[k])
-        self.qc.ry(-phi/2,self.q[k])
-        self.qc.cx(self.q[i],self.q[k])
-        self.qc.x(self.q[k])
-        self.qc.cx(self.q[k],self.q[i])
-        for s in range(i,k):
-            self.qc.z(self.q[s])
+    def _ent1_Ry_cN(self,phi,i,k,ddphi=False):
+        if not ddphi:
+            self.qc.cx(self.q[k],self.q[i])
+            self.qc.x(self.q[k])
+            self.qc.ry(phi/2,self.q[k])
+            self.qc.cx(self.q[i],self.q[k])
+            self.qc.ry(-phi/2,self.q[k])
+            self.qc.cx(self.q[i],self.q[k])
+            self.qc.x(self.q[k])
+            self.qc.cx(self.q[k],self.q[i])
+            for s in range(i,k):
+                self.qc.z(self.q[s])
+
 
 
 

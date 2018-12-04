@@ -298,11 +298,11 @@ def run_circuits(
             print('Error: ')
             print(e)
             traceback.print_exc()
-    if verbose:
-        print('Circuit counts:')
-        for i in counts:
-            for k,v in i.items():
-                print('  {}:{}'.format(k,v))
+    #if verbose:
+    #    print('Circuit counts:')
+    #    for i in counts:
+    #        for k,v in i.items():
+    #            print('  {}:{}'.format(k,v))
     return zip(circuit_list,counts)
 
 def construct(

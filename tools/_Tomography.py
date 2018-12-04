@@ -10,7 +10,7 @@ from hqca.tools.QuantumAlgorithms import algorithm_tomography
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import Functions as fx
 from hqca.tools import IBM_check
-
+from functools import reduce
 import sys,time
 import timeit
 import traceback
@@ -110,12 +110,6 @@ class Process:
 
 
     def _build_direct_rdm(self):
-        #for i in self.data['iIj']:
-        #    for k,v in i.items():
-        #        print(k,v)
-        #for i in self.data['iZj']:
-        #    for k,v in i.items():
-        #        print(k,v)
         if self.tomo_basis=='bch':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
@@ -130,7 +124,6 @@ class Process:
                     val -= 0.25*(self.rdm[i2,i2]+self.rdm[i1,i1])
                     self.rdm[i2,i1]+=val
                     self.rdm[i1,i2]+=val
-                    print(pair,val)
             for item in self.data['iZj']:
                 for pair in item['qb']:
                     i1,i2 = int(pair[0]),int(pair[1])
@@ -139,7 +132,6 @@ class Process:
                     val -= 0.25*(self.rdm[i2,i2]+self.rdm[i1,i1])
                     self.rdm[i1,i2]+=val
                     self.rdm[i2,i1]+=val
-                    print(pair,val)
 
     def _build_compact_rdm(self,**kwargs):
         if self.tomo_rdm=='1rdm':

@@ -7,6 +7,7 @@ import traceback
 import timeit
 import time
 from random import random as r
+from functools import reduce
 
 
 
@@ -115,6 +116,9 @@ class Optimizer:
                     self.npara,**kwargs)
         elif self.method=='GD':
             self.opt = gradient_descent(
+                    self.npara,**kwargs)
+        elif self.method=='qNM':
+            self.opt = quasi_nelder_mead(
                     self.npara,**kwargs)
         self.error = False
         if print_run:
@@ -271,9 +275,9 @@ class gradient_descent:
         print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
         self.use=1
         self.count=0
-        #self.use = 0
-        #self.count=50
-        #self.crit=1
+        self.use = 0
+        self.count=50
+        self.crit=1
 
     def numerical(self):
         self.s = (self.f1_x-self.f0_x).T
@@ -464,6 +468,246 @@ class nelder_mead:
                 self.simp_f[-1]  =self.R_f
             else: # reflected points is best or better
                 self.E_x = self.R_x + self.R_x - self.M_x
+                self.E_f = function_call(self.E_x,**self.kwargs)
+                self.energy_calls+=1
+                if self.E_f<self.B_f:
+                    if print_run:
+                        print('NM: Extended point better than best.')
+                        print(self.E_x)
+                    self.simp_x[-1,:]=self.E_x
+                    self.simp_f[-1]  =self.E_f
+                else:
+                    if print_run:
+                        print('NM: Reflected point better than best.')
+                        print(self.R_x)
+                    self.simp_x[-1,:]=self.R_x
+                    self.simp_f[-1]  =self.R_f
+        else:
+            self.Cwm_x = self.W_x+0.5*(self.M_x-self.W_x)
+            self.Crm_x = self.M_x+0.5*(self.R_x-self.M_x)
+            self.Cwm_f = function_call(self.Cwm_x,**self.kwargs)
+            self.Crm_f = function_call(self.Crm_x,**self.kwargs)
+            self.energy_calls+=2
+            if self.Crm_f<=self.Cwm_f:
+                self.C_f = self.Crm_f
+                self.C_x = self.Crm_x
+            else:
+                self.C_f = self.Cwm_f
+                self.C_x = self.Cwm_x
+            if self.C_f<self.W_f:
+                if print_run:
+                    print('NM: Contracting the triangle.')
+                    print(self.C_x)
+                self.simp_x[-1,:]=self.C_x
+                self.simp_f[-1]  =self.C_f
+            else:
+                for i in range(1,self.N+1):
+                    self.simp_x[i,:]=self.B_x+0.5*(self.simp_x[i,:]-self.B_x)
+                    self.simp_f[i]=function_call(self.simp_x[i,:],**self.kwargs)
+                    self.energy_calls+=1
+                if print_run:
+                    print('NM: Had to shrink..')
+                    print(self.simp_x)
+
+        self.order_points()
+        self.calc_centroid()
+        self.reassign()
+        self.std_dev()
+        self.best_f = self.B_f
+        self.best_x = self.B_x
+        if self.conv_crit_type=='default':
+            self.crit = self.sd_x
+        elif self.conv_crit_type=='energy':
+            self.crit = self.sd_f
+
+        if print_run:
+            print('Maximum distance from centroid: {}'.format(self.max))
+
+    def reassign(self):
+        self.W_x = self.simp_x[-1,:] #worst point
+        self.W_f = self.simp_f[-1]
+        self.B_x = self.simp_x[0,:] # best point
+        self.B_f = self.simp_f[0]
+        self.X_x = self.simp_x[-2,:] # second worst
+        self.X_f = self.simp_f[-2]
+
+    def std_dev(self):
+        self.sd_f = np.std(self.simp_f)
+        temp = np.zeros(self.N+1)
+        for i in range(0,self.N+1):
+            temp[i]=np.sqrt(np.sum(np.square(self.simp_x[i,:])))
+        self.sd_x = np.std(temp)
+
+    def calc_centroid(self):
+        self.M_x = np.zeros(self.N)
+        for i in range(0,self.N): #NOTE, we omit N+1, i.e. the worst point
+            self.M_x = self.M_x + self.simp_x[i,:]
+        self.M_x = self.M_x*(1/(self.N))
+        self.max = 0
+        for i in range(0,self.N+1):
+            temp = np.sqrt(np.sum(np.square(self.simp_x[i,:]-self.M_x)))
+            self.max = max(self.max,temp)
+
+
+
+    def order_points(self):
+        ind = np.arange(0,self.N+1)
+        for i in range(0,self.N+1):
+            #print('Ind: {}'.format(ind))
+            temp = ind.copy()
+            low_x = i
+            low_f = self.simp_f[temp[i]]
+            for j in range(0,self.N+1):
+                if i<j:
+                    if low_f>self.simp_f[ind[j]]: #then, swap
+                        low_f = self.simp_f[j]
+                        low_x= j
+            temp[i] = ind[low_x] #swap the lowest
+            temp[low_x] = ind[i]
+            #print(temp)
+            ind = temp.copy()
+        #print(ind)
+        new_f = np.zeros(self.N+1)
+        new_x = np.zeros((self.N+1,self.N))
+        for i in range(0,self.N+1):
+            new_f[i] = self.simp_f[ind[i]]
+            new_x[i,:] = self.simp_x[ind[i],:]
+        self.simp_x = new_x
+        self.simp_f = new_f
+
+class quasi_nelder_mead:
+    '''
+    Nelder-Mead Optimizer with a Quasi Newton Approximation to generate an
+    approximate gradient. Also includes learning parameter for the step size. 
+    '''
+    def __init__(self,
+            n_par,
+            conv_threshold='default',
+            conv_crit_type='default',
+            simplex_scale=10,
+            energy='classical',
+            print_run=False,
+            qnm_alpha=1,
+            qnm_beta=1,
+            **kwargs
+            ):
+        '''
+        Begin the optmizer. Set parameters, etc.
+        '''
+        self.alp = qnm_alpha
+        self.bet = qnm_beta
+        if simplex_scale=='default':
+            self.simplex_scale=5
+        else:
+            self.simplex_scale=simplex_scale
+        kwargs['energy']=energy
+        kwargs['print_run']=print_run
+        self.print_run = print_run
+
+        self.conv_crit_type = conv_crit_type
+
+        if conv_threshold=='default':
+            if energy=='classical':
+                if self.conv_crit_type=='default':
+                    self._conv_thresh=0.001
+                elif self.conv_crit_type=='energy':
+                    self._conv_thresh=0.0001
+            elif energy=='qc':
+                if self.conv_crit_type=='default':
+                    self._conv_thresh=0.5
+                elif self.conv_crit_type=='energy':
+                    self._conv_thresh=0.001
+        else:
+            self._conv_thresh=float(conv_threshold)
+        self.N = n_par
+        self.energy_calls=0
+        print('Initializing the quasi-Nelder-Mead optimization class')
+        print(' with added gradient reflections.')
+        print('---------- ' )
+        self.kwargs =  kwargs
+
+    def initialize(self,start):
+        self.simp_x = np.zeros((self.N+1,self.N)) # column is dim coord - row is each point
+        self.simp_f = np.zeros(self.N+1) # there are N para, and N+1 points in simplex
+        self.simp_x[0,:] = start[:]
+        for i in range(1,self.N+1):
+            self.simp_x[i,:]=start[:]
+            self.simp_x[i,i-1]+=1*self.simplex_scale
+        for i in range(0,self.N+1):
+            # here, we assign f - usually this will be energy
+            self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
+            self.energy_calls+=1
+        print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
+        self.order_points()
+        self.calc_centroid()
+        self.std_dev()
+        self.reassign()
+        self.stuck = np.zeros((3,self.N))
+        self.stuck_ind = 0
+        # and now we have our ordered simplex! Begin!!
+
+    def _calc_grad(self):
+        S    = np.zeros((self.N,self.N))
+        for i in range(0,self.N):
+            S[i,:] = (self.simp_x[i+1,:]-self.simp_x[0,:])
+        self.delt = self.simp_f[1:]-self.simp_f[0]
+        self.Si = np.linalg.inv(S)
+        self.g = reduce(np.dot, (self.Si, self.delt))
+        print('gradient: ')
+        self.alp = self.sd_x/np.linalg.norm(self.g)
+        self.bet = self.alp
+        print('gradient norm: {}'.format(np.linalg.norm(self.g)))
+        print('alpha para: {}'.format(self.alp))
+
+
+
+    def next_step(self):
+        '''
+        Carries out the next step to generate a new simplex. Each step contains
+        various energy evaluations, so rarely will only be one evaluation.
+        '''
+        print_run = self.print_run
+        self._calc_grad()
+        #self.R_x = self.M_x+self.M_x-self.W_x
+        self.R_x = self.B_x-self.alp*self.g
+        if self.stuck_ind==0:
+            self.stuck_ind = 1
+            self.stuck[0,:]= self.R_x
+        elif self.stuck_ind==1:
+            self.stuck_ind = 2
+            self.stuck[1,:]= self.R_x
+        elif self.stuck_ind==2:
+            self.stuck_ind=0
+            self.stuck[2,:]= self.R_x
+        self.N_stuck=0
+        def check_stuck(self):
+            v1 = self.stuck[0,:]
+            v2 = self.stuck[1,:]
+            v3 = self.stuck[2,:]
+            diff = np.sqrt(np.sum(np.square(v1-v3)))
+            if diff<1e-10:
+                self.R_x = self.M_x+r()*(self.M_x-self.W_x)
+                print('Was stuck!')
+                self.N_stuck+=1 
+        check_stuck(self)
+        self.M_f = function_call(self.M_x,**self.kwargs)
+        self.R_f = function_call(self.R_x,**self.kwargs)
+        self.energy_calls+=1
+        if print_run:
+            print('NM: Reflection: {}'.format(self.R_x))
+            print(self.R_f)
+
+        self.kwargs['print_run']=print_run
+        # Now, begin the optimization
+        if self.R_f<=self.X_f:
+            if self.R_f>self.B_f: #reflected point not better than best
+                if print_run:
+                    print('NM: Reflected point is soso.')
+                self.simp_x[-1,:]=self.R_x
+                self.simp_f[-1]  =self.R_f
+            else: # reflected points is best or better
+                #self.E_x = self.R_x + self.R_x - self.M_x
+                self.E_x = self.B_x + self.bet*(self.R_x-self.B_x)
                 self.E_f = function_call(self.E_x,**self.kwargs)
                 self.energy_calls+=1
                 if self.E_f<self.B_f:

@@ -55,6 +55,7 @@ def RDM():
         'max_iter':25,
         'restart':False,
         'wait':True,
+        'print_run':True,
         'prolix':True,
         'chem_orb':'HF',
         'opt_thresh':0.00001,
@@ -72,14 +73,16 @@ def RDM():
             'entangler':'Ry_cN', #Ry with a constant N
             'tri':False,
             'Nqb':4,
+            'print_run':True,
             #'method_Ntri':3,
             'load_triangle':False,
-            'optimizer':'NM',
+            #'optimizer':'NM',
+            'optimizer':'GD',
             'opt_thresh':0.01,
             'opt_crit':'default',
             'max_iter':100,
-            #'gd_gradient':'numerical',
-            #'gd_gradient_distance':0.01,
+            'gradient':'numerical',
+            'grad_dist':10,
             'simplex_scale':45,
             'verbose':True}
         }
