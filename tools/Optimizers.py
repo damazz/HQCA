@@ -1,15 +1,16 @@
+if __name__=='__main__':
+    pass
+else:
+    from hqca.tools.IBM_check import check, get_backend_object
+    from hqca.tools.QuantumFramework import wait_for_machine
 import numpy as np
 import sys
-from hqca.tools.IBM_check import check, get_backend_object
-from hqca.tools.QuantumFramework import wait_for_machine
 from subprocess import CalledProcessError, check_output
 import traceback
 import timeit
 import time
 from random import random as r
 from functools import reduce
-
-
 
 #
 #
@@ -26,41 +27,12 @@ class Empty:
     def __init__(self):
         self.opt_done=True
 
-
-def f_x(par,print_run=False,**kwargs):
-    if print_run:
-        pass
-    x = par[0]
-    y = par[1]
-    return x**4-3*(x**3)+2+y**2
-
-def g_x(par,print_run=False,**kwargs):
-    x = par[0]
-    y = par[1]
-    return [4*x**3 - 9*x**2,2*y]
-
-
 def function_call(
         par,
-        function=f_x,
-        backend='local_qasm_simulator',
-        wait_for_runs=False,
+        function=None,
         **kwargs
         ):
     tic = timeit.default_timer()
-    #
-    #if energy=='qc':
-    #    kwargs['para']=par
-    #    kwargs['backend']=backend
-    #    if wait_for_runs and (backend in ['ibmqx2','ibmqx4']):
-    #        wait_for_machine(backend)
-    ##    E_t = end.energy_eval_quantum(**kwargs)
-    #elif energy=='classical':
-    #    E_t = end.energy_eval_classical(par,**kwargs)
-    #elif energy=='orbitals':
-    #    E_t = eno.energy_eval_orbitals(par,**kwargs)
-    #elif energy=='test':
-    #    E_t = f_x(par,**kwargs)
     E_t = function(par,**kwargs)
     toc = timeit.default_timer()
     if toc-tic > 1800:
@@ -69,7 +41,7 @@ def function_call(
 
 
 def gradient_call(
-        par,energy='orbitals',wait_for_runs=False,
+        par,energy='orbitals',
         **kwargs
         ):
     if energy=='orbitals':
@@ -99,7 +71,7 @@ class Optimizer:
             self,
             optimizer,
             parameters,
-            print_run=False,
+            pr_o=1,
             **kwargs
             ):
         '''
@@ -108,8 +80,7 @@ class Optimizer:
         self.method=optimizer
         self.start = parameters[0]
         self.npara = len(parameters[0])
-        kwargs['print_run']=print_run
-        #
+        kwargs['pr_o']=pr_o
         # Selecting optimizers and setting parameters
         if self.method=='NM':
             self.opt = nelder_mead(
@@ -121,10 +92,7 @@ class Optimizer:
             self.opt = quasi_nelder_mead(
                     self.npara,**kwargs)
         self.error = False
-        if print_run:
-            self.print_run = True
-        else:
-            self.print_run = False
+        self.pr_o =pr_o
         #
         # Error management for the IBM case
         #
@@ -134,9 +102,8 @@ class Optimizer:
         except CalledProcessError as e:
             traceback.print_exc()
             if b'IBMQXTimeOutError' in e.output:
-                if self.print_run:
-                    print('Timeout Error:')
-                    print(e.output)
+                print('Timeout Error:')
+                print(e.output)
                 self.error = 'time'
             else:
                 self.error = True
@@ -156,9 +123,8 @@ class Optimizer:
             self.opt.next_step()
         except CalledProcessError as e:
             if b'IBMQXTimeOutError' in e.output:
-                if self.print_run:
-                    print('Timeout Error:')
-                    print(e.output)
+                print('Timeout Error:')
+                print(e.output)
                 self.error = 'time'
             else:
                 self.error = True
@@ -178,8 +144,9 @@ class Optimizer:
             if not cache:
                 if self.opt.crit<=self.opt._conv_thresh:
                     self.opt_done=True
-                    print('Criteria met for convergence.')
-                    print('----------')
+                    if self.pr_o>0:
+                        print('Criteria met for convergence.')
+                        print('----------')
                 elif self.error in [True,'time']:
                     self.opt_done=True
                 else:
@@ -188,8 +155,9 @@ class Optimizer:
                 cache.crit = self.opt.best_f
                 if self.opt.crit<=self.opt._conv_thresh:
                     cache.done=True
-                    print('Criteria met for convergence.')
-                    print('----------')
+                    if self.pr_o>0:
+                        print('Criteria met for convergence.')
+                        print('----------')
                 elif self.error in [True,'time']:
                     cache.done=True
                     cache.err=True
@@ -218,14 +186,13 @@ class gradient_descent:
             gradient='numerical',
             grad_dist=0.01,
             conv_crit_type='default',
-            print_run=False,
+            pr_o=0,
             **kwargs
             ):
         '''
         Note, this is called by the Optimizer class. Then, the optimizer will
         also call the initialize class.
         '''
-        kwargs['print_run']=print_run
         self.N = n_par
         self.energy_calls = 0
         if conv_threshold=='default':
@@ -242,8 +209,9 @@ class gradient_descent:
         self.kwargs = kwargs
 
     def initialize(self,start):
-        print('Initializing the gradient-descent optimization class.')
-        print('---------- ' )
+        if self.pr_o>0:
+            print('Initializing the gradient-descent optimization class.')
+            print('---------- ' )
         if self.gamma=='default':
             gam = 0.00001
         self.f0_x = np.asarray(start[:])
@@ -272,7 +240,8 @@ class gradient_descent:
         self.energy_calls+= 1
         self.f1_x = self.f0_x - gam*np.asarray(self.g0_f)
         self.f1_f = function_call(self.f1_x,**self.kwargs)
-        print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
+        if self.pr_o>0:
+            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
         self.use=1
         self.count=0
         self.use = 0
@@ -369,7 +338,7 @@ class nelder_mead:
             conv_crit_type='default',
             simplex_scale=10,
             energy='classical',
-            print_run=False,
+            pr_o=0,
             **kwargs
             ):
         '''
@@ -381,8 +350,7 @@ class nelder_mead:
         else:
             self.simplex_scale=simplex_scale
         kwargs['energy']=energy
-        kwargs['print_run']=print_run
-        self.print_run = print_run
+        self.pr_o = pr_o
 
         self.conv_crit_type = conv_crit_type
 
@@ -401,12 +369,12 @@ class nelder_mead:
             self._conv_thresh=float(conv_threshold)
         self.N = n_par
         self.energy_calls=0
-        print('Initializing the Nelder-Mead optimization class.')
-        print('---------- ' )
+        if self.pr_o>0:
+            print('Initializing the Nelder-Mead optimization class.')
+            print('---------- ' )
         self.kwargs =  kwargs
 
     def initialize(self,start):
-        #print(start)
         self.simp_x = np.zeros((self.N+1,self.N)) # column is dim coord - row is each point
         self.simp_f = np.zeros(self.N+1) # there are N para, and N+1 points in simplex
         self.simp_x[0,:] = start[:]
@@ -417,7 +385,8 @@ class nelder_mead:
             # here, we assign f - usually this will be energy
             self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
             self.energy_calls+=1
-        print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
+        if self.pr_o>0:
+            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
         self.order_points()
         self.calc_centroid()
         self.reassign()
@@ -430,7 +399,6 @@ class nelder_mead:
         Carries out the next step to generate a new simplex. Each step contains
         various energy evaluations, so rarely will only be one evaluation.
         '''
-        print_run = self.print_run
         self.R_x = self.M_x+self.M_x-self.W_x
         if self.stuck_ind==0:
             self.stuck_ind = 1
@@ -449,20 +417,19 @@ class nelder_mead:
             diff = np.sqrt(np.sum(np.square(v1-v3)))
             if diff<1e-10:
                 self.R_x = self.M_x+r()*(self.M_x-self.W_x)
-                print('Was stuck!')
+                if self.pr_o>0:
+                    print('Was stuck!')
                 self.N_stuck+=1 
         check_stuck(self)
         self.R_f = function_call(self.R_x,**self.kwargs)
         self.energy_calls+=1
-        if print_run:
+        if self.pr_o>1:
             print('NM: Reflection: {}'.format(self.R_x))
             print(self.R_f)
 
-        self.kwargs['print_run']=print_run
-        # Now, begin the optimization
         if self.R_f<=self.X_f:
             if self.R_f>self.B_f: #reflected point not better than best
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Reflected point is soso.')
                 self.simp_x[-1,:]=self.R_x
                 self.simp_f[-1]  =self.R_f
@@ -471,13 +438,13 @@ class nelder_mead:
                 self.E_f = function_call(self.E_x,**self.kwargs)
                 self.energy_calls+=1
                 if self.E_f<self.B_f:
-                    if print_run:
+                    if self.pr_o>1:
                         print('NM: Extended point better than best.')
                         print(self.E_x)
                     self.simp_x[-1,:]=self.E_x
                     self.simp_f[-1]  =self.E_f
                 else:
-                    if print_run:
+                    if self.pr_o>1:
                         print('NM: Reflected point better than best.')
                         print(self.R_x)
                     self.simp_x[-1,:]=self.R_x
@@ -495,7 +462,7 @@ class nelder_mead:
                 self.C_f = self.Cwm_f
                 self.C_x = self.Cwm_x
             if self.C_f<self.W_f:
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Contracting the triangle.')
                     print(self.C_x)
                 self.simp_x[-1,:]=self.C_x
@@ -505,7 +472,7 @@ class nelder_mead:
                     self.simp_x[i,:]=self.B_x+0.5*(self.simp_x[i,:]-self.B_x)
                     self.simp_f[i]=function_call(self.simp_x[i,:],**self.kwargs)
                     self.energy_calls+=1
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Had to shrink..')
                     print(self.simp_x)
 
@@ -520,7 +487,7 @@ class nelder_mead:
         elif self.conv_crit_type=='energy':
             self.crit = self.sd_f
 
-        if print_run:
+        if self.pr_o>1:
             print('Maximum distance from centroid: {}'.format(self.max))
 
     def reassign(self):
@@ -553,7 +520,6 @@ class nelder_mead:
     def order_points(self):
         ind = np.arange(0,self.N+1)
         for i in range(0,self.N+1):
-            #print('Ind: {}'.format(ind))
             temp = ind.copy()
             low_x = i
             low_f = self.simp_f[temp[i]]
@@ -564,9 +530,7 @@ class nelder_mead:
                         low_x= j
             temp[i] = ind[low_x] #swap the lowest
             temp[low_x] = ind[i]
-            #print(temp)
             ind = temp.copy()
-        #print(ind)
         new_f = np.zeros(self.N+1)
         new_x = np.zeros((self.N+1,self.N))
         for i in range(0,self.N+1):
@@ -586,7 +550,7 @@ class quasi_nelder_mead:
             conv_crit_type='default',
             simplex_scale=10,
             energy='classical',
-            print_run=False,
+            pr_o=0,
             qnm_alpha=1,
             qnm_beta=1,
             **kwargs
@@ -601,8 +565,7 @@ class quasi_nelder_mead:
         else:
             self.simplex_scale=simplex_scale
         kwargs['energy']=energy
-        kwargs['print_run']=print_run
-        self.print_run = print_run
+        self.pr_o=pr_o
 
         self.conv_crit_type = conv_crit_type
 
@@ -621,9 +584,10 @@ class quasi_nelder_mead:
             self._conv_thresh=float(conv_threshold)
         self.N = n_par
         self.energy_calls=0
-        print('Initializing the quasi-Nelder-Mead optimization class')
-        print(' with added gradient reflections.')
-        print('---------- ' )
+        if self.pr_o>0:
+            print('Initializing the quasi-Nelder-Mead optimization class')
+            print(' with added gradient reflections.')
+            print('---------- ' )
         self.kwargs =  kwargs
 
     def initialize(self,start):
@@ -637,7 +601,8 @@ class quasi_nelder_mead:
             # here, we assign f - usually this will be energy
             self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
             self.energy_calls+=1
-        print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
+        if self.pr_o>0:
+            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
         self.order_points()
         self.calc_centroid()
         self.std_dev()
@@ -653,11 +618,13 @@ class quasi_nelder_mead:
         self.delt = self.simp_f[1:]-self.simp_f[0]
         self.Si = np.linalg.inv(S)
         self.g = reduce(np.dot, (self.Si, self.delt))
-        print('gradient: ')
+        if self.pr_o>1:
+            print('gradient: ')
         self.alp = self.sd_x/np.linalg.norm(self.g)
         self.bet = self.alp
-        print('gradient norm: {}'.format(np.linalg.norm(self.g)))
-        print('alpha para: {}'.format(self.alp))
+        if self.pr_o>1:
+            print('gradient norm: {}'.format(np.linalg.norm(self.g)))
+            print('alpha para: {}'.format(self.alp))
 
 
 
@@ -668,7 +635,6 @@ class quasi_nelder_mead:
         '''
         print_run = self.print_run
         self._calc_grad()
-        #self.R_x = self.M_x+self.M_x-self.W_x
         self.R_x = self.B_x-self.alp*self.g
         if self.stuck_ind==0:
             self.stuck_ind = 1
@@ -687,21 +653,20 @@ class quasi_nelder_mead:
             diff = np.sqrt(np.sum(np.square(v1-v3)))
             if diff<1e-10:
                 self.R_x = self.M_x+r()*(self.M_x-self.W_x)
-                print('Was stuck!')
+                if self.pr_o>0:
+                    print('Was stuck!')
                 self.N_stuck+=1 
         check_stuck(self)
         self.M_f = function_call(self.M_x,**self.kwargs)
         self.R_f = function_call(self.R_x,**self.kwargs)
         self.energy_calls+=1
-        if print_run:
+        if self.pr_o>1:
             print('NM: Reflection: {}'.format(self.R_x))
             print(self.R_f)
-
-        self.kwargs['print_run']=print_run
         # Now, begin the optimization
         if self.R_f<=self.X_f:
             if self.R_f>self.B_f: #reflected point not better than best
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Reflected point is soso.')
                 self.simp_x[-1,:]=self.R_x
                 self.simp_f[-1]  =self.R_f
@@ -711,13 +676,13 @@ class quasi_nelder_mead:
                 self.E_f = function_call(self.E_x,**self.kwargs)
                 self.energy_calls+=1
                 if self.E_f<self.B_f:
-                    if print_run:
+                    if self.pr_o>1:
                         print('NM: Extended point better than best.')
                         print(self.E_x)
                     self.simp_x[-1,:]=self.E_x
                     self.simp_f[-1]  =self.E_f
                 else:
-                    if print_run:
+                    if self.pr_o>1:
                         print('NM: Reflected point better than best.')
                         print(self.R_x)
                     self.simp_x[-1,:]=self.R_x
@@ -735,7 +700,7 @@ class quasi_nelder_mead:
                 self.C_f = self.Cwm_f
                 self.C_x = self.Cwm_x
             if self.C_f<self.W_f:
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Contracting the triangle.')
                     print(self.C_x)
                 self.simp_x[-1,:]=self.C_x
@@ -745,7 +710,7 @@ class quasi_nelder_mead:
                     self.simp_x[i,:]=self.B_x+0.5*(self.simp_x[i,:]-self.B_x)
                     self.simp_f[i]=function_call(self.simp_x[i,:],**self.kwargs)
                     self.energy_calls+=1
-                if print_run:
+                if self.pr_o>1:
                     print('NM: Had to shrink..')
                     print(self.simp_x)
 
@@ -760,7 +725,7 @@ class quasi_nelder_mead:
         elif self.conv_crit_type=='energy':
             self.crit = self.sd_f
 
-        if print_run:
+        if self.pr_o>1:
             print('Maximum distance from centroid: {}'.format(self.max))
 
     def reassign(self):
@@ -814,6 +779,29 @@ class quasi_nelder_mead:
             new_x[i,:] = self.simp_x[ind[i],:]
         self.simp_x = new_x
         self.simp_f = new_f
+
+
+#
+# test functions for optimizers: 
+# very simple algebraic ones
+#
+
+def f_x(par,**kwargs):
+    if pr_o:
+        pass
+    x = par[0]
+    y = par[1]
+    return x**4-3*(x**3)+2+y**2
+
+def g_x(par,**kwargs):
+    x = par[0]
+    y = par[1]
+    return [4*x**3 - 9*x**2,2*y]
+
+#
+#
+#
+
 '''
 keys = {'energy':'test'}
 keys['gradient']='analytical'

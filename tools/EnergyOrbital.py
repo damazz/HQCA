@@ -26,7 +26,8 @@ def energy_eval_orbitals(
         para,
         region,
         store,
-        print_run=False,
+        pr_m=0,
+        spin_mapping='unrestricted',
         **kwargs
         ):
     '''
@@ -34,6 +35,8 @@ def energy_eval_orbitals(
     '''
     N = len(store.ints_1e_ao)
     Np = len(para)
+    if spin_mapping=='restricted':
+        Np*=2
     T_a = reduce( np.dot, (
             store.T_alpha,
             enf.rotation_parameter_generation(
@@ -44,16 +47,19 @@ def energy_eval_orbitals(
                 ).T
             )
             )
-    T_b = reduce(np.dot, (
-            store.T_beta,
-            enf.rotation_parameter_generation(
-                spin_mo=store.beta_mo,
-                region=region,
-                output='matrix',
-                para=para[Np//2:]
-                ).T
-            )
-            )
+    if spin_mapping=='restricted':
+        T_b = T_a.copy()
+    elif spin_mapping=='unrestricted':
+        T_b = reduce(np.dot, (
+                store.T_beta,
+                enf.rotation_parameter_generation(
+                    spin_mo=store.beta_mo,
+                    region=region,
+                    output='matrix',
+                    para=para[Np//2:]
+                    ).T
+                )
+                )
     tic = timeit.default_timer()
     ints_1e_n = chem.gen_spin_1ei(
             store.ints_1e_ao,
@@ -76,7 +82,7 @@ def energy_eval_orbitals(
             new_ei = np.reshape(store.ints_2e.copy(),(2*N,2*N,2*N,2*N)),
             )
     toc = timeit.default_timer()
-    if print_run:
+    if pr_m>1:
         print('Time to rotate electron integrals: {}'.format(toc-tic))
     ints_2e_n = np.reshape(ints_2e_n,((N*2)**2,(N*2)**2))
     rdm2 = store.rdm2.copy()
@@ -85,7 +91,7 @@ def energy_eval_orbitals(
     E_h1 = np.dot(ints_1e_n,rdm1).trace()
     E_h2 = 0.5*np.dot(ints_2e_n,rdm2.T).trace()
     E_t = np.real(E_h1+E_h2+store.E_ne)
-    if print_run:
+    if pr_m>1:
         print('One Electron Energy: {}'.format(E_h1))
         print('Two Electron Energy: {}'.format(np.real(E_h2)))
         print('Nuclear Repulsion Energy: {}'.format(store.E_ne))

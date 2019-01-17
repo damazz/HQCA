@@ -215,15 +215,21 @@ def counts_to_1rdm(
 map_zeta = {
     0:0, 1:1, 3:2,
     2:3, 4:4, 5:5}
+# contaminated 
 map_lambda = {
     0:0, 1:1, 3:2,
     2:3, 4:5, 5:4}
+# singlet
 map_kappa = {
     0:1, 1:0, 3:2,
     2:3, 4:4, 5:5}
+# singlet
 map_iota = {
     0:1, 1:0, 3:2,
     2:3, 4:5, 5:4}
+# contaminated
+
+
 
 map_spatial = {
     0:0, 1:1, 2:2,
@@ -242,8 +248,8 @@ def map_wf(wf,mapping):
     return new_wf
 
 
-
-def extend_wf(wf,
+def extend_wf(
+        wf,
         Norb_tot,
         Nels_tot,
         alpha,
@@ -282,12 +288,15 @@ def extend_wf(wf,
 def get_mapping(mapping):
     if mapping=='zeta':
         return map_zeta
-    if mapping=='lambda':
+    elif mapping=='lambda':
         return map_lambda
-    if mapping=='kappa':
+    elif mapping=='kappa':
         return map_kappa
-    if mapping=='iota':
+    elif mapping=='iota':
         return map_iota
+    else:
+        print('Some sort of error in mapping.')
+        return None
 
 from math import floor, log10
 def round_to_1(x):

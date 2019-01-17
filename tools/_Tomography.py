@@ -41,15 +41,17 @@ class Process:
             qa_fermion,
             qb2so,
             actqb2beqb='default',
+            pr_q=0,
             **kw
             ):
         # First, want to combine results
-        self.data = {'ii':{},'ij':[],'ijkl':[],'iIj':[],'iZj':[]}
+        self.data = {'ii':{},'ij':[],'ijkl':[],'iZj':[],'iIj':[],'ij':[]}
         self.tomo_rdm = tomo_rdm
         self.tomo_basis = tomo_basis
         self.tomo_extra = tomo_extra
         self.fermi = qa_fermion
         self.add_data(output)
+        self.pr_q = pr_q
         self.occ_qb = []
         self.kw = kw
         for v,k in qb2so.items():
@@ -88,6 +90,12 @@ class Process:
                 self.data['iZj'][j]['counts']=counts
                 self.data['iZj'][j]['pd']=prbdis
                 j+=1
+            elif name[0][0:2]=='ij' and (not name[0][0:4]=='ijkl'):
+                self.data['ij'].append({})
+                self.data['ij'][k]['qb']=name[1:]
+                self.data['ij'][k]['counts']=counts
+                self.data['ij'][k]['pd']=prbdis
+                k+=1
             else:
                 pass
 
@@ -132,6 +140,21 @@ class Process:
                     val -= 0.25*(self.rdm[i2,i2]+self.rdm[i1,i1])
                     self.rdm[i1,i2]+=val
                     self.rdm[i2,i1]+=val
+        elif self.tomo_basis=='hada':
+            self.rdm = zeros((self.Nq_act,self.Nq_act))
+            for actqb in self.occ_qb:
+                ind = self.a2b[actqb]
+                temp = self.data['ii']['pd'][ind]
+                self.rdm[actqb,actqb]=temp
+            for item in self.data['ij']:
+                for pair in item['qb']:
+                    i1,i2 = int(pair[0]),int(pair[1])
+                    i1,i2 = self.a2b[i1],self.a2b[i2]
+                    val = 0.5*(item['pd'][i2]-item['pd'][i1])
+                    self.rdm[i2,i1]+=val
+                    self.rdm[i1,i2]+=val
+        elif self.tomo_basis=='pauli':
+            pass
 
     def _build_compact_rdm(self,**kwargs):
         if self.tomo_rdm=='1rdm':
@@ -139,6 +162,9 @@ class Process:
                 self.data['ij']['counts']
                 use_err=True
             except KeyError:
+                self.data['ij']={'counts':None}
+                use_err=False
+            except TypeError:
                 self.data['ij']={'counts':None}
                 use_err=False
             self.on, self.rdm = fx.counts_to_1rdm(
@@ -153,7 +179,6 @@ class Process:
             self.rdm1 = real(self.rdm1)
             self.rdm2trace = rdmf.trace_2rdm(self.rdm2)
             temp = fx.get_trace(self.Nq,self.qb_orbs)
-            #print(fx.filt(self.data['ij'],temp))
             self.rdm1c, self.on, self.rdm1ev = fx.construct_rdm(
                     fx.rdm(
                         fx.filt(self.data['ii'],temp)
@@ -162,7 +187,7 @@ class Process:
                         fx.filt(self.data['ij'],temp)
                         )
                     )
-            if self.verbose:
+            if self.pr_q>1:
                 print('Trace of 2-RDM: {}'.format(self.rdm2trace))
 
     def assemble_2rdm(self):
@@ -329,12 +354,10 @@ class Process:
     
                     m_q1 = temp[q1]
                     m_q2c= temp[q2]
-                    
                     temp1 = 0.5*(- m_q1 + m_q2c) #ikki, delta
                     temp2 = 0.5*(- m_q1 - m_q2c) #illi, gamma
                     temp3 = 0.5*(+ m_q1 - m_q2c) #jkkj, beta
                     temp4 = 0.5*(+ m_q1 + m_q2c) #jllj, alpha
-
                     rdm2 = rdm_update(
                         rdm2,'ikki',
                         i,j,k,l,
@@ -375,7 +398,6 @@ class Process:
                         s2 = self.qb_sign[q2]
                         bet1 = -0.25*(1-2*temp[q2])
                         bet2 = -0.25*(1-2*temp[q1])
-                        #print(item,bet1,bet2,q1,q2,i,k,l,j,s1,s2)
                         rdm2 = rdm_update(
                             rdm2,'ikli',
                             i,j,k,l,
@@ -388,12 +410,12 @@ class Process:
                             bet2,bet2,0,0,
                             s2,s1
                             )
-        if self.verbose:
+        if self.pr_q>1:
             print('Done with 2-RDM! yay! whew.')
         return rdm2
 
 
-efficient_qubit_tomo_pairs = {
+local_qubit_tomo_pairs = {
         2:[
             ['01']],
         3:[
@@ -430,4 +452,49 @@ efficient_qubit_tomo_pairs = {
             ['07','16','25','34']]
 
         }
+nonlocal_qubit_tomo_pairs_part = {
+        2:[
+            ['01']],
+        3:[
+            ['01'],['02'],['12']],
+        4:[ 
+            ['01','23'],
+            ['02'],
+            ['03'],
+            ['12'],
+            ['13']],
+        5:[
+            ['01','23'],['02','34'],
+            ['24'],['03'],['13'],
+            ['04'],['14'],['12']
+            ],
+        6:[
+            ['05'],['04'],['15'],['14'],['12','34'],
+            ['03','45'],['01','25'],['02','35'],
+            ['13'],['24'],['23']
+            ],
+        8:[
+            ['07'],['06'],['17'],
+            ['05','67'],['16'],
+            ['01','27'],['04','57'],
+            ['02','37'],['15'],['26'],
+            ['03','47'],['12','34','56'],
+            ['23','46'],['13','45'],
+            ['14'],['25'],['36'],['24'],['35']
+            ]
+        }
+
+# in terms of efficiency...
+# 4 has 1 fewer (5 vs 6) but 2 more (5 v 3)
+# 5 has 2 fewer (8 v 10) but 3 more (8 v 5)
+# 6 has 4 fewer (11 v 15) but 6 more (11 v 5)
+# 8 has 9 fewer (19 v 28) but 12 more (19 v 7)
+
+nonlocal_qubit_tomo_pairs_full = {
+        i:[
+            ['{}{}'.format(
+                b,a)]
+                for a in range(i) for b in range(a)
+            ] for i in range(2,9)}
+
 

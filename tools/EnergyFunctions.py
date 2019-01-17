@@ -36,6 +36,7 @@ class Storage:
             ints_1e_ao,
             ints_2e_ao,
             E_ne,
+            pr_g,
             **kwargs
             ):
         self.energy_best = 0
@@ -49,6 +50,7 @@ class Storage:
         self.ints_2e_ao = ints_2e_ao
         self.E_ne = E_ne
         self.T_alpha = moc_alpha
+        self.pr_g=pr_g
         self.T_beta  = moc_beta
         self.opt_T_alpha = moc_alpha
         self.opt_T_beta  = moc_alpha
@@ -60,15 +62,30 @@ class Storage:
         self.kw = kwargs
 
     def gip(self):
+        '''
+        'Get Initial Parameters (GIP) function.
+        '''
         try:
             if self.sp=='noft':
                 self.parameters=[0,0]
             elif self.sp=='rdm':
+                if self.kw['spin_mapping']=='default':
+                    Na = 1
+                    Nb = 1
+                elif self.kw['spin_mapping']=='spin-free':
+                    Na = 2
+                    Nb = 0
+                elif self.kw['spin_mapping']=='spatial':
+                    Na = 1
+                    Nb = 0
                 if self.kw['entangled_pairs']=='full':
-                    N = self.Norb_as**2-self.Norb_as
+                    N = 0.5*((self.Norb_as*Na)**2-self.Norb_as*Na)
+                    N += 0.5*((self.Norb_as*Nb)**2-self.Norb_as*Nb)
                 elif self.kw['entangled_pairs']=='sequential':
                     N = self.Norb_as-1
-                self.parameters = [0 for i in range(N)]
+                elif self.kw['entangled_pairs']=='specified':
+                    pass
+                self.parameters = [0 for i in range(int(N))]
         except AttributeError:
             print('Not assigned.')
 
@@ -83,6 +100,7 @@ class Storage:
             Norb_tot,
             Nels_as,
             Norb_as,
+            spin_mapping='default',
             **kw
             ):
         '''
@@ -91,25 +109,28 @@ class Storage:
         self.alpha_mo={
                 'inactive':[],
                 'active':[],
-                'virtual':[]
+                'virtual':[],
+                'qc':[]
                 }
         self.beta_mo={
                 'inactive':[],
                 'active':[],
-                'virtual':[]
+                'virtual':[],
+                'qc':[]
                 }
-        print('Total number of electrons: {}'.format(Nels_tot))
-        print('Total number of orbitals: {}'.format(Norb_tot))
-        print('Active space electrons: {}'.format(Nels_as))
-        print('Active space orbitals: {}'.format(Norb_as))
-
+        if self.pr_g>0:
+            print('Total number of electrons: {}'.format(Nels_tot))
+            print('Total number of orbitals: {}'.format(Norb_tot))
+            print('Active space electrons: {}'.format(Nels_as))
+            print('Active space orbitals: {}'.format(Norb_as))
         self.Nels_tot= Nels_tot
         self.Nels_as = Nels_as
         self.Norb_tot= Norb_tot
         self.Norb_as = Norb_as
         self.Nels_ia = self.Nels_tot-self.Nels_as
         self.Norb_ia = self.Nels_ia//2
-        print('Number of inactive orbitals: {}'.format(self.Norb_ia))
+        if self.pr_g>0:
+            print('Number of inactive orbitals: {}'.format(self.Norb_ia))
         self.Norb_v  = self.Norb_tot-self.Norb_ia-self.Norb_as
         if self.Nels_ia%2==1:
             raise(SpinError)
@@ -134,6 +155,14 @@ class Storage:
         for i in range(0,self.Norb_v):
             self.beta_mo['virtual'].append(ind)
             ind+=1
+        if spin_mapping=='default':
+            self.alpha_mo['qc']=self.alpha_mo['active'].copy()
+            self.beta_mo['qc']=self.beta_mo['active'].copy()
+        elif spin_mapping=='spin-free':
+            self.alpha_mo['qc']=self.alpha_mo['active']+self.beta_mo['active']
+        elif spin_mapping=='spatial':
+            self.alpha_mo['qc']=self.alpha_mo['active'].copy()
+            self.beta_mo['qc']=self.beta_mo['active'].copy()
 
     def _generate_spin2spac_mapping(self):
         self.s2s = {}

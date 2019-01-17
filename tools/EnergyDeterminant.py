@@ -24,10 +24,10 @@ except ImportError:
 def energy_eval_rdm(
         para,
         store,
-        method='default',
+        spin_mapping='default',
         ec=False,
         triangle=False,
-        verbose=True,
+        pr_m=0,
         S2=0,
         **kwargs
         ):
@@ -40,7 +40,7 @@ def energy_eval_rdm(
             nocc,
             norb,
             verbose=True,
-            S2=0
+            S2=0,
             ):
         '''
         builds and returns 2rdm for a wavefunction in the NO basis
@@ -50,7 +50,7 @@ def energy_eval_rdm(
         wf = {}
         for i in range(0,Nso//2):
             if S2==0:
-                if verbose:
+                if pr_m>1:
                     print('Difference in alpha/beta occupations')
                     print(nocc[2*i]-nocc[2*i+1])
                 term ='0'*(i)+'1'+'0'*(Nso//2-i-1)
@@ -67,6 +67,12 @@ def energy_eval_rdm(
                 store.alpha_mo,
                 store.beta_mo)
         return rdm2
+    kwargs['spin_mapping']=spin_mapping
+    if pr_m>1:
+        print(para)
+    if spin_mapping=='spatial':
+        para = para.tolist()
+        para = para + para
     para = [i*pi/180 for i in para]
     kwargs['para']=para
     kwargs['store']=store
@@ -75,27 +81,51 @@ def energy_eval_rdm(
     kwargs['qb2so']=q
     qco = run_circuits(qc,qcl,**kwargs)
     rdm1 = construct(qco,**kwargs)
-    if verbose:
-        print(rdm1)
-    Nso = rdm1.shape[0]
-    rdma = rdm1[0:Nso//2,0:Nso//2]
-    rdmb = rdm1[Nso//2:,Nso//2:]
-    noccs,norbs = np.linalg.eig(rdm1)
-    noca,nora = np.linalg.eig(rdma)
-    nocb,norb = np.linalg.eig(rdmb)
-    if verbose:
-        print('Natural ocupations: ')
-        print('alpha: {}'.format(noca))
-        print('beta: {}'.format(nocb))
-    idxa = noca.argsort()[::-1]
-    idxb = nocb.argsort()[::-1]
-    idx = noccs.argsort()[::-1]
-    noca = noca[idxa]
-    nocb = nocb[idxb]
-    noccs = noccs[idx]
-    nora = nora[:,idxa]
-    norb = norb[:,idxb]
-    norbs = norbs[:,idx]
+    if spin_mapping=='spin_free':
+        noccs,norbs = np.linalg.eig(rdm1)
+        idx = noccs.argsort()[::-1]
+        noccs = noccs[idx]
+        norbs = norbs[:,idx]
+        alp = [2*i for i in range(len(noccs//2))]
+        bet = [2*i+1 for i in range(len(noccs//2))]
+        nora = np.zeros((len(alp),len(alp)))
+        norb = np.zeros(nora.shape)
+        for i in range(len(noccs//2)):
+            for o in range(noccs//2):
+                a1,a2 = norbs[alp[o],alp[i]],norbs[bet[o],alp[i]]
+                b1,b2 = norbs[alp[o],bet[i]],norbs[bet[o],bet[i]]
+                ca = np.sqrt((a1+a2)**2/(a1**2+a2**2))
+                cb = np.sqrt((b1+b2)**2/(b1**2+b2**2))
+                nora[o,i]=(a1+a2)/ca
+                norb[o,i]=(b1+b2)/cb
+        if pr_m>2:
+            print(nora,norb)
+    else:
+        if pr_m>1:
+            print(rdm1)
+        Nso = rdm1.shape[0]
+        rdma = rdm1[0:Nso//2,0:Nso//2]
+        rdmb = rdm1[Nso//2:,Nso//2:]
+        if pr_m>1:
+            print('Natural ocupations: ')
+            print('alpha: {}'.format(noca))
+            print('beta: {}'.format(nocb))
+
+        noca,nora = np.linalg.eig(rdma)
+        idxa = noca.argsort()[::-1]
+        noca = noca[idxa]
+        nora = nora[:,idxa]
+
+        nocb,norb = np.linalg.eig(rdmb)
+        idxb = nocb.argsort()[::-1]
+        nocb = nocb[idxb]
+        norb = norb[:,idxb]
+
+        noccs,norbs = np.linalg.eig(rdm1)
+        idx = noccs.argsort()[::-1]
+        noccs = noccs[idx]
+        norbs = norbs[:,idx]
+
     rdm2 = build_2e_2rdm(store,noccs,norbs,verbose,S2)
     rdm2 = rdmf.rotate_2rdm(rdm2,
             nora,
@@ -105,27 +135,29 @@ def energy_eval_rdm(
             store.s2s,
             region='active')
     rdm1 = rdmf.check_2rdm(rdm2,2)
+    if spin_mapping=='default':
+        rdm2t = rdmf.switch_alpha_beta(rdm2,
+                store.alpha_mo,
+                store.beta_mo)
+        rdm2 = 0.5*rdm2t + 0.5*rdm2
+        rdm1 = rdmf.check_2rdm(rdm2,2)
+        noccs,norbs = np.linalg.eig(rdm1)
     rdm2 = fx.contract(rdm2)
     E1 = reduce(np.dot, (store.ints_1e,rdm1)).trace()
     E2 = reduce(np.dot, (store.ints_2e,rdm2)).trace()
     E_t = np.real(E1+0.5*E2+store.E_ne)
-    if verbose:
+    if pr_m>1:
         print('Energy: {}'.format(E_t))
         print('')
     return E_t
 
 
-
-
-
-
-
 def energy_eval_nordm(
         para,
-        wf_mapping, 
+        wf_mapping,
         algorithm,
         method='stretch',
-        print_run=False,
+        pr_m=0,
         triangle=None,
         store='default',
         **kwargs
@@ -133,28 +165,11 @@ def energy_eval_nordm(
     kwargs['para']=para
     kwargs['algorithm']=algorithm
     '''
-    Energy evaluation for the quantum computer. Has quite alot of inputs, as it
-    has to write to the ibmqx module, which need significant input as well.
-
-    In general, takes a ibm algorithm, executes it on a backend, reads the
-    output data (1-RDM diagonal, full 1-RDM, or 2-RDM), and using a certain
-    method, will generate the appropriate energy.
-
-    Most options are covered in /doc/options, but important ones are:
-
-    method:
-        stretch:
-            measures the accessible space of the quantum computer by spanning
-            thethe limits of the parameters being used, and then maps that onto
-            the GPC surface. Optimized mostly for the 3/6 3 qubit case, so might
-            not be generalizable.
+    Energy evaluation for the natural orbital approach. 
+    Has several different methods, which use similar pinning principals. 
+    Main difference is between classical and quantum computer algorithms. 
     '''
     if method in ['stretch','stretched','diagnostic']:
-        #data = evaluate(
-        #        **kwargs
-        #        )
-        #on = data.on
-        #rdm = data.rdm1
         qc,qcl,q = build_circuits(**kwargs)
         kwargs['qb2so']=q
         qco = run_circuits(qc,qcl,**kwargs)
@@ -191,7 +206,7 @@ def energy_eval_nordm(
         Tri  = triangle.map([m_on[0],m_on[1],m_on[2]])
         r_ON = np.dot(Tri,m_ON.T)
         r_on = np.array([r_ON[0,0],r_ON[1,0],r_ON[2,0]])
-        if print_run:
+        if pr_m>1:
             print('Measure ON: {}'.format(m_ON))
             print('Rotated ON: {}'.format(r_ON.T))
         nrdm  = np.diag(
@@ -204,13 +219,7 @@ def energy_eval_nordm(
                     ]
                 )
         alp,bet,gam,dist = rdmf.project_gpc(nrdm,s1=sgn1,s2=sgn2,s3=sgn3)
-        if round(dist,10)==0:
-            if print_run:
-                print('Point on the GPC surface. Proceeding.')
-        else:
-            if print_run:
-                print('Point on the GPC surface. Proceeding.')
-        if print_run:
+        if pr_m>1:
             print('Parameters: \n{}'.format(para))
             print('Fitted wavefunction: ')
             print('Alpha: {}, Beta: {}, Gamma: {}'.format(alp,bet,gam))
@@ -254,15 +263,14 @@ def energy_eval_nordm(
     elif method=='measure_2rdm':
         sys.exit('Not configured yet. Goodbye!')
     elif method=='classical-diagnostic':
-        R = len(store.ints_1e)
-        N = R//2
+        N = store.Norb_as//2
         if N==3:
-            Theta = (parameters[0]+45)%90 - 45
-            Phi = (parameters[1]+45)%90 - 45
-            pt = (parameters[0]+45)//90
-            pp = (parameters[1]+45)//90
-            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
-            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
+            Theta = (para[0]+45)%90 - 45
+            Phi = (para[1]+45)%90 - 45
+            pt = (para[0]+45)//90
+            pp = (para[1]+45)//90
+            Theta = ((para[0]+45)%90 - 45)*((-1)**pt)
+            Phi = ((para[1]+45)%90 - 45)*((-1)**pp)
 
 
             #theta,phi = (theta_mod,phi_mod
@@ -282,7 +290,6 @@ def energy_eval_nordm(
             if abs(bet)<abs(gam):
                 bet,gam = gam,bet
             wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
-            #print(wf)
         elif N==4:
             theta = (np.pi/180)*parameters[0] # input degrees, output radians
             phi   = (np.pi/180)*parameters[1] # 
@@ -293,40 +300,48 @@ def energy_eval_nordm(
             
             wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
         wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
-
         wf = fx.extend_wf(
                 wf,
                 store.Norb_tot,
                 store.Nels_tot,
                 store.alpha_mo,
                 store.beta_mo)
-        #print(wf,alp,bet)
 
-        rdm2 = rdmf.build_2rdm(
-                wf,
-                alpha=alp,
-                beta=bet
-                ) # build the 2RDM (spin 2RDM)
+        if type(store.rdm2)==type(None):
+            region='full'
+            rdm2 = rdmf.build_2rdm(
+                    wf,
+                    alpha=store.alpha_mo,
+                    beta=store.beta_mo,
+                    region=region)
+        else:
+            region='active'
+            rdm2 = rdmf.build_2rdm(
+                    wf,
+                    alpha=store.alpha_mo,
+                    beta=store.beta_mo,
+                    region=region,
+                    rdm2=store.rdm2.copy())
         rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
         on, onv = np.linalg.eig(rdm1)
         on.sort()
-        on = on[::-1]
+        on = on[A::-1]
         if on[0]+on[1]-on[2]-1 <= -0.2:
-            print(wf)
-            print(on)
-        rdm2 = np.reshape(rdm2,(36,36)) # reshape to ik form
-        E_h1 = np.dot(ints_1e_no,rdm1).trace()      # take trace of 1RDM*1e int
-        E_h2 = 0.5*np.dot(ints_2e_no,rdm2.T).trace()  # take trace of 2RDM*2e int
+            if pr_m>0:
+                print(wf)
+                print(on)
+        rdm2 = fx.contract(rdm2) # reshape to ik form
+        E_h1 = np.dot(store.ints_1e,rdm1).trace()      # take trace of 1RDM*1e int
+        E_h2 = 0.5*np.dot(store.inits_2e,rdm2.T).trace()  # take trace of 2RDM*2e int
         E_t = np.real(E_h1+E_h2+store.E_ne)
         return on[0:3], E_t
     elif method=='classical-default':
-        R = len(ints_1e_no)
-        N = R//2
+        N = store.Norb_as
         if N==3:
-            pt = (parameters[0]+45)//90
-            pp = (parameters[1]+45)//90
-            Theta = ((parameters[0]+45)%90 - 45)*((-1)**pt)
-            Phi = ((parameters[1]+45)%90 - 45)*((-1)**pp)
+            pt = (para[0]+45)//90
+            pp = (para[1]+45)//90
+            Theta = ((para[0]+45)%90 - 45)*((-1)**pt)
+            Phi = ((para[1]+45)%90 - 45)*((-1)**pp)
             theta = (np.pi/180)*Theta
             phi   = (np.pi/180)*Phi
             gam = np.sin(theta)*np.sin(phi)
@@ -334,9 +349,9 @@ def energy_eval_nordm(
             alp = np.cos(theta)
             wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
         elif N==4:
-            theta = (np.pi/180)*parameters[0] # input degrees, output radians
-            phi   = (np.pi/180)*parameters[1] # 
-            psi   = (np.pi/180)*parameters[1] # 
+            theta = (np.pi/180)*para[0] # input degrees, output radians
+            phi   = (np.pi/180)*para[1] # 
+            psi   = (np.pi/180)*para[1] # 
             gam = np.sin(theta)*np.cos(phi)
             bet = np.sin(theta)*np.sin(phi)
             alp = np.cos(theta)
@@ -348,27 +363,38 @@ def energy_eval_nordm(
                 store.Nels_tot,
                 store.alpha_mo,
                 store.beta_mo)
-        rdm2 = rdmf.build_2rdm(
-                wf,
-                alpha=alp,
-                beta=bet
-                )
+        if type(store.rdm2)==type(None):
+            region='full'
+            rdm2 = rdmf.build_2rdm(
+                    wf,
+                    alpha=store.alpha_mo,
+                    beta=store.beta_mo,
+                    region=region)
+        else:
+            region='active'
+            rdm2 = rdmf.build_2rdm(
+                    wf,
+                    alpha=store.alpha_mo,
+                    beta=store.beta_mo,
+                    region=region,
+                    rdm2=store.rdm2.copy())
         rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
     else:
         sys.exit('Not configured yet. Goodbye!')
+    rdm2 = fx.contract(rdm2)
     E_h1 = np.dot(store.ints_1e,rdm1).trace()
     E_h2 = 0.5*np.dot(store.ints_2e,rdm2.T).trace()
     E_t = np.real(E_h1+E_h2+store.E_ne)
-    if print_run:
+    if pr_m>1:
         print('One Electron Energy: {}'.format(E_h1))
         print('Two Electron Energy: {}'.format(np.real(E_h2)))
         print('Nuclear Repulsion Energy: {}'.format(store.E_ne))
         print('Total Energy: {} Hartrees'.format(E_t))
         print('Trace of the 1-RDM: {}'.format(rdm1.trace()))
         print('----------')
-    rdm2=np.reshape(rdm2,(norb*2,norb*2,norb*2,norb*2))
     store.opt_update_wf(E_t,wf,para)
     if type(store.rdm2)==type(None):
         store.update_rdm2()
+    print(E_t)
     return E_t
 

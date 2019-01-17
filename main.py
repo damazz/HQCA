@@ -62,20 +62,22 @@ class sp:
     def __init__(self,
             mol,
             theory,
+            pr_g=0,
             restart=False):
         '''start function,
         assigns the chemical things and gets stuff going
         '''
         self.run_type = 'sp'
         self.theory=theory
-        self._load_mol(mol)
+        self._load_mol(mol,pr_g)
         if restart:
             self._load_restart()
         else:
             self._choose_theory()
 
     def _load_mol(self,
-            mol):
+            mol,
+            pr_g):
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
@@ -99,7 +101,9 @@ class sp:
             'moc_beta':self.C,
             'ints_1e_ao':self.ints_1e,
             'ints_2e_ao':self.ints_2e,
-            'E_ne':mol.energy_nuc()}
+            'E_ne':mol.energy_nuc(),
+            'pr_g':pr_g
+            }
         self.Store = enf.Storage(
             **store_kw)
 
@@ -119,6 +123,55 @@ class sp:
 
     def execute(self):
         self.run.go()
+        self.result = self.run.store
+
+    def analysis(self):
+        import hqca.tools.RDMFunctions as rdmf
+        from functools import reduce
+        print('Calculating spin of system.')
+        print('Rotating into the proper frame of reference.')
+        rdm2 = self.result.rdm2
+        rdm1 = rdmf.check_2rdm(rdm2,self.result.Nels_tot)
+        self.Ci = np.linalg.inv(self.C)
+        self.Ti_a = np.linalg.inv(self.result.T_alpha)
+        self.Ti_b = np.linalg.inv(self.result.T_beta)
+        Ni_a = reduce(
+                np.dot, (
+                    self.Ti_a,self.C)
+                )
+        Ni_b = reduce(
+                np.dot, (
+                    self.Ti_b,self.C)
+                )
+        rdm2_mo = rdmf.rotate_2rdm(
+                rdm2,
+                Ni_a.T,
+                Ni_b.T,
+                self.result.alpha_mo,
+                self.result.beta_mo,
+                spin2spac=self.result.s2s,
+                region='full'
+                )
+        rdm1_mo = rdmf.check_2rdm(
+                rdm2_mo,
+                self.result.Nels_tot)
+        print(np.real(rdm1_mo))
+        sz = rdmf.Sz(
+                rdm1_mo,
+                self.result.alpha_mo,
+                self.result.beta_mo,
+                s2s=self.result.s2s)
+        s2 = rdmf.S2(
+                rdm2_mo,
+                rdm1_mo,
+                self.result.alpha_mo,
+                self.result.beta_mo,
+                s2s=self.result.s2s)
+        print('Sz value: {:.6f}'.format(np.real(sz)))
+        print('S2 value: {:.6f}'.format(np.real(s2)))
+        print('Natural orbital wavefunction:')
+        for k,v in self.result.wf.items():
+            print(' |{}>: {}'.format(k,v))
 
 
 #print('Run on: {}'.format(datetime.datetime.now().isoformat()))

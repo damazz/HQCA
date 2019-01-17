@@ -20,7 +20,7 @@ def get_points(
         Nt,
         start,
         stop,
-        print_run=True,
+        pr_t=0,
         thresh=1e-2):
     '''
     Start and stop are parameters
@@ -68,16 +68,18 @@ def get_points(
                 pass
             temp += dL
         diff = length-temp
-        if print_run:
+        if pr_t>1:
             print('Iteration: {}, Length: {}, Difference:{}'.format(
                 z,temp,abs(diff
                         )
                     )
                 )
             try:
-                print('Difference in points: {}'.format(abs(oldx[0]-finalx[0])))
+                if pr_t>0:
+                    print('Difference in points: {}'.format(abs(oldx[0]-finalx[0])))
             except UnboundLocalError:
-                print('--- Final f,x: {},{} --- '.format(finalf,finalx))
+                if pr_t>0:
+                    print('--- Final f,x: {},{} --- '.format(finalf,finalx))
         z+=1 
         length = temp
         try:
@@ -197,7 +199,7 @@ def find_triangle(
         method,
         algorithm,
         Ntri='default',
-        verbose=False,
+        pr_t=0,
         wait_for_runs=True,
         energy='qc',
         **kwargs
@@ -211,7 +213,6 @@ def find_triangle(
     Currently, configured just for the algorithm 'ry2p_raven_diag'.  
     '''
     kwargs['algorithm']=algorithm
-    kwargs['verbose']=verbose
     if algorithm in ['affine_2p_flat_tenerife','affine_2p_flatfish_tenerife']:
 
         if algorithm=='affine_2p_flatfish_tenerife':
@@ -240,7 +241,7 @@ def find_triangle(
                     [1,0.5,0.5],
                     [0.75,0.75,0.5]]
                 )
-        if verbose:
+        if pr_t>0:
             print('Triangle: \n{}\n{}\n{}'.format(t1.v1,t1.v2,t1.v3))
             print('Transformation: \n {}'.format(aU))
     elif algorithm=='affine_2p_curved_tenerife':
@@ -260,8 +261,8 @@ def find_triangle(
         par_list = [[0,45],[0,0]]
         targets = [[1,1,1]]
         if Ntri>1:
-            tri_par = get_points(f,Ntri,0,45,print_run=verbose)
-            tar_tri = get_points(gpc,Ntri,0,1,print_run=verbose)
+            tri_par = get_points(f,Ntri,0,45,pr_t=pr_t)
+            tar_tri = get_points(gpc,Ntri,0,1,pr_t=pr_t)
             for i in tri_par: 
                 try:
                     par_list.append([i[0],i[0]])
@@ -272,11 +273,12 @@ def find_triangle(
         par_list.append([45,45])
         targets.append([0.75,0.75,0.5])
         affine = CompositeAffine()
-
-        print('Targets: {}'.format(targets))
+        if pr_t>1:
+            print('Targets: {}'.format(targets))
         for i in range(0,Ntri):
             par = [par_list[0]]+par_list[i+1:i+3]
-            print('Parameters: {}'.format(par))
+            if pr_t>1:
+                print('Parameters: {}'.format(par))
             tri = []
             kwargs['qc_backend']=qc_backend
             for item in par:
@@ -301,7 +303,8 @@ def find_triangle(
                 rdm = construct(qco,**kwargs)
                 on,norbs = np.linalg.eig(rdm)
                 on.sort()
-                print('Vertex: {}'.format(on))
+                if pr_t>1:
+                    print('Vertex: {}'.format(on))
                 tri.append([on[5],on[4],on[3]])
             affine.add_triangle(
                     [tri[0],tri[1],tri[2]],

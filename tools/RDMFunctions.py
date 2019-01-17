@@ -4,46 +4,9 @@
 #
 import numpy as np
 import numpy.linalg as LA
+from functools import reduce
+from hqca.tools.Functions import contract,expand
 
-def project_gpc(rdm,s1=1,s2=1,s3=1):
-    # given an 3 electron 1-RDM, projects it onto the GPC plane
-    occnum,occorb = LA.eig(rdm)
-    occnum.sort()
-    on = occnum[:2:-1]
-    t = np.sqrt(3)
-    norm_vec = np.array([1/t,1/t,-1/t])
-    w_vec = on-np.array([1,1,1])
-    orthog = np.dot(norm_vec,w_vec)
-    proj = on - orthog*norm_vec
-    for i in range(0,3):
-        proj[i]=min(proj[i],1)
-    alpha = np.sqrt(min(1,proj[2]))*s1
-    beta  = np.sqrt(max(0,proj[0]-alpha*np.conj(alpha)))*s2
-    gamma  = np.sqrt(max(0,proj[1]-proj[2]))*s3
-    return alpha,beta,gamma, np.sqrt(np.sum(np.square(orthog*norm_vec)))
-
-
-def project_to_plane(vec):
-    v1 = np.array([1,1,1])
-    v2 = np.array([0.5,0.5,0.5])
-    v3 = np.array([1,0.5,0.5])
-    nv1 = v1-v2
-    nv2 = v2-v3
-    cross = np.cross(nv1,nv2)
-    cross = cross/(np.sqrt(np.sum(np.square(cross))))
-    w_vec = vec-np.array([1,1,1])
-    orthog = np.dot(cross,w_vec)
-    proj = vec - orthog*cross
-    return proj
-
-
-def wf_BD(alpha,beta,gamma):
-    # Generate a Borland-Dennis wavefunction
-    wf = {
-        '111000':alpha,
-        '100110':beta,
-        '010101':gamma}
-    return wf
 
 def build_2rdm(
         wavefunction,
@@ -51,7 +14,8 @@ def build_2rdm(
         region='full',
         rdm2=None):
     '''
-    Given a wavefunction, and the alpha beta orbitals, will construct the 2RDM for a system. 
+    Given a wavefunction, and the alpha beta orbitals, will construct the 2RDM
+    for a system.
     Note, the output format is for a general two body operator, aT_i, aT_k, a_l, a_j
     i/j are electron 1, and k/l are electron 2
     '''
@@ -146,10 +110,10 @@ def build_2rdm(
                                     continue
                                 else:
                                     if check in wavefunction:
-                                        rdm2[i,k,l,j]+= -1*ph*wavefunction[det1]*wavefunction[check] 
+                                        rdm2[i,k,l,j]+= -1*ph*wavefunction[det1]*wavefunction[check]
                                         rdm2[k,i,j,l]+= -1*ph*wavefunction[det1]*wavefunction[check]
                                         rdm2[i,k,j,l]+= +1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[k,i,l,j]+= +1*ph*wavefunction[det1]*wavefunction[check]   
+                                        rdm2[k,i,l,j]+= +1*ph*wavefunction[det1]*wavefunction[check]
 
     for i in beta:
         for k in beta:
@@ -157,7 +121,7 @@ def build_2rdm(
                 for l in beta:
                     for j in beta:
                         if (l<j):
-                            low = 0 
+                            low = 0
                             if region=='active':
                                 if set((i,j,k,l)).issubset(bi):
                                     continue
@@ -233,6 +197,146 @@ def trace_2rdm(rdm2):
                 trace+=rdm2[i,j,i,j]
     return trace
 
+def get_Sz_mat(alpha,beta,s2s):
+    '''
+    Make sure that the molecular 
+    '''
+    norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
+    norb+= len(beta['virtual']+beta['inactive']+beta['active'])
+    alp = alpha['active']
+    bet = beta['active']
+    alpha = alpha['inactive']+alpha['active']
+    beta = beta['inactive']+beta['active']
+    sz = np.zeros((norb,norb))
+    a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
+    b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
+    for pa in alp:
+        sz[pa,pa]=0.5
+    for pb in bet:
+        sz[pb,pb]=-0.5
+    return sz
+
+def get_Sz2_mat(
+        alpha,
+        beta,
+        s2s
+        ):
+    norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
+    norb+= len(beta['virtual']+beta['inactive']+beta['active'])
+    alp = alpha['active']
+    bet = beta['active']
+    alpha = alpha['inactive']+alpha['active']
+    beta = beta['inactive']+beta['active']
+    sz2_2 = np.zeros((norb,norb,norb,norb))
+    sz2_1 = np.zeros((norb,norb))
+    a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
+    b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
+    for pa in alp:
+        pb = a2b[pa]
+        for qb in bet:
+            qa = b2a[qb]
+            sz2_2[pa,qa,pa,qa]+=0.25
+            sz2_2[pb,qb,pb,qb]+=0.25
+            sz2_2[pb,qa,pb,qa]-=0.25
+            sz2_2[pa,qb,pa,qb]-=0.25
+    for pa in alp:
+        sz2_1[pa,pa]+=0.25
+    for pb in bet:
+        sz2_1[pb,pb]+=0.25
+    return sz2_1,sz2_2
+
+def get_SpSm_mat(
+        alpha,
+        beta,
+        s2s
+        ):
+    norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
+    norb+= len(beta['virtual']+beta['inactive']+beta['active'])
+    alp = alpha['active']
+    bet = beta['active']
+
+    alpha = alpha['inactive']+alpha['active']
+    beta = beta['inactive']+beta['active']
+    spsm_2 = np.zeros((norb,norb,norb,norb))
+    spsm_1 = np.zeros((norb,norb))
+    a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
+    b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
+    for pa in alp:
+        pb = a2b[pa]
+        for qb in bet:
+            qa = b2a[qb]
+            spsm_2[pa,qb,qa,pb]=-1
+    for pa in alp:
+        spsm_1[pa,pa]=1
+    return spsm_1,spsm_2
+
+def get_SmSp_mat(
+        alpha,
+        beta,
+        s2s
+        ):
+    norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
+    norb+= len(beta['virtual']+beta['inactive']+beta['active'])
+    alp = alpha['active']
+    bet = beta['active']
+    alpha = alpha['inactive']+alpha['active']
+    beta = beta['inactive']+beta['active']
+    smsp = np.zeros((norb,norb,norb,norb))
+    a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
+    b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
+    for pa in alp:
+        pb = a2b[pa]
+        for qb in bet:
+            qa = b2a[qb]
+            smsp[pb,qa,pa,qb]=1
+    return smsp
+
+
+def S2(
+        rdm2,
+        rdm1,
+        alpha,
+        beta,
+        s2s
+        ):
+    rdm2 = contract(rdm2)
+    spm_1,spm_2  = get_SpSm_mat(
+            alpha,
+            beta,
+            s2s)
+    spm_2 = contract(spm_2)
+    sz2_1,sz2_2 = get_Sz2_mat(
+            alpha,
+            beta,
+            s2s)
+    sz2_2 = contract(sz2_2)
+    sz = get_Sz_mat(
+            alpha,
+            beta,
+            s2s)
+    s2pm_2 = reduce(np.dot, (spm_2,rdm2)).trace()
+    s2pm_1 = reduce(np.dot, (spm_1,rdm1)).trace()
+    s2z2_2= reduce(np.dot, (sz2_2,rdm2)).trace()
+    s2z2_1= reduce(np.dot, (sz2_1,rdm1)).trace()
+    s2z1= reduce(np.dot, (sz,rdm1)).trace()
+    return s2pm_2+s2pm_1+s2z2_2+s2z2_1-s2z1
+
+def Sz(rdm1,alpha,beta,s2s):
+    sz = reduce(np.dot,
+            (
+                get_Sz_mat(
+                    alpha,
+                    beta,
+                    s2s
+                    ),
+                rdm1
+                )
+        ).trace()
+    return sz
+
+
+
+
 def spin_rdm_to_spatial_rdm(
         rdm2,
         alpha,
@@ -262,7 +366,6 @@ def spin_rdm_to_spatial_rdm(
                     print('{} {} {} {}'.format(p,q,r,s))
                     nrdm2[p,r,q,s]+=rdm2[i,k,j,l]
                     nrdm2[p,r,q,s]+=rdm2[k,i,l,j]
-                    
     for i in beta:
         for j in beta:
             for k in beta:
@@ -335,6 +438,8 @@ def rotate_2rdm(
     spatial orbitals. 
 
     Output is a matrix with indices, i,k,l,j
+
+    Note that U_a should be the left transformation matrix. 
 
     '''
 
@@ -429,3 +534,44 @@ def rotate_2rdm(
                         n2rdm[k,i,j,l]-= U_b[S,D]*temp3[i,k,j,d]
     return n2rdm
 
+
+def project_gpc(rdm,s1=1,s2=1,s3=1):
+    # given an 3 electron 1-RDM, projects it onto the GPC plane
+    occnum,occorb = LA.eig(rdm)
+    occnum.sort()
+    on = occnum[:2:-1]
+    t = np.sqrt(3)
+    norm_vec = np.array([1/t,1/t,-1/t])
+    w_vec = on-np.array([1,1,1])
+    orthog = np.dot(norm_vec,w_vec)
+    proj = on - orthog*norm_vec
+    for i in range(0,3):
+        proj[i]=min(proj[i],1)
+    alpha = np.sqrt(min(1,proj[2]))*s1
+    beta  = np.sqrt(max(0,proj[0]-alpha*np.conj(alpha)))*s2
+    gamma  = np.sqrt(max(0,proj[1]-proj[2]))*s3
+    return alpha,beta,gamma, np.sqrt(np.sum(np.square(orthog*norm_vec)))
+
+
+def project_to_plane(vec):
+    v1 = np.array([1,1,1])
+    v2 = np.array([0.5,0.5,0.5])
+    v3 = np.array([1,0.5,0.5])
+    nv1 = v1-v2
+    nv2 = v2-v3
+    cross = np.cross(nv1,nv2)
+    cross = cross/(np.sqrt(np.sum(np.square(cross))))
+    w_vec = vec-np.array([1,1,1])
+    orthog = np.dot(cross,w_vec)
+    proj = vec - orthog*cross
+    return proj
+
+
+
+def wf_BD(alpha,beta,gamma):
+    # Generate a Borland-Dennis wavefunction
+    wf = {
+        '111000':alpha,
+        '100110':beta,
+        '010101':gamma}
+    return wf

@@ -39,7 +39,7 @@ class GenerateDirectCircuit:
             store=None,
             order='default',
             _name=False,
-            verbose=False,
+            pr_q=0,
             entangled_pairs='full',
             depth=1,
             entangler='Ry_cN',
@@ -51,8 +51,8 @@ class GenerateDirectCircuit:
         simulated one that has variable size constraints.
         '''
         self.Nq = Nqb
-        self.alpha = store.alpha_mo['active']
-        self.beta = store.beta_mo['active']
+        self.alpha = store.alpha_mo['qc']
+        self.beta = store.beta_mo['qc']
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.ec = ec
@@ -71,10 +71,14 @@ class GenerateDirectCircuit:
         self._gen_circuit(para)
 
     def _initialize(self):
-        for a in range(self.Ne//2+self.Ne%2):
-            self.qc.x(self.q[a])
-        for b in range(self.Ne//2):
-            self.qc.x(self.q[b+len(self.alpha)])
+        if len(self.beta)==0:
+            for a in range(self.Ne):
+                self.qc.x(self.q[a])
+        else:
+            for a in range(self.Ne//2+self.Ne%2):
+                self.qc.x(self.q[a])
+            for b in range(self.Ne//2):
+                self.qc.x(self.q[b+len(self.alpha)])
 
 
     def _gen_circuit(self,para):
@@ -155,7 +159,7 @@ class GenerateCompactCircuit:
             algorithm,
             order='default',
             _name=False,
-            verbose=False,
+            pr_q=0,
             **kwargs
             ):
         #try:

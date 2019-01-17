@@ -47,12 +47,13 @@ class RunRDM:
         self.rc=Cache()
         self.kw_qc = self.kw['qc']
         self.kw_qc['store']=self.store
-        self.pr = self.kw['prolix']
+        self.pr_g = self.kw['pr_g']
         qc_func = enf.find_function('rdm','main')
         self.kw_qc['function']=qc_func
-        if self.pr:
+        if self.pr_g>0:
             print('Starting an optimization of the RDM.')
-
+        self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
+        self.store.kw['spin_mapping']=self.kw_qc['spin_mapping']
 
 
 
@@ -66,7 +67,8 @@ class RunRDM:
         elif qc:
             for k,v in args.items():
                 self.kw_qc[k] = v
-        self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
+            self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
+            self.store.kw['spin_mapping']=self.kw_qc['spin_mapping']
 
     def go(self):
         self.store.gas()
@@ -130,7 +132,6 @@ class RunNOFT:
     '''
     Subroutine for a natural-orbital function theory approach
     stretch
-
     '''
     def __init__(self,
             store
@@ -155,18 +156,14 @@ class RunNOFT:
                 region=self.kw['sub']['region'],
                 output='Npara'
                 )
-        para_orb = []
-        para_orb.append([])
-        for i in range(0,2*self.Np):
-           para_orb[0].append(0)
-        self.para = para_orb
         main_func = enf.find_function('noft','main')
         self.kw_main['function']=main_func
         sub_func = enf.find_function('noft','sub')
         self.kw_sub['function']=sub_func
-        self._get_triangle()
         mapping = fx.get_mapping(self.kw_main['wf_mapping'])
         self.kw_main['wf_mapping']=mapping
+        self.pr_g = self.kw['pr_g']
+        self.store.kw['spin_mapping']=self.kw_sub['spin_mapping']
 
     def _get_triangle(self):
         if self.kw_main['tri']:
@@ -175,11 +172,43 @@ class RunNOFT:
                     **self.kw_main)
 
 
-    def update_var(self,args):
-        for k,v in args.items():
-            self.kw[k]=v
+    def update_var(
+            self,
+            main=False,
+            sub=False,
+            **args):
+        if (main and (not sub)):
+            for k,v in args.items():
+                self.kw_main[k]=v
+            mapping = fx.get_mapping(self.kw_main['wf_mapping'])
+            if mapping==None:
+                pass
+            else:
+                self.kw_main['wf_mapping']=mapping
+        elif ((not main) and sub):
+            for k,v in args.items():
+                self.kw_sub[k]=v
+            self.store.kw['spin_mapping']=self.kw_sub['spin_mapping']
+        elif not (main and sub):
+            for k,v in args.items():
+                self.kw[k]=v
+            self.pr_g = self.kw['pr_g']
+
 
     def go(self):
+        para_orb = []
+        para_orb.append([])
+        if self.kw_sub['spin_mapping']=='restricted':
+            for i in range(0,self.Np):
+                para_orb[0].append(0)
+        elif self.kw_sub['spin_mapping']=='unrestricted':
+            for i in range(0,2*self.Np):
+                para_orb[0].append(0)
+        self.para = para_orb
+        if 'classical' in self.kw_main['method']:
+            pass
+        else:
+            self._get_triangle()
         while not self.total.done:
             self._OptNO()
             self._OptOrb()
@@ -191,9 +220,11 @@ class RunNOFT:
             max_iter
             ):
         diff = abs(self.main.crit-self.sub.crit)*1000
-        print(self.main.crit)
-        print(self.sub.crit)
-        print('Diff in energies: {} mH '.format(diff))
+        if self.pr_g>0:
+            print('Macro iteration: {}'.format(self.total.iter))
+            print('E_noc: {}'.format(self.main.crit))
+            print('E_nor: {}'.format(self.sub.crit))
+            print('Diff in energies: {} mH '.format(diff))
         if self.main.err or self.sub.err:
             self.total.err = True
             self.total.done= True
@@ -239,13 +270,14 @@ class RunNOFT:
         self.main.done=False
         while not self.main.done:
             Run.next_step(**self.kw_main)
-            print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
-                self.main.iter,
-                Run.opt.best_f,
-                Run.opt.crit)
-                )
-                #if self.kw_main['optimizer']=='NM':
-                #    print(Run.opt.B_x)
+            if self.kw_main['pr_o']>0:
+                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
+                    self.main.iter,
+                    Run.opt.best_f,
+                    Run.opt.crit)
+                    )
+                    #if self.kw_main['optimizer']=='NM':
+                    #    print(Run.opt.B_x)
             Run.check(self.main)
             if self.main.iter==self.kw_main['max_iter'] and not(self.main.done):
                 self.main.error=False
@@ -271,11 +303,12 @@ class RunNOFT:
                     )
         while not self.sub.done:
             Run.next_step(**self.kw_sub)
-            print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
-                self.sub.iter,
-                Run.opt.best_f,
-                Run.opt.crit)
-                )
+            if self.kw_sub['pr_o']>0:
+                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
+                    self.sub.iter,
+                    Run.opt.best_f,
+                    Run.opt.crit)
+                    )
             Run.check(self.sub)
             if self.sub.iter==self.kw_sub['max_iter'] and not self.main.done:
                 self.sub.done=True

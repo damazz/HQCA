@@ -283,6 +283,8 @@ def gen_spin_2ei(
     spatial orbitals. 
 
     Output is a matrix with indices, i,k,l,j
+    except that j and l have been switched, so that the first index refers to
+    electron 1 and the second index refers to electron 2.
 
     '''
     ei2 = fx.expand(ei2)

@@ -1,7 +1,19 @@
+1.8.19 
+
+Need to do the following:
+- add ending statistics for run time and computation power, qc. demands as well
+- configure optimizers for nevergrad, i.e. gradient free optimization
+- import to Sequoia, etc.
+- add MO outputs
+- error modelling (i.e., dephasing, decoupling, etc.)
+- implement schemes for spin
+    - spin coupled 
+    - spin free
+    - symmetric parameterization
+
 12.3 
 Still a few things to do, but have the essentials:
 - Error modelling
-- 
 
 
 # 11.19 - 11.22
@@ -21,7 +33,7 @@ the phase.
 
 In summary:
 x Clean up code
-x Update QISKi throughout
+x Update QISKit throughout
 x Need to update the energy evaluation routine
 x Splitting compact and direct mapping (algorithms, tomography, optimizers)
 x Create mappings, coding in different implementations
