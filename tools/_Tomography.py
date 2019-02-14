@@ -66,6 +66,7 @@ class Process:
     def add_data(self,output):
         i,k,j=0,0,0
         for name,counts in output:
+            #print(name, counts)
             if i==0:
                 self.Nq_tot = len(list(counts.keys())[0])
             prbdis = self.proc_counts(counts)
@@ -325,7 +326,6 @@ class Process:
                     if key[0:4]=='ikkj':
                         q1,q2 = q2,q1
                     bet2 = 1 - 2*temp[q2] # difference of terms 
-
                     temp1 = -0.25*(+bet2)
                     temp2 = -0.25*(-bet2)
 
@@ -453,6 +453,8 @@ local_qubit_tomo_pairs = {
 
         }
 nonlocal_qubit_tomo_pairs_part = {
+        0:[[]],
+        1:[[]],
         2:[
             ['01']],
         3:[

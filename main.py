@@ -63,13 +63,14 @@ class sp:
             mol,
             theory,
             pr_g=0,
+            calc_E=False,
             restart=False):
         '''start function,
         assigns the chemical things and gets stuff going
         '''
         self.run_type = 'sp'
         self.theory=theory
-        self._load_mol(mol,pr_g)
+        self._load_mol(mol,pr_g,calc_E)
         if restart:
             self._load_restart()
         else:
@@ -77,7 +78,9 @@ class sp:
 
     def _load_mol(self,
             mol,
-            pr_g):
+            pr_g,
+            calc_E
+            ):
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
@@ -104,6 +107,15 @@ class sp:
             'E_ne':mol.energy_nuc(),
             'pr_g':pr_g
             }
+        if calc_E:
+            from pyscf import mcscf
+            mc = mcscf.CASCI(self.hf,mol.as_Ne,mol.as_No)
+            mc.kernel()
+            store_kw['e_fci']=mc.e_tot
+            print('  det-alpha,    det-beta,   CI coefficients')
+            for c,ia,ib in mc.fcisolver.large_ci(mc.ci,2,(1,1),tol=0.01, return_strs=False):
+                print('     %s          %s          %1.12f' % (ia,ib,c))
+                
         self.Store = enf.Storage(
             **store_kw)
 

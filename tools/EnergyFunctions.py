@@ -5,6 +5,7 @@ from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import Chem as chem
 from hqca.tools import EnergyFunctions as enf
 from hqca.tools import EnergyDeterminant as end
+from hqca.tools import Functions as fx
 from hqca.tools import EnergyOrbital as eno
 '''
 ./tools/EnergyFunctions.py
@@ -45,6 +46,8 @@ class Storage:
         self.wf = {}
         self.rdm2=None
         self.ints_1e =None
+        self.C_a = moc_alpha
+        self.C_b = moc_beta
         self.ints_2e = None
         self.ints_1e_ao = ints_1e_ao
         self.ints_2e_ao = ints_2e_ao
@@ -179,6 +182,15 @@ class Storage:
             self.parameters  = para
             self.wf = wf
 
+
+    def opt_update_rdm2(self,energy,rdm2,para):
+        if energy<self.energy_wf:
+            if energy<self.energy_best:
+                self.energy_best = energy
+            self.energy_wf  = energy
+            self.parameters  = para
+            self.rdm2 = fx.expand(rdm2)
+
     def update_rdm2(self):
         self.rdm2 = rdmf.build_2rdm(
                 self.wf,
@@ -229,6 +241,84 @@ class Storage:
             self.opt_T_alpha = U_a
             self.opt_T_beta  = U_b
 
+    def opt_analysis(self):
+        print('  --  --  --  --  --  --  -- ')
+        print('--  --  --  --  --  --  --  --')
+        print('Analyzing the optimization.')
+        try:
+            diff = 1000*( self.energy_best-self.kw['e_fci'])
+            print('Energy difference from FCI: {:.8f} mH'.format(diff))
+        except KeyError:
+            pass
+        rdm1 = rdmf.check_2rdm(self.rdm2,self.Nels_tot)
+        print('Occupations of the 1-RDM:')
+        print(np.real(np.diag(rdm1)))
+        print('Natural orbital wavefunction:')
+        for k,v in self.wf.items():
+            print(' |{}>: {}'.format(k,v))
+        self.Ci_a = np.linalg.inv(self.C_a)
+        self.Ci_b = np.linalg.inv(self.C_b)
+        self.Ti_a = np.linalg.inv(self.T_alpha)
+        self.Ti_b = np.linalg.inv(self.T_beta)
+        Ni_a = reduce(
+                np.dot, (
+                    self.Ti_a,self.C_a)
+                )
+        Ni_b = reduce(
+                np.dot, (
+                    self.Ti_b,self.C_b)
+                )
+        rdm2_mo = rdmf.rotate_2rdm(
+                self.rdm2,
+                Ni_a.T,
+                Ni_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                spin2spac=self.s2s,
+                region='full'
+                )
+        rdm1_mo = rdmf.check_2rdm(
+                rdm2_mo,
+                self.Nels_tot)
+        print('1-RDM in the molecular orbital basis.')
+        print(np.real(rdm1_mo))
+        print('NO coefficients (in terms of MO):')
+        print('Alpha: ')
+        print(np.real(Ni_a.T))
+        print('Beta: ')
+        print(np.real(Ni_b.T))
+        print('NO coefficients (in terms of AO):')
+        print('Alpha: ')
+        print(np.real(self.T_alpha))
+        print('Beta: ')
+        print(np.real(self.T_beta))
+        sz = rdmf.Sz(
+                rdm1_mo,
+                self.alpha_mo,
+                self.beta_mo,
+                s2s=self.s2s)
+        s2 = rdmf.S2(
+                rdm2_mo,
+                rdm1_mo,
+                self.alpha_mo,
+                self.beta_mo,
+                s2s=self.s2s)
+        print('1-RDM in the Lowdin atomic orbital basis.')
+        #print('MO coefficients: ')
+        #print(self.C_a)
+        rdm1_mo_a = rdm1_mo[0:self.Norb_tot,0:self.Norb_tot]
+        rdm1_mo_b = rdm1_mo[self.Norb_tot:,self.Norb_tot:]
+        print('Alpha:')
+        print(np.real(reduce(np.dot, (self.C_a,rdm1_mo_a,self.Ci_a))))
+        print('Beta:')
+        print(np.real(reduce(np.dot, (self.C_b,rdm1_mo_b,self.Ci_b))))
+        print('Sz value: {:.6f}'.format(np.real(sz)))
+        print('S2 value: {:.6f}'.format(np.real(s2)))
+        print('--  --  --  --  --  --  --  --')
+        print('  --  --  --  --  --  --  --')
+
+
+
 
     def check(self,crit,Occ,Orb,print_run=False):
         print('Checking orbital and occupation energies for convergence...')
@@ -266,7 +356,7 @@ class Storage:
 
 def rotation_parameter_generation(
         spin_mo, # class with inactive, active, and virtual orbitals
-        region='active', 
+        region='active',
         output='matrix',
         para=None
         ):

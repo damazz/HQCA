@@ -45,9 +45,9 @@ class RunRDM:
         self.store.sp='rdm'
         self.kw = pre.RDM()
         self.rc=Cache()
+        self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
         self.kw_qc['store']=self.store
-        self.pr_g = self.kw['pr_g']
         qc_func = enf.find_function('rdm','main')
         self.kw_qc['function']=qc_func
         if self.pr_g>0:
@@ -64,6 +64,7 @@ class RunRDM:
         if not qc:
             for k,v in args.items():
                 self.kw[k]=v
+            self.pr_g = self.kw['pr_g']
         elif qc:
             for k,v in args.items():
                 self.kw_qc[k] = v
@@ -101,6 +102,8 @@ class RunRDM:
                 Run.opt.crit)
                 )
             Run.check(self.rc)
+            if self.pr_g>2:
+                self.store.opt_analysis()
             if self.rc.iter==self.kw_qc['max_iter'] and not(self.rc.done):
                 self.rc.error=False
                 Run.opt_done=True
@@ -241,6 +244,8 @@ class RunNOFT:
             print('Got an error.')
         self.main.crit=0
         self.sub.crit=0
+        if self.pr_g>2:
+            self.store.opt_analysis()
         self.total.iter+=1
 
 
@@ -259,13 +264,6 @@ class RunNOFT:
             print('##########')
             print('Encountered error in initialization.')
             print('##########')
-            #filename = pre.filename
-            #with open(pre.filename+'.run.tmp', 'wb') as fp:
-            #    pickle.dump(
-            #            [Run,Store,keys,orb_keys],
-            #            fp,
-            #            pickle.HIGHEST_PROTOCOL
-            #            )
             self.main.done=True
         self.main.done=False
         while not self.main.done:

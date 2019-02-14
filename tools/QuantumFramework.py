@@ -9,6 +9,7 @@ quite sure why though.
 
 import time
 import timeit
+from itertools import zip_longest
 from hqca.tools._Tomography import Process
 from hqca.tools._Tomography import local_qubit_tomo_pairs as lqtp
 from hqca.tools._Tomography import nonlocal_qubit_tomo_pairs_full as nqtpf
@@ -119,7 +120,7 @@ def _direct_tomography(
                         )
                     )
             rdm_bet.append(temp_arr)
-        circ_pairs = zip(rdm_alp,rdm_bet)
+        circ_pairs = zip_longest(rdm_alp,rdm_bet)
         return circ_pairs
 
     def apply_1rdm_basis_tomo(Q,i,k):
@@ -156,16 +157,20 @@ def _direct_tomography(
             circuit_list.append(['ii'])
             i=0
             for ca,cb in circ_pair:
+                #print(ca,cb)
                 Q = GenerateDirectCircuit(**kw,_name='ij{:02}'.format(i))
                 temp = ['ij{:02}'.format(i)]
                 for pair in ca:
                     Q = apply_1rdm_basis_tomo(
                             Q,int(pair[0]),int(pair[1]))
                     temp.append(pair)
-                for pair in cb:
-                    Q = apply_1rdm_basis_tomo(
-                            Q,int(pair[0]),int(pair[1]))
-                    temp.append(pair)
+                try:
+                    for pair in cb:
+                        Q = apply_1rdm_basis_tomo(
+                                Q,int(pair[0]),int(pair[1]))
+                        temp.append(pair)
+                except TypeError:
+                    pass
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)

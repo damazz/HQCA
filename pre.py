@@ -13,7 +13,7 @@ def NOFT():
         'wait':True,
         'pr_g':1,
         'chem_orb':'HF',
-        'opt_thresh':0.000001,
+        'opt_thresh':0.000000001,
         #'opt_thresh':0.0001,
         'main':{
             'qc_backend':'qasm_simulator',
@@ -33,7 +33,7 @@ def NOFT():
             'tomo_basis':'no',
             'tomo_extra':None,
             'tomo_rdm':'1rdm',
-            'opt_thresh':0.0001,
+            'opt_thresh':0.0000001,
             'opt_crit':'default',
             'max_iter':250,
             'gd_gradient':'numerical',
@@ -43,7 +43,7 @@ def NOFT():
         'sub':{
             'method':'givens',
             'optimizer':'NM',
-            'opt_thresh':0.0000001,
+            'opt_thresh':1e-10,
             'spin_mapping':'unrestricted',
             #'opt_thresh':0.0001,
             'opt_crit':'default',

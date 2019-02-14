@@ -39,7 +39,7 @@ def energy_eval_rdm(
             store,
             nocc,
             norb,
-            verbose=True,
+            pr_m=True,
             S2=0,
             ):
         '''
@@ -76,7 +76,7 @@ def energy_eval_rdm(
     para = [i*pi/180 for i in para]
     kwargs['para']=para
     kwargs['store']=store
-    kwargs['verbose']=verbose
+    kwargs['pr_m']=pr_m
     qc,qcl,q = build_circuits(**kwargs)
     kwargs['qb2so']=q
     qco = run_circuits(qc,qcl,**kwargs)
@@ -106,10 +106,6 @@ def energy_eval_rdm(
         Nso = rdm1.shape[0]
         rdma = rdm1[0:Nso//2,0:Nso//2]
         rdmb = rdm1[Nso//2:,Nso//2:]
-        if pr_m>1:
-            print('Natural ocupations: ')
-            print('alpha: {}'.format(noca))
-            print('beta: {}'.format(nocb))
 
         noca,nora = np.linalg.eig(rdma)
         idxa = noca.argsort()[::-1]
@@ -125,8 +121,12 @@ def energy_eval_rdm(
         idx = noccs.argsort()[::-1]
         noccs = noccs[idx]
         norbs = norbs[:,idx]
+        if pr_m>1:
+            print('Natural ocupations: ')
+            print('alpha: {}'.format(noca))
+            print('beta: {}'.format(nocb))
 
-    rdm2 = build_2e_2rdm(store,noccs,norbs,verbose,S2)
+    rdm2 = build_2e_2rdm(store,noccs,norbs,pr_m,S2)
     rdm2 = rdmf.rotate_2rdm(rdm2,
             nora,
             norb,
@@ -146,6 +146,11 @@ def energy_eval_rdm(
     E1 = reduce(np.dot, (store.ints_1e,rdm1)).trace()
     E2 = reduce(np.dot, (store.ints_2e,rdm2)).trace()
     E_t = np.real(E1+0.5*E2+store.E_ne)
+    store.opt_update_rdm2(
+            E_t,
+            rdm2,
+            para
+            )
     if pr_m>1:
         print('Energy: {}'.format(E_t))
         print('')
@@ -297,7 +302,6 @@ def energy_eval_nordm(
             gam = np.sin(theta)*np.cos(phi)
             bet = np.sin(theta)*np.sin(phi)
             alp = np.cos(theta)
-            
             wf = rdmf.wf_BD(alp,bet,gam) # generate wavefunction with BD
         wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
         wf = fx.extend_wf(
@@ -395,6 +399,5 @@ def energy_eval_nordm(
     store.opt_update_wf(E_t,wf,para)
     if type(store.rdm2)==type(None):
         store.update_rdm2()
-    print(E_t)
     return E_t
 

@@ -79,7 +79,13 @@ class GenerateDirectCircuit:
                 self.qc.x(self.q[a])
             for b in range(self.Ne//2):
                 self.qc.x(self.q[b+len(self.alpha)])
-
+        #self.qc.h(self.q[0])
+        #self.qc.z(self.q[0])
+        #self.qc.cx(self.q[0],self.q[3])
+        #self.qc.cx(self.q[0],self.q[1])
+        #self.qc.x(self.q[0])
+        #self.qc.cx(self.q[0],self.q[2])
+        #self.qc.x(self.q[0])
 
     def _gen_circuit(self,para):
         self._initialize()
@@ -101,7 +107,7 @@ class GenerateDirectCircuit:
                     if i<j:
                         self.ent_pairs.append(
                                 [
-                                    self.so2qb[o1],
+                                   self.so2qb[o1],
                                     self.so2qb[o2]
                                     ]
                                 )
@@ -143,6 +149,7 @@ class GenerateDirectCircuit:
             self.qc.x(self.q[k])
             self.qc.cx(self.q[k],self.q[i])
             for s in range(i,k):
+                #self.qc.cz(self.q[k],self.q[s])
                 self.qc.z(self.q[s])
 
 
