@@ -14,10 +14,6 @@ from functools import reduce
 import sys,time
 import timeit
 import traceback
-from qiskit import Aer,IBMQ
-from qiskit import execute
-from qiskit import QISKitError
-import qiskit
 from numpy import log10,floor
 from numpy import zeros,multiply,real
 

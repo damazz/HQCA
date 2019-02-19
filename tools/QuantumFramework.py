@@ -19,7 +19,7 @@ from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
 from hqca.tools.IBM_check import check,get_backend_object
 import sys, traceback
-from qiskit import Aer,IBMQ
+from qiskit import Aer
 from qiskit import compile as compileqp
 from math import pi
 
