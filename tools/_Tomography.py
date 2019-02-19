@@ -35,38 +35,23 @@ def combine_dictionary(one,two):
 class Process:
     def __init__(self,
             output,
-            tomo_rdm,
-            tomo_basis,
-            tomo_extra,
-            qa_fermion,
-            qb2so,
-            actqb2beqb='default',
-            pr_q=0,
-            **kw
+            QuantStore,
             ):
         # First, want to combine results
         self.data = {'ii':{},'ij':[],'ijkl':[],'iZj':[],'iIj':[],'ij':[]}
-        self.tomo_rdm = tomo_rdm
-        self.tomo_basis = tomo_basis
-        self.tomo_extra = tomo_extra
-        self.fermi = qa_fermion
+        self.tomo_rdm = QuantStore.tomo_rdm
+        self.tomo_basis=QuantStore.tomo_bas
         self.add_data(output)
-        self.pr_q = pr_q
         self.occ_qb = []
-        self.kw = kw
-        for v,k in qb2so.items():
-            self.occ_qb.append(v)
+        self.qs = QuantStore
+        for k,v in QuantStore.backend_to_rdm.items():
+            self.occ_qb.append(k)
         self.Nq_act = len(self.occ_qb)
-        if actqb2beqb=='default':
-            self.a2b={i:i for i in range(0,self.Nq_act)}
-        else:
-            self.a2b= actqb2beqb
-
 
     def add_data(self,output):
         i,k,j=0,0,0
         for name,counts in output:
-            #print(name, counts)
+            print(name,counts)
             if i==0:
                 self.Nq_tot = len(list(counts.keys())[0])
             prbdis = self.proc_counts(counts)
@@ -112,14 +97,15 @@ class Process:
         return r
 
     def build_rdm(self):
-        if self.fermi=='direct':
+        if self.qs.fermion_mapping=='jordan-wigner':
             self._build_direct_rdm()
-        elif self.fermi=='compact':
+        elif self.qs.fermion_mapping=='compact':
             self._build_compact_rdm(**self.kw)
 
 
     def _build_direct_rdm(self):
-        if self.tomo_basis=='bch':
+        self.a2b = self.qs.rdm_to_backend
+        if self.qs.tomo_bas=='bch':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
                 ind = self.a2b[actqb]
@@ -158,7 +144,7 @@ class Process:
             pass
 
     def _build_compact_rdm(self,**kwargs):
-        if self.tomo_rdm=='1rdm':
+        if self.qs.tomo_rdm=='1rdm':
             try:
                 self.data['ij']['counts']
                 use_err=True
@@ -413,90 +399,5 @@ class Process:
         if self.pr_q>1:
             print('Done with 2-RDM! yay! whew.')
         return rdm2
-
-
-local_qubit_tomo_pairs = {
-        2:[
-            ['01']],
-        3:[
-            ['01'],['02'],['12']],
-        4:[
-            ['01','23'],
-            ['12','03'],
-            ['02','13']],
-        5:[
-            ['01','23'],['04','12'],
-            ['02','34'],['13','24'],
-            ['03','14']],
-        6:[
-            ['01','23','45'],
-            ['02','14','35'],
-            ['13','04','25'],
-            ['03','24','15'],
-            ['12','34','05']],
-        7:[
-            ['01','23','46'],
-            ['02','13','56'],
-            ['03','14','25'],
-            ['04','15','26'],
-            ['05','16','34'],
-            ['06','24','35'],
-            ['12','36','45']],
-        8:[
-            ['01','24','35','67'],
-            ['02','14','36','57'],
-            ['03','15','26','47'],
-            ['04','12','56','37'],
-            ['05','13','27','46'],
-            ['06','17','23','45'],
-            ['07','16','25','34']]
-
-        }
-nonlocal_qubit_tomo_pairs_part = {
-        0:[[]],
-        1:[[]],
-        2:[
-            ['01']],
-        3:[
-            ['01'],['02'],['12']],
-        4:[ 
-            ['01','23'],
-            ['02'],
-            ['03'],
-            ['12'],
-            ['13']],
-        5:[
-            ['01','23'],['02','34'],
-            ['24'],['03'],['13'],
-            ['04'],['14'],['12']
-            ],
-        6:[
-            ['05'],['04'],['15'],['14'],['12','34'],
-            ['03','45'],['01','25'],['02','35'],
-            ['13'],['24'],['23']
-            ],
-        8:[
-            ['07'],['06'],['17'],
-            ['05','67'],['16'],
-            ['01','27'],['04','57'],
-            ['02','37'],['15'],['26'],
-            ['03','47'],['12','34','56'],
-            ['23','46'],['13','45'],
-            ['14'],['25'],['36'],['24'],['35']
-            ]
-        }
-
-# in terms of efficiency...
-# 4 has 1 fewer (5 vs 6) but 2 more (5 v 3)
-# 5 has 2 fewer (8 v 10) but 3 more (8 v 5)
-# 6 has 4 fewer (11 v 15) but 6 more (11 v 5)
-# 8 has 9 fewer (19 v 28) but 12 more (19 v 7)
-
-nonlocal_qubit_tomo_pairs_full = {
-        i:[
-            ['{}{}'.format(
-                b,a)]
-                for a in range(i) for b in range(a)
-            ] for i in range(2,9)}
 
 

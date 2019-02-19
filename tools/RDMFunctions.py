@@ -422,7 +422,54 @@ def switch_alpha_beta(
                     nrdm2[p,r,s,q]=rdm2[i,k,l,j]
     return nrdm2
 
+class KeyDict(dict):
+    def __missing__(self,key):
+        return key
 
+def rotate_2rdm_unrestricted(
+        rdm2,
+        U,
+        alpha,
+        beta,
+        region='active'
+        ):
+    '''
+    Input is the standard electron integral matrices, ik format where i,k are
+    spatial orbitals. 
+
+    Output is a matrix with indices, i,k,l,j
+
+    Note that U_a should be the left transformation matrix. 
+
+    '''
+    N = len(U)
+    fa = alpha['inactive']+alpha['active']+alpha['virtual']
+    fb = beta['inactive']+beta['active']+beta['virtual']
+    if region=='full':
+        sys.exit('Don\'t have rotations set up yet.')
+    elif region in ['active','as','active_space']:
+        alpha=alpha['active']#+alpha['inactive']
+        beta =beta['active']#+beta['inactive']
+    orbs = alpha+beta
+    n2rdm = np.zeros((N,N,N,N)) # size of spin 2rdm 
+    temp1 = np.zeros((N,N,N,N)) # size of spatial 2rdm 
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    ## alpha alpha portion
+    for i in orbs: # i, P
+        for a in orbs:
+            temp1[i,:,:,:] += U[i,a]*rdm2[a,:,:,:]
+        for j in orbs: # j , Q
+            for b in orbs:
+                temp2[i,:,j,:] += U[j,b]*temp1[i,:,b,:]
+            for k in orbs: # k, R
+                for c in orbs:
+                    temp3[i,k,j,:] += U[k,c]*temp2[i,c,j,:]
+                for l in orbs: # l , S
+                    for d in orbs:
+                        # i,k,j,l -> P,R,Q,S
+                        n2rdm[i,k,j,l]+=    U[l,d]*temp3[i,k,j,d]
+    return n2rdm
 
 def rotate_2rdm(
         rdm2,

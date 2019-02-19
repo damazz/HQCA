@@ -8,17 +8,12 @@ import traceback
 
 ./tools/QuantumAlgorithms.py
 
-Please note, if an algorithm is updated or added, it should be added in 3
-places, or completely specified via input. 
-
-First, there are two places in the QuantumAlgorthims module:
-1.  GenerateCircuit class: circuit is actually written down
-2.  algorithm_tomography dictionary: need to update standard parameters that 
-    other module will try to fetch.
-
-Finally, in the function module:
-1.  counts_to_1rdm function: update the standard trace order (note, this should
-    be updated), or just include the algorithm in the function 
+Two main classes:
+    - GenerateDirectCircuit
+        - used in general mapping
+    - GenerateCompactCircuit
+        - used in special mapping cases
+    - 
 
 '''
 tf_ibm_qx2 = {'01':True,'02':True, '12':True, '10':False,'20':False, '21':False}
@@ -31,112 +26,50 @@ def read_qasm(input_qasm):
 class GenerateDirectCircuit:
     def __init__(
             self,
-            para,
-            Nqb,
-            so2qb,
-            qb2so,
-            algorithm='default',
-            store=None,
-            order='default',
-            _name=False,
-            pr_q=0,
-            entangled_pairs='full',
-            depth=1,
-            entangler='Ry_cN',
-            ec=None,
-            **kwargs
+            QuantStore,
+            _name=False
             ):
         '''
         Want to do a different approach than previously. Want to make a
         simulated one that has variable size constraints.
         '''
-        self.Nq = Nqb
-        self.alpha = store.alpha_mo['qc']
-        self.beta = store.beta_mo['qc']
+
+        self.ents = {
+                'Ry_cN':self._ent1_Ry_cN
+                }
+        self.para = QuantStore.parameters
+        self.qs = QuantStore
+        self.Nq = QuantStore.Nq
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
-        self.ec = ec
-        self.qb2so=qb2so
-        self.so2qb=so2qb
-        self.Ne = store.Nels_as
+        self.Ne = QuantStore.Ne
         if _name==False:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
-        try:
-            self._gen_entangling_pairs(entangled_pairs)
-        except Exception:
-            traceback.print_exc()
-        self.ent = self._get_entangler(entangler)
-        self._gen_circuit(para)
+        self.ent_p = self.ents[self.qs.ent_circ_p]
+        self.ent_q = self.ents[self.qs.ent_circ_q]
+        self._gen_circuit()
 
     def _initialize(self):
-        if len(self.beta)==0:
-            for a in range(self.Ne):
-                self.qc.x(self.q[a])
-        else:
-            for a in range(self.Ne//2+self.Ne%2):
-                self.qc.x(self.q[a])
-            for b in range(self.Ne//2):
-                self.qc.x(self.q[b+len(self.alpha)])
-        #self.qc.h(self.q[0])
-        #self.qc.z(self.q[0])
-        #self.qc.cx(self.q[0],self.q[3])
-        #self.qc.cx(self.q[0],self.q[1])
-        #self.qc.x(self.q[0])
-        #self.qc.cx(self.q[0],self.q[2])
-        #self.qc.x(self.q[0])
+        self.Ne_alp = self.qs.Ne_alp
+        self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
+        if self.qs.init=='default':
+            for i in range(0,self.Ne_alp):
+                targ = self.qs.rdm_to_backend[self.qs.alpha['active'][i]]
+                self.qc.x(self.q[targ])
+            for i in range(0,self.Ne_bet):
+                targ = self.qs.rdm_to_backend[self.qs.beta['active'][i]]
+                self.qc.x(self.q[targ])
 
-    def _gen_circuit(self,para):
+    def _gen_circuit(self):
         self._initialize()
-        for i,pair in enumerate(self.ent_pairs):
-            #print(para[i])
-            self.ent(para[i],pair[0],pair[1])
-        if self.ec==None:
-            pass
-        else:
-            pass
+        for d in range(0,self.qs.depth):
+            for i,pair in enumerate(self.qs.pair_list):
+                self.ent_p(self.para[i],pair[0],pair[1])
+            for i,quad in enumerate(self.qs.quad_list):
+                self.ent_q(self.para[i],quad[0],quad[1],quad[2],quad[3])
 
-
-
-    def _gen_entangling_pairs(self,pairing):
-        self.ent_pairs = []
-        if pairing=='full':
-            for i,o1 in enumerate(self.alpha):
-                for j,o2 in enumerate(self.alpha):
-                    if i<j:
-                        self.ent_pairs.append(
-                                [
-                                   self.so2qb[o1],
-                                    self.so2qb[o2]
-                                    ]
-                                )
-            for i,o1 in enumerate(self.beta):
-                for j,o2 in enumerate(self.beta):
-                    if i<j:
-                        self.ent_pairs.append(
-                                [
-                                    self.so2qb[o1],
-                                    self.so2qb[o2]
-                                    ]
-                                )
-        elif pairing=='sequential':
-            for i,o1 in enumerate(self.alpha):
-                if i==0:
-                    last = o1
-                else:
-                    self.ent_pairs.append(
-                            [
-                                self.so2qb[o1],
-                                self.so2qb[last]
-                                ]
-                            )
-                    last = o1
-
-    def _get_entangler(self,entangler):
-        if entangler=='Ry_cN':
-            return self._ent1_Ry_cN
-        pass
 
     def _ent1_Ry_cN(self,phi,i,k,ddphi=False):
         if not ddphi:
@@ -148,10 +81,9 @@ class GenerateDirectCircuit:
             self.qc.cx(self.q[i],self.q[k])
             self.qc.x(self.q[k])
             self.qc.cx(self.q[k],self.q[i])
-            for s in range(i,k):
+            #for s in range(i,k):
                 #self.qc.cz(self.q[k],self.q[s])
-                self.qc.z(self.q[s])
-
+                #self.qc.z(self.q[s])
 
 
 
@@ -169,11 +101,6 @@ class GenerateCompactCircuit:
             pr_q=0,
             **kwargs
             ):
-        #try:
-        #    print('You might need to clean this kwarg up:')
-        #    print(kwargs)
-        #except Exception:
-        #    pass
         self.qa = algorithm
         self.Nq = algorithm_tomography[self.qa]['Nq']
         self.q = QuantumRegister(self.Nq,name='q')

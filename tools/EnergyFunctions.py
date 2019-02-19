@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-from functools import reduce
+from functools import reduce,partial
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import Chem as chem
 from hqca.tools import EnergyFunctions as enf
@@ -15,14 +15,22 @@ Module for optimizer or energy functions, i.e. for rotations, etc.
 '''
 
 
-def find_function(run_type,spec='main'):
+def find_function(
+        run_type,
+        spec,
+        Store,
+        QuantStore):
     if run_type=='noft':
         if spec=='main':
             return end.energy_eval_nordm
         elif spec=='sub':
             return eno.energy_eval_orbitals
     elif run_type=='rdm':
-        return end.energy_eval_rdm
+        f = partial(
+            end.energy_eval_rdm,
+            **{'Store':Store,'QuantStore':QuantStore}
+            )
+        return f
 
 
 class Storage:
@@ -30,6 +38,10 @@ class Storage:
     Class for storing energetic properties -
     Basically, will store certain properties of the best 2RDM and wavefunction
     without having to return it for every function call
+
+    Also stores some basic properties of the molecule. However, does not hold
+    properties related to the quantum optimization. Need to generate a
+    QuantumStorage object to do that. 
     '''
     def __init__(self,
             moc_alpha,

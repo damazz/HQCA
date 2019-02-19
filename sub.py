@@ -16,6 +16,7 @@ from hqca.tools import Optimizers as opt
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import EnergyFunctions as enf
 from hqca.tools import Triangulation as tri
+from hqca.tools import QuantumFunctions as qf
 from functools import reduce
 from hqca.tools.QuantumFramework import add_to_config_log
 import datetime
@@ -41,61 +42,67 @@ class RunRDM:
             store,
             **kw
             ):
-        self.store=store
-        self.store.sp='rdm'
+        self.Store=store
+        self.Store.sp='rdm'
         self.kw = pre.RDM()
-        self.rc=Cache()
-        self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
-        self.kw_qc['store']=self.store
-        qc_func = enf.find_function('rdm','main')
-        self.kw_qc['function']=qc_func
-        if self.pr_g>0:
-            print('Starting an optimization of the RDM.')
-        self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
-        self.store.kw['spin_mapping']=self.kw_qc['spin_mapping']
+        self.kw_opt = self.kw['opt']
+        self.rc=Cache()
 
 
 
     def update_var(
             self,
-            qc=False,
+            target='global',
             **args):
-        if not qc:
+        if target=='global':
             for k,v in args.items():
                 self.kw[k]=v
-            self.pr_g = self.kw['pr_g']
-        elif qc:
+        elif target=='qc':
             for k,v in args.items():
                 self.kw_qc[k] = v
-            self.store.kw['entangled_pairs']=self.kw_qc['entangled_pairs']
-            self.store.kw['spin_mapping']=self.kw_qc['spin_mapping']
+        elif target=='opt':
+            for k,v in args.items():
+                self.kw_opt[k]=v
+
 
     def go(self):
-        self.store.gas()
-        self.store.gsm()
-        self.store.gip()
-        self.store.update_full_ints()
+        self.pr_g = self.kw['pr_g']
+        self.Store.pr_m = self.kw['pr_m']
+        if self.pr_g>0:
+            print('Starting an optimization of the RDM.')
+        self.Store.gas()
+        self.Store.gsm()
+        self.kw_qc['Nels_as'] = self.Store.Nels_as
+        self.kw_qc['Norb_as']=self.Store.Norb_as
+        self.kw_qc['alpha_mos']=self.Store.alpha_mo
+        self.kw_qc['beta_mos']=self.Store.beta_mo
+        self.kw_qc['single_point']=self.Store.sp
+        self.QuantStore = qf.QuantumStorage(**self.kw_qc)
+        self.Store.update_full_ints()
+        self.kw_opt['function'] = enf.find_function(
+                'rdm',
+                'main',
+                self.Store,
+                self.QuantStore)
         self._OptRDM()
         self._analyze()
 
-    def _OptRDM(self,
-            **kw
-            ):
+    def _OptRDM(self):
         if self.kw['restart']==True:
             self._load()
         else:
             Run = opt.Optimizer(
-                    parameters=[self.kw_qc['store'].parameters],
-                    **self.kw_qc
+                    **self.kw_opt
                     )
+            Run.initialize(self.QuantStore.parameters)
         if Run.error:
             print('##########')
             print('Encountered error in initialization.')
             print('##########')
             self.rc.done=True
         while not self.rc.done:
-            Run.next_step(**self.kw_qc)
+            Run.next_step()
             print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
                 self.rc.iter,
                 Run.opt.best_f,
@@ -103,8 +110,8 @@ class RunRDM:
                 )
             Run.check(self.rc)
             if self.pr_g>2:
-                self.store.opt_analysis()
-            if self.rc.iter==self.kw_qc['max_iter'] and not(self.rc.done):
+                self.Store.opt_analysis()
+            if self.rc.iter==self.kw_opt['max_iter'] and not(self.rc.done):
                 self.rc.error=False
                 Run.opt_done=True
                 self.rc.done=True
@@ -114,7 +121,7 @@ class RunRDM:
                     Store.opt_done=True
                 continue
             self.rc.iter+=1
-        self.store.update_rdm2()
+        self.Store.update_rdm2()
 
     def _load(self):
         pass

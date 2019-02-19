@@ -115,7 +115,6 @@ class sp:
             print('  det-alpha,    det-beta,   CI coefficients')
             for c,ia,ib in mc.fcisolver.large_ci(mc.ci,2,(1,1),tol=0.01, return_strs=False):
                 print('     %s          %s          %1.12f' % (ia,ib,c))
-                
         self.Store = enf.Storage(
             **store_kw)
 
@@ -135,7 +134,7 @@ class sp:
 
     def execute(self):
         self.run.go()
-        self.result = self.run.store
+        self.result = self.run.Store
 
     def analysis(self):
         import hqca.tools.RDMFunctions as rdmf

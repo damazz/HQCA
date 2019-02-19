@@ -11,9 +11,9 @@ import time
 import timeit
 from itertools import zip_longest
 from hqca.tools._Tomography import Process
-from hqca.tools._Tomography import local_qubit_tomo_pairs as lqtp
-from hqca.tools._Tomography import nonlocal_qubit_tomo_pairs_full as nqtpf
-from hqca.tools._Tomography import nonlocal_qubit_tomo_pairs_part as nqtpp
+from hqca.tools.QuantumFunctions import local_qubit_tomo_pairs as lqtp
+from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_full as nqtpf
+from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtpp
 from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
@@ -27,8 +27,7 @@ SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             '/qiskit/backends/qasm_simulator_cpp')
 
 def build_circuits(
-        qa_fermion,
-        pr_q=True,
+        QuantStore,
         **kw
         ):
     def _init_compact(
@@ -40,67 +39,30 @@ def build_circuits(
         No = len(qb_orbs)
         return Nq,qb_orbs,No
 
-    def _init_direct(
-            store,
-            Nqb=1,
-            qb2so='default',
-            **kw,
-            ):
-        alpha = store.alpha_mo['qc']
-        beta  = store.beta_mo['qc']
-        so2qb,qb2so = _get_map(
-                qb2so,alpha,beta
-                )
-        return alpha,beta,so2qb,qb2so
-    def _get_map(
-            qb2so,alpha,beta
-            ):
-        if qb2so=='default':
-            so2qb = {}
-            qb2so = {}
-            for qb,so in enumerate(alpha):
-                so2qb[so]=qb
-                qb2so[qb]=so
-            for qb,so in enumerate(beta):
-                so2qb[so]=qb+len(alpha)
-                qb2so[qb+len(alpha)]=so
-        else:
-            try:
-                so2qb = {v:k for k,v in qb2so.items()}
-            except Exception:
-                traceback.print_exc()
-        return so2qb,qb2so
     '''
     Begin actual circuit generation. 
     '''
-    kw['pr_q']=pr_q
-    if qa_fermion=='compact':
+    if QuantStore.fermion_mapping=='compact':
         Nq,qb_orbs,No = _init_compact(**kw)
         kw['Nq']=Nq
         kw['qb_orbs']=qb_orbs
         kw['No']=No
         q2s = {}
         circ, circ_list = _compact_tomography(**kw)
-    elif qa_fermion=='direct':
-        alp,bet, s2q,q2s = _init_direct(**kw)
-        kw['alpha']=alp
-        kw['beta']=bet
-        kw['so2qb']=s2q
-        kw['qb2so']=q2s
-        circ, circ_list = _direct_tomography(**kw)
-    return circ,circ_list,q2s
+    elif QuantStore.fermion_mapping=='jordan-wigner':
+        circ, circ_list = _direct_tomography(QuantStore)
+    else: 
+        sys.exit(
+            'Unsupported mapping of fermions: {}'.format(
+                QuantStore.fermion_mapping)
+                )
+    return circ,circ_list
 
 
 def _direct_tomography(
-    alpha,
-    beta,
-    tomo_rdm='1rdm',
-    tomo_basis='hada',
-    tomo_extra=False,
-    pr_q=0,
-    **kw
+        QuantStore,
         ):
-    def _get_pairs(alp,bet):
+    def _get_pairs(tomo_basis,alp,bet):
         if tomo_basis=='hada':
             qtp = nqtpp
         elif tomo_basis=='sudo':
@@ -145,20 +107,22 @@ def _direct_tomography(
     Begin direct tomography
     '''
     circuit,circuit_list = [],[]
-    circ_pair = _get_pairs(alpha,beta)
-    if tomo_rdm=='1rdm':
-        if tomo_basis in ['no','NO']:
+    circ_pair = _get_pairs(
+            QuantStore.tomo_bas,
+            QuantStore.alpha_qb,
+            QuantStore.beta_qb)
+    if QuantStore.tomo_rdm=='1rdm':
+        if QuantStore.tomo_bas in ['no','NO']:
             print('Do you think we are in the natural orbitals? Wrong method!')
             sys.exit()
-        elif tomo_basis=='hada':
-            Q = GenerateDirectCircuit(**kw,_name='ii')
+        elif QuantStore.tomo_bas=='hada':
+            Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)
             circuit.append(Q.qc)
             circuit_list.append(['ii'])
             i=0
             for ca,cb in circ_pair:
-                #print(ca,cb)
-                Q = GenerateDirectCircuit(**kw,_name='ij{:02}'.format(i))
+                Q = GenerateDirectCircuit(QuantStore,_name='ij{:02}'.format(i))
                 temp = ['ij{:02}'.format(i)]
                 for pair in ca:
                     Q = apply_1rdm_basis_tomo(
@@ -174,28 +138,11 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
-                '''
-                Q = GenerateDirectCircuit(**kw,_name='iZj{}'.format(i))
-                temp = ['iZj{}'.format(i)]
-                for pair in ca:
-                    Q = apply_1rdm_basis_tomo(
-                            Q,int(pair[0]),int(pair[1]),
-                            Z=True)
-                    temp.append(pair)
-                for pair in cb:
-                    Q = apply_1rdm_basis_tomo(
-                            Q,int(pair[0]),int(pair[1]),
-                            Z=True)
-                    temp.append(pair)
-                Q.qc.measure(Q.q,Q.c)
-                circuit_list.append(temp)
-                circuit.append(Q.qc)
-                '''
                 i+=1 
-        elif tomo_basis=='pauli':
+        elif QuantStore.tomo_bas=='pauli':
             # projection into the pauli basis now...
             pass
-    if tomo_extra:
+    if QuantStore.tomo_ext:
         # looking at tomo of RDM with 
         pass
     return circuit,circuit_list
@@ -254,10 +201,7 @@ def _compact_tomography(
 def run_circuits(
         circuits,
         circuit_list,
-        qc_backend,
-        qc_provider,
-        qc_num_shots,
-        pr_q=0,
+        QuantStore,
         **kw
         ):
     def _tomo_get_backend(
@@ -273,18 +217,18 @@ def run_circuits(
         except Exception:
             traceback.print_exc()
     beo = _tomo_get_backend(
-            qc_provider,
-            qc_backend)
+            QuantStore.provider,
+            QuantStore.backend)
     #for i in circuits:
     #    print(i.qasm())
     #    print('')
     qo = compileqp(
             circuits,
-            shots=qc_num_shots,
+            shots=QuantStore.Ns,
             backend=beo
             )
     counts = []
-    if qc_backend=='local_unitary_simulator':
+    if QuantStore.backend=='local_unitary_simulator':
         qr = beo.run(qo,timeout=6000)
         for circ in circuit_list:
             U = qr.result().get_data(circ)['unitary']
@@ -308,8 +252,9 @@ def run_circuits(
 
 def construct(
         data,
-        **kw):
-    qo = Process(data,**kw)
+        QuantStore
+        ):
+    qo = Process(data,QuantStore)
     qo.build_rdm()
     return qo.rdm
 

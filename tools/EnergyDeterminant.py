@@ -23,85 +23,78 @@ except ImportError:
 
 def energy_eval_rdm(
         para,
-        store,
-        spin_mapping='default',
-        ec=False,
-        triangle=False,
-        pr_m=0,
-        S2=0,
-        **kwargs
+        Store,
+        QuantStore
         ):
     '''
     Energy evaluation for single shot quantum computer where we measure the full
     1-RDM. Phase cna be assigned with some 2-RDM values. 
     '''
     def build_2e_2rdm(
-            store,
+            Store,
             nocc,
-            norb,
+            idx,
             pr_m=True,
-            S2=0,
             ):
         '''
         builds and returns 2rdm for a wavefunction in the NO basis
         '''
-        Nso = nocc.shape[0]
+        N = nocc.shape[0]
         Ne_tot = np.sum(nocc)
         wf = {}
-        for i in range(0,Nso//2):
-            if S2==0:
-                if pr_m>1:
-                    print('Difference in alpha/beta occupations')
-                    print(nocc[2*i]-nocc[2*i+1])
-                term ='0'*(i)+'1'+'0'*(Nso//2-i-1)
-                term += term
-                val = max(0,min(1,nocc[2*i]+nocc[2*i+1]/2))
-                wf[term]=val
+        for i in range(0,N//2):
+            #l,h = min(idx[2*i],idx[2*i+1]),max(idx[2*i],idx[2*i+1])
+            #term ='0'*(l)+'1'+'0'*(h-l-1)+'1'+'0'*(N-h-1)
+            term = '0'*(i)+'1'+'0'*(N//2-1-i-1)
+            term+= term
+            val = max(0,min(1,nocc[2*i]+nocc[2*i+1]/2))
+            wf[term]=val
         wf = fx.extend_wf(wf,
-                store.Norb_tot,
-                store.Nels_tot,
-                store.alpha_mo,
-                store.beta_mo)
+                Store.Norb_tot,
+                Store.Nels_tot,
+                Store.alpha_mo,
+                Store.beta_mo)
         rdm2 = rdmf.build_2rdm(
                 wf,
-                store.alpha_mo,
-                store.beta_mo)
+                Store.alpha_mo,
+                Store.beta_mo)
         return rdm2
-    kwargs['spin_mapping']=spin_mapping
-    if pr_m>1:
+    if Store.pr_m>1:
         print(para)
+    spin_mapping = QuantStore.spin_mapping
+    unrestrict=False
     if spin_mapping=='spatial':
         para = para.tolist()
         para = para + para
     para = [i*pi/180 for i in para]
-    kwargs['para']=para
-    kwargs['store']=store
-    kwargs['pr_m']=pr_m
-    qc,qcl,q = build_circuits(**kwargs)
-    kwargs['qb2so']=q
-    qco = run_circuits(qc,qcl,**kwargs)
-    rdm1 = construct(qco,**kwargs)
-    if spin_mapping=='spin_free':
+    QuantStore.parameters = para
+    q_circ,qc_list = build_circuits(QuantStore)
+    qc_obj = run_circuits(
+            q_circ,
+            qc_list,
+            QuantStore
+            )
+    rdm1 = construct(
+            qc_obj,
+            QuantStore)
+    print(rdm1)
+    if spin_mapping=='spin-free':
+        unrestrict=True
         noccs,norbs = np.linalg.eig(rdm1)
         idx = noccs.argsort()[::-1]
-        noccs = noccs[idx]
-        norbs = norbs[:,idx]
-        alp = [2*i for i in range(len(noccs//2))]
-        bet = [2*i+1 for i in range(len(noccs//2))]
-        nora = np.zeros((len(alp),len(alp)))
-        norb = np.zeros(nora.shape)
-        for i in range(len(noccs//2)):
-            for o in range(noccs//2):
-                a1,a2 = norbs[alp[o],alp[i]],norbs[bet[o],alp[i]]
-                b1,b2 = norbs[alp[o],bet[i]],norbs[bet[o],bet[i]]
-                ca = np.sqrt((a1+a2)**2/(a1**2+a2**2))
-                cb = np.sqrt((b1+b2)**2/(b1**2+b2**2))
-                nora[o,i]=(a1+a2)/ca
-                norb[o,i]=(b1+b2)/cb
-        if pr_m>2:
-            print(nora,norb)
+        print(noccs)
+        print(norbs)
+        noccs_sort = noccs[idx]
+        norbs_sort = norbs[:,idx]
+        nora = np.zeros(norbs.shape)
+        norb = np.zeros(norbs.shape)
+        for i in range(0,len(noccs)):
+            if i in Store.alpha_mo['active']:
+                nora[:,i]=norbs[:,i]
+            elif i in Store.beta_mo['active']:
+                norb[:,i]=norbs[:,i]
     else:
-        if pr_m>1:
+        if Store.pr_m>1:
             print(rdm1)
         Nso = rdm1.shape[0]
         rdma = rdm1[0:Nso//2,0:Nso//2]
@@ -121,37 +114,45 @@ def energy_eval_rdm(
         idx = noccs.argsort()[::-1]
         noccs = noccs[idx]
         norbs = norbs[:,idx]
-        if pr_m>1:
+        if Store.pr_m>1:
             print('Natural ocupations: ')
             print('alpha: {}'.format(noca))
             print('beta: {}'.format(nocb))
 
-    rdm2 = build_2e_2rdm(store,noccs,norbs,pr_m,S2)
-    rdm2 = rdmf.rotate_2rdm(rdm2,
-            nora,
-            norb,
-            store.alpha_mo,
-            store.beta_mo,
-            store.s2s,
-            region='active')
+    rdm2 = build_2e_2rdm(Store,noccs,idx,Store.pr_m)
+    if spin_mapping=='spin-free':
+        rdm2 = rdmf.rotate_2rdm_unrestricted(
+                rdm2,
+                norbs,
+                Store.alpha_mo,
+                Store.beta_mo)
+    else:
+        rdm2 = rdmf.rotate_2rdm(rdm2,
+                nora,
+                norb,
+                Store.alpha_mo,
+                Store.beta_mo,
+                Store.s2s,
+                region='active',
+                unrestricted=unrestrict)
     rdm1 = rdmf.check_2rdm(rdm2,2)
     if spin_mapping=='default':
         rdm2t = rdmf.switch_alpha_beta(rdm2,
-                store.alpha_mo,
-                store.beta_mo)
-        rdm2 = 0.5*rdm2t + 0.5*rdm2
+                Store.alpha_mo,
+                Store.beta_mo)
+        #rdm2 = 0.5*rdm2t + 0.5*rdm2
         rdm1 = rdmf.check_2rdm(rdm2,2)
         noccs,norbs = np.linalg.eig(rdm1)
     rdm2 = fx.contract(rdm2)
-    E1 = reduce(np.dot, (store.ints_1e,rdm1)).trace()
-    E2 = reduce(np.dot, (store.ints_2e,rdm2)).trace()
-    E_t = np.real(E1+0.5*E2+store.E_ne)
-    store.opt_update_rdm2(
+    E1 = reduce(np.dot, (Store.ints_1e,rdm1)).trace()
+    E2 = reduce(np.dot, (Store.ints_2e,rdm2)).trace()
+    E_t = np.real(E1+0.5*E2+Store.E_ne)
+    Store.opt_update_rdm2(
             E_t,
             rdm2,
             para
             )
-    if pr_m>1:
+    if Store.pr_m>1:
         print('Energy: {}'.format(E_t))
         print('')
     return E_t

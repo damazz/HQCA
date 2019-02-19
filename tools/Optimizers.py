@@ -10,7 +10,7 @@ import traceback
 import timeit
 import time
 from random import random as r
-from functools import reduce
+from functools import reduce,partial
 
 #
 #
@@ -33,12 +33,11 @@ def function_call(
         **kwargs
         ):
     tic = timeit.default_timer()
-    E_t = function(par,**kwargs)
+    E_t = function(par)
     toc = timeit.default_timer()
     if toc-tic > 1800:
         print('Really long run time. Not good.')
     return E_t
-
 
 def gradient_call(
         par,energy='orbitals',
@@ -57,7 +56,7 @@ def gradient_call(
 #
 # Main Optimizer class
 #
-#
+# 
 
 class Optimizer:
     '''
@@ -70,7 +69,7 @@ class Optimizer:
     def __init__(
             self,
             optimizer,
-            parameters,
+            function,
             pr_o=1,
             **kwargs
             ):
@@ -78,26 +77,30 @@ class Optimizer:
         Establish optimizer, and take in first parameters
         '''
         self.method=optimizer
-        self.start = parameters[0]
-        self.npara = len(parameters[0])
         kwargs['pr_o']=pr_o
+        kwargs['function']=function
         # Selecting optimizers and setting parameters
         if self.method=='NM':
             self.opt = nelder_mead(
-                    self.npara,**kwargs)
+                    **kwargs)
         elif self.method=='GD':
             self.opt = gradient_descent(
-                    self.npara,**kwargs)
+                    **kwargs)
         elif self.method=='qNM':
             self.opt = quasi_nelder_mead(
-                    self.npara,**kwargs)
+                    **kwargs)
+        elif self.optimizer=='nevergrad':
+            self.opt = nevergradopt(
+                    **kwargs)
         self.error = False
-        self.pr_o =pr_o
+        self.pr_o = pr_o
         #
         # Error management for the IBM case
         #
+
+    def initialize(self,start):
         try:
-            self.opt.initialize(self.start)
+            self.opt.initialize(start)
             self.opt_done = False
         except CalledProcessError as e:
             traceback.print_exc()
@@ -114,7 +117,7 @@ class Optimizer:
             self.error = True
             self.opt_done=True
 
-    def next_step(self,**kwargs):
+    def next_step(self):
         '''
         Call for optimizer to take the next step, should involves
         appropriate number of calculations based on the optimizer method
@@ -215,21 +218,19 @@ class gradient_descent:
         if self.gamma=='default':
             gam = 0.00001
         self.f0_x = np.asarray(start[:])
-        self.f0_f = function_call(self.f0_x,**self.kwargs)
+        self.f0_f = self.f(self.f0_x)
         self.energy_calls += 1
-        if self.grad=='numerical': 
+        if self.grad=='numerical':
             self.g0_f = np.zeros(self.N)
             for i in range(0,self.N):
                 temp = np.zeros(self.N)
                 temp[i]=self.dist
                 self.g0_f[i] = (
-                        function_call(
-                            self.f0_x+temp,
-                            **self.kwargs
+                        self.f(
+                            self.f0_x+temp
                             )
-                        -function_call(
-                            self.f0_x-temp,
-                            **self.kwargs
+                        -self.f(
+                            self.f0_x-temp
                             )
                     )/(self.dist*2)
                 self.energy_calls+= self.N
@@ -239,7 +240,7 @@ class gradient_descent:
                     **self.kwargs))
         self.energy_calls+= 1
         self.f1_x = self.f0_x - gam*np.asarray(self.g0_f)
-        self.f1_f = function_call(self.f1_x,**self.kwargs)
+        self.f1_f = self.f(self.f1_x)
         if self.pr_o>0:
             print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
         self.use=1
@@ -256,13 +257,11 @@ class gradient_descent:
             temp = np.zeros(self.N)
             temp[i]=dist
             self.g1_f[i] =(
-                    function_call(
-                        self.f1_x+temp,
-                        **self.kwargs
+                    self.f(
+                        self.f1_x+temp
                         )
-                    -function_call(
-                        self.f1_x-temp,
-                        **self.kwargs
+                    -self.f(
+                        self.f1_x-temp
                         )
                 )/(dist*2)
         self.energy_calls+= self.N*2
@@ -320,20 +319,13 @@ class gradient_descent:
         self.best_x = self.f1_x
 
 
-class newton:
-    def __init(self):
-        pass
-
-    def next_step(self):
-        pass
-
 class nelder_mead:
     '''
     Nelder-Mead Optimizer! Uses the general dimension simplex method, so should
     be appropriate for arbitrary system size.
     '''
     def __init__(self,
-            n_par,
+            function,
             conv_threshold='default',
             conv_crit_type='default',
             simplex_scale=10,
@@ -344,7 +336,7 @@ class nelder_mead:
         '''
         Begin the optmizer. Set parameters, etc.
         '''
-        
+        self.f = function
         if simplex_scale=='default':
             self.simplex_scale=5
         else:
@@ -367,7 +359,6 @@ class nelder_mead:
                     self._conv_thresh=0.001
         else:
             self._conv_thresh=float(conv_threshold)
-        self.N = n_par
         self.energy_calls=0
         if self.pr_o>0:
             print('Initializing the Nelder-Mead optimization class.')
@@ -375,6 +366,7 @@ class nelder_mead:
         self.kwargs =  kwargs
 
     def initialize(self,start):
+        self.N = len(start)
         self.simp_x = np.zeros((self.N+1,self.N)) # column is dim coord - row is each point
         self.simp_f = np.zeros(self.N+1) # there are N para, and N+1 points in simplex
         self.simp_x[0,:] = start[:]
@@ -383,7 +375,7 @@ class nelder_mead:
             self.simp_x[i,i-1]+=1*self.simplex_scale
         for i in range(0,self.N+1):
             # here, we assign f - usually this will be energy
-            self.simp_f[i] = function_call(self.simp_x[i,:],**self.kwargs)
+            self.simp_f[i] = self.f(self.simp_x[i,:])
             self.energy_calls+=1
         if self.pr_o>0:
             print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
@@ -421,7 +413,7 @@ class nelder_mead:
                     print('Was stuck!')
                 self.N_stuck+=1 
         check_stuck(self)
-        self.R_f = function_call(self.R_x,**self.kwargs)
+        self.R_f = self.f(self.R_x)
         self.energy_calls+=1
         if self.pr_o>1:
             print('NM: Reflection: {}'.format(self.R_x))
@@ -435,7 +427,7 @@ class nelder_mead:
                 self.simp_f[-1]  =self.R_f
             else: # reflected points is best or better
                 self.E_x = self.R_x + self.R_x - self.M_x
-                self.E_f = function_call(self.E_x,**self.kwargs)
+                self.E_f = self.f(self.E_x)
                 self.energy_calls+=1
                 if self.E_f<self.B_f:
                     if self.pr_o>1:
@@ -452,8 +444,8 @@ class nelder_mead:
         else:
             self.Cwm_x = self.W_x+0.5*(self.M_x-self.W_x)
             self.Crm_x = self.M_x+0.5*(self.R_x-self.M_x)
-            self.Cwm_f = function_call(self.Cwm_x,**self.kwargs)
-            self.Crm_f = function_call(self.Crm_x,**self.kwargs)
+            self.Cwm_f = self.f(self.Cwm_x)
+            self.Crm_f = self.f(self.Crm_x)
             self.energy_calls+=2
             if self.Crm_f<=self.Cwm_f:
                 self.C_f = self.Crm_f
@@ -470,7 +462,7 @@ class nelder_mead:
             else:
                 for i in range(1,self.N+1):
                     self.simp_x[i,:]=self.B_x+0.5*(self.simp_x[i,:]-self.B_x)
-                    self.simp_f[i]=function_call(self.simp_x[i,:],**self.kwargs)
+                    self.simp_f[i]=self.f(self.simp_x[i,:])
                     self.energy_calls+=1
                 if self.pr_o>1:
                     print('NM: Had to shrink..')
@@ -779,6 +771,9 @@ class quasi_nelder_mead:
             new_x[i,:] = self.simp_x[ind[i],:]
         self.simp_x = new_x
         self.simp_f = new_f
+
+class nevergradopt:
+    pass
 
 
 #

@@ -65,33 +65,35 @@ def RDM():
         'wait':True,
         'pr_g':1,
         'chem_orb':'HF',
+        'pr_m':0,
         'qc':{
-            'max_iter':100,
-            'verbose':True,
-            #
-            'qc_backend':'qasm_simulator',
-            'qc_num_shots':2048,
-            'qc_tomography':'1RDM',
-            'qc_verbose':True,
-            'qc_provider':'Aer',
+            'backend':'qasm_simulator',
+            'num_shots':2048,
+            'provider':'Aer',
+            'fermion_mapping':'jordan-wigner',
+            'backend_configuration':None,
+            'variational':'default',
+            'method':'variational',
+            'compiler':None,
+            'initialize':'default',
             'Nqb':4,
-            'qa_fermion':'direct',
             'tomo_basis':'hada',
             'tomo_rdm':'1rdm',
             'tomo_extra':False,
             'spin_mapping':'default',
-            #'default' - alpha,beta spin treated seperately
-            #'spin-free' -no assignment of alpha beta, i.e. no beta orbitals
-            #'spatial' - alpha/beta parameters are the same.
-            'entangled_pairs':'full', #
-            'entangler':'Ry_cN', #Ry with a constant N
-            'tri':False,
+            'entangled_pairs':'s', #
+            'entangler_p':'Ry_cN', #Ry with a constant N
+            'entangler_q':'Ry_cN', #Ry with a constant N
             'pr_t':1,
-            'print_run':False, #optimizer? 
-            'pr_o':1,
             'pr_q':0,
-            'pr_m':0,
             'load_triangle':False,
+            'tri':False,
+            'Sz':0.5,
+            'depth':1,
+            },
+        'opt':{
+            'pr_o':1,
+            'max_iter':100,
             'optimizer':'NM',
             'opt_thresh':0.01,
             'opt_crit':'default',
