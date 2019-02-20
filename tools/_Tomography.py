@@ -14,10 +14,14 @@ from functools import reduce
 import sys,time
 import timeit
 import traceback
+<<<<<<< HEAD
 from qiskit import execute
 from qiskit import QISKitError
 import qiskit
 from numpy import log10,floor,complex_
+=======
+from numpy import log10,floor
+>>>>>>> 68cc778ec8a7ff51867fda025112613c6e9ab844
 from numpy import zeros,multiply,real
 
 SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
