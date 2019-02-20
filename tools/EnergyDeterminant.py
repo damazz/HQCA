@@ -60,6 +60,7 @@ def energy_eval_rdm(
                 Store.beta_mo)
         return rdm2
     if Store.pr_m>1:
+        print('Parameters, degrees: ')
         print(para)
     spin_mapping = QuantStore.spin_mapping
     unrestrict=False
@@ -77,17 +78,24 @@ def energy_eval_rdm(
     rdm1 = construct(
             qc_obj,
             QuantStore)
-    print(rdm1)
+    if Store.pr_m>1:
+        print('1RDM from Quantum Computer: ')
+        print(rdm1)
+        print('Imaginary components:')
+        print(np.imag(rdm1))
     if spin_mapping=='spin-free':
         unrestrict=True
         noccs,norbs = np.linalg.eig(rdm1)
         idx = noccs.argsort()[::-1]
-        print(noccs)
-        print(norbs)
+        if Store.pr_m>1:
+            print('Natural occupations:')
+            print(noccs)
+            print('Natural orbitals:')
+            print(norbs)
         noccs_sort = noccs[idx]
         norbs_sort = norbs[:,idx]
-        nora = np.zeros(norbs.shape)
-        norb = np.zeros(norbs.shape)
+        nora = np.zeros(norbs.shape,dtype=np.complex_)
+        norb = np.zeros(norbs.shape,dtype=np.complex_)
         for i in range(0,len(noccs)):
             if i in Store.alpha_mo['active']:
                 nora[:,i]=norbs[:,i]

@@ -107,6 +107,7 @@ class QuantumStorage:
         self.sp = single_point
         self.alpha = alpha_mos
         self.beta = beta_mos
+        self.pr_q = pr_q
         self.variational = variational
         self.spin_mapping = spin_mapping
         self.qubit_to_backend = backend_configuration
@@ -186,6 +187,11 @@ class QuantumStorage:
                 for j in range(0,len(self.beta_qb)):
                     for i in range(0,j):
                         self.pair_list.append([i,j])
+            elif self.ent_pairs=='scheme1_Tavernelli':
+                for j in range(1,len(self.alpha_qb)):
+                    self.pair_list.append([j-1,j])
+                for j in range(1,len(self.beta_qb)):
+                    self.pair_list.append([j-1,j])
             if self.ent_pairs=='sd':
                 for l in range(0,len(self.alpha_qb)):
                     for k in range(0,l):
@@ -210,7 +216,13 @@ class QuantumStorage:
         if self.sp=='noft':
             self.parameters=[0,0]
         elif self.sp=='rdm':
-            self.parameters=[0]*self.depth*(len(self.pair_list+self.quad_list))
+            self.c_ent_p=1
+            self.c_ent_q=1
+            if self.ent_circ_p=='Uent1_cN':
+                self.c_ent_p=2
+            self.Np = self.depth*len(self.pair_list)*self.c_ent_p
+            self.Np+= self.depth*len(self.quad_list)*self.c_ent_q
+            self.parameters=[0]*self.Np
 
 local_qubit_tomo_pairs = {
         2:[

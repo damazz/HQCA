@@ -35,7 +35,12 @@ class GenerateDirectCircuit:
         '''
 
         self.ents = {
-                'Ry_cN':self._ent1_Ry_cN
+                'Ry_cN':{
+                    'f':self._ent1_Ry_cN,
+                    'np':1},
+                'Uent1_cN':{
+                    'f':self._Uent1_cN,
+                    'np':2}
                 }
         self.para = QuantStore.parameters
         self.qs = QuantStore
@@ -47,8 +52,10 @@ class GenerateDirectCircuit:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
-        self.ent_p = self.ents[self.qs.ent_circ_p]
-        self.ent_q = self.ents[self.qs.ent_circ_q]
+        self.ent_p = self.ents[self.qs.ent_circ_p]['f']
+        self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
+        self.ent_q = self.ents[self.qs.ent_circ_q]['f']
+        self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
         self._gen_circuit()
 
     def _initialize(self):
@@ -64,11 +71,15 @@ class GenerateDirectCircuit:
 
     def _gen_circuit(self):
         self._initialize()
+        h = 0 
         for d in range(0,self.qs.depth):
-            for i,pair in enumerate(self.qs.pair_list):
-                self.ent_p(self.para[i],pair[0],pair[1])
-            for i,quad in enumerate(self.qs.quad_list):
-                self.ent_q(self.para[i],quad[0],quad[1],quad[2],quad[3])
+            for pair in self.qs.pair_list:
+                a = self.ent_Np
+                temp = self.para[h:h+a]
+                self.ent_p(*temp,i=pair[0],k=pair[1])
+                h+=self.ent_Np
+            for n,quad in enumerate(self.qs.quad_list):
+                pass
 
 
     def _ent1_Ry_cN(self,phi,i,k,ddphi=False):
@@ -85,7 +96,16 @@ class GenerateDirectCircuit:
                 #self.qc.cz(self.q[k],self.q[s])
                 #self.qc.z(self.q[s])
 
-
+    def _Uent1_cN(self,phi1,phi2,i,k):
+        self.qc.cx(self.q[k],self.q[i])
+        self.qc.x(self.q[k])
+        self.qc.rz(phi1,self.q[k])
+        self.qc.ry(-phi2,self.q[k])
+        self.qc.cz(self.q[i],self.q[k])
+        self.qc.ry(phi2,self.q[k])
+        self.qc.rz(-phi1,self.q[k])
+        self.qc.x(self.q[k])
+        self.qc.cx(self.q[k],self.q[i])
 
 class GenerateCompactCircuit:
     '''

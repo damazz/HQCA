@@ -4,6 +4,8 @@
 #
 import numpy as np
 import numpy.linalg as LA
+from numpy import conj as con
+from numpy import complex_
 from functools import reduce
 from hqca.tools.Functions import contract,expand
 
@@ -78,12 +80,13 @@ def build_2rdm(
     #
     # First, alpha alpha 2-RDM, by selecting combinations only within alpha
     #
+    wf = wavefunction
     if region=='full':
         norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
         norb+= len(beta['virtual']+beta['inactive']+beta['active'])
         alpha = alpha['inactive']+alpha['active']
         beta = beta['inactive']+beta['active']
-        rdm2 = np.zeros((norb,norb,norb,norb))
+        rdm2 = np.zeros((norb,norb,norb,norb),dtype=np.complex_)
     elif region=='active':
         ai = set(alpha['inactive'])
         bi = set(beta['inactive'])
@@ -104,16 +107,16 @@ def build_2rdm(
                                 rdm2[k,i,l,j]=0
                                 rdm2[k,i,j,l]=0
                                 rdm2[i,k,j,l]=0
-                            for det1 in wavefunction:
+                            for det1 in wf:
                                 ph,check = phase_2e_oper(i,k,l,j,det1,low)
                                 if ph==0:
                                     continue
                                 else:
-                                    if check in wavefunction:
-                                        rdm2[i,k,l,j]+= -1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[k,i,j,l]+= -1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[i,k,j,l]+= +1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[k,i,l,j]+= +1*ph*wavefunction[det1]*wavefunction[check]
+                                    if check in wf:
+                                        rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
+                                        rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
+                                        rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
+                                        rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
 
     for i in beta:
         for k in beta:
@@ -129,16 +132,16 @@ def build_2rdm(
                                 rdm2[k,i,l,j]=0
                                 rdm2[k,i,j,l]=0
                                 rdm2[i,k,j,l]=0
-                            for det1 in wavefunction:
+                            for det1 in wf:
                                 ph,check = phase_2e_oper(i,k,l,j,det1,low)
                                 if ph==0:
                                     continue
                                 else:
-                                    if check in wavefunction:
-                                        rdm2[i,k,l,j]+= -1*ph*wavefunction[det1]*wavefunction[check] 
-                                        rdm2[k,i,j,l]+= -1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[i,k,j,l]+= +1*ph*wavefunction[det1]*wavefunction[check]
-                                        rdm2[k,i,l,j]+= +1*ph*wavefunction[det1]*wavefunction[check]   
+                                    if check in wf:
+                                        rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
+                                        rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
+                                        rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
+                                        rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
 
     for i in alpha:
         for j in alpha:
@@ -152,16 +155,16 @@ def build_2rdm(
                         rdm2[i,k,l,j]=0
                         rdm2[k,i,l,j]=0
                         rdm2[k,i,j,l]=0
-                    for det1 in wavefunction:
-                        ph,check = phase_2e_oper(i,k,l,j,det1,low)
-                        if ph==0:
-                            continue
-                        else:
-                            if check in wavefunction:
-                                rdm2[i,k,l,j]+= -1*ph*wavefunction[det1]*wavefunction[check] 
-                                rdm2[k,i,j,l]+= -1*ph*wavefunction[det1]*wavefunction[check]
-                                rdm2[i,k,j,l]+= +1*ph*wavefunction[det1]*wavefunction[check]
-                                rdm2[k,i,l,j]+= +1*ph*wavefunction[det1]*wavefunction[check]   
+                        for det1 in wf:
+                            ph,check = phase_2e_oper(i,k,l,j,det1,low)
+                            if ph==0:
+                                continue
+                            else:
+                                if check in wf:
+                                    rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
+                                    rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
+                                    rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
+                                    rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
     return rdm2
 
 
@@ -207,7 +210,7 @@ def get_Sz_mat(alpha,beta,s2s):
     bet = beta['active']
     alpha = alpha['inactive']+alpha['active']
     beta = beta['inactive']+beta['active']
-    sz = np.zeros((norb,norb))
+    sz = np.zeros((norb,norb),dtype=np.complex_)
     a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
     b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
     for pa in alp:
@@ -227,8 +230,8 @@ def get_Sz2_mat(
     bet = beta['active']
     alpha = alpha['inactive']+alpha['active']
     beta = beta['inactive']+beta['active']
-    sz2_2 = np.zeros((norb,norb,norb,norb))
-    sz2_1 = np.zeros((norb,norb))
+    sz2_2 = np.zeros((norb,norb,norb,norb),dtype=np.complex_)
+    sz2_1 = np.zeros((norb,norb),dtype=np.complex_)
     a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
     b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
     for pa in alp:
@@ -257,8 +260,8 @@ def get_SpSm_mat(
 
     alpha = alpha['inactive']+alpha['active']
     beta = beta['inactive']+beta['active']
-    spsm_2 = np.zeros((norb,norb,norb,norb))
-    spsm_1 = np.zeros((norb,norb))
+    spsm_2 = np.zeros((norb,norb,norb,norb),dtype=complex_)
+    spsm_1 = np.zeros((norb,norb),dtype=complex_)
     a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
     b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
     for pa in alp:
@@ -281,7 +284,7 @@ def get_SmSp_mat(
     bet = beta['active']
     alpha = alpha['inactive']+alpha['active']
     beta = beta['inactive']+beta['active']
-    smsp = np.zeros((norb,norb,norb,norb))
+    smsp = np.zeros((norb,norb,norb,norb),dtpye=complex_)
     a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
     b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
     for pa in alp:
@@ -347,7 +350,7 @@ def spin_rdm_to_spatial_rdm(
     beta  =  beta['inactive']+ beta['active']+ beta['virtual']
     Nso = rdm2.shape[0]
     No = Nso//2
-    nrdm2 = np.zeros((No,No,No,No))
+    nrdm2 = np.zeros((No,No,No,No),dtype=complex_)
     a2b = {alpha[i]:beta[i] for i in range(0,len(alpha))}
     b2a = {beta[i]:alpha[i] for i in range(0,len(beta ))}
     '''
@@ -451,10 +454,10 @@ def rotate_2rdm_unrestricted(
         alpha=alpha['active']#+alpha['inactive']
         beta =beta['active']#+beta['inactive']
     orbs = alpha+beta
-    n2rdm = np.zeros((N,N,N,N)) # size of spin 2rdm 
-    temp1 = np.zeros((N,N,N,N)) # size of spatial 2rdm 
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
+    n2rdm = np.zeros((N,N,N,N),dtype=complex_) # size of spin 2rdm 
+    temp1 = np.zeros((N,N,N,N),dtype=complex_) # size of spatial 2rdm 
+    temp2 = np.zeros((N,N,N,N),dtype=complex_)
+    temp3 = np.zeros((N,N,N,N),dtype=complex_)
     ## alpha alpha portion
     for i in orbs: # i, P
         for a in orbs:
@@ -499,10 +502,10 @@ def rotate_2rdm(
     elif region in ['active','as','active_space']:
         alpha=alpha['active']+alpha['inactive']
         beta =beta['active']+beta['inactive']
-    n2rdm = np.zeros((N*2,N*2,N*2,N*2)) # size of spin 2rdm 
-    temp1 = np.zeros((N*2,N*2,N*2,N*2)) # size of spatial 2rdm 
-    temp2 = np.zeros((N*2,N*2,N*2,N*2))
-    temp3 = np.zeros((N*2,N*2,N*2,N*2))
+    n2rdm = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_) # size of spin 2rdm 
+    temp1 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_) # size of spatial 2rdm 
+    temp2 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
+    temp3 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
     ## alpha alpha portion
     for i in alpha: # i, P
         P = spin2spac[i]
@@ -525,9 +528,9 @@ def rotate_2rdm(
                         D = spin2spac[d]
                         # i,k,j,l -> P,R,Q,S
                         n2rdm[i,k,j,l]+= U_a[S,D]*temp3[i,k,j,d]
-    temp1 = np.zeros((N*2,N*2,N*2,N*2)) 
-    temp2 = np.zeros((N*2,N*2,N*2,N*2))
-    temp3 = np.zeros((N*2,N*2,N*2,N*2))
+    temp1 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_) 
+    temp2 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
+    temp3 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
     ## beta beta portion
     for i in beta: # i, P
         P = spin2spac[i]
@@ -551,9 +554,9 @@ def rotate_2rdm(
                         # i,k,j,l -> P,R,Q,S
                         n2rdm[i,k,j,l]+= U_b[S,D]*temp3[i,k,j,d]
 
-    temp1 = np.zeros((N*2,N*2,N*2,N*2))
-    temp2 = np.zeros((N*2,N*2,N*2,N*2))
-    temp3 = np.zeros((N*2,N*2,N*2,N*2))
+    temp1 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
+    temp2 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
+    temp3 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
     ## alpha beta portion
     for i in alpha: # i, P
         P = spin2spac[i]

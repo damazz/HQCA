@@ -63,7 +63,7 @@ def _direct_tomography(
         QuantStore,
         ):
     def _get_pairs(tomo_basis,alp,bet):
-        if tomo_basis=='hada':
+        if tomo_basis in ['hada','hada+imag']:
             qtp = nqtpp
         elif tomo_basis=='sudo':
             qtp = lqtp
@@ -85,7 +85,7 @@ def _direct_tomography(
         circ_pairs = zip_longest(rdm_alp,rdm_bet)
         return circ_pairs
 
-    def apply_1rdm_basis_tomo(Q,i,k):
+    def apply_1rdm_basis_tomo(Q,i,k,imag=False):
         '''
         generic 1rdm circuit for ses method
         '''
@@ -95,10 +95,17 @@ def _direct_tomography(
         # apply cnot1
         Q.qc.cx(Q.q[k],Q.q[i])
         Q.qc.x(Q.q[k])
+        if imag:
+            Q.qc.s(Q.q[k])
         # ch gate
         Q.qc.ry(pi/4,Q.q[k])
         Q.qc.cx(Q.q[i],Q.q[k])
         Q.qc.ry(-pi/4,Q.q[k])
+        if imag:
+            Q.qc.s(Q.q[k])
+            Q.qc.x(Q.q[i])
+            Q.qc.cz(Q.q[i],Q.q[k])
+            Q.qc.x(Q.q[i])
         # apply cnot2
         Q.qc.x(Q.q[k])
         Q.qc.cx(Q.q[k],Q.q[i])
@@ -122,8 +129,8 @@ def _direct_tomography(
             circuit_list.append(['ii'])
             i=0
             for ca,cb in circ_pair:
-                Q = GenerateDirectCircuit(QuantStore,_name='ij{:02}'.format(i))
-                temp = ['ij{:02}'.format(i)]
+                Q = GenerateDirectCircuit(QuantStore,_name='ijR{:02}'.format(i))
+                temp = ['ijR{:02}'.format(i)]
                 for pair in ca:
                     Q = apply_1rdm_basis_tomo(
                             Q,int(pair[0]),int(pair[1]))
@@ -135,6 +142,54 @@ def _direct_tomography(
                         temp.append(pair)
                 except TypeError:
                     pass
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append(temp)
+                circuit.append(Q.qc)
+                i+=1 
+        elif QuantStore.tomo_bas=='hada+imag':
+            Q = GenerateDirectCircuit(QuantStore,_name='ii')
+            Q.qc.measure(Q.q,Q.c)
+            circuit.append(Q.qc)
+            circuit_list.append(['ii'])
+            i=0
+            for ca,cb in circ_pair:
+                Q = GenerateDirectCircuit(QuantStore,_name='ijR{:02}'.format(i))
+                temp = ['ijR{:02}'.format(i)]
+                for pair in ca:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]))
+                    temp.append(pair)
+                try:
+                    for pair in cb:
+                        Q = apply_1rdm_basis_tomo(
+                                Q,int(pair[0]),int(pair[1]))
+                        temp.append(pair)
+                except TypeError:
+                    pass
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append(temp)
+                circuit.append(Q.qc)
+                i+=1 
+            circ_pair = _get_pairs(
+                    QuantStore.tomo_bas,
+                    QuantStore.alpha_qb,
+                    QuantStore.beta_qb)
+            for ca,cb in circ_pair:
+                Q = GenerateDirectCircuit(QuantStore,_name='ijI{:02}'.format(i))
+                temp = ['ijI{:02}'.format(i)]
+                for pair in ca:
+                    Q = apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]),imag=True)
+                    temp.append(pair)
+                try:
+                    for pair in cb:
+                        Q = apply_1rdm_basis_tomo(
+                                Q,int(pair[0]),int(pair[1]),imag=True)
+                        temp.append(pair)
+                except TypeError:
+                    pass
+                except Exception:
+                    print('Error')
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
@@ -223,9 +278,10 @@ def run_circuits(
     #    print(i.qasm())
     #    print('')
     qo = compileqp(
-            circuits,
+            circuits=circuits,
+            backend=beo,
             shots=QuantStore.Ns,
-            backend=beo
+            coupling_map=None
             )
     counts = []
     if QuantStore.backend=='local_unitary_simulator':

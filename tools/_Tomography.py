@@ -14,11 +14,10 @@ from functools import reduce
 import sys,time
 import timeit
 import traceback
-from qiskit import Aer,IBMQ
 from qiskit import execute
 from qiskit import QISKitError
 import qiskit
-from numpy import log10,floor
+from numpy import log10,floor,complex_
 from numpy import zeros,multiply,real
 
 SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
@@ -38,43 +37,40 @@ class Process:
             QuantStore,
             ):
         # First, want to combine results
-        self.data = {'ii':{},'ij':[],'ijkl':[],'iZj':[],'iIj':[],'ij':[]}
+        self.data = {'ii':{},'ij':[],'ijkl':[],'ijR':[],'ijI':[],'ij':[]}
         self.tomo_rdm = QuantStore.tomo_rdm
         self.tomo_basis=QuantStore.tomo_bas
+        self.qs = QuantStore
         self.add_data(output)
         self.occ_qb = []
-        self.qs = QuantStore
         for k,v in QuantStore.backend_to_rdm.items():
             self.occ_qb.append(k)
         self.Nq_act = len(self.occ_qb)
 
     def add_data(self,output):
         i,k,j=0,0,0
+        if self.qs.pr_q>1:
+            print('Circuit, counts:')
         for name,counts in output:
-            print(name,counts)
+            if self.qs.pr_q>1:
+                print(name,counts)
             if i==0:
                 self.Nq_tot = len(list(counts.keys())[0])
             prbdis = self.proc_counts(counts)
             if name[0]=='ii':
                 self.data['ii']['counts']=counts
                 self.data['ii']['pd']=prbdis
-            elif name[0]=='ij':
-                self.data['ij'].append({})
-                self.data['ij'][i]['qb']=name[1:]
-                self.data['ij'][i]['counts']=counts
-                self.data['ij'][i]['pd']=prbdis
-                i+=1
-            elif name[0][0:3]=='iIj':
-                self.data['iIj'].append({})
-                self.data['iIj'][k]['qb']=name[1:]
-                self.data['iIj'][k]['counts']=counts
-                self.data['iIj'][k]['pd']=prbdis
+            elif name[0][0:3]=='ijR':
+                self.data['ijR'].append({})
+                self.data['ijR'][k]['qb']=name[1:]
+                self.data['ijR'][k]['counts']=counts
+                self.data['ijR'][k]['pd']=prbdis
                 k+=1
-            elif name[0][0:3]=='iZj':
-                self.data['iZj'].append({})
-                self.data['iZj'][j]['qb']=name[1:]
-                self.data['iZj'][j]['counts']=counts
-                self.data['iZj'][j]['pd']=prbdis
+            elif name[0][0:3]=='ijI':
+                self.data['ijI'].append({})
+                self.data['ijI'][j]['qb']=name[1:]
+                self.data['ijI'][j]['counts']=counts
+                self.data['ijI'][j]['pd']=prbdis
                 j+=1
             elif name[0][0:2]=='ij' and (not name[0][0:4]=='ijkl'):
                 self.data['ij'].append({})
@@ -133,13 +129,33 @@ class Process:
                 ind = self.a2b[actqb]
                 temp = self.data['ii']['pd'][ind]
                 self.rdm[actqb,actqb]=temp
-            for item in self.data['ij']:
+            for item in self.data['ijR']:
                 for pair in item['qb']:
                     i1,i2 = int(pair[0]),int(pair[1])
                     i1,i2 = self.a2b[i1],self.a2b[i2]
                     val = 0.5*(item['pd'][i2]-item['pd'][i1])
                     self.rdm[i2,i1]+=val
                     self.rdm[i1,i2]+=val
+        elif self.tomo_basis=='hada+imag':
+            self.rdm = zeros((self.Nq_act,self.Nq_act),dtype=complex_)
+            for actqb in self.occ_qb:
+                ind = self.a2b[actqb]
+                temp = self.data['ii']['pd'][ind]
+                self.rdm[actqb,actqb]=temp
+            for item in self.data['ijR']:
+                for pair in item['qb']:
+                    i1,i2 = int(pair[0]),int(pair[1])
+                    i1,i2 = self.a2b[i1],self.a2b[i2]
+                    val = 0.5*(item['pd'][i2]-item['pd'][i1])
+                    self.rdm[i2,i1]+=val
+                    self.rdm[i1,i2]+=val
+            for item in self.data['ijI']:
+                for pair in item['qb']:
+                    i1,i2 = int(pair[0]),int(pair[1])
+                    i1,i2 = self.a2b[i1],self.a2b[i2]
+                    val = 0.5*(item['pd'][i2]-item['pd'][i1])
+                    self.rdm[i2,i1]+=val*(-1j)
+                    self.rdm[i1,i2]+=val*(1j)
         elif self.tomo_basis=='pauli':
             pass
 
