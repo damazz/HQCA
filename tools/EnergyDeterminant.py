@@ -67,7 +67,10 @@ def energy_eval_rdm(
     if spin_mapping=='spatial':
         para = para.tolist()
         para = para + para
-    para = [i*pi/180 for i in para]
+    if QuantStore.use_radians==False:
+        para = [i*pi/180 for i in para]
+    else:
+        para = [i*pi/2 for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(

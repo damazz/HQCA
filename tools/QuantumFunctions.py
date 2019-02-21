@@ -57,7 +57,8 @@ class QuantumStorage:
             initialize='default',
             algorithm=None,
             pr_q=0,
-            pr_t=0
+            pr_t=0,
+            use_radians=False
             ):
         '''
         method;
@@ -79,6 +80,7 @@ class QuantumStorage:
             spin_free
             spatial? not sure if necessary
         '''
+        self.use_radians=use_radians
         self.Ns = num_shots
         self.Nq = Nqb  # active qubits
         self.Ne = Nels_as # active space

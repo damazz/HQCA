@@ -37,10 +37,12 @@ class GenerateDirectCircuit:
         self.ents = {
                 'Ry_cN':{
                     'f':self._ent1_Ry_cN,
-                    'np':1},
+                    'np':1,
+                    'pre':False},
                 'Uent1_cN':{
                     'f':self._Uent1_cN,
-                    'np':2}
+                    'np':2,
+                    'pre':False}
                 }
         self.para = QuantStore.parameters
         self.qs = QuantStore

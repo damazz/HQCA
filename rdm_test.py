@@ -21,9 +21,14 @@ kw_qc = {
         'entangler_p':'Uent1_cN',
         'entangled_pairs':'scheme1_Tavernelli',
         'pr_q':0,
-        'depth':6
+        'depth':2,
+        'use_radians':True
         }
-kw_opt = {'optimizer':'NM'}
+kw_opt = {
+        'optimizer':'nevergrad',
+        'nevergrad_opt':'Cobyla',
+        'max_iter':200
+        }
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
 prog.update_var(target='global',**{'pr_g':3,'pr_m':2})
