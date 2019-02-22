@@ -18,10 +18,14 @@ kw_qc = {
         'Nqb':mol.as_No*2,
         'tomo_basis':'hada+imag',
         'spin_mapping':'spin-free',
-        'entangler_p':'Uent1_cN',
-        'entangled_pairs':'scheme1_Tavernelli',
+        #'entangler_p':'Uent1_cN',
+        #'entangled_pairs':'scheme1_Tavernelli',
+        'entangler_p':'UCC1',
+        'entangler_q':'UCC2',
+        'entangled_pairs':'sd',
+        'ansatz':'ucc',
         'pr_q':0,
-        'depth':2,
+        'depth':1,
         'use_radians':True
         }
 kw_opt = {

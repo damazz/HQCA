@@ -50,7 +50,7 @@ class QuantumStorage:
             single_point,
             fermion_mapping='jordan-wigner',
             backend_configuration=None,
-            variational='default',
+            ansatz='default',
             spin_mapping='default',
             method='variational',
             compiler=None,
@@ -110,7 +110,7 @@ class QuantumStorage:
         self.alpha = alpha_mos
         self.beta = beta_mos
         self.pr_q = pr_q
-        self.variational = variational
+        self.ansatz = ansatz
         self.spin_mapping = spin_mapping
         self.qubit_to_backend = backend_configuration
         if self.qubit_to_backend==None:
@@ -157,7 +157,23 @@ class QuantumStorage:
     def _get_ent_pairs_jw(self):
         self.pair_list = []
         self.quad_list = []
-        if self.variational=='ucc':
+        if self.ansatz=='ucc':
+            if self.ent_pairs=='sd':
+                for l in range(0,len(self.alpha_qb)):
+                    for k in range(0,l):
+                        for j in range(0,k):
+                            for i in range(0,j):
+                                self.quad_list.append([i,j,k,l])
+                for l in range(0,len(self.alpha_qb)):
+                    for k in range(0,l):
+                        for j in range(0,len(self.beta_qb)):
+                            for i in range(0,j):
+                                self.quad_list.append([i,j,k,l])
+                for l in range(0,len(self.beta_qb)):
+                    for k in range(0,l):
+                        for j in range(0,k):
+                            for i in range(0,j):
+                                self.quad_list.append([i,j,k,l])
             if self.ent_pairs in ['s','sd']:
                 for j in range(0,len(self.alpha_qb)):
                     for i in range(0,j+1):
@@ -165,23 +181,23 @@ class QuantumStorage:
                 for j in range(0,len(self.beta_qb)):
                     for i in range(0,j+1):
                         self.pair_list.append([i,j])
+        elif self.ansatz=='default':
             if self.ent_pairs=='sd':
                 for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l+1):
-                        for j in range(0,k+1):
-                            for i in range(0,j+1):
+                    for k in range(0,l):
+                        for j in range(0,k):
+                            for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
                 for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l+1):
+                    for k in range(0,l):
                         for j in range(0,len(self.beta_qb)):
-                            for i in range(0,j+1):
+                            for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
                 for l in range(0,len(self.beta_qb)):
-                    for k in range(0,l+1):
-                        for j in range(0,k+1):
-                            for i in range(0,j+1):
+                    for k in range(0,l):
+                        for j in range(0,k):
+                            for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
-        elif self.variational=='default':
             if self.ent_pairs in ['s','sd']:
                 for j in range(0,len(self.alpha_qb)):
                     for i in range(0,j):
@@ -194,22 +210,8 @@ class QuantumStorage:
                     self.pair_list.append([j-1,j])
                 for j in range(1,len(self.beta_qb)):
                     self.pair_list.append([j-1,j])
-            if self.ent_pairs=='sd':
-                for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l):
-                        for j in range(0,k):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l):
-                        for j in range(0,len(self.beta_qb)):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.beta_qb)):
-                    for k in range(0,l):
-                        for j in range(0,k):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
+        print(self.pair_list)
+        print(self.quad_list)
 
     def _gip(self):
         '''

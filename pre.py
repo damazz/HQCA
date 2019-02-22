@@ -72,7 +72,7 @@ def RDM():
             'provider':'Aer',
             'fermion_mapping':'jordan-wigner',
             'backend_configuration':None,
-            'variational':'default',
+            'ansatz':'default',
             'method':'variational',
             'compiler':None,
             'initialize':'default',
