@@ -16,26 +16,26 @@ mol.as_No = 2 #spatial
 prog = sp(mol,'rdm',calc_E=True)
 kw_qc = {
         'Nqb':mol.as_No*2,
-        'tomo_basis':'hada+imag',
-        'spin_mapping':'spin-free',
+        'tomo_basis':'hada',
+        'spin_mapping':'default',
         #'entangler_p':'Uent1_cN',
         #'entangled_pairs':'scheme1_Tavernelli',
         'entangler_p':'UCC1',
         'entangler_q':'UCC2',
-        'entangled_pairs':'sd',
+        'entangled_pairs':'d',
         'ansatz':'ucc',
-        'pr_q':0,
-        'depth':1,
+        'pr_q':1,
+        'depth':2,
         'use_radians':True
         }
 kw_opt = {
-        'optimizer':'nevergrad',
+        'optimizer':'NM',
         'nevergrad_opt':'Cobyla',
         'max_iter':200
         }
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
-prog.update_var(target='global',**{'pr_g':3,'pr_m':2})
+prog.update_var(target='global',**{'pr_g':2,'pr_m':2})
 prog.execute()
 
 

@@ -91,6 +91,7 @@ class GenerateDirectCircuit:
                         j=quad[1],
                         k=quad[2],
                         l=quad[3])
+                h+= self.ent_Nq
             for pair in self.qs.pair_list:
                 a = self.ent_Np
                 temp = self.para[h:h+a]

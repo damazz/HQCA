@@ -158,38 +158,40 @@ class QuantumStorage:
         self.pair_list = []
         self.quad_list = []
         if self.ansatz=='ucc':
-            if self.ent_pairs=='sd':
+            if self.ent_pairs in ['sd','d']:
+                # generate double excitations
                 for l in range(0,len(self.alpha_qb)):
                     for k in range(0,l):
                         for j in range(0,k):
                             for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l):
-                        for j in range(0,len(self.beta_qb)):
+                for l in range(self.No,self.No+len(self.beta_qb)):
+                    for k in range(self.No,l):
+                        for j in range(0,len(self.alpha_qb)):
                             for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.beta_qb)):
-                    for k in range(0,l):
-                        for j in range(0,k):
-                            for i in range(0,j):
+                for l in range(self.No,self.No+len(self.beta_qb)):
+                    for k in range(self.No,l):
+                        for j in range(self.No,k):
+                            for i in range(self.No,j):
                                 self.quad_list.append([i,j,k,l])
             if self.ent_pairs in ['s','sd']:
                 for j in range(0,len(self.alpha_qb)):
-                    for i in range(0,j+1):
+                    for i in range(0,j):
                         self.pair_list.append([i,j])
-                for j in range(0,len(self.beta_qb)):
-                    for i in range(0,j+1):
+                for j in range(self.No,self.No+len(self.beta_qb)):
+                    for i in range(self.No,j):
                         self.pair_list.append([i,j])
+
         elif self.ansatz=='default':
-            if self.ent_pairs=='sd':
+            if self.ent_pairs in ['sd','d']:
                 for l in range(0,len(self.alpha_qb)):
                     for k in range(0,l):
                         for j in range(0,k):
                             for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
                 for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l):
+                   for k in range(0,l):
                         for j in range(0,len(self.beta_qb)):
                             for i in range(0,j):
                                 self.quad_list.append([i,j,k,l])
@@ -224,6 +226,8 @@ class QuantumStorage:
             self.c_ent_q=1
             if self.ent_circ_p=='Uent1_cN':
                 self.c_ent_p=2
+            elif self.ent_circ_q=='UCC2':
+                self.c_ent_q=3
             self.Np = self.depth*len(self.pair_list)*self.c_ent_p
             self.Np+= self.depth*len(self.quad_list)*self.c_ent_q
             self.parameters=[0]*self.Np

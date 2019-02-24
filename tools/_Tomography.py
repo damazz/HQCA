@@ -54,9 +54,11 @@ class Process:
             print('Circuit, counts:')
         for name,counts in output:
             if self.qs.pr_q>1:
-                print(name,counts)
+                print('Circuit: {}'.format(name))
+                print('Counts : {}'.format(counts))
             if i==0:
                 self.Nq_tot = len(list(counts.keys())[0])
+                i+=1 
             prbdis = self.proc_counts(counts)
             if name[0]=='ii':
                 self.data['ii']['counts']=counts

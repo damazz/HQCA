@@ -88,7 +88,7 @@ def RDM():
             'pr_q':0,
             'load_triangle':False,
             'tri':False,
-            'Sz':0.5,
+            'Sz':0.0,
             'depth':1,
             },
         'opt':{

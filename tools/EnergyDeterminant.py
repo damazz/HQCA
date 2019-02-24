@@ -43,22 +43,22 @@ def energy_eval_rdm(
         Ne_tot = np.sum(nocc)
         wf = {}
         for i in range(0,N//2):
-            #l,h = min(idx[2*i],idx[2*i+1]),max(idx[2*i],idx[2*i+1])
-            #term ='0'*(l)+'1'+'0'*(h-l-1)+'1'+'0'*(N-h-1)
-            term = '0'*(i)+'1'+'0'*(N//2-1-i-1)
+            term = '0'*(i)+'1'+'0'*(N//2-i-1)
             term+= term
-            val = max(0,min(1,nocc[2*i]+nocc[2*i+1]/2))
+            val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
             wf[term]=val
         wf = fx.extend_wf(wf,
                 Store.Norb_tot,
                 Store.Nels_tot,
                 Store.alpha_mo,
                 Store.beta_mo)
+        print(wf)
         rdm2 = rdmf.build_2rdm(
                 wf,
                 Store.alpha_mo,
                 Store.beta_mo)
         return rdm2
+
     if Store.pr_m>1:
         print('Parameters, degrees: ')
         print(para)
@@ -123,29 +123,26 @@ def energy_eval_rdm(
 
         noccs,norbs = np.linalg.eig(rdm1)
         idx = noccs.argsort()[::-1]
-        noccs = noccs[idx]
         norbs = norbs[:,idx]
         if Store.pr_m>1:
             print('Natural ocupations: ')
             print('alpha: {}'.format(noca))
             print('beta: {}'.format(nocb))
-
     rdm2 = build_2e_2rdm(Store,noccs,idx,Store.pr_m)
     if spin_mapping=='spin-free':
         rdm2 = rdmf.rotate_2rdm_unrestricted(
                 rdm2,
-                norbs,
+                norbs.H,
                 Store.alpha_mo,
                 Store.beta_mo)
     else:
         rdm2 = rdmf.rotate_2rdm(rdm2,
-                nora,
-                norb,
+                nora.H,
+                norb.H,
                 Store.alpha_mo,
                 Store.beta_mo,
                 Store.s2s,
-                region='active',
-                unrestricted=unrestrict)
+                region='active')
     rdm1 = rdmf.check_2rdm(rdm2,2)
     if spin_mapping=='default':
         rdm2t = rdmf.switch_alpha_beta(rdm2,
