@@ -89,7 +89,7 @@ class QuantumStorage:
         else:
             self.Ne_alp = int(Nels_as)
         self.No = Norb_as # note, spatial orbitals
-        if self.No>self.Ne:
+        if self.No>self.Nq: # wrong!
             print('Error in the mapping. Too many orbitals per qubits.')
         self.backend = backend
         self.Ns = num_shots

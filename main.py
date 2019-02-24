@@ -109,11 +109,11 @@ class sp:
             }
         if calc_E:
             from pyscf import mcscf
-            mc = mcscf.CASCI(self.hf,mol.as_Ne,mol.as_No)
+            mc = mcscf.CASCI(self.hf,mol.as_No,mol.as_Ne)
             mc.kernel()
             store_kw['e_fci']=mc.e_tot
             print('  det-alpha,    det-beta,   CI coefficients')
-            for c,ia,ib in mc.fcisolver.large_ci(mc.ci,2,(1,1),tol=0.01, return_strs=False):
+            for c,ia,ib in mc.fcisolver.large_ci(mc.ci,mol.as_No,(1,1),tol=0.01, return_strs=False):
                 print('     %s          %s          %1.12f' % (ia,ib,c))
         self.Store = enf.Storage(
             **store_kw)

@@ -3,6 +3,7 @@ from functools import reduce
 import pickle
 import os
 import numpy as np
+from numpy import conj as con
 import warnings
 warnings.simplefilter(action='ignore',category=FutureWarning)
 import time
@@ -46,7 +47,7 @@ def energy_eval_rdm(
             term = '0'*(i)+'1'+'0'*(N//2-i-1)
             term+= term
             val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
-            wf[term]=val
+            wf[term]=(-1)**(i)*val
         wf = fx.extend_wf(wf,
                 Store.Norb_tot,
                 Store.Nels_tot,
@@ -132,13 +133,13 @@ def energy_eval_rdm(
     if spin_mapping=='spin-free':
         rdm2 = rdmf.rotate_2rdm_unrestricted(
                 rdm2,
-                norbs.H,
+                con(norbs.T),
                 Store.alpha_mo,
                 Store.beta_mo)
     else:
         rdm2 = rdmf.rotate_2rdm(rdm2,
-                nora.H,
-                norb.H,
+                con(nora.T),
+                con(norb.T),
                 Store.alpha_mo,
                 Store.beta_mo,
                 Store.s2s,

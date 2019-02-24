@@ -50,6 +50,10 @@ class GenerateDirectCircuit:
                 'UCC2':{
                     'f':self._UCC2_full,
                     'np':3,
+                    'pre':False} ,
+                'UCC2s':{
+                    'f':self._UCC2_1p,
+                    'np':1,
                     'pre':False}
                 }
         self.para = QuantStore.parameters
@@ -170,6 +174,10 @@ class GenerateDirectCircuit:
         # seq 1
         index = [i,j,k,l]
         for nt,term in enumerate(sequence):
+            theta = phi1*var[nt][0]+phi2*var[nt][1]+phi3*var[nt][2]
+            #if theta<0.02 and theta>-0.02:
+            #    
+            #else:
             ind=0
             for item in term:
                 if item=='h':
@@ -180,7 +188,6 @@ class GenerateDirectCircuit:
             for control in range(i,l):
                 target = control+1
                 self.qc.cx(self.q[control],self.q[target])
-            theta = phi1*var[nt][0]+phi2*var[nt][1]+phi3*var[nt][2]
             self.qc.rz(theta,self.q[l])
             for control in reversed(range(i,l)):
                 target = control+1
@@ -193,6 +200,49 @@ class GenerateDirectCircuit:
                     self.qc.rx(pi/2,self.q[index[ind]])
                 ind+=1
 
+    def _UCC2_1p(self,phi1,i,j,k,l):
+        if phi1>-0.02 and phi1<0.02:
+            pass
+        else:
+            sequence = [
+                    ['h','h','h','y'],
+                    ['h','h','y','h'],
+                    ['h','y','h','h'],
+                    ['h','y','y','y'],
+                    ['y','h','h','h'],
+                    ['y','h','y','y'],
+                    ['y','y','h','y'],
+                    ['y','y','y','h']
+                ]
+            var =  [
+                    [+1,+1,-1],[+1,-1,+1],
+                    [-1,+1,+1],[+1,+1,+1],
+                    [-1,-1,-1],[+1,-1,-1],
+                    [-1,+1,-1],[-1,-1,+1]]
+            # seq 1
+            index = [i,j,k,l]
+            for nt,term in enumerate(sequence):
+                ind=0
+                for item in term:
+                    if item=='h':
+                        self.qc.h(self.q[index[ind]])
+                    elif item=='y':
+                        self.qc.rx(-pi/2,self.q[index[ind]])
+                    ind+=1
+                for control in range(i,l):
+                    target = control+1
+                    self.qc.cx(self.q[control],self.q[target])
+                self.qc.rz(phi1*var[nt][0],self.q[l])
+                for control in reversed(range(i,l)):
+                    target = control+1
+                    self.qc.cx(self.q[control],self.q[target])
+                ind = 0 
+                for item in term:
+                    if item=='h':
+                        self.qc.h(self.q[index[ind]])
+                    elif item=='y':
+                        self.qc.rx(pi/2,self.q[index[ind]])
+                    ind+=1
 
 class GenerateCompactCircuit:
     '''

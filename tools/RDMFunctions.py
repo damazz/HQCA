@@ -463,14 +463,14 @@ def rotate_2rdm_unrestricted(
             temp1[i,:,:,:] += U[i,a]*rdm2[a,:,:,:]
         for j in orbs: # j , Q
             for b in orbs:
-                temp2[i,:,j,:] += U.H[b,j]*temp1[i,:,b,:]
+                temp2[i,:,j,:] += con(U[j,b])*temp1[i,:,b,:]
             for k in orbs: # k, R
                 for c in orbs:
                     temp3[i,k,j,:] += U[k,c]*temp2[i,c,j,:]
                 for l in orbs: # l , S
                     for d in orbs:
                         # i,k,j,l -> P,R,Q,S
-                        n2rdm[i,k,j,l]+= U.H[d,l]*temp3[i,k,j,d]
+                        n2rdm[i,k,j,l]+= con(U[l,d])*temp3[i,k,j,d]
     return n2rdm
 
 def rotate_2rdm(
@@ -515,20 +515,19 @@ def rotate_2rdm(
             Q = spin2spac[j]
             for b in fa:
                 B = spin2spac[b]
-                temp2[i,:,j,:] += U_a.H[B,Q]*temp1[i,:,b,:]
+                temp2[i,:,j,:] += con(U_a[Q,B])*temp1[i,:,b,:]
                 #temp2[i,:,j,:] += U_a[Q,B]*temp1[i,:,b,:]
             for k in alpha: # k, R
                 R = spin2spac[k]
                 for c in fa:
                     C = spin2spac[c]
                     temp3[i,k,j,:] += U_a[R,C]*temp2[i,c,j,:]
-                    temp3[i,k,j,:] += U_a[R,C]*temp2[i,c,j,:]
                 for l in alpha: # l , S
                     S = spin2spac[l]
                     for d in fa:
                         D = spin2spac[d]
                         # i,k,j,l -> P,R,Q,S
-                        n2rdm[i,k,j,l]+= U_a.H[D,S]*temp3[i,k,j,d]
+                        n2rdm[i,k,j,l]+= con(U_a[S,D])*temp3[i,k,j,d]
                         #n2rdm[i,k,j,l]+= U_a[S,D]*temp3[i,k,j,d]
     temp1 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_) 
     temp2 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
@@ -543,7 +542,7 @@ def rotate_2rdm(
             Q = spin2spac[j]
             for b in fb:
                 B = spin2spac[b]
-                temp2[i,:,j,:] += U_b.H[B,Q]*temp1[i,:,b,:]
+                temp2[i,:,j,:] += con(U_b[Q,B])*temp1[i,:,b,:]
                 #temp2[i,:,j,:] += U_b[Q,B]*temp1[i,:,b,:]
             for k in beta: # k, R
                 R = spin2spac[k]
@@ -555,7 +554,7 @@ def rotate_2rdm(
                     for d in fb:
                         D = spin2spac[d]
                         # i,k,j,l -> P,R,Q,S
-                        n2rdm[i,k,j,l]+= U_b.H[D,S]*temp3[i,k,j,d]
+                        n2rdm[i,k,j,l]+= con(U_b[S,D])*temp3[i,k,j,d]
                         #n2rdm[i,k,j,l]+= U_b[S,D]*temp3[i,k,j,d]
 
     temp1 = np.zeros((N*2,N*2,N*2,N*2),dtype=complex_)
@@ -571,7 +570,7 @@ def rotate_2rdm(
             Q = spin2spac[j]
             for b in fa:
                 B = spin2spac[b]
-                temp2[i,:,j,:] += U_a.H[B,Q]*temp1[i,:,b,:]
+                temp2[i,:,j,:] += con(U_a[Q,B])*temp1[i,:,b,:]
                 #temp2[i,:,j,:] += U_a[Q,B]*temp1[i,:,b,:]
             for k in beta: # k, R
                 R = spin2spac[k]
@@ -583,10 +582,10 @@ def rotate_2rdm(
                     for d in fb:
                         D = spin2spac[d]
                         # i,k,j,l -> P,R,Q,S
-                        n2rdm[i,k,j,l]+= U_b.H[D,S]*temp3[i,k,j,d]
-                        n2rdm[k,i,l,j]+= U_b.H[D,S]*temp3[i,k,j,d]
-                        n2rdm[i,k,l,j]-= U_b.H[D,S]*temp3[i,k,j,d]
-                        n2rdm[k,i,j,l]-= U_b.H[D,S]*temp3[i,k,j,d]
+                        n2rdm[i,k,j,l]+= con(U_b[S,D])*temp3[i,k,j,d]
+                        n2rdm[k,i,l,j]+= con(U_b[S,D])*temp3[i,k,j,d]
+                        n2rdm[i,k,l,j]-= con(U_b[S,D])*temp3[i,k,j,d]
+                        n2rdm[k,i,j,l]-= con(U_b[S,D])*temp3[i,k,j,d]
     return n2rdm
 
 
