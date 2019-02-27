@@ -561,7 +561,6 @@ class nevergradopt:
 
 
     def check(self,initial=False):
-        print(self.E,self.x)
         if self.opt_crit in ['default','iterations']:
             if self.energy_calls>=self.max_iter:
                 self.crit=0
@@ -599,7 +598,6 @@ class nevergradopt:
             self.best_x = self.vectors[0][1]
             self._update_MaxDist()
             self.crit = self.max_d
-            print(self.vectors)
 
     
     def _update_MaxDist(self):

@@ -7,11 +7,11 @@ mol.atom=[
         ['H',(0,0,0)],
         ['H',(1.0,0,0)]]
 mol.basis='sto-3g'
-mol.basis = '6-31g'
+#mol.basis = '6-31g'
 mol.spin=0
 mol.build()
 mol.as_Ne = 2
-mol.as_No = 4 #spatial
+mol.as_No = 2 #spatial
 
 prog = sp(mol,'rdm',calc_E=True,pr_g=2)
 kw_qc = {
@@ -23,7 +23,7 @@ kw_qc = {
         'entangler_p':'UCC1',
         'entangler_q':'UCC2c',
         'entangled_pairs':'d',
-        'ansatz':'ucc',
+        'ansatz':'test',
         'depth':1,
         'use_radians':True
         }

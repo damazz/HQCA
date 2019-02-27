@@ -302,7 +302,7 @@ class GenerateDirectCircuit:
                     target = control+1
                     self.qc.cx(self.q[control],self.q[target])
                     self.cg+=1
-                self.qc.rz(phi1*var[nt][0],self.q[l])
+                self.qc.rz(phi1*var[nt][2],self.q[l])
                 self.sg+=1
                 for control in reversed(range(i,l)):
                     target = control+1

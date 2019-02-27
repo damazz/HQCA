@@ -47,7 +47,7 @@ def energy_eval_rdm(
             term = '0'*(i)+'1'+'0'*(N//2-i-1)
             term+= term
             val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
-            wf[term]=(-1)**(i)*val
+            wf[term]=(-1)**(0)*val
         wf = fx.extend_wf(wf,
                 Store.Norb_tot,
                 Store.Nels_tot,
