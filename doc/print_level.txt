@@ -19,6 +19,8 @@ pr_q - print_quantum
 pr_g:
 =0: no output
 =1: headings, macro algorithm convergence
+=2 detailed headings
+=4: analysis after each optimization step 
 
 pr_m:
 =0: no output
@@ -32,6 +34,7 @@ pr_o:
 
 pr_q:
 =0: no output
-=1: no output
-=2: starting diagnostics #####
+=1: headings for pair listings
+=2: stats about quantum circuit
+=3: starting diagnostics #####
 

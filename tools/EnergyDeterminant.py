@@ -53,7 +53,6 @@ def energy_eval_rdm(
                 Store.Nels_tot,
                 Store.alpha_mo,
                 Store.beta_mo)
-        print(wf)
         rdm2 = rdmf.build_2rdm(
                 wf,
                 Store.alpha_mo,

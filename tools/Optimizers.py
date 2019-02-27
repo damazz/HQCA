@@ -541,7 +541,7 @@ class nevergradopt:
             conv_crit_type='default',
             pr_o=0,
             max_iter=100,
-            N_vectors=10,
+            N_vectors=5,
             **kwargs
             ):
         '''
@@ -553,23 +553,71 @@ class nevergradopt:
         self.opt_name = nevergrad_opt
         self.energy_calls=0
         self.pr_o = pr_o
+        self.Nv = N_vectors
         if conv_threshold=='default':
             self._conv_thresh = 0.00001
         self.vectors = []
         self.opt_crit=conv_crit_type
-        for i in range(0,N_vectors):
-            self.vectors.append([0,[]])
 
-    def check(self):
+
+    def check(self,initial=False):
+        print(self.E,self.x)
         if self.opt_crit in ['default','iterations']:
             if self.energy_calls>=self.max_iter:
                 self.crit=0
             else:
                 self.crit=1
-        elif opt_crit=='energy':
+        elif self.opt_crit=='ImpAv':
             pass
-        elif opt_crit=='dist':
-            pass
+        elif self.opt_crit=='MaxDist':
+            self.vectors.sort(key=lambda x:x[0],reverse=False)
+            if initial:
+                pass
+            else:
+                comp1 = self.E<self.vectors[-1][0]
+                comp2 = self.E<self.vectors[ 0][0]
+                if comp1 and not comp2:
+                    for i in reversed(range(1,self.Nv)):
+                        comp1 =self.E<=self.vectors[i][0]
+                        comp2 =self.E>self.vectors[i-1][0]
+                        if comp1 and comp2:
+                            self.vectors.insert(
+                                    i,
+                                    [
+                                        self.E,
+                                        self.x.copy()
+                                        ,0]
+                                    )
+                            del self.vectors[self.Nv]
+                            break
+                elif comp2:
+                    self.vectors.insert(
+                            0,
+                            [self.E,self.x.copy(),0])
+                    del self.vectors[self.Nv]
+            self.best_f = self.vectors[0][0]
+            self.best_x = self.vectors[0][1]
+            self._update_MaxDist()
+            self.crit = self.max_d
+            print(self.vectors)
+
+    
+    def _update_MaxDist(self):
+        self.max_d=0
+        for n,v in enumerate(self.vectors):
+            if n==0:
+                self.vectors[0][2]=0
+            else:
+                dist = 0 
+                for i in range(len(self.vectors[0][1])):
+                    dist+=(self.vectors[0][1][i]-v[1][i])**2
+                dist = dist**(1/2)
+                v[2]=dist
+                if dist>=self.max_d:
+                    self.max_d = dist
+                    self.max_n = n
+
+
 
     def initialize(self,start):
         self.Np = len(start)
@@ -577,22 +625,25 @@ class nevergradopt:
                 dimension=self.Np,
                 budget=self.max_iter
                 )
-        x = self.opt.ask()
-        E = self.f(x)
-        self.energy_calls+=1 
-        self.opt.tell(x,E)
-        self.best_f = E
-        self.best_x = x
-        self.check()
+        for i in range(0,self.Nv):
+            x = self.opt.ask()
+            E = self.f(x)
+            self.energy_calls+=1
+            self.vectors.append(
+                [
+                    E,
+                    x.copy(),
+                    0])
+            self.opt.tell(x,E)
+        self.x = x.copy()
+        self.E = E
+        self.check(initial=True)
 
 
     def next_step(self):
-        x = self.opt.ask()
-        E = self.f(x)
-        self.opt.tell(x,E)
-        if E < self.best_f:
-            self.best_f=E
-            self.best_x=x[:]
+        self.x = self.opt.ask()
+        self.E = self.f(self.x)
+        self.opt.tell(self.x,self.E)
         self.check()
         self.energy_calls+=1 
 

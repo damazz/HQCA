@@ -4,39 +4,6 @@ main.py
 Main program for executing the hybrid quantum classical optimizer. Consists of
 several parts. 
 
-First, a parameter file and molecular file are specified as arguments to
-main.py. These must be provided. A mol.py file from pyscf which fills out the
-atomic information is all that is required. For the program input file, should
-just copy something already in use, or see the documentation in
-/doc/options.txt. 
-
-Integrals at the correct method level are computed, and then an optimization
-procedure is carried out. 
-
-Energies for the optimization can be carried in a number of ways. There are
-classical options for certain problems, but the more general approach is to use
-the IBM quantum computer and QISKIT modules, which will compute the energy of a
-certain wavefunction with a quantum computer. The optimization then uses that,
-and will proceed as needed. Current implementation favors the Nelder-Mead
-process. 
-
-Most of the functionality for the program is in /tools/. The interface for the
-quantum computer is in /ibmqx/, where documentation is a little outdated for
-certtain aspects. Critical for functionality are:
-/tools/Chem.py              - Manages chemical attributes, electron integrals
-/tools/EnergyDeterminant.py - Energy functions to be called 
-/tools/EnergyOrbital.py    - Energy functions to be called 
-/tools/EnergyFunctions.py   - Energy functions to be called 
-/tools/Functions.py         - Common functions for various applications
-/tools/Optimizers.py        - Houses optimizers functionality
-/tools/RDMF.py              - Functions related to RDM manipulation and creation
-/tools/IBM_check.py         - Calls to interface with IBM API
-/tools/QuantumFramework.py  - Evaluates and carrys out different qc operations
-/tools/QuantumTomography.py - Has framework for quantum tomography
-/tools/QuantumAlgorithms.py - Contains quantum algorithism
-/tools/Triangulations.py    - Contains methods and procedure for traingulation
-
-
 '''
 import pickle
 import os, sys
@@ -51,9 +18,10 @@ import datetime
 import sys
 from pyscf import scf
 np.set_printoptions(precision=3)
-
 from hqca import sub
 from hqca.tools import EnergyFunctions as enf
+
+version='0.1.0'
 
 class sp:
     '''
@@ -70,6 +38,14 @@ class sp:
         '''
         self.run_type = 'sp'
         self.theory=theory
+        if pr_g>0:
+            print('## ### hqca ### ###')
+            print('  --- v{} ---'.format(version))
+            print('')
+            print('# Beginning a hybrid quantum classical algorithm.')
+            print('# Run type: single point')
+            if theory in ['rdm','RDM']:
+                print('# Theory: RDM optimization')
         self._load_mol(mol,pr_g,calc_E)
         if restart:
             self._load_restart()
@@ -86,6 +62,7 @@ class sp:
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e = self.V_1e+self.T_1e
         self.Norb = self.S.shape[0]
+        mol.verbose=0
         self.ints_2e = mol.intor('int2e')
         self.hf = scf.RHF(mol)
         self.hf.kernel()
@@ -112,12 +89,25 @@ class sp:
             mc = mcscf.CASCI(self.hf,mol.as_No,mol.as_Ne)
             mc.kernel()
             store_kw['e_fci']=mc.e_tot
-            print('  det-alpha,    det-beta,   CI coefficients')
-            for c,ia,ib in mc.fcisolver.large_ci(mc.ci,mol.as_No,(1,1),tol=0.01, return_strs=False):
-                print('     %s          %s          %1.12f' % (ia,ib,c))
+            if pr_g>0:
+                print('')
+                print('# CASCI solution generated.')
+                print('# Hartree energy: {:.8f} H'.format(self.hf.e_tot))
+                print('# Total energy  : {:.8f} H'.format(mc.e_tot))
+                print('# ')
+                print('# Det-alp, Det-bet,  CI coeff')
+                obj = mc.fcisolver.large_ci(
+                    mc.ci,
+                    mol.as_No,
+                    (1,1),
+                    tol=0.01, 
+                    return_strs=False
+                    )
+                for c,ia,ib in obj:
+                    print('#   {}      {}    {:+.12f}'.format(ia,ib,c))
+                print('# ')
         self.Store = enf.Storage(
             **store_kw)
-
 
     def _load_restart(self):
         pass
@@ -131,6 +121,12 @@ class sp:
     def update_var(self,
             **kw):
         self.run.update_var(**kw)
+
+    def set_print(self,**kw):
+        self.run.set_print(**kw)
+    
+    def build(self):
+        self.run.build()
 
     def execute(self):
         self.run.go()

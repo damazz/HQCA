@@ -133,19 +133,19 @@ class Storage:
                 'virtual':[],
                 'qc':[]
                 }
-        if self.pr_g>0:
-            print('Total number of electrons: {}'.format(Nels_tot))
-            print('Total number of orbitals: {}'.format(Norb_tot))
-            print('Active space electrons: {}'.format(Nels_as))
-            print('Active space orbitals: {}'.format(Norb_as))
+        if self.pr_g>1:
+            print('#  Total e- count    : {}'.format(Nels_tot))
+            print('#  Total orb count   : {}'.format(Norb_tot))
+            print('#  Active e- count   : {}'.format(Nels_as))
+            print('#  Active orb count  : {}'.format(Norb_as))
         self.Nels_tot= Nels_tot
         self.Nels_as = Nels_as
         self.Norb_tot= Norb_tot
         self.Norb_as = Norb_as
         self.Nels_ia = self.Nels_tot-self.Nels_as
         self.Norb_ia = self.Nels_ia//2
-        if self.pr_g>0:
-            print('Number of inactive orbitals: {}'.format(self.Norb_ia))
+        if self.pr_g>1:
+            print('#  Inactive orb count: {}'.format(self.Norb_ia))
         self.Norb_v  = self.Norb_tot-self.Norb_ia-self.Norb_as
         if self.Nels_ia%2==1:
             raise(SpinError)

@@ -23,7 +23,7 @@ kw_qc = {
         'entangler_p':'UCC1',
         'entangler_q':'UCC2c',
         'entangled_pairs':'d',
-        'ansatz':'ucc',
+        'ansatz':'test',
         'depth':1,
         'use_radians':True
         }

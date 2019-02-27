@@ -63,9 +63,9 @@ def RDM():
         'max_iter':25,
         'restart':False,
         'wait':True,
-        'pr_g':1,
         'chem_orb':'HF',
         'pr_m':0,
+        'pr_g':0,
         'qc':{
             'backend':'qasm_simulator',
             'num_shots':2048,

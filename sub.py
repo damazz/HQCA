@@ -48,7 +48,7 @@ class RunRDM:
         self.kw_qc = self.kw['qc']
         self.kw_opt = self.kw['opt']
         self.rc=Cache()
-
+        self.built=False
 
 
     def update_var(
@@ -65,12 +65,16 @@ class RunRDM:
             for k,v in args.items():
                 self.kw_opt[k]=v
 
-
-    def go(self):
-        self.pr_g = self.kw['pr_g']
+    def build(self):
+        self.pr_g = self.Store.pr_g
         self.Store.pr_m = self.kw['pr_m']
         if self.pr_g>0:
-            print('Starting an optimization of the RDM.')
+            print('')
+            print('### #### ### ### ### ### ### ### ### ### ### ###')
+            print('')
+            print('# Initializing the optimization.')
+            print('#')
+            print('# Setting RDM parameters...')
         self.Store.gas()
         self.Store.gsm()
         self.kw_qc['Nels_as'] = self.Store.Nels_as
@@ -78,15 +82,47 @@ class RunRDM:
         self.kw_qc['alpha_mos']=self.Store.alpha_mo
         self.kw_qc['beta_mos']=self.Store.beta_mo
         self.kw_qc['single_point']=self.Store.sp
-        self.QuantStore = qf.QuantumStorage(**self.kw_qc)
+        if self.pr_g>0:
+            print('# ...done.')
+            print('#')
+            print('# Setting QC parameters...')
+
+        self.QuantStore = qf.QuantumStorage(self.pr_g,**self.kw_qc)
+        if self.pr_g>0:
+            print('# ...done.')
+            print('#')
+            print('# Setting opt parameters...')
         self.Store.update_full_ints()
+
         self.kw_opt['function'] = enf.find_function(
                 'rdm',
                 'main',
                 self.Store,
                 self.QuantStore)
-        self._OptRDM()
-        self._analyze()
+        if self.pr_g>0:
+            if self.kw_opt['optimizer']=='nevergrad':
+                print('#  optimizer  : {}'.format(self.kw_opt['nevergrad_opt']))
+            else:
+                print('#  optimizer  : {}'.format(self.kw_opt['optimizer']))
+            print('#  max iter   : {}'.format(self.kw_opt['max_iter']))
+            print('#  stop crit  : {}'.format(self.kw_opt['conv_crit_type']))
+            print('#  crit thresh: {}'.format(self.kw_opt['conv_threshold']))
+            print('# ...done.')
+            print('# ')
+            print('# Initialized successfully. Beginning optimization.')
+            print('')
+            print('### ### ### ### ### ### ### ### ### ### ### ###')
+            print('')
+        if self.kw_qc['pr_q']>1:
+            qf.get_direct_stats(self.QuantStore)
+        self.built=True
+
+    def go(self):
+        if self.built:
+            self._OptRDM()
+            self._analyze()
+        else:
+            sys.exit('# Not built yet! Run build() before execute(). ')
 
     def _OptRDM(self):
         if self.kw['restart']==True:
@@ -103,13 +139,14 @@ class RunRDM:
             self.rc.done=True
         while not self.rc.done:
             Run.next_step()
-            print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
-                self.rc.iter,
-                Run.opt.best_f,
-                Run.opt.crit)
-                )
+            if self.kw_opt['pr_o']>0:
+                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}'.format(
+                    self.rc.iter,
+                    Run.opt.best_f,
+                    Run.opt.crit)
+                    )
             Run.check(self.rc)
-            if self.pr_g>2:
+            if self.pr_g>3:
                 self.Store.opt_analysis()
             if self.rc.iter==self.kw_opt['max_iter'] and not(self.rc.done):
                 self.rc.error=False
@@ -132,11 +169,38 @@ class RunRDM:
             self.rc.done= True
             print(self.rc.msg)
             print(self.rc.msg)
-        print('done!')
+        if self.pr_g>0:
+            print('done!')
 
-
-
-
+    def set_print(self,level='default',
+            record=False
+            ):
+        self.kw_qc['pr_q']=1
+        self.kw_opt['pr_o']=1
+        self.kw['pr_m']=1
+        self.kw['pr_g']=2
+        if level=='stats':
+            self.kw_qc['pr_q']=2
+        elif level=='min':
+            self.kw['pr_g']=1
+        elif level=='none':
+            self.kw_qc['pr_q']=0
+            self.kw_opt['pr_o']=0
+            self.kw['pr_m']=0
+            self.kw['pr_g']=0
+        elif level=='analysis':
+            self.kw['pr_g']=4
+        elif level=='diagnostic_full':
+            self.kw_qc['pr_q']=9
+            self.kw_opt['pr_o']=9
+            self.kw['pr_m']=9
+            self.kw['pr_g']=9
+        elif level=='diagnostic_en':
+            self.kw['pr_g']=4
+        elif level=='diagnostic_qc':
+            self.kw_qc['pr_q']=9
+        elif level=='diagnostic_opt':
+            self.kw_opt['pr_o']=9
 
 class RunNOFT:
     '''

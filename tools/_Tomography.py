@@ -48,10 +48,10 @@ class Process:
 
     def add_data(self,output):
         i,k,j=0,0,0
-        if self.qs.pr_q>1:
+        if self.qs.pr_q>2:
             print('Circuit, counts:')
         for name,counts in output:
-            if self.qs.pr_q>1:
+            if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
                 print('Counts : {}'.format(counts))
             if i==0:
@@ -191,7 +191,7 @@ class Process:
                         fx.filt(self.data['ij'],temp)
                         )
                     )
-            if self.pr_q>1:
+            if self.pr_q>2:
                 print('Trace of 2-RDM: {}'.format(self.rdm2trace))
 
     def assemble_2rdm(self):
@@ -413,7 +413,7 @@ class Process:
                             bet2,bet2,0,0,
                             s2,s1
                             )
-        if self.pr_q>1:
+        if self.pr_q>2:
             print('Done with 2-RDM! yay! whew.')
         return rdm2
 

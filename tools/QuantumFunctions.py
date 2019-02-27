@@ -29,6 +29,7 @@ class QuantumStorage:
     '''
 
     def __init__(self,
+            pr_g,
             Nqb,
             Nels_as,
             Norb_as,
@@ -80,6 +81,7 @@ class QuantumStorage:
             spin_free
             spatial? not sure if necessary
         '''
+        self.pr_g =pr_g
         self.use_radians=use_radians
         self.Ns = num_shots
         self.Nq = Nqb  # active qubits
@@ -126,6 +128,45 @@ class QuantumStorage:
             self._map_rdm_jw()
             self._get_ent_pairs_jw()
             self._gip()
+        if self.pr_g>1:
+            print('# Summary of quantum parameters:')
+            print('#  backend   : {}'.format(self.backend))
+            print('#  num shots : {}'.format(self.Ns))
+            print('#  num qubit : {}'.format(self.Nq))
+            print('#  num e-    : {}'.format(self.Ne))
+            print('#  provider  : {}'.format(self.prov))
+            print('#  tomo type : {}'.format(tomo_rdm))
+            print('#  tomo basis: {}'.format(tomo_basis))
+            print('#  compiler  : {}'.format(self.compiler))
+            print('# Summary of quantum algorithm:')
+            print('#  spin orbs : {}'.format(self.No))
+            print('#  fermi map : {}'.format(self.fermion_mapping))
+            print('#  ansatz    : {}'.format(self.ansatz))
+            print('#  method    : {}'.format(self.method))
+            print('#  algorithm : {}'.format(self.algorithm))
+            print('#  spin map  : {}'.format(self.spin_mapping))
+            print('#  ent scheme: {}'.format(self.ent_pairs))
+            print('#  ent pairs : {}'.format(self.ent_circ_p))
+            print('#  ent quads : {}'.format(self.ent_circ_q))
+            print('#  circ depth: {}'.format(self.depth))
+            print('#  init type : {}'.format(self.init))
+            print('#  qubit entangled pairs:')
+            p = '#  '
+            for n,pair in enumerate(self.pair_list):
+                p+='{} '.format(pair)
+                if n%4==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            p = '#  '
+            print('#  qubit entangled quadruplets:')
+            for n,quad in enumerate(self.quad_list):
+                p+='{} '.format(quad)
+                if n%2==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            print('# ')
 
 
 
@@ -155,6 +196,7 @@ class QuantumStorage:
         self.rdm_to_backend = {v:k for k,v in self.backend_to_rdm.items()}
 
     def _get_ent_pairs_jw(self):
+        # ansatz also includes orders of excitations, etc. 
         self.pair_list = []
         self.quad_list = []
         if self.ansatz=='ucc':
@@ -182,7 +224,6 @@ class QuantumStorage:
                 for j in range(self.No,self.No+len(self.beta_qb)):
                     for i in range(self.No,j):
                         self.pair_list.append([i,j])
-
         elif self.ansatz=='default':
             if self.ent_pairs in ['sd','d']:
                 for l in range(0,len(self.alpha_qb)):
@@ -212,8 +253,13 @@ class QuantumStorage:
                     self.pair_list.append([j-1,j])
                 for j in range(1,len(self.beta_qb)):
                     self.pair_list.append([j-1,j])
-        print(self.pair_list)
-        print(self.quad_list)
+        elif self.ansatz=='test':
+            if self.ent_pairs in ['sd','d']:
+                # generate double excitations
+                for l in range(self.No,self.No+len(self.beta_qb)):
+                    for k in range(self.No,l):
+                        i,j = k%self.No, l%self.No
+                        self.quad_list.append([i,j,k,l])
 
     def _gip(self):
         '''
@@ -231,6 +277,22 @@ class QuantumStorage:
             self.Np = self.depth*len(self.pair_list)*self.c_ent_p
             self.Np+= self.depth*len(self.quad_list)*self.c_ent_q
             self.parameters=[0]*self.Np
+        if self.pr_q>1:
+            print('Number of initial parameters: {}'.format(self.Np))
+
+def get_direct_stats(QuantStore):
+    from hqca.tools import QuantumAlgorithms
+    QuantStore.parameters=[1]*QuantStore.Np
+    test = QuantumAlgorithms.GenerateDirectCircuit(QuantStore)
+    QuantStore.parameters=[0]*QuantStore.Np
+    print('# Getting circuit parameters...')
+    print('#')
+    print('# Gate counts:')
+    print('#  N one qubit gates: {}'.format(test.sg))
+    print('#  N two qubit gates: {}'.format(test.cg))
+    print('# ...done.')
+    print('# ')
+
 
 local_qubit_tomo_pairs = {
         2:[
