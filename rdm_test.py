@@ -21,9 +21,10 @@ kw_qc = {
         #'entangler_p':'Uent1_cN',
         #'entangled_pairs':'scheme1_Tavernelli',
         'entangler_p':'UCC1',
+        #'entangler_q':'UCC2',
         'entangler_q':'UCC2c',
         'entangled_pairs':'d',
-        'ansatz':'test',
+        'ansatz':'ucc',
         'depth':1,
         'use_radians':True
         }
@@ -36,7 +37,7 @@ kw_opt = {
 
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
-prog.set_print(level='stats')
+prog.set_print(level='diagnostic_en')
 prog.build()
 prog.execute()
 

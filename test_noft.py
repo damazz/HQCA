@@ -6,7 +6,7 @@ import numpy as np
 from functools import reduce
 
 mol = gto.Mole()
-d = 0.9374+2.5
+d = 0.9374+0.0
 mol.atom=[
         ['H',(0,0,0)],
         ['H',(d,0,0)],

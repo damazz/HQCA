@@ -197,6 +197,9 @@ def _direct_tomography(
         elif QuantStore.tomo_bas=='pauli':
             # projection into the pauli basis now...
             pass
+        if QuantStore.tomo_ext=='2e_no':
+            pass
+
     if QuantStore.tomo_ext:
         # looking at tomo of RDM with 
         pass

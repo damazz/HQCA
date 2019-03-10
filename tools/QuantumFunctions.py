@@ -49,6 +49,7 @@ class QuantumStorage:
             alpha_mos,
             beta_mos,
             single_point,
+            theory='noft',
             fermion_mapping='jordan-wigner',
             backend_configuration=None,
             ansatz='default',
@@ -59,7 +60,8 @@ class QuantumStorage:
             algorithm=None,
             pr_q=0,
             pr_t=0,
-            use_radians=False
+            use_radians=False,
+            opt=None
             ):
         '''
         method;
@@ -81,6 +83,8 @@ class QuantumStorage:
             spin_free
             spatial? not sure if necessary
         '''
+        self.opt_kw = opt
+        self.theory= theory
         self.pr_g =pr_g
         self.use_radians=use_radians
         self.Ns = num_shots
@@ -99,6 +103,8 @@ class QuantumStorage:
         self.tomo_bas = tomo_basis
         self.tomo_rdm = tomo_rdm
         self.tomo_ext = tomo_extra
+        if self.tomo_ext=='2e_no':
+            pass
         self.provider = provider
         self.ent_pairs= entangled_pairs
         self.ent_circ_p = entangler_p
@@ -253,13 +259,21 @@ class QuantumStorage:
                     self.pair_list.append([j-1,j])
                 for j in range(1,len(self.beta_qb)):
                     self.pair_list.append([j-1,j])
-        elif self.ansatz=='test':
+        elif self.ansatz=='natural-orbitals':
             if self.ent_pairs in ['sd','d']:
                 # generate double excitations
                 for l in range(self.No,self.No+len(self.beta_qb)):
                     for k in range(self.No,l):
                         i,j = k%self.No, l%self.No
                         self.quad_list.append([i,j,k,l])
+
+    def _get_2e_no(self):
+        self.tomo_quad = []
+        for j in range(0,self.No):
+            for i in range(0,j+1):
+                self.tomo_quad.append([])
+                
+
 
     def _gip(self):
         '''
@@ -272,7 +286,9 @@ class QuantumStorage:
             self.c_ent_q=1
             if self.ent_circ_p=='Uent1_cN':
                 self.c_ent_p=2
-            elif self.ent_circ_q=='UCC2':
+            elif self.ent_circ_p=='phase':
+                self.c_ent_p=2
+            if self.ent_circ_q=='UCC2':
                 self.c_ent_q=3
             self.Np = self.depth*len(self.pair_list)*self.c_ent_p
             self.Np+= self.depth*len(self.quad_list)*self.c_ent_q

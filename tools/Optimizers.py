@@ -532,7 +532,6 @@ class nelder_mead:
         self.simp_x = new_x
         self.simp_f = new_f
 
-
 class nevergradopt:
     def __init__(self,
             function,
@@ -556,9 +555,10 @@ class nevergradopt:
         self.Nv = N_vectors
         if conv_threshold=='default':
             self._conv_thresh = 0.00001
+        else:
+            self._conv_thresh = conv_threshold
         self.vectors = []
         self.opt_crit=conv_crit_type
-
 
     def check(self,initial=False):
         if self.opt_crit in ['default','iterations']:
@@ -599,7 +599,6 @@ class nevergradopt:
             self._update_MaxDist()
             self.crit = self.max_d
 
-    
     def _update_MaxDist(self):
         self.max_d=0
         for n,v in enumerate(self.vectors):
@@ -614,8 +613,6 @@ class nevergradopt:
                 if dist>=self.max_d:
                     self.max_d = dist
                     self.max_n = n
-
-
 
     def initialize(self,start):
         self.Np = len(start)

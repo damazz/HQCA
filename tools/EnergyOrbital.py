@@ -24,24 +24,21 @@ except ImportError:
 
 def energy_eval_orbitals(
         para,
-        region,
-        store,
-        pr_m=0,
-        spin_mapping='unrestricted',
-        **kwargs
+        Store,
+        QuantStore,
         ):
     '''
     Energy function for constructing a rotated electron integral. 
     '''
-    N = len(store.ints_1e_ao)
+    pr_s = Store.pr_s
+    spin_mapping = QuantStore.spin_mapping
+    N = len(Store.ints_1e_ao)
     Np = len(para)
-    if spin_mapping=='restricted':
-        Np*=2
     T_a = reduce( np.dot, (
-            store.T_alpha,
+            Store.T_alpha,
             enf.rotation_parameter_generation(
-                spin_mo=store.alpha_mo,
-                region=region,
+                spin_mo=Store.alpha_mo,
+                region='active',
                 output='matrix',
                 para=para[:Np//2]
                 ).T
@@ -49,12 +46,12 @@ def energy_eval_orbitals(
             )
     if spin_mapping=='restricted':
         T_b = T_a.copy()
-    elif spin_mapping=='unrestricted':
+    elif spin_mapping in ['default','unrestricted']:
         T_b = reduce(np.dot, (
-                store.T_beta,
+                Store.T_beta,
                 enf.rotation_parameter_generation(
-                    spin_mo=store.beta_mo,
-                    region=region,
+                    spin_mo=Store.beta_mo,
+                    region='active',
                     output='matrix',
                     para=para[Np//2:]
                     ).T
@@ -62,42 +59,42 @@ def energy_eval_orbitals(
                 )
     tic = timeit.default_timer()
     ints_1e_n = chem.gen_spin_1ei(
-            store.ints_1e_ao,
+            Store.ints_1e_ao,
             T_a.T,
             T_b.T,
-            alpha=store.alpha_mo,
-            beta=store.beta_mo,
-            region=region,
-            spin2spac=store.s2s,
-            new_ei = store.ints_1e.copy()
+            alpha=Store.alpha_mo,
+            beta=Store.beta_mo,
+            region='active',
+            spin2spac=Store.s2s,
+            new_ei = Store.ints_1e.copy()
             )
     ints_2e_n = chem.gen_spin_2ei(
-            store.ints_2e_ao,
+            Store.ints_2e_ao,
             T_a.T,
             T_b.T,
-            alpha=store.alpha_mo,
-            beta=store.beta_mo,
-            region=region,
-            spin2spac=store.s2s,
-            new_ei = np.reshape(store.ints_2e.copy(),(2*N,2*N,2*N,2*N)),
+            alpha=Store.alpha_mo,
+            beta=Store.beta_mo,
+            region='active',
+            spin2spac=Store.s2s,
+            new_ei = np.reshape(Store.ints_2e.copy(),(2*N,2*N,2*N,2*N)),
             )
     toc = timeit.default_timer()
-    if pr_m>1:
+    if pr_s>3:
         print('Time to rotate electron integrals: {}'.format(toc-tic))
     ints_2e_n = np.reshape(ints_2e_n,((N*2)**2,(N*2)**2))
-    rdm2 = store.rdm2.copy()
-    rdm1 = rdmf.check_2rdm(store.rdm2,store.Nels_tot)
+    rdm2 = Store.rdm2
+    rdm1 = rdmf.check_2rdm(Store.rdm2,Store.Nels_tot)
     rdm2 = np.reshape(rdm2,((2*N)**2,(2*N)**2))
     E_h1 = np.dot(ints_1e_n,rdm1).trace()
     E_h2 = 0.5*np.dot(ints_2e_n,rdm2.T).trace()
-    E_t = np.real(E_h1+E_h2+store.E_ne)
-    if pr_m>1:
+    E_t = np.real(E_h1+E_h2+Store.E_ne)
+    if pr_s>2:
         print('One Electron Energy: {}'.format(E_h1))
         print('Two Electron Energy: {}'.format(np.real(E_h2)))
-        print('Nuclear Repulsion Energy: {}'.format(store.E_ne))
+        print('Nuclear Repulsion Energy: {}'.format(Store.E_ne))
         print('Total Energy: {} Hartrees'.format(E_t))
         print('----------')
-    store.opt_update_int(E_t,T_a,T_b)
+    Store.opt_update_int(E_t,T_a,T_b)
     return E_t
 '''
 def orbital_energy_gradient_givens(

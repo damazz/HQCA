@@ -21,16 +21,28 @@ def find_function(
         Store,
         QuantStore):
     if run_type=='noft':
-        if spec=='main':
-            return end.energy_eval_nordm
-        elif spec=='sub':
-            return eno.energy_eval_orbitals
+        if spec=='qc':
+            f = partial(
+                    end.energy_eval_nordm,
+                    **{
+                        'Store':Store,
+                        'QuantStore':QuantStore
+                        }
+                    )
+        elif spec=='orb':
+            f = partial(
+                    eno.energy_eval_orbitals,
+                    **{
+                        'Store':Store,
+                        'QuantStore':QuantStore
+                        }
+                    )
     elif run_type=='rdm':
         f = partial(
             end.energy_eval_rdm,
             **{'Store':Store,'QuantStore':QuantStore}
             )
-        return f
+    return f
 
 
 class Storage:
@@ -50,9 +62,11 @@ class Storage:
             ints_2e_ao,
             E_ne,
             pr_g,
+            theory,
             **kwargs
             ):
         self.energy_best = 0
+        self.theory =  theory
         self.energy_wf = 0
         self.energy_int = 0
         self.wf = {}
@@ -144,6 +158,7 @@ class Storage:
         self.Norb_as = Norb_as
         self.Nels_ia = self.Nels_tot-self.Nels_as
         self.Norb_ia = self.Nels_ia//2
+        self.spin = spin_mapping
         if self.pr_g>1:
             print('#  Inactive orb count: {}'.format(self.Norb_ia))
         self.Norb_v  = self.Norb_tot-self.Norb_ia-self.Norb_as
@@ -170,14 +185,6 @@ class Storage:
         for i in range(0,self.Norb_v):
             self.beta_mo['virtual'].append(ind)
             ind+=1
-        if spin_mapping=='default':
-            self.alpha_mo['qc']=self.alpha_mo['active'].copy()
-            self.beta_mo['qc']=self.beta_mo['active'].copy()
-        elif spin_mapping=='spin-free':
-            self.alpha_mo['qc']=self.alpha_mo['active']+self.beta_mo['active']
-        elif spin_mapping=='spatial':
-            self.alpha_mo['qc']=self.alpha_mo['active'].copy()
-            self.beta_mo['qc']=self.beta_mo['active'].copy()
 
     def _generate_spin2spac_mapping(self):
         self.s2s = {}
@@ -329,9 +336,6 @@ class Storage:
         print('--  --  --  --  --  --  --  --')
         print('  --  --  --  --  --  --  --')
 
-
-
-
     def check(self,crit,Occ,Orb,print_run=False):
         print('Checking orbital and occupation energies for convergence...')
         if print_run:
@@ -364,6 +368,20 @@ class Storage:
     def update_calls(self,orb,occ):
         self.occ_energy_calls +=  occ
         self.orb_energy_calls +=  orb
+
+    def find_npara_orb(self):
+        self.Np_orb = 0
+        if self.active_space_calc=='FCI':
+            if self.spin in ['default']: #unrestricted
+                temp = len(self.alpha_mo['active'])
+                self.Np_orb += int(temp*(temp-1)/2)
+                temp = len(self.beta_mo['active'])
+                self.Np_orb += int(temp*(temp-1)/2)
+            elif self.spin=='spatial': #restricted
+                temp = len(self.alpha_mo['active'])
+                self.Np_orb += int(temp*(temp-1)/2)
+        elif self.active_space_calc=='CASSCF':
+            sys.exit('Orbital rotations not implemented fully for CASSCF.')
 
 
 def rotation_parameter_generation(

@@ -73,6 +73,7 @@ class sp:
             mol.as_Ne=mol.nelec[0]+mol.nelec[1]
             mol.as_No= self.C.shape[0]
         store_kw = {
+            'theory':self.theory,
             'Nels_tot':mol.nelec[0]+mol.nelec[1],
             'Norb_tot':self.C.shape[0], #spatial
             'Nels_as':mol.as_Ne,

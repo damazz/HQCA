@@ -32,11 +32,10 @@ class Cache:
         self.iter=0
         self.done=False
 
-
-class RunRDM:
+class QuantumRun:
     '''
-    Subroutine for a RDM based approach. Orbital optimization is included in the
-    wavefunction.
+    Routine for handling different runs. 
+    Has following main attributes. 
     '''
     def __init__(self,
             store,
@@ -44,12 +43,9 @@ class RunRDM:
             ):
         self.Store=store
         self.Store.sp='rdm'
-        self.kw = pre.RDM()
         self.kw_qc = self.kw['qc']
-        self.kw_opt = self.kw['opt']
-        self.rc=Cache()
+        self.kw_opt = self.kw_qc['opt']
         self.built=False
-
 
     def update_var(
             self,
@@ -64,6 +60,12 @@ class RunRDM:
         elif target=='opt':
             for k,v in args.items():
                 self.kw_opt[k]=v
+        elif target=='orb':
+            for k,v in args.items():
+                self.kw_orb[k]=v
+        elif target=='orb_opt':
+            for k,v in args.items():
+                self.kw_orb_opt[k]=v
 
     def build(self):
         self.pr_g = self.Store.pr_g
@@ -86,17 +88,15 @@ class RunRDM:
             print('# ...done.')
             print('#')
             print('# Setting QC parameters...')
-
         self.QuantStore = qf.QuantumStorage(self.pr_g,**self.kw_qc)
         if self.pr_g>0:
             print('# ...done.')
             print('#')
             print('# Setting opt parameters...')
         self.Store.update_full_ints()
-
         self.kw_opt['function'] = enf.find_function(
-                'rdm',
-                'main',
+                self.Store.theory,
+                'qc',
                 self.Store,
                 self.QuantStore)
         if self.pr_g>0:
@@ -115,7 +115,50 @@ class RunRDM:
             print('')
         if self.kw_qc['pr_q']>1:
             qf.get_direct_stats(self.QuantStore)
-        self.built=True
+
+    def set_print(self,level='default',
+            record=False
+            ):
+        self.kw_qc['pr_q']=1
+        self.kw_opt['pr_o']=1
+        self.kw['pr_m']=1
+        self.kw['pr_g']=2
+        self.kw_orb['pr_s']=1
+        if level=='stats':
+            self.kw_qc['pr_q']=2
+        elif level=='min':
+            self.kw['pr_g']=1
+        elif level=='none':
+            self.kw_qc['pr_q']=0
+            self.kw_opt['pr_o']=0
+            self.kw['pr_m']=0
+            self.kw['pr_g']=0
+            self.kw['pr_s']=0
+        elif level=='analysis':
+            self.kw['pr_g']=4
+        elif level=='diagnostic_full':
+            self.kw_qc['pr_q']=9
+            self.kw_opt['pr_o']=9
+            self.kw['pr_m']=9
+            self.kw['pr_g']=9
+        elif level=='diagnostic_en':
+            self.kw['pr_m']=4
+        elif level=='diagnostic_qc':
+            self.kw_qc['pr_q']=9
+        elif level=='diagnostic_opt':
+            self.kw_opt['pr_o']=9
+        elif level=='diagnostic_orb':
+            self.kw_orb['pr_s']=9
+
+class RunRDM(QuantumRun):
+    '''
+    Subroutine for a RDM based approach. Orbital optimization is included in the
+    wavefunction.
+    '''
+    def __init__(self,store,**k):
+        self.kw = pre.RDM()
+        self.rc=Cache()
+        QuantumRun.__init(store,**kw)
 
     def go(self):
         if self.built:
@@ -123,6 +166,11 @@ class RunRDM:
             self._analyze()
         else:
             sys.exit('# Not built yet! Run build() before execute(). ')
+
+    def build(self):
+        QuantumRun.build(self)
+        self.Store.fund_npara_orb()
+        self.built=True
 
     def _OptRDM(self):
         if self.kw['restart']==True:
@@ -172,122 +220,70 @@ class RunRDM:
         if self.pr_g>0:
             print('done!')
 
-    def set_print(self,level='default',
-            record=False
-            ):
-        self.kw_qc['pr_q']=1
-        self.kw_opt['pr_o']=1
-        self.kw['pr_m']=1
-        self.kw['pr_g']=2
-        if level=='stats':
-            self.kw_qc['pr_q']=2
-        elif level=='min':
-            self.kw['pr_g']=1
-        elif level=='none':
-            self.kw_qc['pr_q']=0
-            self.kw_opt['pr_o']=0
-            self.kw['pr_m']=0
-            self.kw['pr_g']=0
-        elif level=='analysis':
-            self.kw['pr_g']=4
-        elif level=='diagnostic_full':
-            self.kw_qc['pr_q']=9
-            self.kw_opt['pr_o']=9
-            self.kw['pr_m']=9
-            self.kw['pr_g']=9
-        elif level=='diagnostic_en':
-            self.kw['pr_g']=4
-        elif level=='diagnostic_qc':
-            self.kw_qc['pr_q']=9
-        elif level=='diagnostic_opt':
-            self.kw_opt['pr_o']=9
 
-class RunNOFT:
+class RunNOFT(QuantumRun):
     '''
-    Subroutine for a natural-orbital function theory approach
-    stretch
+    Subroutine for a natural-orbital function theory approach with a quantum
+    computing treatment of the natural orbitals. 
+    
     '''
     def __init__(self,
-            store
+            store,
+            **kw
             ):
-        self.store=store
-        self.store.sp='noft'
-        self.store.gas()
-        self.store.gsm()
-        self.store.gip()
-        self.store.update_full_ints()
-        self.kw=pre.NOFT()
+        if store.kw['Nels_as']==2:
+            self.kw = pre.NOFT_2e()
+        elif store.kw['Nels_as']==3:
+            self.kw = pre.NOFT_3e()
+        else:
+            sys.exit()
+        QuantumRun.__init__(self,store,**kw)
+        self.kw_orb = self.kw['orb']
+        self.kw_orb_opt = self.kw_orb['opt']
         self.total=Cache()
-        self.kw_main={}
-        self.kw_sub={}
-        self.load=False
-        self.kw_main = self.kw['main']
-        self.kw_sub = self.kw['sub']
-        self.kw_main['store']=self.store
-        self.kw_sub['store']=self.store
-        self.Np = enf.rotation_parameter_generation(
-                store.alpha_mo,
-                region=self.kw['sub']['region'],
-                output='Npara'
-                )
-        main_func = enf.find_function('noft','main')
-        self.kw_main['function']=main_func
-        sub_func = enf.find_function('noft','sub')
-        self.kw_sub['function']=sub_func
-        mapping = fx.get_mapping(self.kw_main['wf_mapping'])
-        self.kw_main['wf_mapping']=mapping
-        self.pr_g = self.kw['pr_g']
-        self.store.kw['spin_mapping']=self.kw_sub['spin_mapping']
+
+
+    def build(self):
+        self.Store.pr_s = self.kw['pr_s']
+        QuantumRun.build(self)
+        self.Store.find_npara_orb()
+        self.kw_orb_opt['function'] = enf.find_function(
+                'noft',
+                'orb',
+                self.Store,
+                self.QuantStore)
+        if self.pr_g>0:
+            if self.kw_orb_opt['optimizer']=='nevergrad':
+                print('#  orb opt    : {}'.format(self.kw_orb_opt['nevergrad_opt']))
+            else:
+                print('#  orb opt    : {}'.format(self.kw_orb_opt['optimizer']))
+            print('#  max iter   : {}'.format(self.kw_orb_opt['max_iter']))
+            print('#  stop crit  : {}'.format(self.kw_orb_opt['conv_crit_type']))
+            print('#  crit thresh: {}'.format(self.kw_orb_opt['conv_threshold']))
+            print('# ...done.')
+            print('# ')
+            print('# Initialized successfully. Beginning optimization.')
+            print('')
+            print('### ### ### ### ### ### ### ### ### ### ### ###')
+            print('')
+        self.built=True
 
     def _get_triangle(self):
-        if self.kw_main['tri']:
-            self.kw_main['triangle']=tri.find_triangle(
-                    Ntri=self.kw_main['method_Ntri'],
-                    **self.kw_main)
-
-
-    def update_var(
-            self,
-            main=False,
-            sub=False,
-            **args):
-        if (main and (not sub)):
-            for k,v in args.items():
-                self.kw_main[k]=v
-            mapping = fx.get_mapping(self.kw_main['wf_mapping'])
-            if mapping==None:
-                pass
-            else:
-                self.kw_main['wf_mapping']=mapping
-        elif ((not main) and sub):
-            for k,v in args.items():
-                self.kw_sub[k]=v
-            self.store.kw['spin_mapping']=self.kw_sub['spin_mapping']
-        elif not (main and sub):
-            for k,v in args.items():
-                self.kw[k]=v
-            self.pr_g = self.kw['pr_g']
-
+        if self.kw_qc['tri']:
+            self.kw_qc['triangle']=tri.find_triangle(
+                    Ntri=self.kw_qc['method_Ntri'],
+                    **self.kw_qc)
 
     def go(self):
-        para_orb = []
-        para_orb.append([])
-        if self.kw_sub['spin_mapping']=='restricted':
-            for i in range(0,self.Np):
-                para_orb[0].append(0)
-        elif self.kw_sub['spin_mapping']=='unrestricted':
-            for i in range(0,2*self.Np):
-                para_orb[0].append(0)
-        self.para = para_orb
-        if 'classical' in self.kw_main['method']:
-            pass
-        else:
-            self._get_triangle()
-        while not self.total.done:
-            self._OptNO()
-            self._OptOrb()
-            self._check(self.kw['opt_thresh'],self.kw['max_iter'])
-
+        if self.built:
+            if 'classical' in self.kw_qc['method']:
+                pass
+            else:
+                self._get_triangle()
+            while not self.total.done:
+                self._OptNO()
+                self._OptOrb()
+                self._check(self.kw['opt_thresh'],self.kw['max_iter'])
 
     def _check(self,
             crit,
@@ -316,21 +312,19 @@ class RunNOFT:
         self.main.crit=0
         self.sub.crit=0
         if self.pr_g>2:
-            self.store.opt_analysis()
+            self.Store.opt_analysis()
         self.total.iter+=1
-
 
 
     def _OptNO(self):
         self.main=Cache()
-        if self.load==True:
-            pass
+        if self.kw['restart']==True:
+            self._load()
         else:
             Run = opt.Optimizer(
-                    parameters=[self.kw_main['store'].parameters],
-                    **self.kw_main
+                    **self.kw_opt
                     )
-            para = []
+            Run.initialize(self.QuantStore.parameters)
         if Run.error:
             print('##########')
             print('Encountered error in initialization.')
@@ -338,17 +332,15 @@ class RunNOFT:
             self.main.done=True
         self.main.done=False
         while not self.main.done:
-            Run.next_step(**self.kw_main)
-            if self.kw_main['pr_o']>0:
+            Run.next_step()
+            if self.kw_opt['pr_o']>0:
                 print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
                     self.main.iter,
                     Run.opt.best_f,
                     Run.opt.crit)
                     )
-                    #if self.kw_main['optimizer']=='NM':
-                    #    print(Run.opt.B_x)
             Run.check(self.main)
-            if self.main.iter==self.kw_main['max_iter'] and not(self.main.done):
+            if self.main.iter==self.kw_opt['max_iter'] and not(self.main.done):
                 self.main.error=False
                 Run.opt_done=True
                 self.main.done=True
@@ -358,38 +350,32 @@ class RunNOFT:
                     Store.opt_done=True
                 continue
             self.main.iter+=1
-        self.store.update_rdm2()
+        self.Store.update_rdm2()
 
     def _OptOrb(self):
         self.sub=Cache()
         self.sub.done=False
-        if self.load==True:
-            pass
+        self.para_orb = [0]*self.Store.Np_orb
+        if self.kw['restart']==True:
+            self._load()
         else:
             Run = opt.Optimizer(
-                    parameters=self.para,
-                    **self.kw_sub
+                    **self.kw_orb_opt
                     )
+            Run.initialize(self.para_orb)
         while not self.sub.done:
-            Run.next_step(**self.kw_sub)
-            if self.kw_sub['pr_o']>0:
+            Run.next_step()
+            if self.kw['pr_s']>0:
                 print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
                     self.sub.iter,
                     Run.opt.best_f,
                     Run.opt.crit)
                     )
             Run.check(self.sub)
-            if self.sub.iter==self.kw_sub['max_iter'] and not self.main.done:
+            if self.sub.iter==self.kw_orb_opt['max_iter'] and not self.main.done:
                 self.sub.done=True
                 self.sub.err=True
                 Run.opt_done=True
             self.sub.iter+=1
-        self.store.update_full_ints()
-
-
-
-
-
-
-
+        self.Store.update_full_ints()
 

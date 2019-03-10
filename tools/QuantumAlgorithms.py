@@ -56,6 +56,10 @@ class GenerateDirectCircuit:
                 'UCC2c':{
                     'f':self._UCC2_con,
                     'np':1
+                    },
+                'phase':{
+                    'f':self._phase,
+                    'np':2
                     }
                 }
         self.para = QuantStore.parameters
@@ -92,6 +96,11 @@ class GenerateDirectCircuit:
         self._initialize()
         h = 0 
         for d in range(0,self.qs.depth):
+            for pair in self.qs.pair_list:
+                a = self.ent_Np
+                temp = self.para[h:h+a]
+                self.ent_p(*temp,i=pair[0],k=pair[1])
+                h+=self.ent_Np
             for quad in (self.qs.quad_list):
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
@@ -101,11 +110,6 @@ class GenerateDirectCircuit:
                         k=quad[2],
                         l=quad[3])
                 h+= self.ent_Nq
-            for pair in self.qs.pair_list:
-                a = self.ent_Np
-                temp = self.para[h:h+a]
-                self.ent_p(*temp,i=pair[0],k=pair[1])
-                h+=self.ent_Np
 
 
     def _ent1_Ry_cN(self,phi,i,k,ddphi=False):
@@ -136,6 +140,10 @@ class GenerateDirectCircuit:
         self.qc.cx(self.q[k],self.q[i])
         self.cg+= 3
         self.sg+= 4
+
+    def _phase(self,phi,theta,i,k):
+        self.qc.rz(phi,self.q[i])
+        self.qc.rz(theta,self.q[k])
 
     def _UCC1(self,phi,i,k):
         sequence = [['h','y'],
