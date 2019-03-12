@@ -193,16 +193,23 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
-                i+=1 
+                i+=1
         elif QuantStore.tomo_bas=='pauli':
             # projection into the pauli basis now...
             pass
-        if QuantStore.tomo_ext=='2e_no':
-            pass
-
-    if QuantStore.tomo_ext:
-        # looking at tomo of RDM with 
-        pass
+    if QuantStore.tomo_ext=='sign_2e':
+        # looking for NO 2RDM terms to give sign info 
+        for a,b,c,d in QuantStore.tomo_quad:
+            QuantStore.Ns=1024
+            temp = 'sign{}-{}-{}-{}'.format(str(a),str(b),str(c),str(d))
+            Q = GenerateDirectCircuit(
+                    QuantStore,
+                    _name=temp
+                    )
+            Q._UCC2_con_12(pi/2,a,b,c,d)
+            Q.qc.measure(Q.q,Q.c)
+            circuit_list.append([temp])
+            circuit.append(Q.qc)
     return circuit,circuit_list
 
 def _compact_tomography(
@@ -309,13 +316,18 @@ def run_circuits(
     #            print('  {}:{}'.format(k,v))
     return zip(circuit_list,counts)
 
-def construct(
-        data,
-        QuantStore
-        ):
-    qo = Process(data,QuantStore)
-    qo.build_rdm()
-    return qo.rdm
+
+class Construct:
+    def __init__(self,data,QuantStore):
+        self.qo = Process(data,QuantStore)
+        self.qo.build_rdm()
+        self.rdm1 = self.qo.rdm
+
+    def find_signs(self):
+        self.qo.sign_from_2rdm()
+        self.signs = self.qo.sign
+
+
 
 
 

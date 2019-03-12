@@ -103,8 +103,6 @@ class QuantumStorage:
         self.tomo_bas = tomo_basis
         self.tomo_rdm = tomo_rdm
         self.tomo_ext = tomo_extra
-        if self.tomo_ext=='2e_no':
-            pass
         self.provider = provider
         self.ent_pairs= entangled_pairs
         self.ent_circ_p = entangler_p
@@ -134,6 +132,8 @@ class QuantumStorage:
             self._map_rdm_jw()
             self._get_ent_pairs_jw()
             self._gip()
+            if self.tomo_ext=='sign_2e':
+                self._get_2e_no()
         if self.pr_g>1:
             print('# Summary of quantum parameters:')
             print('#  backend   : {}'.format(self.backend))
@@ -143,6 +143,7 @@ class QuantumStorage:
             print('#  provider  : {}'.format(self.prov))
             print('#  tomo type : {}'.format(tomo_rdm))
             print('#  tomo basis: {}'.format(tomo_basis))
+            print('#  tomo extra: {}'.format(tomo_extra))
             print('#  compiler  : {}'.format(self.compiler))
             print('# Summary of quantum algorithm:')
             print('#  spin orbs : {}'.format(self.No))
@@ -269,11 +270,14 @@ class QuantumStorage:
 
     def _get_2e_no(self):
         self.tomo_quad = []
-        for j in range(0,self.No):
-            for i in range(0,j+1):
-                self.tomo_quad.append([])
-                
-
+        temp = iter(zip(
+                self.alpha['active'][:-1],
+                self.alpha['active'][1:],
+                self.beta['active'][:-1],
+                self.beta['active'][1:]))
+        for a,b,c,d in temp:
+            self.tomo_quad.append([a,b,c,d])
+            
 
     def _gip(self):
         '''

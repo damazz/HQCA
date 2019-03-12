@@ -11,7 +11,7 @@ import timeit
 import sys
 from math import pi
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import build_circuits,run_circuits,construct
+from hqca.tools.QuantumFramework import build_circuits,run_circuits,Construct
 from hqca.tools.QuantumFramework import wait_for_machine
 try:
     from hqca.tools import Functions as fx
@@ -26,11 +26,14 @@ def build_2e_2rdm(
         Store,
         nocc,
         idx,
+        signs=None,
         pr_m=True,
         ):
     '''
     builds and returns 2rdm for a wavefunction in the NO basis
     '''
+    if type(signs)==type(None):
+        signs = [1]*N//2
     N = nocc.shape[0]
     Ne_tot = np.sum(nocc)
     wf = {}
@@ -38,7 +41,7 @@ def build_2e_2rdm(
         term = '0'*(i)+'1'+'0'*(N//2-i-1)
         term+= term
         val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
-        wf[term]=(-1)**(i)*val
+        wf[term]=(signs[i])*val
     wf = fx.extend_wf(wf,
             Store.Norb_tot,
             Store.Nels_tot,
@@ -71,7 +74,7 @@ def energy_eval_rdm(
     if QuantStore.use_radians==False:
         para = [i*pi/180 for i in para]
     else:
-        para = [i*pi/2 for i in para]
+        para = [i*pi for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(
@@ -79,9 +82,10 @@ def energy_eval_rdm(
             qc_list,
             QuantStore
             )
-    rdm1 = construct(
+    proc = Construct(
             qc_obj,
             QuantStore)
+    rdm1 = proc.rdm1
     if Store.pr_m>1:
         print('1RDM from Quantum Computer: ')
         print(rdm1)
@@ -203,7 +207,7 @@ def energy_eval_nordm(
     if QuantStore.use_radians==False:
         para = [i*pi/180 for i in para]
     else:
-        para = [i*pi/2 for i in para]
+        para = [i*pi for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(
@@ -211,9 +215,10 @@ def energy_eval_nordm(
             qc_list,
             QuantStore
             )
-    rdm1 = construct(
+    proc = Construct(
             qc_obj,
             QuantStore)
+    rdm1 = proc.rdm1
     if Store.pr_m>1:
         print('1RDM from Quantum Computer: ')
         print(rdm1)
@@ -224,6 +229,7 @@ def energy_eval_nordm(
     elif QuantStore.method=='carlson-keller':
         # performing natural orbital approach for a 2e system
         if spin_mapping=='default':
+            proc.find_signs()
             if Store.pr_m>1:
                 print(rdm1)
             Nso = rdm1.shape[0]
@@ -252,7 +258,10 @@ def energy_eval_nordm(
                 print('Natural ocupations: ')
                 print('alpha: {}'.format(noca))
                 print('beta: {}'.format(nocb))
-        wf,rdm2 = build_2e_2rdm(Store,noccs,idx,Store.pr_m)
+        wf,rdm2 = build_2e_2rdm(
+                Store,noccs,
+                idx,proc.signs,
+                Store.pr_m)
         if spin_mapping=='spin-free':
             rdm2 = rdmf.rotate_2rdm_unrestricted(
                     rdm2,

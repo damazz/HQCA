@@ -36,7 +36,11 @@ class Process:
             QuantStore,
             ):
         # First, want to combine results
-        self.data = {'ii':{},'ij':[],'ijkl':[],'ijR':[],'ijI':[],'ij':[]}
+        self.data = {
+                'ii':{},'ij':[],'ijkl':[],
+                'ijR':[],'ijI':[],'ij':[],
+                'sign':[]
+                }
         self.tomo_rdm = QuantStore.tomo_rdm
         self.tomo_basis=QuantStore.tomo_bas
         self.qs = QuantStore
@@ -47,7 +51,7 @@ class Process:
         self.Nq_act = len(self.occ_qb)
 
     def add_data(self,output):
-        i,k,j=0,0,0
+        i,k,j,l,s=0,0,0,0,0
         if self.qs.pr_q>2:
             print('Circuit, counts:')
         for name,counts in output:
@@ -63,10 +67,10 @@ class Process:
                 self.data['ii']['pd']=prbdis
             elif name[0][0:3]=='ijR':
                 self.data['ijR'].append({})
-                self.data['ijR'][k]['qb']=name[1:]
-                self.data['ijR'][k]['counts']=counts
-                self.data['ijR'][k]['pd']=prbdis
-                k+=1
+                self.data['ijR'][l]['qb']=name[1:]
+                self.data['ijR'][l]['counts']=counts
+                self.data['ijR'][l]['pd']=prbdis
+                l+=1
             elif name[0][0:3]=='ijI':
                 self.data['ijI'].append({})
                 self.data['ijI'][j]['qb']=name[1:]
@@ -79,8 +83,28 @@ class Process:
                 self.data['ij'][k]['counts']=counts
                 self.data['ij'][k]['pd']=prbdis
                 k+=1
+            elif name[0][0:4]=='sign':
+                self.data['sign'].append({})
+                self.data['sign'][s]['qbs']=name[0][4:]
+                self.data['sign'][s]['counts']=counts
+                self.data['sign'][s]['pd']=prbdis
+                s+=1 
             else:
                 pass
+
+    def sign_from_2rdm(self):
+        self.sign = [1]
+        for item in self.data['sign']:
+            i,j,k,l = item['qbs'].split('-')
+            i,j,k,l = int(i),int(j),int(k),int(l)
+            # note, now we are constructing 2rdm elements
+            t1 = 0.25*(item['pd'][i]-item['pd'][j])
+            if t1>0:
+                self.sign.append(1)
+            else:
+                self.sign.append(-1)
+        print(self.sign,t1)
+
 
     def proc_counts(self,counts):
         Nc = 0

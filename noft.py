@@ -23,7 +23,8 @@ kw_qc = {
         'entangler_q':'UCC2',
         'spin_mapping':'default',
         'depth':1,
-        'use_radians':True
+        'use_radians':True,
+        'tomo_extra':'sign_2e'
         }
 kw_opt = {
         'optimizer':'nevergrad',
@@ -34,7 +35,7 @@ kw_opt = {
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
 #
-prog.set_print(level='default')
+prog.set_print(level='diagnostic_en')
 prog.build()
 prog.execute()
 

@@ -9,8 +9,6 @@ import timeit
 from functools import reduce
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import build_circuits,run_circuits,construct
-from hqca.tools.QuantumFramework import wait_for_machine
 try:
     from hqca.tools import Functions as fx
     from hqca.tools import Chem as chem
