@@ -99,11 +99,11 @@ class Process:
             i,j,k,l = int(i),int(j),int(k),int(l)
             # note, now we are constructing 2rdm elements
             t1 = 0.25*(item['pd'][i]-item['pd'][j])
+            print(i,j,k,l,t1)
             if t1>0:
                 self.sign.append(1)
             else:
                 self.sign.append(-1)
-        print(self.sign,t1)
 
 
     def proc_counts(self,counts):
