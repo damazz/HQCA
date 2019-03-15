@@ -262,15 +262,15 @@ class Storage:
         # now, determining trace fidelity
         self.F_alpha = abs((reduce(np.dot, (
                 self.T_alpha_old.T,
-                self.Ci_a,
                 self.Ci_a.T,
+                self.Ci_a,
                 self.T_alpha
                 )
             ).trace()))*(1/len(self.T_alpha))
         self.F_beta = abs((reduce(np.dot, (
                 self.T_beta_old.T,
-                self.Ci_b,
                 self.Ci_b.T,
+                self.Ci_b,
                 self.T_beta
                 )
             ).trace()))*(1/len(self.T_beta))
