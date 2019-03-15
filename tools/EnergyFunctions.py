@@ -227,9 +227,9 @@ class Storage:
             self.T_beta_old = self.T_beta.copy()
             self.T_alpha = self.opt_T_alpha.copy()
             self.T_beta  = self.opt_T_beta.copy()
-        except Exception:
+        except Exception as e:
             print('ERROR ERROR ERROR')
-            print(Exception)
+            print(e)
             print('')
             print('')
             print('')
