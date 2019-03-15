@@ -1,6 +1,6 @@
 # don't track content of these folders:
-__pycache__/
-tools/__pycache__/
+__pycache__/*
+tools/__pycache__/*
 noft.py
 
 
