@@ -260,18 +260,20 @@ class Storage:
                 )
         self.ints_2e = fx.contract(self.ints_2e)
         # now, determining trace fidelity
-        self.F_alpha = (reduce(np.dot, (
-                self.T_alpha_old,
-                self.S,
-                self.T_alpha.T
+        self.F_alpha = abs((reduce(np.dot, (
+                self.T_alpha_old.T,
+                self.Ci_a,
+                self.Ci_a.T,
+                self.T_alpha
                 )
-            ).trace())*(1/len(self.T_alpha))
-        self.F_beta = (reduce(np.dot, (
-                self.T_beta_old,
-                self.S,
-                self.T_beta.T
+            ).trace()))*(1/len(self.T_alpha))
+        self.F_beta = abs((reduce(np.dot, (
+                self.T_beta_old.T,
+                self.Ci_b,
+                self.Ci_b.T,
+                self.T_beta
                 )
-            ).trace())*(1/len(self.T_beta))
+            ).trace()))*(1/len(self.T_beta))
         print('Falp:{}'.format(self.F_alpha))
         print('Fbet:{}'.format(self.F_beta))
         if self.F_alpha>1:

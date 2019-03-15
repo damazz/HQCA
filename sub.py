@@ -377,7 +377,7 @@ class RunNOFT(QuantumRun):
             Run.initialize(self.para_orb)
         while not self.sub.done:
             Run.next_step()
-            if self.kw['pr_s']>0:
+            if self.kw['pr_s']>0 and self.sub.iter%10==0:
                 print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
                     self.sub.iter,
                     Run.opt.best_f,
