@@ -263,6 +263,17 @@ class Storage:
                 self.T_beta.T
                 )
             ).trace())*(1/len(self.T_beta))
+        if self.F_alpha>1:
+            print('Error in fidelity:')
+            print(self.T_alpha_old)
+            print(self.S)
+            print(self.T_alpba.T)
+        elif self.F_beta>1:
+            print('Error in fidelity:')
+            print(self.T_beta_old)
+            print(self.S)
+            print(self.T_beta.T)
+
 
 
     def opt_update_int(self,energy,U_a,U_b):
