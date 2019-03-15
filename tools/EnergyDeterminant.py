@@ -62,7 +62,6 @@ def energy_eval_rdm(
     Energy evaluation for single shot quantum computer where we measure the full
     1-RDM. Phase cna be assigned with some 2-RDM values. 
     '''
-
     if Store.pr_m>1:
         print('Parameters, degrees: ')
         print(para)
@@ -71,10 +70,10 @@ def energy_eval_rdm(
     if spin_mapping=='spatial':
         para = para.tolist()
         para = para + para
-    if QuantStore.use_radians==False:
-        para = [i*pi/180 for i in para]
-    else:
-        para = [i*pi for i in para]
+    #if QuantStore.use_radians==False
+    #    para = [i*pi/180 for i in para]
+    #else:
+    #    para = [i*pi for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(
@@ -204,10 +203,10 @@ def energy_eval_nordm(
     if spin_mapping=='spatial':
         para = para.tolist()
         para = para + para
-    if QuantStore.use_radians==False:
-        para = [i*pi/180 for i in para]
-    else:
-        para = [i*pi for i in para]
+    #if QuantStore.use_radians==False:
+    #    para = [i*pi/180 for i in para]
+    #else:
+    #    para = [i*pi for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(
@@ -221,7 +220,7 @@ def energy_eval_nordm(
     rdm1 = proc.rdm1
     if Store.pr_m>1:
         print('1RDM from Quantum Computer: ')
-        print(rdm1)
+        print(np.real(rdm1))
         print('Imaginary components:')
         print(np.imag(rdm1))
     if QuantStore.method=='generalized':
@@ -230,8 +229,6 @@ def energy_eval_nordm(
         # performing natural orbital approach for a 2e system
         if spin_mapping=='default':
             proc.find_signs()
-            if Store.pr_m>1:
-                print(rdm1)
             Nso = rdm1.shape[0]
             rdma = rdm1[0:Nso//2,0:Nso//2]
             rdmb = rdm1[Nso//2:,Nso//2:]

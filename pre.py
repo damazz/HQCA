@@ -1,3 +1,4 @@
+from math import pi
 # pre.py
 #
 # Reads the configuration file, which has been set by the main program, and then
@@ -42,6 +43,10 @@ def NOFT_2e():
             'depth':1,
             'opt':{
                 'pr_o':1,
+                'shift':None,
+                'N_vectors':5,
+                'use_radians':True,
+                'unity':pi/2,
                 'max_iter':100,
                 'optimizer':'NM',
                 #'conv_threshold':'default',

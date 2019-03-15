@@ -94,6 +94,8 @@ class QuantumRun:
             print('#')
             print('# Setting opt parameters...')
         self.Store.update_full_ints()
+        self.Store.F_alpha=0
+        self.Store.F_beta=0
         self.kw_opt['function'] = enf.find_function(
                 self.Store.theory,
                 'qc',
@@ -136,7 +138,7 @@ class QuantumRun:
             self.kw['pr_s']=0
         elif level=='analysis':
             self.kw['pr_g']=4
-        elif level=='diagnostic_full':
+        elif level=='diagnostic':
             self.kw_qc['pr_q']=9
             self.kw_opt['pr_o']=9
             self.kw['pr_m']=9
@@ -252,6 +254,9 @@ class RunNOFT(QuantumRun):
                 'orb',
                 self.Store,
                 self.QuantStore)
+        self.unity = self.kw_opt['unity']
+        self.shift = None
+
         if self.pr_g>0:
             if self.kw_orb_opt['optimizer']=='nevergrad':
                 print('#  orb opt    : {}'.format(self.kw_orb_opt['nevergrad_opt']))
@@ -315,12 +320,17 @@ class RunNOFT(QuantumRun):
             self.Store.opt_analysis()
         self.total.iter+=1
 
+    def _set_opt_parameters(self):
+        self.f = min(self.Store.F_alpha,self.Store.F_beta)
+        self.kw_opt['unity']=self.unity*(1-self.f*0.95)
+        print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
 
     def _OptNO(self):
         self.main=Cache()
         if self.kw['restart']==True:
             self._load()
         else:
+            self._set_opt_parameters()
             Run = opt.Optimizer(
                     **self.kw_opt
                     )
@@ -350,7 +360,9 @@ class RunNOFT(QuantumRun):
                     Store.opt_done=True
                 continue
             self.main.iter+=1
+        self.kw_opt['shift']=Run.opt.best_x.copy()
         self.Store.update_rdm2()
+        
 
     def _OptOrb(self):
         self.sub=Cache()

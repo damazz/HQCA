@@ -37,7 +37,7 @@ kw_opt = {
 
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
-prog.set_print(level='diagnostic_en')
+prog.set_print(level='diagnostic')
 prog.build()
 prog.execute()
 

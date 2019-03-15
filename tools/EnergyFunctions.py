@@ -73,7 +73,10 @@ class Storage:
         self.rdm2=None
         self.ints_1e =None
         self.C_a = moc_alpha
+        self.Ci_a = np.linalg.inv(self.C_a)
         self.C_b = moc_beta
+        self.Ci_b = np.linalg.inv(self.C_b)
+        self.S = np.dot(self.Ci_a,self.Ci_a.T)
         self.ints_2e = None
         self.ints_1e_ao = ints_1e_ao
         self.ints_2e_ao = ints_2e_ao
@@ -88,6 +91,8 @@ class Storage:
         self.occ_energy_calls = 0
         self.orb_energy_calls = 0
         self.active_space_calc='FCI'
+        self.F_alpha = 0
+        self.F_beta = 0
         self.kw = kwargs
 
     def gip(self):
@@ -201,7 +206,6 @@ class Storage:
             self.parameters  = para
             self.wf = wf
 
-
     def opt_update_rdm2(self,energy,rdm2,para):
         if energy<self.energy_wf:
             if energy<self.energy_best:
@@ -218,8 +222,13 @@ class Storage:
                 region='full')
 
     def update_full_ints(self):
-        self.T_alpha = self.opt_T_alpha.copy()
-        self.T_beta  = self.opt_T_beta.copy()
+        try:
+            self.T_alpha_old = self.T_alpha.copy()
+            self.T_beta_old = self.T_beta.copy()
+            self.T_alpha = self.opt_T_alpha.copy()
+            self.T_beta  = self.opt_T_beta.copy()
+        except Exception:
+            pass
         self.opt_T_alpha = None
         self.opt_T_beta = None
         self.ints_1e = chem.gen_spin_1ei(
@@ -240,13 +249,21 @@ class Storage:
                 region='full',
                 spin2spac=self.s2s
                 )
-        self.ints_2e = np.reshape(
-                self.ints_2e,
-                (
-                    (2*self.Norb_tot)**2,
-                    (2*self.Norb_tot)**2
-                    )
+        self.ints_2e = fx.contract(self.ints_2e)
+        # now, determining trace fidelity
+        self.F_alpha = (reduce(np.dot, (
+                self.T_alpha_old,
+                self.S,
+                self.T_alpha.T
                 )
+            ).trace())*(1/len(self.T_alpha))
+        self.F_beta = (reduce(np.dot, (
+                self.T_beta_old,
+                self.S,
+                self.T_beta.T
+                )
+            ).trace())*(1/len(self.T_beta))
+
 
     def opt_update_int(self,energy,U_a,U_b):
         '''
@@ -382,7 +399,6 @@ class Storage:
                 self.Np_orb += int(temp*(temp-1)/2)
         elif self.active_space_calc=='CASSCF':
             sys.exit('Orbital rotations not implemented fully for CASSCF.')
-
 
 def rotation_parameter_generation(
         spin_mo, # class with inactive, active, and virtual orbitals

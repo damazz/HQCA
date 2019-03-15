@@ -267,6 +267,12 @@ class QuantumStorage:
                     for k in range(self.No,l):
                         i,j = k%self.No, l%self.No
                         self.quad_list.append([i,j,k,l])
+        elif self.ansatz=='nat-orb-no':
+            if self.ent_pairs in ['sd','d']:
+                for k in range(self.No,self.No+len(self.beta_qb)-1):
+                    i= k%self.No
+                    self.quad_list.append([i,i+1,k,k+1])
+
 
     def _get_2e_no(self):
         self.tomo_quad = []

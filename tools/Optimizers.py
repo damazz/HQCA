@@ -13,6 +13,7 @@ import time
 import nevergrad
 from nevergrad.optimization import optimizerlib,registry
 from random import random as r
+from math import pi
 from functools import reduce,partial
 
 #
@@ -541,6 +542,9 @@ class nevergradopt:
             pr_o=0,
             max_iter=100,
             N_vectors=5,
+            shift=None,
+            use_radians=False,
+            unity=pi, #always give in radians!
             **kwargs
             ):
         '''
@@ -559,6 +563,12 @@ class nevergradopt:
             self._conv_thresh = conv_threshold
         self.vectors = []
         self.opt_crit=conv_crit_type
+        self.shift = shift
+        self.use_radians=use_radians
+        self.unity = unity
+        if not self.use_radians:
+            self.unity = self.unity*(180/pi)
+
 
     def check(self,initial=False):
         if self.opt_crit in ['default','iterations']:
@@ -569,81 +579,96 @@ class nevergradopt:
         elif self.opt_crit=='ImpAv':
             pass
         elif self.opt_crit=='MaxDist':
-            self.vectors.sort(key=lambda x:x[0],reverse=False)
             if initial:
-                pass
+                self.vectors.sort(key=lambda x:x[0],reverse=False)
+                self._update_MaxDist()
             else:
-                comp1 = self.E<self.vectors[-1][0]
+                dist = 0 
+                for i in range(len(self.vectors[0][1])):
+                    dist+=(self.vectors[0][2][i]-self.y[i])**2
+                dist = dist**(1/2)
                 comp2 = self.E<self.vectors[ 0][0]
-                if comp1 and not comp2:
+                if not comp2:
                     for i in reversed(range(1,self.Nv)):
-                        comp1 =self.E<=self.vectors[i][0]
-                        comp2 =self.E>self.vectors[i-1][0]
+                        comp1 =dist<=self.vectors[i][3]
+                        comp2 =dist>self.vectors[i-1][3]
                         if comp1 and comp2:
                             self.vectors.insert(
                                     i,
                                     [
                                         self.E,
-                                        self.x.copy()
-                                        ,0]
+                                        self.x.copy(),
+                                        self.y.copy(),
+                                        dist]
                                     )
                             del self.vectors[self.Nv]
                             break
                 elif comp2:
                     self.vectors.insert(
                             0,
-                            [self.E,self.x.copy(),0])
+                            [
+                                self.E,
+                                self.x.copy(),
+                                self.y.copy(),
+                                0])
                     del self.vectors[self.Nv]
+                self._update_MaxDist()
             self.best_f = self.vectors[0][0]
             self.best_x = self.vectors[0][1]
-            self._update_MaxDist()
             self.crit = self.max_d
 
     def _update_MaxDist(self):
         self.max_d=0
         for n,v in enumerate(self.vectors):
             if n==0:
-                self.vectors[0][2]=0
+                self.vectors[0][3]=0
             else:
-                dist = 0 
-                for i in range(len(self.vectors[0][1])):
-                    dist+=(self.vectors[0][1][i]-v[1][i])**2
+                dist = 0
+                for i in range(len(self.vectors[0][2])):
+                    dist+=(self.vectors[0][2][i]-v[2][i])**2
                 dist = dist**(1/2)
-                v[2]=dist
+                v[3]=dist
                 if dist>=self.max_d:
                     self.max_d = dist
                     self.max_n = n
 
     def initialize(self,start):
         self.Np = len(start)
+        if type(self.shift)==type(None):
+            self.shift = [0]*self.Np
+            print('Shift: ')
+            print(self.shift)
         self.opt = registry[self.opt_name](
                 dimension=self.Np,
                 budget=self.max_iter
                 )
         for i in range(0,self.Nv):
             x = self.opt.ask()
-            E = self.f(x)
+            y = x.copy()*self.unity+self.shift
+            E = self.f(y)
             self.energy_calls+=1
             self.vectors.append(
                 [
                     E,
                     x.copy(),
+                    y.copy(),
                     0])
             self.opt.tell(x,E)
         self.x = x.copy()
+        self.y = y.copy()
         self.E = E
         self.check(initial=True)
 
 
     def next_step(self):
         self.x = self.opt.ask()
-        self.E = self.f(self.x)
+        print('VALUE:')
+        print(self.x)
+        self.y = self.x.copy()*self.unity+self.shift
+        self.E = self.f(self.y)
         self.opt.tell(self.x,self.E)
         self.check()
         self.energy_calls+=1 
-
-
-
 
 
 #

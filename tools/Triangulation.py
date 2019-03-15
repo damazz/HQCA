@@ -192,6 +192,13 @@ class Triangle:
             x = U*point
         return x[0:3,0]
 
+
+def find_hyperplane(
+        QuantStore,
+        Store,
+        **kw):
+    pass
+
 def find_triangle(
         qc_backend,
         wf_mapping,
