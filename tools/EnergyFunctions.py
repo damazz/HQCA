@@ -228,7 +228,16 @@ class Storage:
             self.T_alpha = self.opt_T_alpha.copy()
             self.T_beta  = self.opt_T_beta.copy()
         except Exception:
-            pass
+            print('ERROR ERROR ERROR')
+            print(Exception)
+            print('')
+            print('')
+            print('')
+            print('')
+            print('')
+            print('')
+            print('')
+            print('')
         self.opt_T_alpha = None
         self.opt_T_beta = None
         self.ints_1e = chem.gen_spin_1ei(
@@ -267,7 +276,7 @@ class Storage:
             print('Error in fidelity:')
             print(self.T_alpha_old)
             print(self.S)
-            print(self.T_alpba.T)
+            print(self.T_alpha.T)
         elif self.F_beta>1:
             print('Error in fidelity:')
             print(self.T_beta_old)
