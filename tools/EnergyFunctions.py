@@ -238,8 +238,8 @@ class Storage:
             print('')
             print('')
             print('')
-        self.opt_T_alpha = None
-        self.opt_T_beta = None
+        #self.opt_T_alpha = None
+        #self.opt_T_beta = None
         self.ints_1e = chem.gen_spin_1ei(
                 self.ints_1e_ao.copy(),
                 self.T_alpha.T,

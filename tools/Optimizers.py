@@ -637,8 +637,6 @@ class nevergradopt:
         self.Np = len(start)
         if type(self.shift)==type(None):
             self.shift = [0]*self.Np
-            print('Shift: ')
-            print(self.shift)
         self.opt = registry[self.opt_name](
                 dimension=self.Np,
                 budget=self.max_iter
@@ -663,14 +661,11 @@ class nevergradopt:
 
     def next_step(self):
         self.x = self.opt.ask()
-        print('VALUE:')
-        print(self.x)
         self.y = self.x.copy()*self.unity+self.shift
         self.E = self.f(self.y)
         self.opt.tell(self.x,self.E)
         self.check()
         self.energy_calls+=1 
-
 
 #
 # test functions for optimizers: 

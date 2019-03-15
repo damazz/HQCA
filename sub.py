@@ -361,7 +361,6 @@ class RunNOFT(QuantumRun):
             self.main.iter+=1
         self.kw_opt['shift']=Run.opt.best_y.copy()
         self.Store.update_rdm2()
-        
 
     def _OptOrb(self):
         self.sub=Cache()
