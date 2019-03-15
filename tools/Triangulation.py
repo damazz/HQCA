@@ -121,7 +121,7 @@ class CompositeAffine:
         transformation to the point, and then returns the unitary affine matrix
         to perform the transformation.
         '''
-        target = 0 
+        target = 0
         min_dist = 1
         s = 'Distances: '
         for i in range(0,self.Ntri):
@@ -147,8 +147,6 @@ class CompositeAffine:
                 'aU':aU
                 }
         self.Ntri += 1
-
-
 
 #
 #
@@ -192,12 +190,6 @@ class Triangle:
             x = U*point
         return x[0:3,0]
 
-
-def find_hyperplane(
-        QuantStore,
-        Store,
-        **kw):
-    pass
 
 def find_triangle(
         qc_backend,

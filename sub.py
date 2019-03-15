@@ -94,8 +94,6 @@ class QuantumRun:
             print('#')
             print('# Setting opt parameters...')
         self.Store.update_full_ints()
-        self.Store.F_alpha=0
-        self.Store.F_beta=0
         self.kw_opt['function'] = enf.find_function(
                 self.Store.theory,
                 'qc',
@@ -330,7 +328,8 @@ class RunNOFT(QuantumRun):
         if self.kw['restart']==True:
             self._load()
         else:
-            self._set_opt_parameters()
+            if self.main.iter>0:
+                self._set_opt_parameters()
             Run = opt.Optimizer(
                     **self.kw_opt
                     )
@@ -360,7 +359,7 @@ class RunNOFT(QuantumRun):
                     Store.opt_done=True
                 continue
             self.main.iter+=1
-        self.kw_opt['shift']=Run.opt.best_x.copy()
+        self.kw_opt['shift']=Run.opt.best_y.copy()
         self.Store.update_rdm2()
         
 

@@ -274,8 +274,6 @@ class Storage:
                 self.T_beta
                 )
             ).trace()))*(1/len(self.T_beta))
-        print('Falp:{}'.format(self.F_alpha))
-        print('Fbet:{}'.format(self.F_beta))
         if self.F_alpha>1:
             print('Error in fidelity:')
             print(self.T_alpha_old.T)
@@ -302,7 +300,7 @@ class Storage:
     def opt_update_int(self,energy,U_a,U_b):
         '''
         Basically, always update the energy after finding the next best step in
-        an orbital optimization. 
+        an orbital optimization.
         '''
         if energy<self.energy_int:
             if energy<self.energy_best:
