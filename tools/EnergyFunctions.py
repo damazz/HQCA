@@ -278,7 +278,7 @@ class Storage:
             print(self.S)
             print(self.T_alpha.T)
             print(self.F_alpha)
-        elif self.F_beta>1:
+        if self.F_beta>1:
             print('Error in fidelity:')
             print(self.T_beta_old)
             print(self.S)
