@@ -328,7 +328,7 @@ class RunNOFT(QuantumRun):
         if self.kw['restart']==True:
             self._load()
         else:
-            if self.main.iter>0:
+            if self.total.iter>0:
                 self._set_opt_parameters()
             Run = opt.Optimizer(
                     **self.kw_opt
