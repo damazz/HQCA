@@ -615,6 +615,7 @@ class nevergradopt:
                 self._update_MaxDist()
             self.best_f = self.vectors[0][0]
             self.best_x = self.vectors[0][1]
+            self.best_y = self.vectors[0][2]
             self.crit = self.max_d
 
     def _update_MaxDist(self):
