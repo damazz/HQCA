@@ -225,7 +225,7 @@ class scan(sp):
             print('{:.1f}%'.format((i+1)*100/n1))
         '''
         fig = plt.figure()
-        ax.set_ylabel('p2')
+        ax = fig.add_subplot(111,projection='3d')
         maps = ax.plot_surface(X, Y, Z1,
                 cmap=cm.coolwarm,
                 linewidth=0)
