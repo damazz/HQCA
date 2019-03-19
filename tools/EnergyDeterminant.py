@@ -67,7 +67,7 @@ def build_2e_2rdm_spin(
         signs = [1]*N//2
     Ne_tot = 2
     wf = {}
-    nocca,noccb = np.real(nocca.tolist()),np.real(noccb.tolist())
+    nocca,noccb = np.real(nocca).tolist(),np.real(noccb).tolist()
     for i in range(0,N):
         term = '0'*(i)+'1'+'0'*(N-i-1)
         term+= term
