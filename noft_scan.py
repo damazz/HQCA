@@ -44,5 +44,5 @@ prog.update_var(target='opt',**kw_opt)
 #
 prog.set_print(level='default')
 prog.build()
-prog.scan(-pi/2,pi/2,5,-pi/2,pi/2,5)
+prog.scan(-pi/2,pi/2,10,-pi/2,pi/2,10)
 
