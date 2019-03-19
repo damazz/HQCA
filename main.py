@@ -192,22 +192,72 @@ class scan(sp):
         para1 = np.linspace(low1,high1,n1)
         para2 = np.linspace(low2,high2,n2)
         X,Y = np.meshgrid(para1,para2,indexing='ij')
-        Z = np.zeros((n1,n2))
+        Z1 = np.zeros((n1,n2))
         for i,a in enumerate(para1):
             for j,b in enumerate(para2):
                 self.run.single(para=[a,b,0])
-                Z[i,j] = self.run.E
+                Z1[i,j] = self.run.E
             print('{:.1f}%'.format((i+1)*100/n1))
+        '''
+        Z2 = np.zeros((n1,n2))
+        for i,a in enumerate(para1):
+            for j,b in enumerate(para2):
+                self.run.single(para=[a,b,pi/8])
+                Z2[i,j] = self.run.E
+            print('{:.1f}%'.format((i+1)*100/n1))
+        Z3 = np.zeros((n1,n2))
+        for i,a in enumerate(para1):
+            for j,b in enumerate(para2):
+                self.run.single(para=[a,b,2*pi/8])
+                Z3[i,j] = self.run.E
+            print('{:.1f}%'.format((i+1)*100/n1))
+        Z4 = np.zeros((n1,n2))
+        for i,a in enumerate(para1):
+            for j,b in enumerate(para2):
+                self.run.single(para=[a,b,3*pi/8])
+                Z4[i,j] = self.run.E
+            print('{:.1f}%'.format((i+1)*100/n1))
+        Z5 = np.zeros((n1,n2))
+        for i,a in enumerate(para1):
+            for j,b in enumerate(para2):
+                self.run.single(para=[a,b,4*pi/8])
+                Z5[i,j] = self.run.E
+            print('{:.1f}%'.format((i+1)*100/n1))
+        '''
         fig = plt.figure()
-        ax = fig.add_subplot(111,projection='3d')
-        ax.set_xlabel('p1')
         ax.set_ylabel('p2')
-        maps = ax.plot_surface(X, Y, Z,
+        maps = ax.plot_surface(X, Y, Z1,
                 cmap=cm.coolwarm,
                 linewidth=0)
         plt.colorbar(maps)
         # Plot the surface.
         plt.show()
+        '''
+        maps = ax.plot_surface(X, Y, Z2,
+                cmap=cm.coolwarm,
+                linewidth=0)
+        plt.colorbar(maps)
+        # Plot the surface.
+        plt.show()
+        maps = ax.plot_surface(X, Y, Z3,
+                cmap=cm.coolwarm,
+                linewidth=0)
+        plt.colorbar(maps)
+        # Plot the surface.
+        plt.show()
+        maps = ax.plot_surface(X, Y, Z4,
+                cmap=cm.coolwarm,
+                linewidth=0)
+        plt.colorbar(maps)
+        # Plot the surface.
+        plt.show()
+        maps = ax.plot_surface(X, Y, Z5,
+                cmap=cm.coolwarm,
+                linewidth=0)
+        plt.colorbar(maps)
+        # Plot the surface.
+        plt.show()
+        '''
 
 
 
