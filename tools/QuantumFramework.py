@@ -14,6 +14,7 @@ from hqca.tools._Tomography import Process
 from hqca.tools.QuantumFunctions import local_qubit_tomo_pairs as lqtp
 from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_full as nqtpf
 from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtpp
+from hqca.tools.QuantumFunctions import diag
 from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
@@ -69,6 +70,8 @@ def _direct_tomography(
             qtp = lqtp
         elif tomo_basis=='pauli':
             qtp = nqtpf
+        else:
+            qtp = diag
         rdm_alp = qtp[len(alp)]
         temp = qtp[len(bet)]
         rdm_bet = []
@@ -120,8 +123,10 @@ def _direct_tomography(
             QuantStore.beta_qb)
     if QuantStore.tomo_rdm=='1rdm':
         if QuantStore.tomo_bas in ['no','NO']:
-            print('Do you think we are in the natural orbitals? Wrong method!')
-            sys.exit()
+            Q = GenerateDirectCircuit(QuantStore,_name='ii')
+            Q.qc.measure(Q.q,Q.c)
+            circuit.append(Q.qc)
+            circuit_list.append(['ii'])
         elif QuantStore.tomo_bas=='hada':
             Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)

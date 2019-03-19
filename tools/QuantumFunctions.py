@@ -370,6 +370,7 @@ def get_direct_stats(QuantStore):
     print('# ')
 
 
+
 local_qubit_tomo_pairs = {
         2:[
             ['01']],
@@ -457,6 +458,8 @@ nonlocal_qubit_tomo_pairs_part = {
 # 5 has 2 fewer (8 v 10) but 3 more (8 v 5)
 # 6 has 4 fewer (11 v 15) but 6 more (11 v 5)
 # 8 has 9 fewer (19 v 28) but 12 more (19 v 7)
+
+diag = {i:[''] for i in range(2,9)}
 
 nonlocal_qubit_tomo_pairs_full = {
         i:[
