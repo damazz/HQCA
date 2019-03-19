@@ -183,6 +183,12 @@ class Process:
                     self.rdm[i1,i2]+=val*(1j)
         elif self.tomo_basis=='pauli':
             pass
+        elif self.tomo_basis=='no':
+            self.rdm = zeros((self.Nq_act,self.Nq_act))
+            for actqb in self.occ_qb:
+                ind = self.a2b[actqb]
+                temp = self.data['ii']['pd'][ind]
+                self.rdm[actqb,actqb]=temp
 
     def _build_compact_rdm(self,**kwargs):
         if self.qs.tomo_rdm=='1rdm':
