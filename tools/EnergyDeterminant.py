@@ -264,8 +264,8 @@ def energy_eval_nordm(
             noca = noca[::-1]
             nocb = nocb[::-1]
         if QuantStore.ec=='hyperplane':
-            noca = QuantStore.ec_a.map(noca)
-            nocb = QuantStore.ec_a.map(nocb)
+            noca = QuantStore.ec_a.map(noca.T)
+            nocb = QuantStore.ec_a.map(nocb.T)
         print('New noca: ')
         print(noca)
         print('New nocb: ')
