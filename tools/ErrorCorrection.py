@@ -9,7 +9,7 @@ class HyperPlane:
     def __init__(self,vertices):
         self.vert = np.asmatrix(vertices)
         self.d,self.p = vertices.shape
-        self.diff = np.asmatrix(np.zeros((self.d,self.p-1),dtype=np.complex_))
+        self.diff = np.asmatrix(np.zeros((self.d,self.p-1)))
         for i in range(0,self.p-1):
             self.diff[:,i]=self.vert[:,i]-self.vert[:,self.p-1]
         if not self.d==self.p:
@@ -25,8 +25,8 @@ class HyperPlane:
         if not G.d==self.d:
             print('Error in transformations.')
             sys.exit()
-        A = np.zeros((self.d+1,self.p),dtype=np.complex_)
-        B = np.zeros((G.d+1,G.p),dtype=np.complex_)
+        A = np.zeros((self.d+1,self.p))
+        B = np.zeros((G.d+1,G.p))
         A[:self.d,:]=self.vert[:,:]
         A[self.d,:]=np.ones(self.p)
         B[:G.d,:]=G.vert[:,:]
@@ -35,10 +35,10 @@ class HyperPlane:
         return np.dot(B,Ai)
     
     def _find_normal_vector(self):
-        self.n = np.zeros((self.d,1),dtype=np.complex_)
+        self.n = np.zeros((self.d,1))
         if self.d==self.p:
             for i in range(0,self.d):
-                temp = np.zeros((self.d-1,self.p-1),dtype=np.complex_)
+                temp = np.zeros((self.d-1,self.p-1))
                 temp[:i,:]=self.diff[:i,:]
                 temp[i:,:]=self.diff[i+1:,:]
                 self.n[i] = ((-1)**i)*np.linalg.det(temp)
@@ -118,7 +118,7 @@ class CompositePolytope:
             if dist<min_dist:
                 N=i
                 min_dist = dist
-        p = np.zeros((self.d+1,1),dtype=np.complex_)
+        p = np.zeros((self.d+1,1))
         p[:self.d,0] = np.asmatrix(point)
         p[-1,0] = 1
         return np.dot(self.poly[N]['Umi'],p)
@@ -148,13 +148,11 @@ def generate_error_polytope(Store,QuantStore,**kw):
                 print('No surface triangulation.')
         tempa = np.zeros((
             len(QuantStore.alpha_qb),
-            len(QuantStore.alpha_qb)),
-            dtype=np.complex_
+            len(QuantStore.alpha_qb))
             )
         tempb = np.zeros((
             len(QuantStore.beta_qb),
-            len(QuantStore.beta_qb)),
-            dtype=np.complex_
+            len(QuantStore.beta_qb))
             )
         for j in range(QuantStore.ec_Nv):
             QuantStore.parameters = QuantStore.ec_para[i][j]
@@ -173,10 +171,10 @@ def generate_error_polytope(Store,QuantStore,**kw):
                 rdmb = rdm1[No//2:,No//2:]
                 nocca,nora = np.linalg.eig(rdma)
                 nocca.sort()
-                nocca = nocca[::-1]
+                nocca = np.real(nocca[::-1])
                 noccb,norb = np.linalg.eig(rdmb)
                 noccb.sort()
-                noccb = noccb[::-1]
+                noccb = np.real(noccb[::-1])
                 tempa[:,j]=nocca
                 tempb[:,j]=noccb
                 print('Parameters: ')
@@ -191,7 +189,12 @@ def generate_error_polytope(Store,QuantStore,**kw):
         ideal = HyperPlane(QuantStore.ec_vert)
         ec_a.add_face(ideal,alp_hp)
         ec_b.add_face(ideal,bet_hp)
-
+        print('Alpha hyperplane:')
+        print(tempa)
+        print('Beta hyperplane:')
+        print(tempb)
+        print('Ideal hyperplane: ')
+        print(QuantStore.ec_vert)
     return ec_a,ec_b
 
 

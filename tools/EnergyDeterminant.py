@@ -56,23 +56,27 @@ def build_2e_2rdm_spin(
         Store,
         nocca,
         noccb,
+        N,
         signs=None,
         pr_m=True,
         ):
     '''
     builds and returns 2rdm for a wavefunction in the NO basis
     '''
-    N = len(nocca)-1
     if type(signs)==type(None):
-        signs = [1]*N//2
+        signs = [1]*N
     Ne_tot = 2
     wf = {}
-    nocca,noccb = np.real(nocca).tolist(),np.real(noccb).tolist()
+    try:
+        nocca[0][0]
+    except IndexError:
+        nocca = [nocca]
+        noccb = [noccb]
     for i in range(0,N):
         term = '0'*(i)+'1'+'0'*(N-i-1)
         term+= term
         val = np.sqrt(
-                max(0,(nocca[i]+noccb[i])/2)
+                max(0,(nocca[0][i]+noccb[0][i])/2)
                 )
         wf[term]=(signs[i])*val
     wf = fx.extend_wf(wf,
@@ -261,22 +265,19 @@ def energy_eval_nordm(
             nocb,norb = np.linalg.eig(rdmb)
             noca.sort()
             nocb.sort()
-            noca = noca[::-1]
-            nocb = nocb[::-1]
+            noca = np.real(noca[::-1])
+            nocb = np.real(nocb[::-1])
+            N = len(noca)
         if QuantStore.ec=='hyperplane':
-            noca = QuantStore.ec_a.map(noca.T)
-            nocb = QuantStore.ec_a.map(nocb.T)
-        print('New noca: ')
-        print(noca)
-        print('New nocb: ')
-        print(nocb)
+            noca = QuantStore.ec_a.map(noca.T).T
+            nocb = QuantStore.ec_b.map(nocb.T).T
         wf,rdm2 = build_2e_2rdm_spin(
                 Store,
                 noca,
                 nocb,
+                N,
                 proc.signs,
                 Store.pr_m)
-        print(wf)
         if spin_mapping=='spin-free':
             rdm2 = rdmf.rotate_2rdm_unrestricted(
                     rdm2,
