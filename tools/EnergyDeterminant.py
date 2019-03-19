@@ -72,7 +72,7 @@ def build_2e_2rdm_spin(
         term = '0'*(i)+'1'+'0'*(N-i-1)
         term+= term
         val = np.sqrt(
-                max(0,(nocca[i][0]+noccb[i][0])/2)
+                max(0,(nocca[i]+noccb[i])/2)
                 )
         wf[term]=(signs[i])*val
     wf = fx.extend_wf(wf,
