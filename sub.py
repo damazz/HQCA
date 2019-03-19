@@ -15,6 +15,7 @@ from hqca.tools import Functions as fx
 from hqca.tools import Optimizers as opt
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import EnergyFunctions as enf
+from hqca.tools import ErrorCorrection as ec
 from hqca.tools import Triangulation as tri
 from hqca.tools import QuantumFunctions as qf
 from functools import reduce
@@ -119,6 +120,7 @@ class QuantumRun:
     def set_print(self,level='default',
             record=False
             ):
+        self.kw_qc['pr_e']=2
         self.kw_qc['pr_q']=1
         self.kw_opt['pr_o']=1
         self.kw['pr_m']=1
@@ -271,18 +273,29 @@ class RunNOFT(QuantumRun):
             print('')
         self.built=True
 
-    def _get_triangle(self):
-        if self.kw_qc['tri']:
-            self.kw_qc['triangle']=tri.find_triangle(
-                    Ntri=self.kw_qc['method_Ntri'],
-                    **self.kw_qc)
+    def _pre(self):
+        try:
+            if self.kw_qc['tri']:
+                self.kw_qc['triangle']=tri.find_triangle(
+                        Ntri=self.kw_qc['method_Ntri'],
+                        **self.kw_qc)
+        except KeyError:
+            pass
+        if self.kw_qc['error_correction']:
+            ec_a,ec_b =ec.generate_error_polytope(
+                    self.Store,
+                    self.QuantStore)
+            self.QuantStore.ec_a = ec_a
+            self.QuantStore.ec_b = ec_b
+
+
 
     def go(self):
         if self.built:
             if 'classical' in self.kw_qc['method']:
                 pass
             else:
-                self._get_triangle()
+                self._pre()
             while not self.total.done:
                 self._OptNO()
                 self._OptOrb()

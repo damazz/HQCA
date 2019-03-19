@@ -14,6 +14,8 @@ algorithms and tomography. but we still need to handle the mappings.....
 so we have 
 
 '''
+import numpy as np
+from math import pi
 class KeyDict(dict):
     def __missing__(self,key):
         return key
@@ -42,8 +44,7 @@ class QuantumStorage:
             entangled_pairs,
             entangler_p,
             entangler_q,
-            tri,
-            load_triangle,
+            error_correction,
             Sz,
             depth,
             alpha_mos,
@@ -52,6 +53,7 @@ class QuantumStorage:
             theory='noft',
             fermion_mapping='jordan-wigner',
             backend_configuration=None,
+            load_triangle=False,
             ansatz='default',
             spin_mapping='default',
             method='variational',
@@ -59,7 +61,7 @@ class QuantumStorage:
             initialize='default',
             algorithm=None,
             pr_q=0,
-            pr_t=0,
+            pr_e=1,
             use_radians=False,
             opt=None
             ):
@@ -111,11 +113,12 @@ class QuantumStorage:
         self.init = initialize
         self.algorithm = algorithm
         self.method = method
-        self.tri=tri,
+        self.ec=error_correction
         self.sp = single_point
         self.alpha = alpha_mos
         self.beta = beta_mos
         self.pr_q = pr_q
+        self.pr_e = pr_e
         self.ansatz = ansatz
         self.spin_mapping = spin_mapping
         self.qubit_to_backend = backend_configuration
@@ -134,6 +137,8 @@ class QuantumStorage:
             self._gip()
             if self.tomo_ext=='sign_2e':
                 self._get_2e_no()
+        if self.ec=='hyperplane':
+            self._get_hyper_para()
         if self.pr_g>1:
             print('# Summary of quantum parameters:')
             print('#  backend   : {}'.format(self.backend))
@@ -175,6 +180,50 @@ class QuantumStorage:
             print(p)
             print('# ')
 
+    def _get_hyper_para(self):
+        if self.method=='carlson-keller':
+            if self.Nq==8:
+                ma = np.arccos(1/np.sqrt(3))
+                self.ec_Ns = 1  # num surfaces
+                self.ec_Nv = 4  # num dimensions 
+                self.ec_vert = np.matrix([
+                    [1/1,1/2,1/3,1/4],
+                    [0/1,1/2,1/3,1/4],
+                    [0/1,0/2,1/3,1/4],
+                    [0/1,0/2,0/3,1/4]])
+                self.ec_para = [
+                        [
+                            [0,0,0],
+                            [pi/2,0,0],
+                            [2*ma,pi/2,0],
+                            [2*pi/3,2*ma,pi/2]
+                            ]
+                        ]
+            elif self.Nq==4:
+                self.ec_Nv = 2
+                self.ec_Ns = 1
+                self.ec_vert = np.matrix([
+                    [1/1,1/2],
+                    [0/1,1/2]])
+                self.ec_para = [
+                        [
+                            [0],
+                            [pi/2]
+                            ]
+                        ]
+            elif self.Nq==12:
+                arc = [
+                        np.arccos(1/np.sqrt(2)),
+                        np.arccos(1/np.sqrt(3)),
+                        np.arccos(1/np.sqrt(4)),
+                        np.arccos(1/np.sqrt(5)),
+                        np.arccos(1/np.sqrt(6))]
+                self.ec_Nv = 6
+                self.ec_vert = np.matrix([
+                    [1/1,1/2,1/3,1/4],
+                    [0/1,1/2,1/3,1/4],
+                    [0/1,0/2,1/3,1/4],
+                    [0/1,0/2,0/3,1/4]])
 
 
     def _map_rdm_jw(self):
@@ -201,6 +250,7 @@ class QuantumStorage:
                 self.alpha_qb.append(self.qubit_to_backend[m])
                 self.backend_to_rdm[self.qubit_to_backend[m]]=bet
         self.rdm_to_backend = {v:k for k,v in self.backend_to_rdm.items()}
+
 
     def _get_ent_pairs_jw(self):
         # ansatz also includes orders of excitations, etc. 

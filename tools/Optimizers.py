@@ -55,7 +55,7 @@ def gradient_call(
     elif energy=='qc':
         sys.exit('No analytical gradients on the quantum computer!')
     return ddE
-
+    
 #
 #
 # Main Optimizer class
@@ -178,6 +178,11 @@ class Optimizer:
                 cache.err=True
         except Exception as e:
             traceback.print_exc()
+        if self.opt_done and self.method=='nevergrad':
+            try:
+                pass
+            except:
+                pass
 
 #
 #

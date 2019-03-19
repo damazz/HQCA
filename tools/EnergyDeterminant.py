@@ -34,13 +34,46 @@ def build_2e_2rdm(
     '''
     if type(signs)==type(None):
         signs = [1]*N//2
-    N = nocc.shape[0]
     Ne_tot = np.sum(nocc)
     wf = {}
     for i in range(0,N//2):
         term = '0'*(i)+'1'+'0'*(N//2-i-1)
         term+= term
         val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
+        wf[term]=(signs[i])*val
+    wf = fx.extend_wf(wf,
+            Store.Norb_tot,
+            Store.Nels_tot,
+            Store.alpha_mo,
+            Store.beta_mo)
+    rdm2 = rdmf.build_2rdm(
+            wf,
+            Store.alpha_mo,
+            Store.beta_mo)
+    return wf,rdm2
+
+def build_2e_2rdm_spin(
+        Store,
+        nocca,
+        noccb,
+        signs=None,
+        pr_m=True,
+        ):
+    '''
+    builds and returns 2rdm for a wavefunction in the NO basis
+    '''
+    N = len(nocca)-1
+    if type(signs)==type(None):
+        signs = [1]*N//2
+    Ne_tot = 2
+    wf = {}
+    nocca,noccb = np.real(nocca.tolist()),np.real(noccb.tolist())
+    for i in range(0,N):
+        term = '0'*(i)+'1'+'0'*(N-i-1)
+        term+= term
+        val = np.sqrt(
+                max(0,(nocca[i][0]+noccb[i][0])/2)
+                )
         wf[term]=(signs[i])*val
     wf = fx.extend_wf(wf,
             Store.Norb_tot,
@@ -176,19 +209,10 @@ def energy_eval_rdm(
         print('')
     return E_t
 
-
 def energy_eval_nordm(
         para,
         Store,
         QuantStore
-        #para,
-        #wf_mapping,
-        #algorithm,
-        #method='stretch',
-        #pr_m=0,
-        #triangle=None,
-        #store='default',
-        #**kwargs
         ):
     '''
     Energy evaluation for the natural orbital approach.
@@ -234,53 +258,46 @@ def energy_eval_nordm(
             rdmb = rdm1[Nso//2:,Nso//2:]
 
             noca,nora = np.linalg.eig(rdma)
-            idxa = noca.argsort()[::-1]
-            noca = noca[idxa]
-            nora = nora[:,idxa]
-
             nocb,norb = np.linalg.eig(rdmb)
-            idxb = nocb.argsort()[::-1]
-            nocb = nocb[idxb]
-            norb = norb[:,idxb]
-            if Store.pr_m>2:
-                print('Spin orbitals: ')
-                print('Alpha:')
-                print(nora)
-                print('Beta:')
-                print(norb)
-            noccs,norbs = np.linalg.eig(rdm1)
-            idx = noccs.argsort()[::-1]
-            norbs = norbs[:,idx]
-            if Store.pr_m>1:
-                print('Natural ocupations: ')
-                print('alpha: {}'.format(noca))
-                print('beta: {}'.format(nocb))
-        wf,rdm2 = build_2e_2rdm(
-                Store,noccs,
-                idx,proc.signs,
+            noca.sort()
+            nocb.sort()
+            noca = noca[::-1]
+            nocb = nocb[::-1]
+        if QuantStore.ec=='hyperplane':
+            noca = QuantStore.ec_a.map(noca)
+            nocb = QuantStore.ec_a.map(nocb)
+        print('New noca: ')
+        print(noca)
+        print('New nocb: ')
+        print(nocb)
+        wf,rdm2 = build_2e_2rdm_spin(
+                Store,
+                noca,
+                nocb,
+                proc.signs,
                 Store.pr_m)
+        print(wf)
         if spin_mapping=='spin-free':
             rdm2 = rdmf.rotate_2rdm_unrestricted(
                     rdm2,
                     con(norbs.T),
                     Store.alpha_mo,
                     Store.beta_mo)
-        else:
-            rdm2 = rdmf.rotate_2rdm(rdm2,
-                    con(nora.T),
-                    con(norb.T),
-                    Store.alpha_mo,
-                    Store.beta_mo,
-                    Store.s2s,
-                    region='active')
+        #else:
+        #    rdm2 = rdmf.rotate_2rdm(rdm2,
+        #            con(nora.T),
+        #            con(norb.T),
+        #            Store.alpha_mo,
+        #            Store.beta_mo,
+        #            Store.s2s,
+        #            region='active')
         rdm1 = rdmf.check_2rdm(rdm2,2)
-        if spin_mapping=='sdefault':
-            rdm2t = rdmf.switch_alpha_beta(rdm2,
-                    Store.alpha_mo,
-                    Store.beta_mo)
-            #rdm2 = 0.5*rdm2t + 0.5*rdm2
-            rdm1 = rdmf.check_2rdm(rdm2,2)
-            noccs,norbs = np.linalg.eig(rdm1)
+        #if spin_mapping=='default':
+        #    #rdm2t = rdmf.switch_alpha_beta(rdm2,
+        #    #        Store.alpha_mo,
+        #    #        Store.beta_mo)
+        #    rdm1 = rdmf.check_2rdm(rdm2,2)
+        noccs,norbs = np.linalg.eig(rdm1)
     elif QuantStore.method=='borland-dennis':
         on, onv = np.linalg.eig(rdm1)
         R = len(Store.ints_1e)

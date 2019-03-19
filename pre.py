@@ -35,10 +35,9 @@ def NOFT_2e():
             'entangled_pairs':'d', #
             'entangler_p':'Ry_cN', #Ry with a constant N
             'entangler_q':'UCC2c', #Ry with a constant N
-            'pr_t':1,
+            'pr_e':2,
             'pr_q':0,
-            'load_triangle':False,
-            'tri':False,
+            'error_correction':False,
             'Sz':0.0,
             'depth':1,
             'opt':{
@@ -154,7 +153,7 @@ def RDM():
             'entangled_pairs':'s', #
             'entangler_p':'Ry_cN', #Ry with a constant N
             'entangler_q':'Ry_cN', #Ry with a constant N
-            'pr_t':1,
+            'pr_e':1,
             'pr_q':0,
             'load_triangle':False,
             'tri':False,
