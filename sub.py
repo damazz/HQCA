@@ -272,6 +272,10 @@ class RunNOFT(QuantumRun):
             print('### ### ### ### ### ### ### ### ### ### ### ###')
             print('')
         self.built=True
+        if 'classical' in self.kw_qc['method']:
+            pass
+        else:
+            self._pre()
 
     def _pre(self):
         try:
@@ -292,10 +296,6 @@ class RunNOFT(QuantumRun):
 
     def go(self):
         if self.built:
-            if 'classical' in self.kw_qc['method']:
-                pass
-            else:
-                self._pre()
             while not self.total.done:
                 self._OptNO()
                 self._OptOrb()
@@ -335,6 +335,13 @@ class RunNOFT(QuantumRun):
         self.f = min(self.Store.F_alpha,self.Store.F_beta)
         self.kw_opt['unity']=self.unity*(1-self.f*0.95)
         print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
+    
+    def partial_run(self):
+        pass
+
+    def single(self,para):
+        self.E = self.kw_opt['function'](para)
+
 
     def _OptNO(self):
         self.main=Cache()
@@ -374,6 +381,7 @@ class RunNOFT(QuantumRun):
             self.main.iter+=1
         self.kw_opt['shift']=Run.opt.best_y.copy()
         self.Store.update_rdm2()
+
 
     def _OptOrb(self):
         self.sub=Cache()
