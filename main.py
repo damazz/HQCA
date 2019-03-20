@@ -234,9 +234,16 @@ class scan(sp):
                 print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()
             ax = fig.add_subplot(111,projection='3d')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
             maps = ax.plot_surface(X, Y, Z,
                     cmap=cm.coolwarm,
                     linewidth=0)
+            for n,i in enumerate(Z):
+                print('x,y:[{:+.4f},y:{:+.4f}],E:{:+.8f}'.format(
+                        X[n,np.argmin(i)],
+                        Y[n,np.argmin(i)],
+                        Z[n,np.argmin(i)]))
             plt.colorbar(maps)
             # Plot the surface.
             plt.show()
