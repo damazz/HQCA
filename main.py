@@ -240,7 +240,7 @@ class scan(sp):
                     cmap=cm.coolwarm,
                     linewidth=0)
             for n,i in enumerate(Z):
-                print('x,y:[{:+.4f},y:{:+.4f}],E:{:+.8f}'.format(
+                print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
                         X[n,np.argmin(i)],
                         Y[n,np.argmin(i)],
                         Z[n,np.argmin(i)]))
