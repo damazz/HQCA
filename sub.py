@@ -347,6 +347,11 @@ class RunNOFT(QuantumRun):
     def _single_orb(self,para):
         self.E = self.kw_orb_opt['function'](para)
 
+    def _find_orb(self):
+        self.main=Cache()
+        self.main.done=True
+        self._OptOrb()
+
     def _OptNO(self):
         self.main=Cache()
         if self.kw['restart']==True:
