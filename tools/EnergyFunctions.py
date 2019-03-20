@@ -297,7 +297,7 @@ class Storage:
 
 
 
-    def opt_update_int(self,energy,U_a,U_b):
+    def opt_update_int(self,para,energy,U_a,U_b):
         '''
         Basically, always update the energy after finding the next best step in
         an orbital optimization.
@@ -308,6 +308,7 @@ class Storage:
             self.energy_int  = energy
             self.opt_T_alpha = U_a
             self.opt_T_beta  = U_b
+            self.opt_para = para
 
     def opt_analysis(self):
         print('  --  --  --  --  --  --  -- ')

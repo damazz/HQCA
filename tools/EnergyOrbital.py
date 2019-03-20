@@ -92,7 +92,7 @@ def energy_eval_orbitals(
         print('Nuclear Repulsion Energy: {}'.format(Store.E_ne))
         print('Total Energy: {} Hartrees'.format(E_t))
         print('----------')
-    Store.opt_update_int(E_t,T_a,T_b)
+    Store.opt_update_int(para,E_t,T_a,T_b)
     return E_t
 '''
 def orbital_energy_gradient_givens(
