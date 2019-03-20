@@ -335,13 +335,17 @@ class RunNOFT(QuantumRun):
         self.f = min(self.Store.F_alpha,self.Store.F_beta)
         self.kw_opt['unity']=self.unity*(1-self.f*0.95)
         print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
-    
-    def partial_run(self):
-        pass
 
-    def single(self,para):
+    def single(self,target,para):
+        if target=='rdm':
+            self._single_rdm(para)
+        elif target=='orb':
+            self._single_orb(para)
+
+    def _single_rdm(self,para):
         self.E = self.kw_opt['function'](para)
-
+    def _single_orb(self,para):
+        self.E = self.kw_orb_opt['function'](para)
 
     def _OptNO(self):
         self.main=Cache()

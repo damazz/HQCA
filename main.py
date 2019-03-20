@@ -182,13 +182,22 @@ class sp:
             print(' |{}>: {}'.format(k,v))
 
 class scan(sp):
+
+    def update_rdm(self,para):
+        self.run.single('rdm',para)
+        self.Store.update_rdm2()
+
+    def update_full_ints(self,para):
+        self.run.single('orb',para)
+        self.Store.update_full_ints()
+
     def scan(self,
+            target,
             start,
             index,
             high,
             low,
-            ns
-            ):
+            ns):
         import matplotlib.pyplot as plt
         from matplotlib import cm
         from mpl_toolkits.mplot3d import Axes3D
@@ -196,19 +205,18 @@ class scan(sp):
             print('Error too many variables.')
             sys.exit()
         if len(index)==1:
-            para = np.linspace(low[0],high[0],ns[0])
+            X = np.linspace(low[0],high[0],ns[0])
             Y = np.zeros(ns[0])
-            for n,i in enumerate(para):
+            for n,i in enumerate(X):
                 temp = start.copy()
                 temp[index[0]]=i
-                self.run.single(para=temp)
+                self.run.single(target,temp)
                 Y[n] = self.run.E
-                print('{:.1f}%'.format((n+1)*100/n1))
+                print('{:.1f}%'.format((n+1)*100/ns[0]))
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            maps = ax.plot(X, Y
-                    linewidth=0)
-            plt.colorbar(maps)
+            Xp = X*(180/np.pi)
+            ax.plot(Xp, Y,linewidth=3)
             # Plot the surface.
             plt.show()
         elif len(index)==2:
@@ -221,9 +229,9 @@ class scan(sp):
                     temp = start.copy()
                     temp[index[0]]=a
                     temp[index[1]]=b
-                    self.run.single(para=temp)
-                    Z1[i,j] = self.run.E
-                print('{:.1f}%'.format((i+1)*100/n1))
+                    self.run.single(target,para=temp)
+                    Z[i,j] = self.run.E
+                print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()
             ax = fig.add_subplot(111,projection='3d')
             maps = ax.plot_surface(X, Y, Z,
@@ -247,9 +255,9 @@ class scan(sp):
                         temp = temp1.copy()
                         temp[index[0]]=a
                         temp[index[1]]=b
-                        self.run.single(para=temp)
+                        self.run.single(target,para=temp)
                         Z1[i,j] = self.run.E
-                    print('{:.1f}%'.format((i+1)*100/n1))
+                    print('{:.1f}%'.format((i+1)*100/ns[0]))
                 fig = plt.figure()
                 ax = fig.add_subplot(111,projection='3d')
                 maps = ax.plot_surface(X, Y, Z,
