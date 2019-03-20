@@ -8,5 +8,6 @@ tools/__pycache__/
 ./tools/__pycache__/*
 ./tools/__pycache__/
 noft.py
+noft_scan.py
 
 

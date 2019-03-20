@@ -183,84 +183,79 @@ class sp:
 
 class scan(sp):
     def scan(self,
-            low1,high1,n1,
-            low2,high2,n2
+            start,
+            index,
+            high,
+            low,
+            ns
             ):
         import matplotlib.pyplot as plt
         from matplotlib import cm
         from mpl_toolkits.mplot3d import Axes3D
-        para1 = np.linspace(low1,high1,n1)
-        para2 = np.linspace(low2,high2,n2)
-        X,Y = np.meshgrid(para1,para2,indexing='ij')
-        Z1 = np.zeros((n1,n2))
-        for i,a in enumerate(para1):
-            for j,b in enumerate(para2):
-                self.run.single(para=[a,b,0])
-                Z1[i,j] = self.run.E
-            print('{:.1f}%'.format((i+1)*100/n1))
-        '''
-        Z2 = np.zeros((n1,n2))
-        for i,a in enumerate(para1):
-            for j,b in enumerate(para2):
-                self.run.single(para=[a,b,pi/8])
-                Z2[i,j] = self.run.E
-            print('{:.1f}%'.format((i+1)*100/n1))
-        Z3 = np.zeros((n1,n2))
-        for i,a in enumerate(para1):
-            for j,b in enumerate(para2):
-                self.run.single(para=[a,b,2*pi/8])
-                Z3[i,j] = self.run.E
-            print('{:.1f}%'.format((i+1)*100/n1))
-        Z4 = np.zeros((n1,n2))
-        for i,a in enumerate(para1):
-            for j,b in enumerate(para2):
-                self.run.single(para=[a,b,3*pi/8])
-                Z4[i,j] = self.run.E
-            print('{:.1f}%'.format((i+1)*100/n1))
-        Z5 = np.zeros((n1,n2))
-        for i,a in enumerate(para1):
-            for j,b in enumerate(para2):
-                self.run.single(para=[a,b,4*pi/8])
-                Z5[i,j] = self.run.E
-            print('{:.1f}%'.format((i+1)*100/n1))
-        '''
-        fig = plt.figure()
-        ax = fig.add_subplot(111,projection='3d')
-        maps = ax.plot_surface(X, Y, Z1,
-                cmap=cm.coolwarm,
-                linewidth=0)
-        plt.colorbar(maps)
-        # Plot the surface.
-        plt.show()
-        '''
-        maps = ax.plot_surface(X, Y, Z2,
-                cmap=cm.coolwarm,
-                linewidth=0)
-        plt.colorbar(maps)
-        # Plot the surface.
-        plt.show()
-        maps = ax.plot_surface(X, Y, Z3,
-                cmap=cm.coolwarm,
-                linewidth=0)
-        plt.colorbar(maps)
-        # Plot the surface.
-        plt.show()
-        maps = ax.plot_surface(X, Y, Z4,
-                cmap=cm.coolwarm,
-                linewidth=0)
-        plt.colorbar(maps)
-        # Plot the surface.
-        plt.show()
-        maps = ax.plot_surface(X, Y, Z5,
-                cmap=cm.coolwarm,
-                linewidth=0)
-        plt.colorbar(maps)
-        # Plot the surface.
-        plt.show()
-        '''
+        if len(index)>3:
+            print('Error too many variables.')
+            sys.exit()
+        if len(index)==1:
+            para = np.linspace(low[0],high[0],ns[0])
+            Y = np.zeros(ns[0])
+            for n,i in enumerate(para):
+                temp = start.copy()
+                temp[index[0]]=i
+                self.run.single(para=temp)
+                Y[n] = self.run.E
+                print('{:.1f}%'.format((n+1)*100/n1))
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            maps = ax.plot(X, Y
+                    linewidth=0)
+            plt.colorbar(maps)
+            # Plot the surface.
+            plt.show()
+        elif len(index)==2:
+            para1 = np.linspace(low[0],high[0],ns[0])
+            para2 = np.linspace(low[1],high[1],ns[1])
+            X,Y = np.meshgrid(para1,para2,indexing='ij')
+            Z = np.zeros((ns[0],ns[1]))
+            for i,a in enumerate(para1):
+                for j,b in enumerate(para2):
+                    temp = start.copy()
+                    temp[index[0]]=a
+                    temp[index[1]]=b
+                    self.run.single(para=temp)
+                    Z1[i,j] = self.run.E
+                print('{:.1f}%'.format((i+1)*100/n1))
+            fig = plt.figure()
+            ax = fig.add_subplot(111,projection='3d')
+            maps = ax.plot_surface(X, Y, Z,
+                    cmap=cm.coolwarm,
+                    linewidth=0)
+            plt.colorbar(maps)
+            # Plot the surface.
+            plt.show()
 
-
-
-
-
+        elif len(index)==3:
+            para1 = np.linspace(low[0],high[0],ns[0])
+            para2 = np.linspace(low[1],high[1],ns[1])
+            para3 = np.linspace(low[2],high[2],ns[2])
+            X,Y = np.meshgrid(para1,para2,indexing='ij')
+            for k,c in enumerate(para3):
+                temp1 = start.copy()
+                temp1[index[2]]=c
+                Z = np.zeros((ns[0],ns[1]))
+                for i,a in enumerate(para1):
+                    for j,b in enumerate(para2):
+                        temp = temp1.copy()
+                        temp[index[0]]=a
+                        temp[index[1]]=b
+                        self.run.single(para=temp)
+                        Z1[i,j] = self.run.E
+                    print('{:.1f}%'.format((i+1)*100/n1))
+                fig = plt.figure()
+                ax = fig.add_subplot(111,projection='3d')
+                maps = ax.plot_surface(X, Y, Z,
+                        cmap=cm.coolwarm,
+                        linewidth=0)
+                plt.colorbar(maps)
+                # Plot the surface.
+                plt.show()
 
