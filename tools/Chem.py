@@ -204,7 +204,6 @@ def gen_spin_1ei(
     elif region in ['active','active_space','as']:
         alpha=alpha['active']+alpha['inactive']
         beta =beta['active']+beta['inactive']
-
         if type(new_ei)==type(None):
             new_ei = np.zeros((N*2,N*2))
     temp1 = np.zeros((N,N))
@@ -232,18 +231,20 @@ def gen_spin_1ei(
 
 def gen_spin_1ei_lr(
         ei1,
-        U_a,
-        U_b,
+        Ua_l,
+        Ua_r,
+        Ub_l,
+        Ub_r,
         alpha,
         beta,
-        region='active',
         spin2spac=None,
+        region='full',
         new_ei=None):
     N= len(Ua_l)
     if region=='full':
         alpha = alpha['inactive']+alpha['active']
         beta = beta['inactive']+beta['active']
-        new_ei = np.zeros((N*2,N*2,N*2,N*2))
+        new_ei = np.zeros((N*2,N*2))
     elif region in ['active','active_space','as']:
         alpha=alpha['active']
         beta =beta['active']
@@ -256,7 +257,7 @@ def gen_spin_1ei_lr(
             new_ei[i,j]=0
             Q=spin2spac[j]
             for b in range(0,N):
-                new_ei[i,j]+= Ua_r.T[b,Q]*temp1[P,b]
+                new_ei[i,j]+= Ua_r[b,Q]*temp1[P,b]
     temp1 = np.zeros((N,N))
     for i in beta:
         P=spin2spac[i]
@@ -266,7 +267,7 @@ def gen_spin_1ei_lr(
             new_ei[i,j]=0
             Q=spin2spac[j]
             for b in range(0,N):
-                new_ei[i,j]+= Ub_r.T[b,Q]*temp1[P,b]
+                new_ei[i,j]+= Ub_r[b,Q]*temp1[P,b]
     return new_ei
 
 def gen_spin_2ei(
@@ -393,7 +394,11 @@ def gen_spin_2ei_lr(
         ei2,
         Ua_l1,Ua_l2,Ua_r1,Ua_r2,
         Ub_l1,Ub_l2,Ub_r1,Ub_r2,
-        alpha=[0,1,2],beta=[3,4,5],spin2spac=mss):
+        alpha,
+        beta,
+        region='full',
+        spin2spac=mss
+        ):
     '''
     Essentially, a rotation tool. BUT, allows for different rotations from the
     left right matrices. 
@@ -410,6 +415,13 @@ def gen_spin_2ei_lr(
     temp2 = np.zeros((N,N,N,N))
     temp3 = np.zeros((N,N,N,N))
     #temp0 = np.zeros((N,N,N,N))
+    if region=='full':
+        alpha = alpha['inactive']+alpha['active']
+        beta = beta['inactive']+beta['active']
+        new_ei = np.zeros((N*2,N*2,N*2,N*2))
+    elif region in ['active','active_space','as']:
+        alpha=alpha['active']
+        beta =beta['active']
     ## alpha alpha portion
     for i in alpha: #e1
         P = spin2spac[i]
@@ -426,7 +438,7 @@ def gen_spin_2ei_lr(
                 for l in alpha:
                     S = spin2spac[l]
                     for d in range(0,N):
-                        new_ei[i,k,l,j]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
 
     # now, alpha beta block 
 
@@ -449,9 +461,8 @@ def gen_spin_2ei_lr(
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,l,j]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
     # beta alpha block
-
     temp1 = np.zeros((N,N,N,N))
     temp2 = np.zeros((N,N,N,N))
     temp3 = np.zeros((N,N,N,N))
@@ -471,9 +482,7 @@ def gen_spin_2ei_lr(
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_a[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,l,j]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
-
-
+                        new_ei[i,k,j,l]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
     temp1 = np.zeros((N,N,N,N))
     temp2 = np.zeros((N,N,N,N))
     temp3 = np.zeros((N,N,N,N))
@@ -493,7 +502,7 @@ def gen_spin_2ei_lr(
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,l,j]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
     return new_ei #, temp0
 
 def rotate_2rdm(aa,ab,bb,U_a,U_b,alpha=[0,1,2],beta=[3,4,5],spin2spac=mss):

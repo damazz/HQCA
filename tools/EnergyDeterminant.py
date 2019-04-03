@@ -90,6 +90,7 @@ def build_2e_2rdm_spin(
             Store.beta_mo)
     return wf,rdm2
 
+
 def energy_eval_rdm(
         para,
         Store,
@@ -223,61 +224,74 @@ def energy_eval_nordm(
     Has several different methods, which use similar pinning principals. 
     Main difference is between classical and quantum computer algorithms. 
     '''
-    if Store.pr_m>1:
-        print('Parameters, degrees: ')
-        print(para)
-    spin_mapping = QuantStore.spin_mapping
-    unrestrict=False
-    if spin_mapping=='spatial':
-        para = para.tolist()
-        para = para + para
-    #if QuantStore.use_radians==False:
-    #    para = [i*pi/180 for i in para]
-    #else:
-    #    para = [i*pi for i in para]
-    QuantStore.parameters = para
-    q_circ,qc_list = build_circuits(QuantStore)
-    qc_obj = run_circuits(
-            q_circ,
-            qc_list,
-            QuantStore
-            )
-    proc = Construct(
-            qc_obj,
-            QuantStore)
-    rdm1 = proc.rdm1
-    if Store.pr_m>1:
-        print('1RDM from Quantum Computer: ')
-        print(np.real(rdm1))
-        print('Imaginary components:')
-        print(np.imag(rdm1))
     if QuantStore.method=='generalized':
         pass
     elif QuantStore.method=='carlson-keller':
-        # performing natural orbital approach for a 2e system
-        if spin_mapping=='default':
-            proc.find_signs()
-            Nso = rdm1.shape[0]
-            rdma = rdm1[0:Nso//2,0:Nso//2]
-            rdmb = rdm1[Nso//2:,Nso//2:]
+        if Store.pr_m>1:
+            print('Parameters, degrees: ')
+            print(para)
+        spin_mapping = QuantStore.spin_mapping
+        unrestrict=False
+        if spin_mapping=='spatial':
+            para = para.tolist()
+            para = para + para
+        QuantStore.parameters = para
+        if QuantStore.qc:
+            q_circ,qc_list = build_circuits(QuantStore)
+            qc_obj = run_circuits(
+                    q_circ,
+                    qc_list,
+                    QuantStore
+                    )
+            proc = Construct(
+                    qc_obj,
+                    QuantStore)
+            rdm1 = proc.rdm1
+            if Store.pr_m>1:
+                print('1RDM from Quantum Computer: ')
+                print(np.real(rdm1))
+                print('Imaginary components:')
+                print(np.imag(rdm1))
+            if spin_mapping=='default':
+                proc.find_signs()
+                Nso = rdm1.shape[0]
+                rdma = rdm1[0:Nso//2,0:Nso//2]
+                rdmb = rdm1[Nso//2:,Nso//2:]
 
-            noca,nora = np.linalg.eig(rdma)
-            nocb,norb = np.linalg.eig(rdmb)
-            noca.sort()
-            nocb.sort()
-            noca = np.real(noca[::-1])
-            nocb = np.real(nocb[::-1])
-            N = len(noca)
-        if QuantStore.ec=='hyperplane':
-            noca = QuantStore.ec_a.map(noca.T).T
-            nocb = QuantStore.ec_b.map(nocb.T).T
-        wf,rdm2 = build_2e_2rdm_spin(
-                Store,
-                noca,
-                nocb,
-                N,
-                proc.signs,
-                Store.pr_m)
+                noca,nora = np.linalg.eig(rdma)
+                nocb,norb = np.linalg.eig(rdmb)
+                noca.sort()
+                nocb.sort()
+                noca = np.real(noca[::-1])
+                nocb = np.real(nocb[::-1])
+                N = len(noca)
+            if QuantStore.ec=='hyperplane':
+                noca = QuantStore.ec_a.map(noca.T).T
+                nocb = QuantStore.ec_b.map(nocb.T).T
+            wf,rdm2 = build_2e_2rdm_spin(
+                    Store,
+                    noca,
+                    nocb,
+                    N,
+                    proc.signs,
+                    Store.pr_m)
+        else:
+            N = QuantStore.No
+            wf = {'{}{}{}'.format('0'*i,'1','0'*(N-1-i))*2:1 for i in range(N)}
+            wfa = ['{}{}{}'.format('0'*i,'1','0'*(N-1-i))*2 for i in range(N)]
+            for n,p in enumerate(para):
+                wf[wfa[n]]*= np.cos(p)
+                for i in range(n+1,N):
+                   wf[wfa[i]]*= np.sin(p)
+            wf = fx.extend_wf(wf,
+                    Store.Norb_tot,
+                    Store.Nels_tot,
+                    Store.alpha_mo,
+                    Store.beta_mo)
+            rdm2 = rdmf.build_2rdm(
+                    wf,
+                    Store.alpha_mo,
+                    Store.beta_mo)
         if spin_mapping=='spin-free':
             rdm2 = rdmf.rotate_2rdm_unrestricted(
                     rdm2,

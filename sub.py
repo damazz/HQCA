@@ -43,7 +43,6 @@ class QuantumRun:
             **kw
             ):
         self.Store=store
-        self.Store.sp='rdm'
         self.kw_qc = self.kw['qc']
         self.kw_opt = self.kw_qc['opt']
         self.built=False
@@ -161,6 +160,7 @@ class RunRDM(QuantumRun):
         self.kw = pre.RDM()
         self.rc=Cache()
         QuantumRun.__init(store,**kw)
+        self.Store.sp='rdm'
 
     def go(self):
         if self.built:
@@ -226,8 +226,7 @@ class RunRDM(QuantumRun):
 class RunNOFT(QuantumRun):
     '''
     Subroutine for a natural-orbital function theory approach with a quantum
-    computing treatment of the natural orbitals. 
-    
+    computing treatment of the natural orbitals.
     '''
     def __init__(self,
             store,
@@ -240,10 +239,11 @@ class RunNOFT(QuantumRun):
         else:
             sys.exit()
         QuantumRun.__init__(self,store,**kw)
+        self.Store.sp='noft'
         self.kw_orb = self.kw['orb']
         self.kw_orb_opt = self.kw_orb['opt']
         self.total=Cache()
-
+        self.Run = {}
 
     def build(self):
         self.Store.pr_s = self.kw['pr_s']
@@ -254,6 +254,15 @@ class RunNOFT(QuantumRun):
                 'orb',
                 self.Store,
                 self.QuantStore)
+        grad_free = ['NM','nevergrad']
+        if self.kw_orb_opt['optimizer'] in grad_free:
+            pass
+        else:
+            self.kw_orb_opt['gradient']=enf.find_function(
+                    'noft',
+                    'orb_grad',
+                    self.Store,
+                    self.QuantStore)
         self.unity = self.kw_opt['unity']
         self.shift = None
 
@@ -285,14 +294,12 @@ class RunNOFT(QuantumRun):
                         **self.kw_qc)
         except KeyError:
             pass
-        if self.kw_qc['error_correction']:
+        if self.kw_qc['error_correction'] and self.QuantStore.qc:
             ec_a,ec_b =ec.generate_error_polytope(
                     self.Store,
                     self.QuantStore)
             self.QuantStore.ec_a = ec_a
             self.QuantStore.ec_b = ec_b
-
-
 
     def go(self):
         if self.built:
@@ -336,86 +343,82 @@ class RunNOFT(QuantumRun):
         self.kw_opt['unity']=self.unity*(1-self.f*0.95)
         print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
 
-    def single(self,target,para):
-        if target=='rdm':
-            self._single_rdm(para)
-        elif target=='orb':
-            self._single_orb(para)
-
-    def _single_rdm(self,para):
-        self.E = self.kw_opt['function'](para)
-    def _single_orb(self,para):
-        self.E = self.kw_orb_opt['function'](para)
-
-    def _find_orb(self):
-        self.main=Cache()
-        self.main.done=True
-        self._OptOrb()
-
     def _OptNO(self):
         self.main=Cache()
+        key = 'rdm{}'.format(self.total.iter)
         if self.kw['restart']==True:
             self._load()
         else:
             if self.total.iter>0:
                 self._set_opt_parameters()
-            Run = opt.Optimizer(
+            self.Run[key] = opt.Optimizer(
                     **self.kw_opt
                     )
-            Run.initialize(self.QuantStore.parameters)
-        if Run.error:
+            self.Run[key].initialize(
+                    self.QuantStore.parameters)
+        if self.Run[key].error:
             print('##########')
             print('Encountered error in initialization.')
             print('##########')
             self.main.done=True
         self.main.done=False
         while not self.main.done:
-            Run.next_step()
+            self.Run[key].next_step()
             if self.kw_opt['pr_o']>0:
                 print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
                     self.main.iter,
-                    Run.opt.best_f,
-                    Run.opt.crit)
+                    self.Run[key].opt.best_f,
+                    self.Run[key].opt.crit)
                     )
-            Run.check(self.main)
+            self.Run[key].check(self.main)
             if self.main.iter==self.kw_opt['max_iter'] and not(self.main.done):
                 self.main.error=False
-                Run.opt_done=True
+                self.Run[key].opt_done=True
                 self.main.done=True
-            elif Run.opt_done:
-                if Run.error:
+            elif self.Run[key].opt_done:
+                if self.Run[key].error:
                     print('Error in run.')
                     Store.opt_done=True
                 continue
             self.main.iter+=1
-        self.kw_opt['shift']=Run.opt.best_y.copy()
+        self.kw_opt['shift']=self.Run[key].opt.best_y.copy()
         self.Store.update_rdm2()
-
 
     def _OptOrb(self):
         self.sub=Cache()
+        key = 'orb{}'.format(self.total.iter)
         self.sub.done=False
-        self.para_orb = [0]*self.Store.Np_orb
+        self.para_orb = np.asarray([0.0]*self.Store.Np_orb)
         if self.kw['restart']==True:
             self._load()
         else:
-            Run = opt.Optimizer(
+            self.Run[key] = opt.Optimizer(
                     **self.kw_orb_opt
                     )
-            Run.initialize(self.para_orb)
+            self.Run[key].initialize(self.para_orb)
         while not self.sub.done:
-            Run.next_step()
-            if self.kw['pr_s']>0 and self.sub.iter%10==0:
-                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
+            self.Run[key].next_step()
+            if self.kw['pr_s']>0 and self.sub.iter%1==0:
+                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}'.format(
                     self.sub.iter,
-                    Run.opt.best_f,
-                    Run.opt.crit)
+                    self.Run[key].opt.best_f,
+                    self.Run[key].opt.crit)
                     )
-            Run.check(self.sub)
+            self.Run[key].check(self.sub)
             if self.sub.iter==self.kw_orb_opt['max_iter'] and not self.main.done:
                 self.sub.done=True
                 self.sub.err=True
-                Run.opt_done=True
+                self.Run[key].opt_done=True
             self.sub.iter+=1
         self.Store.update_full_ints()
 
+    def single(self,target,para):
+        if target=='rdm':
+            self.E = self.kw_opt['function'](para)
+        elif target=='orb':
+            self.E = self.kw_orb_opt['function'](para)
+
+    def _find_orb(self):
+        self.main=Cache()
+        self.main.done=True
+        self._OptOrb()

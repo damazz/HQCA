@@ -29,9 +29,18 @@ def find_function(
                         'QuantStore':QuantStore
                         }
                     )
-        elif spec=='orb':
+        if spec=='orb':
             f = partial(
                     eno.energy_eval_orbitals,
+                    **{
+                        'Store':Store,
+                        'QuantStore':QuantStore
+                        }
+                    )
+        elif spec=='orb_grad':
+            f = partial(
+                    #eno.orbital_energy_gradient_givens,
+                    eno.orbital_en_grad_numerical,
                     **{
                         'Store':Store,
                         'QuantStore':QuantStore
@@ -220,6 +229,9 @@ class Storage:
                 self.alpha_mo,
                 self.beta_mo,
                 region='full')
+        self.rdm1 = rdmf.check_2rdm(
+                self.rdm2,self.Nels_tot)
+        self.rdm2 = fx.contract(self.rdm2)
 
     def update_full_ints(self):
         try:
@@ -483,14 +495,16 @@ def rotation_parameter_generation(
         sys.exit('Invalid active space selection.')
     for z in hold:
         if output=='matrix':
+            if para[count]==0:
+                continue
             temp=np.identity(Norb_tot)
-            c = np.cos((np.pi*(para[count])/180))
-            s = np.sin((np.pi*(para[count])/180))
+            c = np.cos(((para[count])))
+            s = np.sin(((para[count])))
             temp[z[0],z[0]] = c
             temp[z[1],z[1]] = c
             temp[z[0],z[1]] = -s
             temp[z[1],z[0]] = s
-            rot_mat = reduce( np.dot, (temp,rot_mat))
+            rot_mat = reduce( np.dot, (rot_mat,temp))
         count+=1 
     if output=='matrix':
         #print(rot_mat)

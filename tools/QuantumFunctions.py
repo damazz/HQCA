@@ -54,6 +54,7 @@ class QuantumStorage:
             fermion_mapping='jordan-wigner',
             backend_configuration=None,
             load_triangle=False,
+            qc=True,
             ansatz='default',
             spin_mapping='default',
             method='variational',
@@ -117,6 +118,14 @@ class QuantumStorage:
         self.sp = single_point
         self.alpha = alpha_mos
         self.beta = beta_mos
+        if not qc:
+            # need to check to make sure method is compatible
+            classically_supported = ['borland-dennis','carlson-keller']
+            if self.method in classically_supported:
+                pass
+            else:
+                sys.exit('Trying to run a non-supported classical algorithm.')
+        self.qc = qc
         self.pr_q = pr_q
         self.pr_e = pr_e
         self.ansatz = ansatz
@@ -340,7 +349,7 @@ class QuantumStorage:
         'Get Initial Parameters (GIP) function.
         '''
         if self.sp=='noft':
-            self.parameters=[0,0]
+            self.parameters=[0]*(self.No-1)
         elif self.sp=='rdm':
             self.c_ent_p=1
             self.c_ent_q=1
@@ -352,7 +361,7 @@ class QuantumStorage:
                 self.c_ent_q=3
             self.Np = self.depth*len(self.pair_list)*self.c_ent_p
             self.Np+= self.depth*len(self.quad_list)*self.c_ent_q
-            self.parameters=[0]*self.Np
+            self.parameters=[0.0]*self.Np
         if self.pr_q>1:
             print('Number of initial parameters: {}'.format(self.Np))
 

@@ -134,6 +134,8 @@ class sp:
         self.result = self.run.Store
 
     def analysis(self):
+        self.run.Store.opt_analysis()
+        '''
         import hqca.tools.RDMFunctions as rdmf
         from functools import reduce
         print('Calculating spin of system.')
@@ -180,6 +182,7 @@ class sp:
         print('Natural orbital wavefunction:')
         for k,v in self.result.wf.items():
             print(' |{}>: {}'.format(k,v))
+        '''
 
 class scan(sp):
 

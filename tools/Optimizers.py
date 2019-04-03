@@ -1,26 +1,17 @@
-if __name__=='__main__':
-    pass
-else:
-    #from hqca.tools.IBM_check import check, get_backend_object
-    #from hqca.tools.QuantumFramework import wait_for_machine
-    pass
 import numpy as np
+from numpy import copy
 import sys
 from subprocess import CalledProcessError, check_output
 import traceback
 import timeit
 import time
 import nevergrad
+from scipy.optimize import fmin_l_bfgs_b as lbfgs
 from nevergrad.optimization import optimizerlib,registry
 from random import random as r
+import random
 from math import pi
 from functools import reduce,partial
-
-#
-#
-# Various functions
-#
-#
 
 class NotAvailableError(Exception):
     '''
@@ -31,36 +22,9 @@ class Empty:
     def __init__(self):
         self.opt_done=True
 
-def function_call(
-        par,
-        function=None,
-        **kwargs
-        ):
-    tic = timeit.default_timer()
-    E_t = function(par)
-    toc = timeit.default_timer()
-    if toc-tic > 1800:
-        print('Really long run time. Not good.')
-    return E_t
+def null_function():
+    return 0
 
-def gradient_call(
-        par,energy='orbitals',
-        **kwargs
-        ):
-    if energy=='orbitals':
-        ddE = eno.orbital_energy_gradient_givens(
-            par,**kwargs)
-    elif energy=='test':
-        ddE = g_x(par,**kwargs)
-    elif energy=='qc':
-        sys.exit('No analytical gradients on the quantum computer!')
-    return ddE
-    
-#
-#
-# Main Optimizer class
-#
-# 
 
 class Optimizer:
     '''
@@ -93,14 +57,20 @@ class Optimizer:
         elif self.method=='qNM':
             self.opt = quasi_nelder_mead(
                     **kwargs)
+        elif self.method=='sGD':
+            self.opt = stochastic_gradient_descent(
+                    **kwargs)
         elif self.method=='nevergrad':
             self.opt = nevergradopt(
                     **kwargs)
+        elif self.method=='bfgs':
+            self.opt = bfgs(
+                    **kwargs)
+        elif self.method=='gpso':
+            self.opt = gradient_particle_swarm_optimizer(
+                    **kwargs)
         self.error = False
         self.pr_o = pr_o
-        #
-        # Error management for the IBM case
-        #
 
     def initialize(self,start):
         try:
@@ -178,202 +148,343 @@ class Optimizer:
                 cache.err=True
         except Exception as e:
             traceback.print_exc()
-        if self.opt_done and self.method=='nevergrad':
-            try:
-                pass
-            except:
-                pass
+        if cache.done and self.method=='nevergrad':
+            diff = max(0,self.opt.max_iter-self.opt.energy_calls)
+            for i in range(diff):
+                t = self.opt.opt.ask()
+                self.opt.opt.tell(t,null_function())
 
-#
 #
 # Now, begin the various types of optimizers
 #
-#
 
-class gradient_descent:
+class OptimizerInstance:
     def __init__(self,
-            n_par,
+            function=None,
+            gradient=None,
+            particles=None,
+            examples=None,   # in some cases, the number of sub iterations
+            conv_crit_type='default',
             conv_threshold='default',
             gamma='default',
-            gradient='numerical',
-            grad_dist=0.01,
-            conv_crit_type='default',
             pr_o=0,
-            **kwargs
-            ):
-        '''
-        Note, this is called by the Optimizer class. Then, the optimizer will
-        also call the initialize class.
-        '''
-        self.N = n_par
+            unity=pi,  # typically the bounds of the optimization
+            func_eval=True,
+            shift=None,
+            pso_iterations=10, #particle swarm
+            inertia=0.7,
+            accel=[1,1],
+            max_velocity=0.5,
+            slow_down=True,
+            **kwargs):
+        self.f = function
+        self.g = gradient
+        self.Np = particles
+        self.Ne = examples
+        self.pr_o = pr_o
+        self.shift = shift
+        self.pso_iter = pso_iterations
+        self.a1,self.a2 = accel[0],accel[1]
+        self.v_max = max_velocity
+        self.slow_down = slow_down
+        self.w = inertia
+        self.unity = unity
+        self.energy_calls = 0
+        self.conv_threshold = conv_threshold
+        if conv_threshold=='default':
+            self._conv_thresh = 0.00001
+        else:
+            self._conv_thresh = float(conv_threshold)
+        self.conv_crit_type = conv_crit_type
+        if gamma=='default':
+            self.gamma = 0.001
+        else:
+            self.gamma = float(gamma)
+        self.ef = func_eval
+        self.kwargs = kwargs
+
+    def initialize(self,start):
+        self.N = len(start)
+        if type(self.shift)==type(None):
+            self.shift = [0.0]*self.N
+
+
+class gradient_particle_swarm_optimizer(OptimizerInstance):
+    def initialize(self,start):
+        self.v_max =self.unity*self.v_max
+        OptimizerInstance.initialize(self,start)
+        self.X = np.zeros((self.Np,self.N))
+        self.V = np.zeros((self.Np,self.N))
+        self._random_particle_position()
+        self._random_particle_velocity()
+        self.P = copy(self.X)
+        self.F = np.zeros(self.Np)
+        self.Pf= copy(self.F)
+        for i in range(self.Np):
+            self.F[i] = self.f(self.X[i,:])
+        self.best = np.argsort(self.F)
+        self.Gx = self.X[self.best[0],:]
+        self.Gf = self.F[self.best[0]]
+        self.best_x =copy(self.Gx)
+        self.best_f =copy(self.Gf)
+        self._update_criteria()
+        self.pso=copy(self.pso_iter)
+
+    def next_step(self):
+        if self.pso>0:
+            for i in range(self.Np):
+                for d in range(self.N):
+                    t1 = (r())*(self.P[i,d]-self.X[i,d])
+                    t2 = (r())*(self.Gx[d]-self.X[i,d])
+                    self.V[i,d] = self.w*self.V[i,d]+self.a1*t1+self.a2*t2
+                    self.V[i,d]= np.sign(self.V[i,d])*min(
+                            self.v_max,
+                            abs(self.V[i,d])
+                            )
+                    self.X[i,d] = self.X[i,d]+self.V[i,d]
+                self.F[i]=self.f(self.X[i,:])
+                if self.F[i]<self.Pf[i]:
+                    self.P[i,:]=copy(self.X[i,:])
+                    self.Pf[i] = self.F[i]
+                if self.F[i]<self.Gf:
+                    self.Gx =copy(self.X[i,:])
+                    self.Gf = self.F[i]
+            self.best = np.argsort(self.F)
+            self.pso-=1
+        else:
+            for i in range(min(self.Np,self.Ne)):
+                # doing micro optimization
+                self.sub = bfgs(
+                        function=self.f,
+                        gradient=self.g,
+                        unity=self.unity)
+                self.sub.initialize(self.X[self.best[i],:])
+                self.sub_count = 0
+                while self.sub.crit>1e-10:
+                    self.sub.next_step()
+                    if self.pr_o>1:
+                        print('bfgs step: {:02}, crit: {:.8f}, f: {:.8f}'.format(
+                            self.sub_count,
+                            self.sub.best_f,
+                            self.sub.crit
+                            ))
+                    self.sub_count+=1 
+                self.X[i,:]=copy(self.sub.best_x)
+                self.F[i]=self.sub.best_f
+                if self.F[i]<self.Pf[i]:
+                    self.P[i,:]=self.X[i,:]
+                    self.Pf[i] = self.F[i]
+                if self.F[i]<self.Gf:
+                    self.Gx = copy(self.X[i,:])
+                    self.Gf = self.F[i]
+            self.best = np.argsort(self.F)
+            self.pso=copy(self.pso_iter)
+            if self.slow_down:
+                self.a2 = (1-self.a2)*0.6 +self.a2
+                self.a1 = self.a1*(0.6)
+                self.w  = self.w*(0.9)
+        self.best_x =copy(self.Gx)
+        self.best_f =copy(self.Gf)
+        self._update_criteria()
+
+    def _update_criteria(self):
+        self.vels_crit = np.zeros(self.Np)
+        self.poss_crit = np.zeros(self.Np)
+        for i in range(self.Np):
+            self.vels_crit[i]=(np.sum(np.square(self.V[self.best[i],:])))
+            d = self.X[self.best[i],:]-self.Gx[:]
+            self.poss_crit[i]=(np.sum(np.square(d)))
+        self.pos_crit=np.sqrt(np.average(self.poss_crit))
+        self.vel_crit=np.sqrt(np.average(self.vels_crit))
+        #print('Speed')
+        #print(self.V)
+        #print('Eval: ')
+        #print(self.F)
+        #print('Speed, average')
+        #print(self.V)
+        #print(self.vels_crit)
+        if self.conv_crit_type=='default':
+            self.crit=self.pos_crit
+        #print('Pos: ',self.pos_crit)
+        #print('Vel: ',self.vel_crit)
+        if self.pr_o>2:
+            print('Position, distance')
+            print(self.X)
+
+
+
+    def _random_particle_position(self):
+        for i in range(0,self.Np):
+            temp = np.zeros(self.N)
+            for j in range(self.N):
+                t = (random.random()*2-1)*self.unity
+                temp[j]=t+self.shift[j]
+            self.X[i,:] = temp[:]
+
+    def _random_particle_velocity(self):
+        for i in range(0,self.Np):
+            temp = np.zeros(self.N)
+            for j in range(self.N):
+                t = (random.random()*2-1)*self.unity*random.random()
+                temp[j]=copy(t-self.X[i,j])*0.1
+            #self.V[i,:] = temp[:]
+
+
+
+class stochastic_gradient_descent:
+    def __init__(self,
+            function,
+            gradient,
+            examples,
+            conv_crit_type='default',
+            conv_threshold='default',
+            gamma='default',
+            pr_o=0,
+            unity=pi,
+            func_eval=True,
+            shift=None,
+            **kwargs):
+        self.f = function
+        self.g = gradient
+        self.Ne = examples
+        self.pr_o = pr_o
+        self.shift = shift
+        self.unity = unity
         self.energy_calls = 0
         if conv_threshold=='default':
             self._conv_thresh = 0.00001
         else:
             self._conv_thresh = float(conv_threshold)
         self.conv_crit_type = conv_crit_type
-        self.grad=gradient
-        if grad_dist=='default':
-            self.dist=0.0001
+        if gamma=='default':
+            self.gamma = 0.001
         else:
-            self.dist=float(grad_dist)
-        self.gamma = gamma
+            self.gamma = float(gamma)
+        self.lp = self.gamma
+        self.ef = func_eval
         self.kwargs = kwargs
 
+    def _random_populate_parameters(self):
+        for i in range(0,self.Ne):
+            temp = np.zeros(self.Np)
+            for j in range(self.Np):
+                t = (random.random()*2-1)*self.unity
+                temp[j]=t+self.shift[j]
+            self.param[i,:] = temp[:]
+
+
     def initialize(self,start):
+        OptimizerInstance.initialize(start)
         if self.pr_o>0:
-            print('Initializing the gradient-descent optimization class.')
+            print('Initializing the stochastic gradient-descent optimization class.')
             print('---------- ' )
-        if self.gamma=='default':
-            gam = 0.00001
-        self.f0_x = np.asarray(start[:])
-        self.f0_f = self.f(self.f0_x)
-        self.energy_calls += 1
-        if self.grad=='numerical':
-            self.g0_f = np.zeros(self.N)
-            for i in range(0,self.N):
-                temp = np.zeros(self.N)
-                temp[i]=self.dist
-                self.g0_f[i] = (
-                        self.f(
-                            self.f0_x+temp
-                            )
-                        -self.f(
-                            self.f0_x-temp
-                            )
-                    )/(self.dist*2)
-                self.energy_calls+= self.N
-        elif self.grad=='analytical':
-            self.g0_f = np.asarray(gradient_call(
-                    self.f0_x,
-                    **self.kwargs))
-        self.energy_calls+= 1
-        self.f1_x = self.f0_x - gam*np.asarray(self.g0_f)
-        self.f1_f = self.f(self.f1_x)
-        if self.pr_o>0:
-            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
-        self.use=1
-        self.count=0
-        self.use = 0
-        self.count=50
-        self.crit=1
+        self.param = np.zeros((self.Ne,self.N))
+        self.data_eval  = np.zeros(self.Ne)
+        self._random_populate_parameters()
 
-    def numerical(self):
-        self.s = (self.f1_x-self.f0_x).T
-        self.g1_f = np.zeros(self.N)
-        dist = min(self.dist,np.dot(self.s.T,self.s))
-        for i in range(0,self.N):
-            temp = np.zeros(self.N)
-            temp[i]=dist
-            self.g1_f[i] =(
-                    self.f(
-                        self.f1_x+temp
-                        )
-                    -self.f(
-                        self.f1_x-temp
-                        )
-                )/(dist*2)
-        self.energy_calls+= self.N*2
-
-    def analytical(self):
-        self.s = (self.f1_x-self.f0_x).T
-        self.g1_f = np.asarray(gradient_call(
-                self.f1_x,
-                **self.kwargs))
-        self.energy_calls+= 1
-
-
-    def next_step(self):
-        if self.grad=='numerical':
-            self.numerical()
-        elif self.grad=='analytical':
-            self.analytical()
-
-        self.y = (self.g1_f-self.g0_f).T
-
-        if self.gamma=='default':
-            gam2 = np.dot(self.s.T,self.y)/np.dot(self.y.T,self.y)
-            gam1 = np.dot(self.s.T,self.s)/np.dot(self.s.T,self.y)
-            if self.use:
-                gam = gam2
-                self.count+=1
-                if self.count==200:
-                    self.use=0
-                    print('Switch to step based')
-            else:
-                gam = gam1
-                self.count-=2
-                if self.count==0:
-                    self.use=1
-                    print('Switch to gradient based')
-                elif self.crit<0.000001:
-                    self.use=1
-                    self.count=0
-                    print('Switch to gradient based')
-            self.f2_x = self.f1_x - gam*np.asarray(self.g1_f)
-            self.f2_f = function_call(self.f2_x,**self.kwargs)
+        self.rand_list = random.sample(range(0,self.Ne),self.Ne)
+        for i in self.rand_list:
+            self.data_grad = np.asarray(self.g(self.param[i,:]))
+            for j in range(self.Ne):
+                self.param[j,:]=self.param[j,:]-self.data_grad*self.lp
+        if self.ef:
+            for i in range(self.Ne):
+                self.data_eval[i]=self.f(self.param[i,:])
             self.reassign()
 
 
+    def next_step(self):
+        self.rand_list = random.sample(range(0,self.Ne),self.Ne)
+        for i in self.rand_list:
+            self.data_grad[:] = self.g(self.param[i,:])
+            for j in range(self.Ne):
+                self.param[j,:]=self.param[j,:]-self.data_grad*self.lp
+        if self.ef:
+            for i in range(self.Ne):
+                self.data_eval[i]=self.f(self.param[i,:])
+            self.reassign()
+
+    def reassign(self):
+        best = np.argsort(self.data_eval)
+        self.best_x = self.param[best[0],:]
+        self.best_y = self.param[best[0],:]
+        self.best_f = (1/self.Ne)*np.sum(self.data_eval)
+
+class gradient_descent(OptimizerInstance):
+    def initialize(self,start):
+        OptimizerInstance.initialize(self,start)
+        if self.pr_o>0:
+            print('Initializing the gradient-descent optimization class.')
+            print('---------- ' )
+        self.f0_x = np.asarray(start)+np.asarray(self.shift)
+        self.f0_f = self.f(self.f0_x[:])
+        self.energy_calls += 1
+        self.g0_f = np.asarray(self.g(self.f0_x[:]))
+        self.f1_x = self.f0_x - self.gamma*np.asarray(self.g0_f)*0.1
+        self.f1_f = self.f(self.f1_x)
+        if self.pr_o>0:
+            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.f0_f))
+        self.use = 0
+        self.crit=1
+
+    def next_step(self):
+        self.s = (self.f1_x-self.f0_x).T
+        self.g1_f = np.asarray(self.g(self.f1_x))
+        self.y = (self.g1_f-self.g0_f).T
+        #gam = np.dot(self.s.T,self.y)/np.dot(self.y.T,self.y)
+        #gam = np.dot(self.s.T,self.s)/np.dot(self.s.T,self.y)
+        '''
+        if self.use:
+            gam = gam2
+            self.count+=1
+            if self.count==200:
+                self.use=0
+                print('Switch to step based')
+        else:
+            gam = gam1
+            self.count-=2
+            if self.count==0:
+                self.use=1
+                print('Switch to gradient based')
+            elif self.crit<0.000001:
+                self.use=1
+                self.count=0
+                print('Switch to gradient based')
+        '''
+        self.f2_x = self.f1_x - self.gamma*np.asarray(self.g1_f)
+        self.f2_f = self.f(self.f2_x)
+        self.reassign()
 
     def reassign(self):
         self.f0_x = self.f1_x[:]
         self.f1_x = self.f2_x[:]
-        self.f0_f = self.f1_f
-        self.f1_f = self.f2_f
-        self.g0_f = self.g1_f[:]
+        self.f0_f = self.f1_f.copy()
+        self.f1_f = self.f2_f.copy()
+        self.g0_f = self.g1_f
         if self.conv_crit_type=='default':
             self.crit = np.sqrt(np.sum(np.square(self.g0_f)))
-        self.best_f = self.f1_f
-        self.best_x = self.f1_x
+        self.best_f = self.f1_f.copy()
+        self.best_x = self.f1_x[:]
+        self.best_y = self.f1_x[:]
 
-
-class nelder_mead:
+class nelder_mead(OptimizerInstance):
     '''
     Nelder-Mead Optimizer! Uses the general dimension simplex method, so should
     be appropriate for arbitrary system size.
     '''
-    def __init__(self,
-            function,
-            conv_threshold='default',
-            conv_crit_type='default',
-            simplex_scale=10,
-            energy='classical',
-            pr_o=0,
-            **kwargs
-            ):
-        '''
-        Begin the optmizer. Set parameters, etc.
-        '''
-        self.f = function
-        if simplex_scale=='default':
-            self.simplex_scale=5
+    def __init__(self,**kwargs):
+        OptimizerInstance.__init__(self,**kwargs)
+        self.simplex_scale=self.unity
+        if self.conv_threshold=='default':
+            if self.conv_crit_type=='default':
+                self._conv_thresh=0.001
+            elif self.conv_crit_type=='energy':
+                self._conv_thresh=0.0001
         else:
-            self.simplex_scale=simplex_scale
-        kwargs['energy']=energy
-        self.pr_o = pr_o
-        self.conv_crit_type = conv_crit_type
-        if conv_threshold=='default':
-            if energy=='classical':
-                if self.conv_crit_type=='default':
-                    self._conv_thresh=0.001
-                elif self.conv_crit_type=='energy':
-                    self._conv_thresh=0.0001
-            elif energy=='qc':
-                if self.conv_crit_type=='default':
-                    self._conv_thresh=0.5
-                elif self.conv_crit_type=='energy':
-                    self._conv_thresh=0.001
-        else:
-            self._conv_thresh=float(conv_threshold)
-        self.energy_calls=0
-        if self.pr_o>0:
-            print('Initializing the Nelder-Mead optimization class.')
-            print('---------- ' )
-        self.kwargs =  kwargs
+            self._conv_thresh=float(self.conv_threshold)
 
     def initialize(self,start):
-        self.N = len(start)
+        OptimizerInstance.initialize(self,start)
         self.simp_x = np.zeros((self.N+1,self.N)) # column is dim coord - row is each point
         self.simp_f = np.zeros(self.N+1) # there are N para, and N+1 points in simplex
         self.simp_x[0,:] = start[:]
@@ -481,11 +592,13 @@ class nelder_mead:
         self.std_dev()
         self.best_f = self.B_f
         self.best_x = self.B_x
+        self.best_y = self.B_x
         if self.conv_crit_type=='default':
             self.crit = self.sd_x
         elif self.conv_crit_type=='energy':
             self.crit = self.sd_f
-
+        else:
+            self.crit = self.sd_x
         if self.pr_o>1:
             print('Maximum distance from centroid: {}'.format(self.max))
 
@@ -514,8 +627,6 @@ class nelder_mead:
             temp = np.sqrt(np.sum(np.square(self.simp_x[i,:]-self.M_x)))
             self.max = max(self.max,temp)
 
-
-
     def order_points(self):
         ind = np.arange(0,self.N+1)
         for i in range(0,self.N+1):
@@ -537,6 +648,170 @@ class nelder_mead:
             new_x[i,:] = self.simp_x[ind[i],:]
         self.simp_x = new_x
         self.simp_f = new_f
+
+class bfgs(OptimizerInstance):
+
+    def initialize(self,start):
+        OptimizerInstance.initialize(self,start)
+        # find approximate hessian
+        self.x0 = np.asmatrix(start) # row vec? 
+        self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:])) # row  vec
+
+
+        #self.B0 = np.dot(self.g0.T,self.g0) #
+        #print(self.B0)
+        #self.B0i = np.linalg.inv(self.B0)
+        self.B0 = np.identity(self.N)
+        self.B0i = np.identity(self.N)
+        self.p0 = -1*np.dot(self.B0i,self.g0.T).T # row vec
+        self._line_search()
+        self.s0 = self.p0*self.alp
+        self.x1 = self.x0+self.s0
+        self.y0 = np.asmatrix(self.g(np.asarray(self.x1)[0,:]))-self.g0
+        Bn =  np.dot(self.y0.T,self.y0)
+        Bd = (np.dot(self.y0,self.s0.T)[0,0])
+        if abs(Bd)<1e-30:
+            if Bd<0:
+                Bd = -1e-30
+            else:
+                Bd = 1e-30
+        Ba = Bn*(1/Bd)
+        S = np.dot(self.s0.T,self.s0)
+        d = reduce(np.dot, (self.s0,self.B0,self.s0.T))[0,0]
+        if abs(d)<1e-30:
+            if d<0:
+                d = -1e-30
+            else:
+                d = 1e-30
+        Bb = reduce(np.dot, (self.B0,S,self.B0.T))*(1/d)
+        self.B1 = self.B0 + Ba - Bb
+        syT = reduce(np.dot, (self.s0.T,self.y0))
+        yTs = reduce(np.dot, (self.y0,self.s0.T))[0,0]
+        if abs(yTs)<1e-30:
+            if yTs<0:
+                yTs = -1e-30
+            else:
+                yTs = 1e-30
+        ysT = reduce(np.dot, (self.y0.T,self.s0))
+        L = np.identity(self.N)-syT*(1/yTs)
+        R = np.identity(self.N)-ysT*(1/yTs)
+        self.B1i  = reduce(np.dot, (L,self.B0i,R))+S*(1/yTs)
+        # reassign 
+        self.x0 = self.x1.copy()
+        self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:]))
+        self.B0 = self.B1.copy()
+        self.B0i = self.B1i.copy()
+        self.best_x = self.x0.copy()
+        self.best_f = self.f(np.asarray(self.x0)[0,:])
+        if self.conv_crit_type=='default':
+            self.crit = np.sqrt(np.sum(np.square(self.g0)))
+        self.stuck = np.zeros((3,self.N))
+        self.stuck_ind = 0
+
+    def next_step(self):
+        if self.stuck_ind==0:
+            self.stuck_ind = 1
+            self.stuck[0,:]= self.x0
+        elif self.stuck_ind==1:
+            self.stuck_ind = 2
+            self.stuck[1,:]= self.x0
+        elif self.stuck_ind==2:
+            self.stuck_ind=0
+            self.stuck[2,:]= self.x0
+        self.N_stuck=0
+        def check_stuck(self):
+            v1 = self.stuck[0,:]
+            v2 = self.stuck[1,:]
+            v3 = self.stuck[2,:]
+            d13 = np.sqrt(np.sum(np.square(v1-v3)))
+            if d13<1e-15:
+                shrink = 0.5
+                self.x0 = self.x0-(1-shrink)*self.s0
+                if self.pr_o>0:
+                    print('Was stuck!')
+                self.N_stuck+=1
+        check_stuck(self)
+        self.p0 = -1*np.dot(self.B0i,self.g0.T).T # row vec
+        # now, line search
+        self._line_search()
+        self.s0 = self.p0*self.alp
+        self.x1 = self.x0+self.s0
+        self.y0 = np.asmatrix(self.g(np.asarray(self.x1)[0,:]))-self.g0
+        B_num = np.dot(self.y0.T,self.y0)
+        B_den = (np.dot(self.y0,self.s0.T)[0,0])
+        if abs(B_den)<1e-30:
+            if B_den<0:
+                B_den = -1e-30
+            else:
+                B_den = 1e-30
+        Ba =  B_num*(1/B_den)
+        S = np.dot(self.s0.T,self.s0)
+        d = reduce(np.dot, (self.s0,self.B0,self.s0.T))[0,0]
+        if abs(d)<=1e-30:
+            if d<0:
+                d = -1e-30
+            else:
+                d = 1e-30
+        Bb = reduce(np.dot, (self.B0,S,self.B0.T))*(1/d)
+        self.B1 = self.B0 + Ba - Bb
+        syT = reduce(np.dot, (self.s0.T,self.y0))
+        yTs = reduce(np.dot, (self.y0,self.s0.T))[0,0]
+        if abs(yTs)<1e-30:
+            if yTs<0:
+                yTs = -1e-30
+            else:
+                yTs = 1e-30
+        ysT = reduce(np.dot, (self.y0.T,self.s0))
+        L = np.identity(self.N)-syT*(1/yTs)
+        R = np.identity(self.N)-ysT*(1/yTs)
+        self.B1i  = reduce(np.dot, (L,self.B0i,R))+S*(1/yTs)
+        # reassign 
+        self.x0 = copy(self.x1)
+        self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:]))
+        self.B0 = copy(self.B1)
+        self.B0i = copy(self.B1i)
+        self.best_x = copy(self.x0)
+        self.best_f = self.f(np.asarray(self.x0)[0,:])
+        if self.conv_crit_type=='default':
+            self.crit = np.sqrt(np.sum(np.square(self.g0)))
+
+
+
+
+    def _line_search(self):
+        '''
+        uses self.p0, and some others stuff
+        '''
+        bound = False
+        f_l = self.f(np.asarray(self.x0)[0,:])
+        a_l = 0
+        a_r = 1
+        while not bound:
+            temp = self.x0+self.p0*a_r
+            f_r = self.f(np.asarray(temp)[0,:])
+            if f_r<f_l:
+                a_l = copy(a_r)
+                f_l = copy(f_r)
+                a_r*=2
+            else:
+                bound=True
+        while a_r-a_l-0.01>0:
+            a_tmp = 0.5*(a_l+a_r)
+            temp = self.x0+self.p0*a_tmp
+            f_tmp = self.f(np.asarray(temp)[0,:])
+            if f_tmp<f_l:
+                a_l = copy(a_tmp)
+                f_l = copy(f_tmp)
+            else:
+                a_r = copy(a_tmp)
+                f_r = copy(f_tmp)
+        self.alp = 0.5*(a_l+a_r)
+
+
+
+
+
+
 
 class nevergradopt:
     def __init__(self,
@@ -643,19 +918,19 @@ class nevergradopt:
         if type(self.shift)==type(None):
             self.shift = [0]*self.Np
         self.opt = registry[self.opt_name](
-                dimension=self.Np,
+                dimension=len(start),
                 budget=self.max_iter
                 )
         for i in range(0,self.Nv):
-            x = self.opt.ask()
-            y = x.copy()*self.unity+self.shift
+            x = np.asarray(self.opt.ask())
+            y = x*self.unity+self.shift
             E = self.f(y)
             self.energy_calls+=1
             self.vectors.append(
                 [
                     E,
-                    x.copy(),
-                    y.copy(),
+                    x,
+                    y,
                     0])
             self.opt.tell(x,E)
         self.x = x.copy()
@@ -665,41 +940,9 @@ class nevergradopt:
 
 
     def next_step(self):
-        self.x = self.opt.ask()
+        self.x = np.asarray(self.opt.ask())
         self.y = self.x.copy()*self.unity+self.shift
         self.E = self.f(self.y)
         self.opt.tell(self.x,self.E)
         self.check()
         self.energy_calls+=1 
-
-#
-# test functions for optimizers: 
-# very simple algebraic ones
-#
-
-def f_x(par,**kwargs):
-    x = par[0]
-    y = par[1]
-    return x**4-3*(x**3)+2+y**2
-
-def g_x(par,**kwargs):
-    x = par[0]
-    y = par[1]
-    return [4*x**3 - 9*x**2,2*y]
-
-#
-#
-#
-
-'''
-keys = {'energy':'test'}
-keys['gradient']='analytical'
-a = Optimizer('GD',[[6,1]],False,**keys)
-#print(a.opt.simp_x)
-iters = 0
-while (a.opt_done==False and (iters<250)):
-    a.next_step(**keys)
-    print('Values after step {}: {}'.format(iters,a.opt.g0_f))
-    a.check()
-    iters+=1
-'''
