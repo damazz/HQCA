@@ -260,7 +260,7 @@ class gradient_particle_swarm_optimizer(OptimizerInstance):
                         unity=self.unity)
                 self.sub.initialize(self.X[self.best[i],:])
                 self.sub_count = 0
-                while self.sub.crit>1e-10:
+                while self.sub.crit>1e-8:
                     self.sub.next_step()
                     if self.pr_o>1:
                         print('bfgs step: {:02}, crit: {:.8f}, f: {:.8f}'.format(
@@ -652,6 +652,7 @@ class nelder_mead(OptimizerInstance):
 class bfgs(OptimizerInstance):
 
     def initialize(self,start):
+        print('Performing a bfgs optimization.')
         OptimizerInstance.initialize(self,start)
         # find approximate hessian
         self.x0 = np.asmatrix(start) # row vec? 
