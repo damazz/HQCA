@@ -4,11 +4,12 @@ from hqca.main import sp
 import sys
 import numpy as np
 from functools import reduce
+from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
 d = 0.9374+0.5626
 mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
-mol.basis='sto-3g'
+mol.basis='6-31g'
 #mol.basis='6-31g'
 #mol.basis='cc-pvdz'
 mol.spin=0

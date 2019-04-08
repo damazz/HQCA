@@ -6,7 +6,7 @@ import traceback
 import timeit
 import time
 import nevergrad
-from scipy.optimize import fmin_l_bfgs_b as lbfgs
+#from scipy.optimize import fmin_l_bfgs_b as lbfgs
 from nevergrad.optimization import optimizerlib,registry
 from random import random as r
 import random

@@ -13,15 +13,18 @@ from hqca.main import sp
 import sys
 import numpy as np
 from functools import reduce
+from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
 d = 0.9374+0.5626
 mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
 #mol.basis='sto-3g'
-#mol.basis='6-31g'
-mol.basis='cc-pvdz'
+mol.basis='6-31g'
+#mol.basis='cc-pvdz'
+#mol.basis = h3
 mol.spin=0
 mol.verbose=0
+mol.symm=True
 mol.build()
 mol.as_Ne = 2
 mol.as_No = mol.nbas #spatial
@@ -51,8 +54,9 @@ kw_opt = {
 orb_opt = {
         'conv_threshold':1e-10,
         'conv_crit_type':'default',
-        'optimizer':'gpso',
+        #'optimizer':'gpso',
         #'optimizer':'NM',
+        #'optimizer':'bfgs',
         'shift':None,
         'gamma':1e-4,
         'particles':30,
@@ -75,8 +79,13 @@ prog.set_print(level='diagnostic_orb')
 prog.build()
 if mol.basis=='6-31g':
     prog.run.single('rdm',para_631g)
-elif mol.basis=='ccpvdz':
+elif mol.basis=='cc-pvdz':
     prog.run.single('rdm',para_ccpvdz)
+elif mol.basis=='sto-3g':
+    prog.run.single('rdm',[0.1])
+else:
+    prog.run.single('rdm',para_ccpvdz)
+
 prog.run.Store.update_rdm2()
 prog.run._find_orb()
 

@@ -20,6 +20,7 @@ def NOFT_2e():
         'qc':{
             'backend':'qasm_simulator',
             'num_shots':2048,
+            'info':'calc',
             'provider':'Aer',
             'fermion_mapping':'jordan-wigner',
             'backend_configuration':None,
@@ -48,7 +49,6 @@ def NOFT_2e():
                 'unity':pi/2,
                 'max_iter':100,
                 'optimizer':'NM',
-                #'conv_threshold':'default',
                 'conv_threshold':0.1,
                 'conv_crit_type':'default',
                 'gradient':'numerical',

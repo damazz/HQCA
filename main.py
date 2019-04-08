@@ -21,7 +21,7 @@ np.set_printoptions(precision=3)
 from hqca import sub
 from hqca.tools import EnergyFunctions as enf
 
-version='0.1.0'
+version='0.1.1'
 
 class sp:
     '''
@@ -62,10 +62,11 @@ class sp:
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e = self.V_1e+self.T_1e
         self.Norb = self.S.shape[0]
-        mol.verbose=0
+        #mol.verbose=4
         self.ints_2e = mol.intor('int2e')
         self.hf = scf.RHF(mol)
         self.hf.kernel()
+        self.hf.analyze()
         self.C= self.hf.mo_coeff
         try:
             mol.as_Ne

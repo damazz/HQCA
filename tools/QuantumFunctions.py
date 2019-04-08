@@ -64,7 +64,8 @@ class QuantumStorage:
             pr_q=0,
             pr_e=1,
             use_radians=False,
-            opt=None
+            opt=None,
+            info=None
             ):
         '''
         method;
@@ -87,6 +88,7 @@ class QuantumStorage:
             spatial? not sure if necessary
         '''
         self.opt_kw = opt
+        self.info=info
         self.theory= theory
         self.pr_g =pr_g
         self.use_radians=use_radians
@@ -342,7 +344,6 @@ class QuantumStorage:
                 self.beta['active'][1:]))
         for a,b,c,d in temp:
             self.tomo_quad.append([a,b,c,d])
-            
 
     def _gip(self):
         '''
@@ -350,6 +351,8 @@ class QuantumStorage:
         '''
         if self.sp=='noft':
             self.parameters=[0]*(self.No-1)
+            self.Np = self.No-1
+            print(self.Np)
         elif self.sp=='rdm':
             self.c_ent_p=1
             self.c_ent_q=1
@@ -365,11 +368,10 @@ class QuantumStorage:
         if self.pr_q>1:
             print('Number of initial parameters: {}'.format(self.Np))
 
-def get_direct_stats(QuantStore):
+def get_direct_stats(QuantStore,draw=False):
     from hqca.tools import QuantumAlgorithms
     QuantStore.parameters=[1]*QuantStore.Np
     test = QuantumAlgorithms.GenerateDirectCircuit(QuantStore)
-    QuantStore.parameters=[0]*QuantStore.Np
     print('# Getting circuit parameters...')
     print('#')
     print('# Gate counts:')
@@ -377,8 +379,22 @@ def get_direct_stats(QuantStore):
     print('#  N two qubit gates: {}'.format(test.cg))
     print('# ...done.')
     print('# ')
-
-
+    if draw:
+        print('Trying to draw.')
+        try:
+            print(test.qc)
+            test.qc.measure(test.q,test.c)
+            test.qc.draw()
+        except Exception as e:
+            print(e)
+    QuantStore.parameters=[0]*QuantStore.Np
+    if draw=='tomo':
+        print('Trying to draw.')
+        try:
+            print(test.qc)
+            test.qc.draw()
+        except Exception as e:
+            print(e)
 
 local_qubit_tomo_pairs = {
         2:[

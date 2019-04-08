@@ -113,8 +113,16 @@ class QuantumRun:
             print('')
             print('### ### ### ### ### ### ### ### ### ### ### ###')
             print('')
-        if self.kw_qc['pr_q']>1:
+        if self.kw_qc['info'] in ['calc']:
             qf.get_direct_stats(self.QuantStore)
+        elif self.kw_qc['info'] in ['draw']:
+            qf.get_direct_stats(self.QuantStore,draw=True)
+            sys.exit()
+        elif self.kw_qc['info'] in ['count_only']:
+            qf.get_direct_stats(self.QuantStore)
+            sys.exit()
+        else:
+            pass
 
     def set_print(self,level='default',
             record=False

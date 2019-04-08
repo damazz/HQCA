@@ -331,7 +331,7 @@ class Storage:
             print('Energy difference from FCI: {:.8f} mH'.format(diff))
         except KeyError:
             pass
-        rdm1 = rdmf.check_2rdm(self.rdm2,self.Nels_tot)
+        rdm1 = rdmf.check_2rdm(fx.expand(self.rdm2),self.Nels_tot)
         print('Occupations of the 1-RDM:')
         print(np.real(np.diag(rdm1)))
         print('Natural orbital wavefunction:')
@@ -350,7 +350,7 @@ class Storage:
                     self.Ti_b,self.C_b)
                 )
         rdm2_mo = rdmf.rotate_2rdm(
-                self.rdm2,
+                fx.expand(self.rdm2),
                 Ni_a.T,
                 Ni_b.T,
                 self.alpha_mo,
