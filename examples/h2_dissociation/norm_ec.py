@@ -35,7 +35,7 @@ kw_opt = {
         }
 orb_opt = {
         }
-dist = np.arange(0.5,2.05,0.05)
+dist = np.arange(0.5,2.05,0.025)
 E = np.zeros((2,len(dist)))
 
 for n,d in enumerate(dist):
