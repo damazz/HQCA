@@ -70,7 +70,6 @@ class Storage:
             ints_1e_ao,
             ints_2e_ao,
             E_ne,
-            pr_g,
             theory,
             **kwargs
             ):
@@ -91,7 +90,6 @@ class Storage:
         self.ints_2e_ao = ints_2e_ao
         self.E_ne = E_ne
         self.T_alpha = moc_alpha
-        self.pr_g=pr_g
         self.T_beta  = moc_beta
         self.opt_T_alpha = moc_alpha
         self.opt_T_beta  = moc_alpha
@@ -161,11 +159,6 @@ class Storage:
                 'virtual':[],
                 'qc':[]
                 }
-        if self.pr_g>1:
-            print('#  Total e- count    : {}'.format(Nels_tot))
-            print('#  Total orb count   : {}'.format(Norb_tot))
-            print('#  Active e- count   : {}'.format(Nels_as))
-            print('#  Active orb count  : {}'.format(Norb_as))
         self.Nels_tot= Nels_tot
         self.Nels_as = Nels_as
         self.Norb_tot= Norb_tot
@@ -173,8 +166,6 @@ class Storage:
         self.Nels_ia = self.Nels_tot-self.Nels_as
         self.Norb_ia = self.Nels_ia//2
         self.spin = spin_mapping
-        if self.pr_g>1:
-            print('#  Inactive orb count: {}'.format(self.Norb_ia))
         self.Norb_v  = self.Norb_tot-self.Norb_ia-self.Norb_as
         if self.Nels_ia%2==1:
             raise(SpinError)
@@ -325,9 +316,10 @@ class Storage:
     def opt_analysis(self):
         print('  --  --  --  --  --  --  -- ')
         print('--  --  --  --  --  --  --  --')
-        print('Analyzing the optimization.')
+        print('E, run: {:.9f} H'.format(self.energy_best))
         try:
             diff = 1000*( self.energy_best-self.kw['e_fci'])
+            print('E, fci: {:.9f} H'.format(self.kw['e_fci']))
             print('Energy difference from FCI: {:.8f} mH'.format(diff))
         except KeyError:
             pass

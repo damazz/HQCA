@@ -2,8 +2,8 @@
 ./sub.py
 
 Holds the subroutines for the optimizations.
-
 '''
+
 import pickle
 import os, sys
 from importlib import reload
@@ -68,9 +68,9 @@ class QuantumRun:
                 self.kw_orb_opt[k]=v
 
     def build(self):
-        self.pr_g = self.Store.pr_g
+        self.pr_g = self.kw['pr_g']
         self.Store.pr_m = self.kw['pr_m']
-        if self.pr_g>0:
+        if self.pr_g>1:
             print('')
             print('### #### ### ### ### ### ### ### ### ### ### ###')
             print('')
@@ -84,12 +84,12 @@ class QuantumRun:
         self.kw_qc['alpha_mos']=self.Store.alpha_mo
         self.kw_qc['beta_mos']=self.Store.beta_mo
         self.kw_qc['single_point']=self.Store.sp
-        if self.pr_g>0:
+        if self.pr_g>1:
             print('# ...done.')
             print('#')
             print('# Setting QC parameters...')
         self.QuantStore = qf.QuantumStorage(self.pr_g,**self.kw_qc)
-        if self.pr_g>0:
+        if self.pr_g>1:
             print('# ...done.')
             print('#')
             print('# Setting opt parameters...')
@@ -99,7 +99,7 @@ class QuantumRun:
                 'qc',
                 self.Store,
                 self.QuantStore)
-        if self.pr_g>0:
+        if self.pr_g>1:
             if self.kw_opt['optimizer']=='nevergrad':
                 print('#  optimizer  : {}'.format(self.kw_opt['nevergrad_opt']))
             else:
@@ -116,10 +116,13 @@ class QuantumRun:
         if self.kw_qc['info'] in ['calc']:
             qf.get_direct_stats(self.QuantStore)
         elif self.kw_qc['info'] in ['draw']:
-            qf.get_direct_stats(self.QuantStore,draw=True)
+            qf.get_direct_stats(self.QuantStore,extra='draw')
             sys.exit()
         elif self.kw_qc['info'] in ['count_only']:
             qf.get_direct_stats(self.QuantStore)
+            sys.exit()
+        elif self.kw_qc['info'] in ['compile','check','check_circuit','transpile']:
+            qf.get_direct_stats(self.QuantStore,extra='compile')
             sys.exit()
         else:
             pass
@@ -127,18 +130,20 @@ class QuantumRun:
     def set_print(self,level='default',
             record=False
             ):
-        self.kw_qc['pr_e']=2
+        self.kw_qc['pr_e']=1
         self.kw_qc['pr_q']=1
         self.kw_opt['pr_o']=1
         self.kw['pr_m']=1
         self.kw['pr_g']=2
-        self.kw_orb['pr_s']=1
-        if level=='stats':
-            self.kw_qc['pr_q']=2
-        elif level=='min':
+        self.kw['pr_s']=1
+        if level=='terse':
             self.kw['pr_g']=1
+            self.kw_opt['pr_o']=0
+            self.kw['pr_m']=0
+            self.kw['pr_s']=0
         elif level=='none':
             self.kw_qc['pr_q']=0
+            self.kw_qc['pr_e']=0
             self.kw_opt['pr_o']=0
             self.kw['pr_m']=0
             self.kw['pr_g']=0
@@ -157,7 +162,8 @@ class QuantumRun:
         elif level=='diagnostic_opt':
             self.kw_opt['pr_o']=9
         elif level=='diagnostic_orb':
-            self.kw_orb['pr_s']=9
+            self.kw['pr_s']=9
+            self.kw_opt['pr_o']=9
 
 class RunRDM(QuantumRun):
     '''
@@ -198,7 +204,7 @@ class RunRDM(QuantumRun):
         while not self.rc.done:
             Run.next_step()
             if self.kw_opt['pr_o']>0:
-                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}'.format(
+                print('Step: {:02}, E: {:.8f} Sigma: {:.8f}'.format(
                     self.rc.iter,
                     Run.opt.best_f,
                     Run.opt.crit)
@@ -273,8 +279,7 @@ class RunNOFT(QuantumRun):
                     self.QuantStore)
         self.unity = self.kw_opt['unity']
         self.shift = None
-
-        if self.pr_g>0:
+        if self.pr_g>1:
             if self.kw_orb_opt['optimizer']=='nevergrad':
                 print('#  orb opt    : {}'.format(self.kw_orb_opt['nevergrad_opt']))
             else:
@@ -329,8 +334,10 @@ class RunNOFT(QuantumRun):
         if self.main.err or self.sub.err:
             self.total.err = True
             self.total.done= True
-            print(self.main.msg)
-            print(self.sub.msg)
+            if self.main.err:
+                print(self.main.msg)
+            else:
+                print(self.sub.msg)
         elif abs(self.main.crit-self.sub.crit)<crit:
             self.total.done=True
         elif self.total.iter>=max_iter:
@@ -340,6 +347,7 @@ class RunNOFT(QuantumRun):
             pass
         if self.total.err:
             print('Got an error.')
+        self.total.crit = self.Store.energy_best
         self.main.crit=0
         self.sub.crit=0
         if self.pr_g>2:
@@ -349,7 +357,7 @@ class RunNOFT(QuantumRun):
     def _set_opt_parameters(self):
         self.f = min(self.Store.F_alpha,self.Store.F_beta)
         self.kw_opt['unity']=self.unity*(1-self.f*0.95)
-        print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
+        #print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
 
     def _OptNO(self):
         self.main=Cache()
@@ -373,13 +381,13 @@ class RunNOFT(QuantumRun):
         while not self.main.done:
             self.Run[key].next_step()
             if self.kw_opt['pr_o']>0:
-                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}  '.format(
+                print('Step: {:02}, E: {:.8f} c: {:.8f}  '.format(
                     self.main.iter,
                     self.Run[key].opt.best_f,
                     self.Run[key].opt.crit)
                     )
             self.Run[key].check(self.main)
-            if self.main.iter==self.kw_opt['max_iter'] and not(self.main.done):
+            if self.main.iter==self.kw_opt['max_iter']:
                 self.main.error=False
                 self.Run[key].opt_done=True
                 self.main.done=True
@@ -407,15 +415,16 @@ class RunNOFT(QuantumRun):
         while not self.sub.done:
             self.Run[key].next_step()
             if self.kw['pr_s']>0 and self.sub.iter%1==0:
-                print('Step: {:02}, Total Energy: {:.8f} Sigma: {:.8f}'.format(
+                print('Step: {:02}, E: {:.8f} c: {:.8f}'.format(
                     self.sub.iter,
                     self.Run[key].opt.best_f,
                     self.Run[key].opt.crit)
                     )
             self.Run[key].check(self.sub)
-            if self.sub.iter==self.kw_orb_opt['max_iter'] and not self.main.done:
+            if self.sub.iter==self.kw_orb_opt['max_iter']:
                 self.sub.done=True
                 self.sub.err=True
+                self.sub.msg='Max iterations met.'
                 self.Run[key].opt_done=True
             self.sub.iter+=1
         self.Store.update_full_ints()
@@ -430,3 +439,4 @@ class RunNOFT(QuantumRun):
         self.main=Cache()
         self.main.done=True
         self._OptOrb()
+

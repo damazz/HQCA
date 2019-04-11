@@ -305,6 +305,8 @@ class gradient_particle_swarm_optimizer(OptimizerInstance):
         #print(self.vels_crit)
         if self.conv_crit_type=='default':
             self.crit=self.pos_crit
+        else:
+            self.crit=self.pos_crit
         #print('Pos: ',self.pos_crit)
         #print('Vel: ',self.vel_crit)
         if self.pr_o>2:
@@ -314,7 +316,7 @@ class gradient_particle_swarm_optimizer(OptimizerInstance):
 
 
     def _random_particle_position(self):
-        for i in range(0,self.Np):
+        for i in range(1,self.Np):
             temp = np.zeros(self.N)
             for j in range(self.N):
                 t = (random.random()*2-1)*self.unity
@@ -496,7 +498,7 @@ class nelder_mead(OptimizerInstance):
             self.simp_f[i] = self.f(self.simp_x[i,:])
             self.energy_calls+=1
         if self.pr_o>0:
-            print('Step:-01, Init. Energy: {:.8f} Hartrees'.format(self.simp_f[0]))
+            print('Step:-01, E:{:.8f} Hartrees'.format(self.simp_f[0]))
         self.order_points()
         self.calc_centroid()
         self.reassign()

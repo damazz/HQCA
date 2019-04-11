@@ -69,25 +69,6 @@ class HyperPlane:
         n = np.dot(self.n.T,v-p)[0,0]*self.n
         return np.sqrt(np.sum(np.square(n)))
 
-#vert3g = np.matrix([
-#    [1,1  ,0.75],
-#    [1,0.5,0.75],
-#    [1,0.5,0.5 ]
-#    ])
-#vert3 = np.matrix([
-#    [1,0,1],
-#    [0,1,1],
-#    [0,0,0]
-#    ])
-#vert4 = np.matrix([
-#    [1,1/2,1/3,1/4],
-#    [0,1/2,1/3,1/4],
-#    [0,0/2,1/3,1/4],
-#    [0,0/2,0/3,1/4]])
-#test = HyperPlane(vert4)
-#point = np.matrix([[2/3],[2/3],[0],[0]])
-
-
 class CompositePolytope:
     '''
     Somewhat of a generalization of the triangles/planes to larger surfaces.
@@ -143,9 +124,6 @@ def generate_error_polytope(Store,QuantStore,**kw):
     if QuantStore.pr_e>0:
         print('Obtaining error correction polytope.')
     for i in range(QuantStore.ec_Ns):
-        if QuantStore.pr_e:
-            if QuantStore.ec_Ns==1:
-                print('No surface triangulation.')
         tempa = np.zeros((
             len(QuantStore.alpha_qb),
             len(QuantStore.alpha_qb))
@@ -177,34 +155,25 @@ def generate_error_polytope(Store,QuantStore,**kw):
                 noccb = np.real(noccb[::-1])
                 tempa[:,j]=nocca
                 tempb[:,j]=noccb
-                print('Parameters: ')
-                print(QuantStore.ec_para[i][j])
-                print('Experimental occupations: ')
-                print('Alpha: ')
-                print(nocca)
-                print('Beta: ')
-                print(noccb)
+                if QuantStore.pr_e>1:
+                    print('Parameters: ')
+                    print(QuantStore.ec_para[i][j])
+                    print('Experimental occupations: ')
+                    print('Alpha: ')
+                    print(nocca)
+                    print('Beta: ')
+                    print(noccb)
         alp_hp = HyperPlane(tempa)
         bet_hp = HyperPlane(tempb)
         ideal = HyperPlane(QuantStore.ec_vert)
         ec_a.add_face(ideal,alp_hp)
         ec_b.add_face(ideal,bet_hp)
-        print('Alpha hyperplane:')
-        print(tempa)
-        print('Beta hyperplane:')
-        print(tempb)
-        print('Ideal hyperplane: ')
-        print(QuantStore.ec_vert)
+        if QuantStore.pr_e>1:
+            print('Alpha hyperplane:')
+            print(tempa)
+            print('Beta hyperplane:')
+            print(tempb)
+            print('Ideal hyperplane: ')
+            print(QuantStore.ec_vert)
     return ec_a,ec_b
-
-
-
-    QuantStore._gip()
-
-
-
-
-
-
-
 

@@ -67,11 +67,11 @@ class GenerateDirectCircuit:
                     'np':2}
                 }
         # note if self.ents has np not equal to 1, then uh....
-        # you probably need to change it in QuantumStorage class in 
+        # you probably v need to change it in QuantumStorage class in 
         # tools/QuantumFunctions
         self.para = QuantStore.parameters
         self.qs = QuantStore
-        self.Nq = QuantStore.Nq
+        self.Nq = QuantStore.Nq_tot
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.Ne = QuantStore.Ne
@@ -83,6 +83,7 @@ class GenerateDirectCircuit:
         self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
         self.ent_q = self.ents[self.qs.ent_circ_q]['f']
         self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
+        self.map = QuantStore.rdm_to_backend
         self.cg = 0
         self.sg = 0
         self._gen_circuit()
@@ -106,16 +107,16 @@ class GenerateDirectCircuit:
             for pair in self.qs.pair_list:
                 a = self.ent_Np
                 temp = self.para[h:h+a]
-                self.ent_p(*temp,i=pair[0],k=pair[1])
+                self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
                 h+=self.ent_Np
             for quad in (self.qs.quad_list):
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
                 self.ent_q(*temp,
-                        i=quad[0],
-                        j=quad[1],
-                        k=quad[2],
-                        l=quad[3])
+                        i=self.map[quad[0]],
+                        j=self.map[quad[1]],
+                        k=self.map[quad[2]],
+                        l=self.map[quad[3]])
                 h+= self.ent_Nq
 
 

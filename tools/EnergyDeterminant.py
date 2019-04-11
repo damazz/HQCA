@@ -72,6 +72,7 @@ def build_2e_2rdm_spin(
     except IndexError:
         nocca = [nocca]
         noccb = [noccb]
+    norm = 0
     for i in range(0,N):
         term = '0'*(i)+'1'+'0'*(N-i-1)
         term+= term
@@ -79,6 +80,10 @@ def build_2e_2rdm_spin(
                 max(0,(nocca[0][i]+noccb[0][i])/2)
                 )
         wf[term]=(signs[i])*val
+        norm += val**2
+    norm = norm**(1/2)
+    for key in wf.keys():
+        wf[key]=wf[key]*(1/norm)
     wf = fx.extend_wf(wf,
             Store.Norb_tot,
             Store.Nels_tot,

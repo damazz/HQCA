@@ -9,7 +9,6 @@ from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import Functions as fx
-from hqca.tools import IBM_check
 from functools import reduce
 import sys,time
 import timeit
@@ -44,11 +43,12 @@ class Process:
         self.tomo_rdm = QuantStore.tomo_rdm
         self.tomo_basis=QuantStore.tomo_bas
         self.qs = QuantStore
+        self.Nq_act = QuantStore.Nq
+        self.Nq_tot = QuantStore.Nq_tot
         self.add_data(output)
         self.occ_qb = []
         for k,v in QuantStore.backend_to_rdm.items():
             self.occ_qb.append(k)
-        self.Nq_act = len(self.occ_qb)
 
     def add_data(self,output):
         i,k,j,l,s=0,0,0,0,0
@@ -58,9 +58,6 @@ class Process:
             if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
                 print('Counts : {}'.format(counts))
-            if i==0:
-                self.Nq_tot = len(list(counts.keys())[0])
-                i+=1 
             prbdis = self.proc_counts(counts)
             if name[0]=='ii':
                 self.data['ii']['counts']=counts

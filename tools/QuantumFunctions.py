@@ -1,21 +1,12 @@
 '''
-tools/QuantumAlgorithms
-test module to handle all of the nitty gritty of the quantum algorithm...in
-particular, should handle:
-    - mappings
-    - entanglement schemes
-    - circuit design, etc. 
-    - .....maybe connecting alot of stuff
+tools/QuantumFunctions
 
-for computation on the computer, we need to know....alpha,beta orbital sfor the
-RDM functions? yes and no. maybe not. unrestricted form will help. 
-but...qc is only concerned with mapping out a RDM. that is accomplsiehd through
-algorithms and tomography. but we still need to handle the mappings.....
-so we have 
 
 '''
 import numpy as np
+import sys
 from math import pi
+from hqca.tools import NoiseSimulator
 class KeyDict(dict):
     def __missing__(self,key):
         return key
@@ -26,10 +17,8 @@ class QuantumStorage:
     particular, should generate the mapping between the quantum and molecular
     2RDMs.
 
-    Also should assign the difference parameters of the quantum algorithm. 
-
+    Also should assign the difference parameters of the quantum algorithm.
     '''
-
     def __init__(self,
             pr_g,
             Nqb,
@@ -51,49 +40,53 @@ class QuantumStorage:
             beta_mos,
             single_point,
             theory='noft',
+            Nqb_backend=None,
             fermion_mapping='jordan-wigner',
-            backend_configuration=None,
             load_triangle=False,
             qc=True,
             ansatz='default',
             spin_mapping='default',
             method='variational',
-            compiler=None,
+            backend_configuration=None,
+            noise_model_loc=None, #specify file name for noise_model 
+            noise=False,
+            transpile=False,
+            info=None,
             initialize='default',
             algorithm=None,
             pr_q=0,
             pr_e=1,
+            circuit_times=None,
             use_radians=False,
-            opt=None,
-            info=None
+            opt=None
             ):
         '''
         method;
             variational
             trotter?
-        
         variational;
             default
             ucc
-
         entangler
             Ry_cN
             Rx_cN
             Rz_cN
             trott
-
         spin_mapping
             default
             spin_free
             spatial? not sure if necessary
         '''
         self.opt_kw = opt
-        self.info=info
         self.theory= theory
         self.pr_g =pr_g
         self.use_radians=use_radians
         self.Ns = num_shots
         self.Nq = Nqb  # active qubits
+        if Nqb_backend is not None:
+            self.Nq_tot = Nqb_backend
+        else:
+            self.Nq_tot = self.Nq
         self.Ne = Nels_as # active space
         if spin_mapping=='default':
             self.Ne_alp = int(0.5*Nels_as+Sz)
@@ -132,13 +125,18 @@ class QuantumStorage:
         self.pr_e = pr_e
         self.ansatz = ansatz
         self.spin_mapping = spin_mapping
+        self.bec = backend_configuration
         self.qubit_to_backend = backend_configuration
-        if self.qubit_to_backend==None:
+        if self.qubit_to_backend is None:
             self.qubit_to_backend=KeyDict()
             self.backend_to_qubit=KeyDict()
         else:
-            self.backend_to_qubit={v:k for k,v in self.qubit_to_backend.items()}
-        self.compiler = compiler
+            #self.backend_to_qubit={v:k for k,v in self.qubit_to_backend.items()}
+            self.qubit_to_backend=KeyDict()
+            self.backend_to_qubit=KeyDict()
+        self.transpile = transpile
+        self.use_noise = noise
+        self.info=info
         self.fermion_mapping = fermion_mapping
         self.alpha_qb = [] # in the backend basis
         self.beta_qb  = [] # backend set of qubits
@@ -150,6 +148,11 @@ class QuantumStorage:
                 self._get_2e_no()
         if self.ec=='hyperplane':
             self._get_hyper_para()
+        if self.use_noise:
+            self.noise_model = NoiseSimulator.get_noise_model(
+                    device=backend,
+                    times=circuit_times,
+                    saved=noise_model_loc)
         if self.pr_g>1:
             print('# Summary of quantum parameters:')
             print('#  backend   : {}'.format(self.backend))
@@ -160,7 +163,7 @@ class QuantumStorage:
             print('#  tomo type : {}'.format(tomo_rdm))
             print('#  tomo basis: {}'.format(tomo_basis))
             print('#  tomo extra: {}'.format(tomo_extra))
-            print('#  compiler  : {}'.format(self.compiler))
+            print('#  transpile  : {}'.format(self.transpile))
             print('# Summary of quantum algorithm:')
             print('#  spin orbs : {}'.format(self.No))
             print('#  fermi map : {}'.format(self.fermion_mapping))
@@ -235,7 +238,6 @@ class QuantumStorage:
                     [0/1,1/2,1/3,1/4],
                     [0/1,0/2,1/3,1/4],
                     [0/1,0/2,0/3,1/4]])
-
 
     def _map_rdm_jw(self):
         self.qubit_to_rdm = {} #
@@ -334,7 +336,6 @@ class QuantumStorage:
                     i= k%self.No
                     self.quad_list.append([i,i+1,k,k+1])
 
-
     def _get_2e_no(self):
         self.tomo_quad = []
         temp = iter(zip(
@@ -352,7 +353,6 @@ class QuantumStorage:
         if self.sp=='noft':
             self.parameters=[0]*(self.No-1)
             self.Np = self.No-1
-            print(self.Np)
         elif self.sp=='rdm':
             self.c_ent_p=1
             self.c_ent_q=1
@@ -365,36 +365,83 @@ class QuantumStorage:
             self.Np = self.depth*len(self.pair_list)*self.c_ent_p
             self.Np+= self.depth*len(self.quad_list)*self.c_ent_q
             self.parameters=[0.0]*self.Np
-        if self.pr_q>1:
+        if self.pr_g>1:
             print('Number of initial parameters: {}'.format(self.Np))
 
-def get_direct_stats(QuantStore,draw=False):
+def get_direct_stats(QuantStore,extra=False):
     from hqca.tools import QuantumAlgorithms
     QuantStore.parameters=[1]*QuantStore.Np
     test = QuantumAlgorithms.GenerateDirectCircuit(QuantStore)
-    print('# Getting circuit parameters...')
-    print('#')
-    print('# Gate counts:')
-    print('#  N one qubit gates: {}'.format(test.sg))
-    print('#  N two qubit gates: {}'.format(test.cg))
-    print('# ...done.')
-    print('# ')
-    if draw:
-        print('Trying to draw.')
+    if QuantStore.pr_g>1:
+        print('# Getting circuit parameters...')
+        print('#')
+        print('# Gate counts:')
+        print('#  N one qubit gates: {}'.format(test.sg))
+        print('#  N two qubit gates: {}'.format(test.cg))
+        print('# ...done.')
+        print('# ')
+    if extra=='draw':
         try:
             print(test.qc)
             test.qc.measure(test.q,test.c)
             test.qc.draw()
         except Exception as e:
             print(e)
-    QuantStore.parameters=[0]*QuantStore.Np
-    if draw=='tomo':
+    elif extra=='tomo':
         print('Trying to draw.')
         try:
             print(test.qc)
             test.qc.draw()
         except Exception as e:
             print(e)
+    elif extra=='compile':
+        from qiskit import Aer,IBMQ,execute
+        from qiskit.mapper import Layout
+        from qiskit.transpiler import transpile
+        from qiskit.compiler import assemble_circuits
+        from qiskit.tools.monitor import backend_overview
+        import qiskit
+        test.qc.measure(test.q,test.c)
+        be = Aer.get_backend('qasm_simulator')
+        IBMQ.load_accounts()
+        ibm= IBMQ.get_backend('ibmqx4')
+        coupling = ibm.configuration().coupling_map
+        print(coupling)
+        # going to try transpiler? yeah. 
+        print(QuantStore.bec)
+        print(test.qc)
+        backend_overview()
+        #layout = Layout()
+        if QuantStore.bec is not None:
+            layout = []
+            for i in QuantStore.bec:
+                if i is not None:
+                    layout.append((test.q,i))
+                else:
+                    layout.append(None)
+            #for n,i in enumerate(QuantStore.bec):
+            #    if i is not None:
+            #        layout[n] = (test.q,i)
+            #    else:
+            #        layout[n] = None
+            print(layout)
+            print('')
+            print('space')
+        else:
+            layout = None
+        qt = transpile(test.qc,
+                backend=be,
+                coupling_map=coupling,
+                initial_layout=layout
+                )
+        #qo = be.run(qt)
+        result = execute(qt,be).result()
+        print(qt)
+        print(result.get_counts())
+        sys.exit()
+    QuantStore.parameters=[0]*QuantStore.Np
+
+
 
 local_qubit_tomo_pairs = {
         2:[

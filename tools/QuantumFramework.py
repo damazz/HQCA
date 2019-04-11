@@ -18,11 +18,15 @@ from hqca.tools.QuantumFunctions import diag
 from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
-from hqca.tools.IBM_check import check,get_backend_object
 import sys, traceback
-from qiskit import Aer
-from qiskit import compile as compileqp
+from qiskit import Aer,execute,execute_circuits
+from qiskit.mapper import Layout
+from qiskit.transpiler import transpile
+from qiskit.compiler import assemble_circuits,RunConfig
+from qiskit.tools.monitor import backend_overview,job_monitor
+from hqca.tools.NoiseSimulator import get_noise_model
 from math import pi
+
 
 SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
             '/qiskit/backends/qasm_simulator_cpp')
@@ -161,7 +165,7 @@ def _direct_tomography(
                 Q = GenerateDirectCircuit(QuantStore,_name='ijR{:02}'.format(i))
                 temp = ['ijR{:02}'.format(i)]
                 for pair in ca:
-                    Q = apply_1rdm_basis_tomo(
+                    Q = (
                             Q,int(pair[0]),int(pair[1]))
                     temp.append(pair)
                 try:
@@ -289,31 +293,43 @@ def run_circuits(
     beo = _tomo_get_backend(
             QuantStore.provider,
             QuantStore.backend)
-    #for i in circuits:
-    #    print(i.qasm())
-    #    print('')
-    qo = compileqp(
-            circuits=circuits,
-            backend=beo,
-            shots=QuantStore.Ns,
-            coupling_map=None
-            )
+    backend_options = {}
     counts = []
-    if QuantStore.backend=='local_unitary_simulator':
-        qr = beo.run(qo,timeout=6000)
-        for circ in circuit_list:
-            U = qr.result().get_data(circ)['unitary']
-            counts[circuit] = fx.UnitaryToCounts(U)
+    if QuantStore.use_noise:
+        noise_model=QuantStore.noise_model
+        backend_options['noise_model']=noise_model
+        backend_options['basis_gates']=noise_model.basis_gates
+    if QuantStore.bec is not None:
+        layout = []
+        for i in QuantStore.bec:
+            if i is not None:
+                layout.append((test.q,i))
+            else:
+                layout.append(None)
     else:
-        try:
-            job = beo.run(qo)
-            for circuit in circuit_list:
-                name = circuit[0]
-                counts.append(job.result().get_counts(name))
-        except Exception as e:
-            print('Error: ')
-            print(e)
-            traceback.print_exc()
+        layout = None
+    if QuantStore.transpile:
+        circuits = transpile(
+                circuits=circuits,
+                backend=beo,
+                coupling_map=beo.configuration().coupling_map,
+                initial_layout=layout
+                )
+    qo = assemble_circuits(
+            circuits=circuits,
+            run_config=RunConfig(
+                shots=QuantStore.Ns
+        )
+            )
+    try:
+        job = beo.run(qo,backend_options=backend_options)
+        for circuit in circuit_list:
+            name = circuit[0]
+            counts.append(job.result().get_counts(name))
+    except Exception as e:
+        print('Error: ')
+        print(e)
+        traceback.print_exc()
     #if verbose:
     #    print('Circuit counts:')
     #    for i in counts:
@@ -343,7 +359,7 @@ class Construct:
 
 def add_to_config_log(backend,connect):
     '''
-    Function to add the current ibm credentials and configuration to the
+    Function to add the current ibm credentials, configuration to the
     ./results/logs/ directory, so it is stored for potential publications.
     '''
     # check if config file is already there
@@ -353,20 +369,13 @@ def add_to_config_log(backend,connect):
     today = '{:04}{:02}{:02}'.format(today[0],today[1],today[2])
     loc = '/home/scott/Documents/research/3_vqa/hqca/results/logs/'
     filename = loc+today+'_'+backend
-    from qiskit import get_backend,available_backends
+    from qiskit import Aer
     if connect:
-        from qiskit import register
-        try:
-            import Qconfig
-        except ImportError:
-            from ibmqx import Qconfig
-        try:
-            register(Qconfig.APItoken)
-        except Exception as e:
-            #print(e)
-            pass
+        from qiskit import IBMQ
+        prov = IBMQ
+        prov.load_accounts()
     else:
-        pass
+        prov = Aer
     try:
         with open(filename,'rb') as fp:
             pass
@@ -382,8 +391,12 @@ def add_to_config_log(backend,connect):
         elif backend=='ibmqx4':
             backend='ibmq_5_tenerife'
         with open(filename,'wb') as fp:
-            data = pickle.dump(
-                    get_backend(backend).calibration,
+            data  = {'name':be.name(),
+                    'config':be.configuration(),
+                    'properties':be.properties()}
+            name = be.name()
+            pickle.dump(
+                    data,
                     fp,0
                     )
         print('----------')
@@ -392,21 +405,21 @@ def add_to_config_log(backend,connect):
         print('{}'.format(filename))
         print('----------')
 
-def wait_for_machine(backend,Nw=10):
+def wait_for_machine(QuantStore,Nw=10):
     '''
     Function to wait for machine given a certain backend. 
     '''
-    if backend=='ibmqx4':
-        backend='ibmq_5_tenerife'
-    qo = get_backend_object(backend)
+    from qiskit import IBMQ
+    qo = IBMQ.get_backend(QuantStore.backend)
+    def check(be):
+        stat = qo.status()
+        return stat.operational,stat.pending_jobs
     use,pending = check(qo)
+    # develop function 
     time_waited = 0
     while (use and pending>Nw):
-        print('----------------------------------------')
         print('--- There are {:03} runs in queue. -----'.format(pending))
         print('--- Waited {:05} minutes so far. ----'.format((time_waited//60)))
-        print('----------------------------------------')
-        #get_reading_material()
         time.sleep(300) # wait for 5 minutes, check again
         time_waited+= 300
         try:
@@ -417,7 +430,6 @@ def wait_for_machine(backend,Nw=10):
             print('Waiting a bit...3 minutes.')
             time.sleep(180)
             try:
-                register(Qconfig.APItoken)
                 use,pending = check(qo)
             except Exception:
                 raise NotAvailableError
@@ -425,7 +437,6 @@ def wait_for_machine(backend,Nw=10):
         pass
     else:
         raise NotAvailableError
-
 '''
 backends = available_backends({'local': True})
 

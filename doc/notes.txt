@@ -1,3 +1,15 @@
+4.8.19
+
+printing is still weird.
+
+Things that need to be printed: 
+- header
+- parameters
+- error correction
+- optimiziation
+- 
+
+
 1.8.19 
 
 Need to do the following:

@@ -30,7 +30,7 @@ class sp:
     def __init__(self,
             mol,
             theory,
-            pr_g=0,
+            verbose=0,
             calc_E=False,
             restart=False):
         '''start function,
@@ -38,7 +38,8 @@ class sp:
         '''
         self.run_type = 'sp'
         self.theory=theory
-        if pr_g>0:
+        self.verbose=verbose
+        if verbose:
             print('## ### hqca ### ###')
             print('  --- v{} ---'.format(version))
             print('')
@@ -46,7 +47,7 @@ class sp:
             print('# Run type: single point')
             if theory in ['rdm','RDM']:
                 print('# Theory: RDM optimization')
-        self._load_mol(mol,pr_g,calc_E)
+        self._load_mol(mol,verbose,calc_E)
         if restart:
             self._load_restart()
         else:
@@ -54,7 +55,7 @@ class sp:
 
     def _load_mol(self,
             mol,
-            pr_g,
+            verbose,
             calc_E
             ):
         self.S = mol.intor('int1e_ovlp')
@@ -62,7 +63,6 @@ class sp:
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e = self.V_1e+self.T_1e
         self.Norb = self.S.shape[0]
-        #mol.verbose=4
         self.ints_2e = mol.intor('int2e')
         self.hf = scf.RHF(mol)
         self.hf.kernel()
@@ -84,20 +84,18 @@ class sp:
             'ints_1e_ao':self.ints_1e,
             'ints_2e_ao':self.ints_2e,
             'E_ne':mol.energy_nuc(),
-            'pr_g':pr_g
             }
         if calc_E:
             from pyscf import mcscf
             mc = mcscf.CASCI(self.hf,mol.as_No,mol.as_Ne)
             mc.kernel()
             store_kw['e_fci']=mc.e_tot
-            if pr_g>0:
+            if verbose>1:
                 print('')
-                print('# CASCI solution generated.')
-                print('# Hartree energy: {:.8f} H'.format(self.hf.e_tot))
-                print('# Total energy  : {:.8f} H'.format(mc.e_tot))
-                print('# ')
-                print('# Det-alp, Det-bet,  CI coeff')
+                print('SCF energy: {:.8f} H'.format(self.hf.e_tot))
+                print('FCI energy  : {:.8f} H'.format(mc.e_tot))
+                print('')
+                print('Det-alp, Det-bet,  CI coeff')
                 obj = mc.fcisolver.large_ci(
                     mc.ci,
                     mol.as_No,
@@ -106,8 +104,13 @@ class sp:
                     return_strs=False
                     )
                 for c,ia,ib in obj:
-                    print('#   {}      {}    {:+.12f}'.format(ia,ib,c))
-                print('# ')
+                    print('   {}      {}    {:+.12f}'.format(ia,ib,c))
+        if self.verbose>1:
+            print('#  Total e- count    : {}'.format(Nels_tot))
+            print('#  Total orb count   : {}'.format(Norb_tot))
+            print('#  Active e- count   : {}'.format(Nels_as))
+            print('#  Active orb count  : {}'.format(Norb_as))
+            print('#  Inactive orb count: {}'.format(self.Norb_ia))
         self.Store = enf.Storage(
             **store_kw)
 
@@ -136,54 +139,6 @@ class sp:
 
     def analysis(self):
         self.run.Store.opt_analysis()
-        '''
-        import hqca.tools.RDMFunctions as rdmf
-        from functools import reduce
-        print('Calculating spin of system.')
-        print('Rotating into the proper frame of reference.')
-        rdm2 = self.result.rdm2
-        rdm1 = rdmf.check_2rdm(rdm2,self.result.Nels_tot)
-        self.Ci = np.linalg.inv(self.C)
-        self.Ti_a = np.linalg.inv(self.result.T_alpha)
-        self.Ti_b = np.linalg.inv(self.result.T_beta)
-        Ni_a = reduce(
-                np.dot, (
-                    self.Ti_a,self.C)
-                )
-        Ni_b = reduce(
-                np.dot, (
-                    self.Ti_b,self.C)
-                )
-        rdm2_mo = rdmf.rotate_2rdm(
-                rdm2,
-                Ni_a.T,
-                Ni_b.T,
-                self.result.alpha_mo,
-                self.result.beta_mo,
-                spin2spac=self.result.s2s,
-                region='full'
-                )
-        rdm1_mo = rdmf.check_2rdm(
-                rdm2_mo,
-                self.result.Nels_tot)
-        print(np.real(rdm1_mo))
-        sz = rdmf.Sz(
-                rdm1_mo,
-                self.result.alpha_mo,
-                self.result.beta_mo,
-                s2s=self.result.s2s)
-        s2 = rdmf.S2(
-                rdm2_mo,
-                rdm1_mo,
-                self.result.alpha_mo,
-                self.result.beta_mo,
-                s2s=self.result.s2s)
-        print('Sz value: {:.6f}'.format(np.real(sz)))
-        print('S2 value: {:.6f}'.format(np.real(s2)))
-        print('Natural orbital wavefunction:')
-        for k,v in self.result.wf.items():
-            print(' |{}>: {}'.format(k,v))
-        '''
 
 class scan(sp):
 
