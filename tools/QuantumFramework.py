@@ -19,7 +19,7 @@ from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
 from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
 import sys, traceback
-from qiskit import Aer,execute,execute_circuits
+from qiskit import Aer,execute
 from qiskit.mapper import Layout
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble_circuits,RunConfig
