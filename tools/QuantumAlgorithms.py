@@ -56,6 +56,9 @@ class GenerateDirectCircuit:
                 'UCC2c12':{
                     'f':self._UCC2_con_12,
                     'np':1},
+                'UCC2c12v2':{
+                    'f':self._UCC2_con_12v2,
+                    'np':1},
                 'UCC2c23':{
                     'f':self._UCC2_con_23,
                     'np':1},
@@ -291,6 +294,14 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=2)
 
+    def _UCC2_con_12v2(self,phi1,i,j,k,l):
+        '''
+        Omitted 3rd degree
+        {iT jT k  l } + {i j  kT lT}
+        {iT j  kT l } + {i jT k  lT }
+        '''
+        self._UCC2_con(phi1,i,j,k,l,omit=2,skip=False)
+
     def _UCC2_con_13(self,phi1,i,j,k,l):
         '''
         Omitted 2nd degree
@@ -307,8 +318,8 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=0)
 
-    def _UCC2_con(self,phi1,i,j,k,l,omit=0):
-        if phi1>-0.02 and phi1<0.02:
+    def _UCC2_con(self,phi1,i,j,k,l,omit=0,skip=True):
+        if phi1>-0.02 and phi1<0.02 and skip:
             pass
         else:
             if omit==2:

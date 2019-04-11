@@ -8,7 +8,7 @@ from functools import reduce
 kw_qc = {
         'Nqb_backend':4,
         'num_shots':4096,
-        'entangler_q':'UCC2c12',
+        'entangler_q':'UCC2c12v2',
         'spin_mapping':'default',
         'depth':1,
         'transpile':True,
