@@ -26,17 +26,17 @@ kw_qc = {
         #'error_correction':None
         }
 kw_opt = {
-        'optimizer':'NM',
+        'optimizer':'nevergrad',
         'unity':np.pi/4,
         'nevergrad_opt':'OnePlusOne',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
-        'conv_threshold':1e-3,
+        'conv_threshold':1e-4,
         'N_vectors':5,
         }
 orb_opt = {
         }
-dist = np.arange(0.5,2.05,0.05)
+dist = np.arange(0.5,1.05,0.05)
 E = np.zeros((2,len(dist)))
 dist = [0.5,0.75,0.85]
 for n,d in enumerate(dist):
