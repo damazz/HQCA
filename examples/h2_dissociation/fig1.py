@@ -5,7 +5,7 @@ from matplotlib import rc
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 #rc('text', usetex=True  )
 
-d1 = np.loadtxt('./en_noisy_ec.txt')
+d1 = np.loadtxt('./en_noisy_ec_cobyla.txt')
 d2 = np.loadtxt('./en_noisy_no_ec.txt')
 d3 = np.loadtxt('./en_norm_ec.txt')
 d4 = np.loadtxt('./en_norm_no_ec.txt')
@@ -20,15 +20,17 @@ e2 = d2[1,:]
 e3 = d3[1,:]
 e4 = d4[1,:]
 
-ef = d3[2,:]
-ef2= d1[2,:]
-df = d3[0,:]
-print(d4,e4)
+ef1 = d1[2,:]
+ef2 = d2[2,:]
+ef3 = d3[2,:]
+ef4 = d4[2,:]
+df = d4[0,:]
+ef = d4[2,:]
 
-dif1 = 1000*(e1-ef2)
+dif1 = 1000*(e1-ef1)
 dif2 = 1000*(e2-ef2)
-dif3 = 1000*(e3-ef)
-dif4 = 1000*(e4-ef)
+dif3 = 1000*(e3-ef3)
+dif4 = 1000*(e4-ef4)
 
 
 #plt.scatter(dist,E_hf,label='HF')

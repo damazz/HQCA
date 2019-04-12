@@ -7,7 +7,7 @@ from functools import reduce
 from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
-d =0.5 # 0.9374 +0.5626
+d =0.85 # 0.9374 +0.5626
 mol.atom = [['H',(0,0,0)],['H',(d,0,0)]]
 mol.basis= 'sto-3g'
 #mol.basis='6-31g'
@@ -42,11 +42,11 @@ kw_qc = {
 kw_opt = {
         'optimizer':'nevergrad',
         'unity':np.pi/4,
-        'nevergrad_opt':'OnePlusOne',
+        'nevergrad_opt':'Cobyla',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
         'conv_threshold':1e-4,
-        'N_vectors':5,
+        'N_vectors':2,
         }
 orb_opt = {
         }
@@ -58,3 +58,4 @@ prog.update_var(target='orb_opt',**orb_opt)
 prog.build()
 prog.execute()
 prog.analysis()
+sys.exit()

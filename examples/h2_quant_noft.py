@@ -7,7 +7,7 @@ from functools import reduce
 from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
-d = 0.9374 +3.5626
+d = 0.85 #0.9374 +3.5626
 mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
 mol.basis='sto-3g'
 #mol.basis='6-31g'
@@ -18,7 +18,7 @@ mol.build()
 mol.as_Ne = 2
 mol.as_No = mol.nbas #spatial
 #prog = sp(mol,'noft',calc_E=True,pr_g=2)
-prog = sp(mol,'noft',calc_E=True,verbose=True)
+prog = sp(mol,'noft',calc_E=True,verbose=False)
 kw_qc = {
         'Nqb':mol.as_No*2,
         'num_shots':4096,
@@ -27,25 +27,26 @@ kw_qc = {
         'depth':1,
         'qc':True,
         'info':None,
+        'transpile':True,
         'use_radians':True,
         'tomo_extra':'sign_2e',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',
-        #'error_correction':'hyperplane'
-        'error_correction':None
+        'error_correction':'hyperplane'
+        #'error_correction':None
         }
 kw_opt = {
-        'optimizer':'NM',
+        'optimizer':'nevergrad',
         'unity':np.pi/4,
-        'nevergrad_opt':'OnePlusOne',
+        'nevergrad_opt':'Powell',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
         'conv_threshold':1e-5,
-        'N_vectors':5,
+        'N_vectors':3,
         }
 orb_opt = {
         }
-prog.set_print(level='terse')
+prog.set_print(level='default')
 #prog.update_var(**{'pr_m':0})
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
