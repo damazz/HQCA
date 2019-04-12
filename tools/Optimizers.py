@@ -149,10 +149,11 @@ class Optimizer:
         except Exception as e:
             traceback.print_exc()
         if cache.done and self.method=='nevergrad':
-            diff = max(0,self.opt.max_iter-self.opt.energy_calls)
-            for i in range(diff):
-                t = self.opt.opt.ask()
-                self.opt.opt.tell(t,null_function())
+            pass
+            # diff = max(0,self.opt.max_iter-self.opt.energy_calls)
+            # for i in range(diff):
+            #     t = self.opt.opt.ask()
+            #     self.opt.opt.tell(t,self.opt.best_f)
 
 #
 # Now, begin the various types of optimizers

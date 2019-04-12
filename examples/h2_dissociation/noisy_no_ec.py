@@ -6,9 +6,9 @@ import numpy as np
 from functools import reduce
 
 kw_qc = {
-        'Nqb_backend':4,
+        'Nqb_backend':5,
         'num_shots':4096,
-        'entangler_q':'UCC2c12',
+        'entangler_q':'UCC2c12v2',
         'spin_mapping':'default',
         'depth':1,
         'transpile':True,
@@ -28,11 +28,11 @@ kw_qc = {
 kw_opt = {
         'optimizer':'nevergrad',
         'unity':np.pi/4,
-        'nevergrad_opt':'OnePlusOne',
+        'nevergrad_opt':'Cobyla',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
         'conv_threshold':1e-4,
-        'N_vectors':5,
+        'N_vectors':2,
         }
 orb_opt = {
         }
@@ -71,7 +71,7 @@ print('Distance: ')
 print(dist)
 print('Energies: ')
 print(E)
-np.savetxt('en_noisy_no_ec.txt',tot)
+np.savetxt('en_noisy_no_ec_cobyla.txt',tot)
 
 
 

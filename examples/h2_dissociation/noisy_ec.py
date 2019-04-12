@@ -28,17 +28,16 @@ kw_qc = {
 kw_opt = {
         'optimizer':'nevergrad',
         'unity':np.pi/4,
-        'nevergrad_opt':'OnePlusOne',
+        'nevergrad_opt':'Cobyla',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
         'conv_threshold':1e-4,
-        'N_vectors':5,
+        'N_vectors':2,
         }
 orb_opt = {
         }
 dist = np.arange(0.5,1.05,0.05)
 E = np.zeros((2,len(dist)))
-dist = [0.5,0.75,0.85]
 for n,d in enumerate(dist):
     mol = gto.Mole()
     mol.atom = [['H',(0,0,0)],['H',(d,0,0)]]
@@ -53,7 +52,7 @@ for n,d in enumerate(dist):
     print('#######')
     print('Distance: {}'.format(d))
     print('#######')
-    prog.set_print(level='default')
+    prog.set_print(level='diagnostic')
     prog.update_var(target='qc',**kw_qc )
     prog.update_var(target='opt',**kw_opt)
     prog.update_var(target='orb_opt',**orb_opt)
@@ -71,7 +70,7 @@ print('Distance: ')
 print(dist)
 print('Energies: ')
 print(E)
-np.savetxt('en_noisy_ec.txt',tot)
+np.savetxt('en_noisy_ec_cobyla.txt',tot)
 
 
 
