@@ -156,7 +156,8 @@ class scan(sp):
             index,
             high,
             low,
-            ns):
+            ns,
+            prop='en'):
         import matplotlib.pyplot as plt
         from matplotlib import cm
         from mpl_toolkits.mplot3d import Axes3D
@@ -165,18 +166,47 @@ class scan(sp):
             sys.exit()
         if len(index)==1:
             X = np.linspace(low[0],high[0],ns[0])
-            Y = np.zeros(ns[0])
+            if prop=='on':
+                Ya = []
+                Yb = []
+            else:
+                Y = np.zeros(ns[0])
             for n,i in enumerate(X):
                 temp = start.copy()
                 temp[index[0]]=i
-                self.run.single(target,temp)
-                Y[n] = self.run.E
+                self.run.single(target,temp,prop=prop)
+                if prop=='en':
+                    Y[n] = self.run.E
+                elif prop=='on':
+                    Ya.append(self.run.E[0])
+                    Yb.append(self.run.E[1])
                 print('{:.1f}%'.format((n+1)*100/ns[0]))
             fig = plt.figure()
-            ax = fig.add_subplot(111)
             Xp = X*(180/np.pi)
-            ax.plot(Xp, Y,linewidth=3)
-            # Plot the surface.
+            if prop=='on':
+                ax1 = fig.add_subplot(121)
+                ax2 = fig.add_subplot(122)
+                Ya = np.asarray(Ya)
+                Yb = np.asarray(Yb)
+                Ta = np.sum(Ya,axis=1)
+                Tb = np.sum(Yb,axis=1)
+                for i in range(Ya.shape[1]):
+                    ax1.plot(Xp, Ya[:,i],label='nocc{}'.format(i))
+                    ax2.plot(Xp, Yb[:,i],label='nocc{}'.format(i))
+                    print('Std dev for alpha, beta occ {}'.format(i))
+                    Av_a = np.average(Ya[:,i])
+                    Av_b = np.average(Yb[:,i])
+                    print(np.sqrt(np.sum(np.square(Ya[:,i]-Av_a))))
+                    print(np.sqrt(np.sum(np.square(Yb[:,i]-Av_b))))
+                ax1.plot(Xp,Ta,label='total')
+                ax2.plot(Xp,Tb,label='total')
+                ax1.set_xlabel('alpha')
+                ax2.set_xlabel('beta')
+                ax1.legend()
+            else:
+                ax = fig.add_subplot(111)
+                ax.plot(Xp, Y,linewidth=3)
+                # Plot the surface.
             plt.show()
         elif len(index)==2:
             para1 = np.linspace(low[0],high[0],ns[0])
@@ -188,7 +218,7 @@ class scan(sp):
                     temp = start.copy()
                     temp[index[0]]=a
                     temp[index[1]]=b
-                    self.run.single(target,para=temp)
+                    self.run.single(target,para=temp,prop=prop)
                     Z[i,j] = self.run.E
                 print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()

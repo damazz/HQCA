@@ -106,6 +106,7 @@ class QuantumStorage:
         self.ent_circ_p = entangler_p
         self.ent_circ_q = entangler_q
         self.depth = depth
+        self.random = None
         self.init = initialize
         self.algorithm = algorithm
         self.method = method
@@ -217,8 +218,8 @@ class QuantumStorage:
                 self.ec_Nv = 2
                 self.ec_Ns = 1
                 self.ec_vert = np.matrix([
-                    [1/1,1/2],
-                    [0/1,1/2]])
+                    [1.1/1,1.1/2],
+                    [0/1,1.1/2]])
                 self.ec_para = [
                         [
                             [0],

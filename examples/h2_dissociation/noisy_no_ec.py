@@ -37,6 +37,7 @@ orb_opt = {
         }
 dist = np.arange(0.5,2.05,0.05)
 E = np.zeros((2,len(dist)))
+dist = [0.75,0.85]
 
 for n,d in enumerate(dist):
     mol = gto.Mole()

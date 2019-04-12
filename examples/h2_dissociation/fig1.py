@@ -25,10 +25,10 @@ ef2= d1[2,:]
 df = d3[0,:]
 print(d4,e4)
 
-dif1 = e1-ef2
-dif2 = e2-ef2
-dif3 = e3-ef
-dif4 = e4-ef
+dif1 = 1000*(e1-ef2)
+dif2 = 1000*(e2-ef2)
+dif3 = 1000*(e3-ef)
+dif4 = 1000*(e4-ef)
 
 
 #plt.scatter(dist,E_hf,label='HF')
@@ -43,16 +43,15 @@ plt.ylabel('Energy, H',fontsize=12)
 #plt.title('Dissociation Curve of Linear H$_3$')
 plt.legend(loc=4)
 plt.show()
-sys.exit()
 
 
-a1 = plt.axes([0.55,0.55,.30,.25],facecolor=(1,1,0.7))
-a1.set_yscale('log')
-plt.text(1.2,1.9,'``Chemical Accuracy\"',fontsize=7)
-plt.scatter(dist,dE)
-plt.ylim((5e-3,5e0))
-plt.plot(dist,dE_chem,linestyle='dashed')
-
-plt.ylabel('Log$_{10}$ Error, mH',fontsize=9)
-
+plt.scatter(x4,dif4,label='stoc_no_ec',marker='o',color='k',s=50,zorder=2,lw=2)
+plt.scatter(x3,dif3,label='stoc_w_ec',marker='x',color='g',s=50,zorder=2,lw=2)
+plt.scatter(x2,dif2,label='noisy_no_ec',marker='d',color='r',s=50,zorder=2,lw=2)
+plt.scatter(x1,dif1,label='noisy_w_ec',marker='*',color='b',s=50,zorder=2,lw=2)
+#plt.axis()
+plt.xlabel('H-H Separation',fontsize=12)
+plt.ylabel('Energy, H',fontsize=12)
+#plt.title('Dissociation Curve of Linear H$_3$')
+plt.legend(loc=4)
 plt.show()

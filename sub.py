@@ -429,8 +429,10 @@ class RunNOFT(QuantumRun):
             self.sub.iter+=1
         self.Store.update_full_ints()
 
-    def single(self,target,para):
+    def single(self,target,para,prop='en'):
         if target=='rdm':
+            if prop=='on':
+                self.QuantStore.random='on'
             self.E = self.kw_opt['function'](para)
         elif target=='orb':
             self.E = self.kw_orb_opt['function'](para)

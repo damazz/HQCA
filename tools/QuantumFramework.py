@@ -337,7 +337,6 @@ def run_circuits(
     #            print('  {}:{}'.format(k,v))
     return zip(circuit_list,counts)
 
-
 class Construct:
     def __init__(self,data,QuantStore):
         self.qo = Process(data,QuantStore)
@@ -347,15 +346,6 @@ class Construct:
     def find_signs(self):
         self.qo.sign_from_2rdm()
         self.signs = self.qo.sign
-
-
-
-
-
-
-
-
-
 
 def add_to_config_log(backend,connect):
     '''

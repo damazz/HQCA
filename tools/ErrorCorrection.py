@@ -33,7 +33,7 @@ class HyperPlane:
         B[G.d,:]=np.ones(G.p)
         Ai = np.linalg.pinv(A)
         return np.dot(B,Ai)
-    
+
     def _find_normal_vector(self):
         self.n = np.zeros((self.d,1))
         if self.d==self.p:

@@ -262,7 +262,6 @@ def energy_eval_nordm(
                 Nso = rdm1.shape[0]
                 rdma = rdm1[0:Nso//2,0:Nso//2]
                 rdmb = rdm1[Nso//2:,Nso//2:]
-
                 noca,nora = np.linalg.eig(rdma)
                 nocb,norb = np.linalg.eig(rdmb)
                 noca.sort()
@@ -270,6 +269,8 @@ def energy_eval_nordm(
                 noca = np.real(noca[::-1])
                 nocb = np.real(nocb[::-1])
                 N = len(noca)
+                if QuantStore.random=='on':
+                    return noca,nocb
             if QuantStore.ec=='hyperplane':
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T

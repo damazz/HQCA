@@ -6,7 +6,7 @@ import numpy as np
 from functools import reduce
 
 kw_qc = {
-        'Nqb_backend':4,
+        'Nqb_backend':5,
         'num_shots':4096,
         'entangler_q':'UCC2c12v2',
         'spin_mapping':'default',
@@ -16,6 +16,7 @@ kw_qc = {
         'noise':True,
         'noise_model_loc':'20190410_ibmqx4',
         'qc':True,
+        'pr_e':2,
         'info':None,
         'use_radians':True,
         'tomo_extra':'sign_2e',
@@ -37,7 +38,7 @@ orb_opt = {
         }
 dist = np.arange(0.5,2.05,0.05)
 E = np.zeros((2,len(dist)))
-
+dist = [0.5,0.75,0.85]
 for n,d in enumerate(dist):
     mol = gto.Mole()
     mol.atom = [['H',(0,0,0)],['H',(d,0,0)]]
