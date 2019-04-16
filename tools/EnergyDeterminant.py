@@ -219,6 +219,28 @@ def energy_eval_rdm(
         print('')
     return E_t
 
+def energy_eval_grad_noft_numerical(
+        para,
+        Store,
+        QuantStore):
+    Np = len(para)
+    dE =  np.zeros(Np)
+    dt = 0.3
+    for i in range(0,Np):
+        temp = np.zeros(Np)
+        temp[i] = dt
+        plus = energy_eval_nordm(
+                para+temp,
+                Store,
+                QuantStore)
+        minus = energy_eval_nordm(
+                para-temp,
+                Store,
+                QuantStore)
+        dE[i]= (plus-minus)/(2*dt)
+    print('Grad: {}'.format(dE))
+    return dE
+
 def energy_eval_nordm(
         para,
         Store,
@@ -229,6 +251,7 @@ def energy_eval_nordm(
     Has several different methods, which use similar pinning principals. 
     Main difference is between classical and quantum computer algorithms. 
     '''
+    print('Para: {}'.format(para))
     if QuantStore.method=='generalized':
         pass
     elif QuantStore.method=='carlson-keller':

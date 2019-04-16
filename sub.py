@@ -5,6 +5,7 @@ Holds the subroutines for the optimizations.
 '''
 
 import pickle
+import threading
 import os, sys
 from importlib import reload
 import numpy as np
@@ -18,6 +19,7 @@ from hqca.tools import EnergyFunctions as enf
 from hqca.tools import ErrorCorrection as ec
 from hqca.tools import Triangulation as tri
 from hqca.tools import QuantumFunctions as qf
+from hqca.tools.util import Errors
 from functools import reduce
 from hqca.tools.QuantumFramework import add_to_config_log
 import datetime
@@ -46,6 +48,7 @@ class QuantumRun:
         self.kw_qc = self.kw['qc']
         self.kw_opt = self.kw_qc['opt']
         self.built=False
+        self.restart = False
 
     def update_var(
             self,
@@ -269,6 +272,12 @@ class RunNOFT(QuantumRun):
                 self.Store,
                 self.QuantStore)
         grad_free = ['NM','nevergrad']
+        if self.kw_opt['optimizer'] not in grad_free:
+            self.kw_opt['gradient']=enf.find_function(
+                    'noft',
+                    'noft_grad',
+                    self.Store,
+                    self.QuantStore)
         if self.kw_orb_opt['optimizer'] in grad_free:
             pass
         else:
@@ -321,6 +330,9 @@ class RunNOFT(QuantumRun):
                 self._OptOrb()
                 self._check(self.kw['opt_thresh'],self.kw['max_iter'])
 
+    def _restart(self):
+        self.restart = True
+    
     def _check(self,
             crit,
             max_iter
@@ -332,11 +344,11 @@ class RunNOFT(QuantumRun):
             print('E_nor: {}'.format(self.sub.crit))
             print('Diff in energies: {} mH '.format(diff))
         if self.main.err or self.sub.err:
-            self.total.err = True
-            self.total.done= True
             if self.main.err:
+                self.total.done= True
+                self.total.err = True
                 print(self.main.msg)
-            else:
+            if self.sub.err:
                 print(self.sub.msg)
         elif abs(self.main.crit-self.sub.crit)<crit:
             self.total.done=True
@@ -345,8 +357,10 @@ class RunNOFT(QuantumRun):
             self.total.err=True
         else:
             pass
-        if self.total.err:
+        if self.total.done and not self.total.err==False:
             print('Got an error.')
+            raise self.total.err
+
         self.total.crit = self.Store.energy_best
         self.main.crit=0
         self.sub.crit=0
@@ -362,9 +376,7 @@ class RunNOFT(QuantumRun):
     def _OptNO(self):
         self.main=Cache()
         key = 'rdm{}'.format(self.total.iter)
-        if self.kw['restart']==True:
-            self._load()
-        else:
+        if not self.restart:
             if self.total.iter>0:
                 self._set_opt_parameters()
             self.Run[key] = opt.Optimizer(
@@ -372,11 +384,11 @@ class RunNOFT(QuantumRun):
                     )
             self.Run[key].initialize(
                     self.QuantStore.parameters)
-        if self.Run[key].error:
-            print('##########')
-            print('Encountered error in initialization.')
-            print('##########')
-            self.main.done=True
+            if self.Run[key].error:
+                print('##########')
+                print('Encountered error in initialization.')
+                print('##########')
+                self.main.done=True
         self.main.done=False
         while not self.main.done:
             self.Run[key].next_step()

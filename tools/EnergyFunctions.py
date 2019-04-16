@@ -46,6 +46,14 @@ def find_function(
                         'QuantStore':QuantStore
                         }
                     )
+        if spec=='noft_grad':
+            f = partial(
+                    end.energy_eval_grad_noft_numerical,
+                    **{
+                        'Store':Store,
+                        'QuantStore':QuantStore
+                        }
+                    )
     elif run_type=='rdm':
         f = partial(
             end.energy_eval_rdm,
@@ -277,7 +285,7 @@ class Storage:
                 self.T_beta
                 )
             ).trace()))*(1/len(self.T_beta))
-        if self.F_alpha>1:
+        if self.F_alpha-1>1e-8:
             print('Error in fidelity:')
             print(self.T_alpha_old.T)
             print(self.S)

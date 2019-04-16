@@ -149,6 +149,9 @@ class QuantumStorage:
                 self._get_2e_no()
         if self.ec=='hyperplane':
             self._get_hyper_para()
+        elif self.ec=='hyperplane+':
+            self._get_hyper_para(expand=True)
+
         if self.use_noise:
             self.noise_model = NoiseSimulator.get_noise_model(
                     device=backend,
@@ -195,50 +198,55 @@ class QuantumStorage:
             print(p)
             print('# ')
 
-    def _get_hyper_para(self):
+    def _get_hyper_para(self,expand=False):
         if self.method=='carlson-keller':
-            if self.Nq==8:
-                ma = np.arccos(1/np.sqrt(3))
-                self.ec_Ns = 1  # num surfaces
-                self.ec_Nv = 4  # num dimensions 
-                self.ec_vert = np.matrix([
-                    [1/1,1/2,1/3,1/4],
-                    [0/1,1/2,1/3,1/4],
-                    [0/1,0/2,1/3,1/4],
-                    [0/1,0/2,0/3,1/4]])
-                self.ec_para = [
-                        [
-                            [0,0,0],
-                            [pi/2,0,0],
-                            [2*ma,pi/2,0],
-                            [2*pi/3,2*ma,pi/2]
-                            ]
-                        ]
-            elif self.Nq==4:
-                self.ec_Nv = 2
+            if not expand:
+                arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
+                self.ec_para = []
                 self.ec_Ns = 1
-                self.ec_vert = np.matrix([
-                    [1/1,1/2],
-                    [0/1,1/2]])
-                self.ec_para = [
-                        [
-                            [0],
-                            [pi/2]
-                            ]
-                        ]
-            elif self.Nq==12:
-                arc = [
-                        np.arccos(1/np.sqrt(2)),
-                        np.arccos(1/np.sqrt(3)),
-                        np.arccos(1/np.sqrt(4)),
-                        np.arccos(1/np.sqrt(5)),
-                        np.arccos(1/np.sqrt(6))]
-                self.ec_Nv = 6
-                self.ec_vert = np.matrix([
-                    [1/1,1/2,1/3,1/4],
-                    [0/1,1/2,1/3,1/4],
-                    [0/1,0/2,1/3,1/4],
-                    [0/1,0/2,0/3,1/4]])
+                self.Nv = self.Nq//2
+                self.ec_Nv = self.Nv
+                self.ec_vert = np.zeros((self.Nv,self.Nv))
+                for i in range(0,self.Nv):
+                    temp = []
+                    for j in range(0,i+1):
+                        self.ec_vert[j,i]=1/(i+1)
+                        temp.append(arc[j])
+                    for k in range(i+1,self.Nv):
+                        temp.insert(0,0)
+                    temp = temp[::-1]
+                    del temp[-1]
+                    self.ec_para.append(temp)
+                self.ec_para = [self.ec_para]
+            elif expand:
+                arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
+                self.ec_para = []
+                self.ec_Ns = 1
+                self.Nv = self.Nq//2
+                self.ec_Nv = self.Nv
+                self.ec_vert = np.zeros((self.Nv,self.Nv))
+                self.mid = np.zeros(self.Nv)
+                for i in range(0,self.Nv):
+                    for j in range(i,self.Nv):
+                        self.mid[i]+=1/(j+1)
+                self.mid = self.mid/self.Nv
+                diff = np.zeros((self.Nv,self.Nv))
+                for i in range(0,self.Nv):
+                    temp = []
+                    for j in range(0,i+1):
+                        self.ec_vert[j,i]=1/(i+1)
+                        temp.append(arc[j])
+                    for k in range(i+1,self.Nv):
+                        temp.insert(0,0)
+                    temp = temp[::-1]
+                    del temp[-1]
+                    self.ec_para.append(temp)
+                for i in range(0,self.Nv):
+                    diff[:,i] = self.ec_vert[:,i]-self.mid
+                    self.ec_vert[:,i] = self.ec_vert[:,i]+0.1*diff[:,i]
+                self.ec_para = [self.ec_para]
+
+
 
     def _map_rdm_jw(self):
         self.qubit_to_rdm = {} #
@@ -264,7 +272,6 @@ class QuantumStorage:
                 self.alpha_qb.append(self.qubit_to_backend[m])
                 self.backend_to_rdm[self.qubit_to_backend[m]]=bet
         self.rdm_to_backend = {v:k for k,v in self.backend_to_rdm.items()}
-
 
     def _get_ent_pairs_jw(self):
         # ansatz also includes orders of excitations, etc. 

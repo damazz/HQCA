@@ -5,9 +5,11 @@ Main program for executing the hybrid quantum classical optimizer. Consists of
 several parts. 
 
 '''
-import pickle
 import os, sys
 from importlib import reload
+import nevergrad
+from nevergrad.optimization import optimizerlib,registry
+from nevergrad.optimization.utils import Archive,Value
 import numpy as np
 import traceback
 import warnings
@@ -20,6 +22,8 @@ from pyscf import scf
 np.set_printoptions(precision=3)
 from hqca import sub
 from hqca.tools import EnergyFunctions as enf
+from hqca.tools.util import Errors as err
+import pickle
 
 version='0.1.1'
 
@@ -48,10 +52,15 @@ class sp:
             if theory in ['rdm','RDM']:
                 print('# Theory: RDM optimization')
         self._load_mol(mol,verbose,calc_E)
-        if restart:
-            self._load_restart()
+        if not restart==False:
+            self._load_restart(restart)
         else:
             self._choose_theory()
+        now = datetime.datetime.today()
+        m,d,y = now.strftime('%m'), now.strftime('%d'), now.strftime('%y')
+        H,M,S = now.strftime('%H'), now.strftime('%M'), now.strftime('%S')
+        self.file = ''.join(('sp','-',theory,'_',m,d,y,'-',H,M))
+
 
     def _load_mol(self,
             mol,
@@ -114,8 +123,37 @@ class sp:
         self.Store = enf.Storage(
             **store_kw)
 
-    def _load_restart(self):
-        pass
+    def _load_restart(self,name):
+        try:
+            with open(name, 'rb') as fp:
+                self.run = pickle.load(fp)
+        except FileNotFoundError:
+            sys.exit()
+        except Exception as e:
+            sys.exit()
+        for i in self.run.Run.keys():
+            try:
+                self.run.Run[i].opt.reload_opt()
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
+                sys.exit()
+        self.run._restart()
+
+    def _save(self):
+        for i in self.run.Run.keys():
+            try:
+                self.run.Run[i].opt.save_opt()
+            except Exception as e:
+                print(e)
+                sys.exit()
+        with open(self.file+'.run', 'wb') as fp:
+            pickle.dump(
+                    self.run,
+                    fp,
+                    pickle.HIGHEST_PROTOCOL
+                    )
+        print('Saved file as {}.run'.format(self.file))
 
     def _choose_theory(self):
         if self.theory in ['NOFT','noft']:
@@ -134,14 +172,26 @@ class sp:
         self.run.build()
 
     def execute(self):
-        self.run.go()
+        try:
+            self.run.go()
+        except err.RunError:
+            print('run error')
+            self._save()
+
         self.result = self.run.Store
 
     def analysis(self):
         self.run.Store.opt_analysis()
 
-class scan(sp):
 
+
+
+
+class scan(sp):
+    '''
+    special class for performing scans or more specific analysis of the
+    optimization or exploring the parameters in the optimization
+    '''
     def update_rdm(self,para):
         self.run.single('rdm',para)
         self.Store.update_rdm2()

@@ -175,5 +175,6 @@ def generate_error_polytope(Store,QuantStore,**kw):
             print(tempb)
             print('Ideal hyperplane: ')
             print(QuantStore.ec_vert)
+        QuantStore._gip()
     return ec_a,ec_b
 

@@ -6,17 +6,14 @@ import traceback
 import timeit
 import time
 import nevergrad
-#from scipy.optimize import fmin_l_bfgs_b as lbfgs
 from nevergrad.optimization import optimizerlib,registry
+from nevergrad.optimization.utils import Archive,Value
+import threading
 from random import random as r
 import random
 from math import pi
 from functools import reduce,partial
 
-class NotAvailableError(Exception):
-    '''
-    Means what it says. 
-    '''
 
 class Empty:
     def __init__(self):
@@ -37,7 +34,6 @@ class Optimizer:
     def __init__(
             self,
             optimizer,
-            function,
             pr_o=1,
             **kwargs
             ):
@@ -46,7 +42,6 @@ class Optimizer:
         '''
         self.method=optimizer
         kwargs['pr_o']=pr_o
-        kwargs['function']=function
         # Selecting optimizers and setting parameters
         if self.method=='NM':
             self.opt = nelder_mead(
@@ -68,6 +63,9 @@ class Optimizer:
                     **kwargs)
         elif self.method=='gpso':
             self.opt = gradient_particle_swarm_optimizer(
+                    **kwargs)
+        elif self.method=='NM-ng':
+            self.opt = nelder_mead_ng(
                     **kwargs)
         self.error = False
         self.pr_o = pr_o
@@ -148,12 +146,12 @@ class Optimizer:
                 cache.err=True
         except Exception as e:
             traceback.print_exc()
-        if cache.done and self.method=='nevergrad':
-            pass
-            # diff = max(0,self.opt.max_iter-self.opt.energy_calls)
-            # for i in range(diff):
-            #     t = self.opt.opt.ask()
-            #     self.opt.opt.tell(t,self.opt.best_f)
+        if cache.done and self.method in ['nevergrad','NM-ng']:
+            from nevergrad.optimization.recaster import _MessagingThread as mt
+            import threading
+            for t in threading.enumerate():
+                if type(t)==type(mt(None)):
+                    t.stop()
 
 #
 # Now, begin the various types of optimizers
@@ -470,6 +468,74 @@ class gradient_descent(OptimizerInstance):
         self.best_x = self.f1_x[:]
         self.best_y = self.f1_x[:]
 
+class nelder_mead_ng(OptimizerInstance):
+    '''
+    Nelder mead with a twist! But really. Uses Nelder mead across a wide range
+    and then will switch to cobyla or some better quadratic optimizer from
+    nevergrad
+    '''
+    def __init__(self,
+            conv_threshold=None,
+            conv_crit_type=None,
+            switch_thresh=0.17,
+            **kwargs):
+        OptimizerInstance.__init__(self,
+            conv_threshold=conv_threshold,
+            conv_crit_type=conv_crit_type,
+            **kwargs)
+        self.simplex_scale=self.unity
+        self.opt_macro = nelder_mead(
+            conv_threshold=switch_thresh,
+            conv_crit_type=conv_crit_type,
+            **kwargs)
+        if self.conv_threshold=='default':
+            if self.conv_crit_type=='default':
+                self._conv_thresh=0.001
+            elif self.conv_crit_type=='energy':
+                self._conv_thresh=0.0001
+        else:
+            self._conv_thresh=float(self.conv_threshold)
+        self.macro = True
+        self.micro = False
+        self.kwargs = kwargs
+        self.kwargs['conv_threshold']=conv_threshold
+        self.kwargs['conv_crit_type']=conv_crit_type
+        self.switch = switch_thresh
+    
+    def initialize(self,start):
+        self.opt_macro.initialize(start)
+
+    def next_step(self):
+        if self.macro:
+            self.opt_macro.next_step()
+            self.best_x = self.opt_macro.best_x
+            self.best_y = self.opt_macro.best_y
+            self.best_f = self.opt_macro.best_f
+            self.crit = self.opt_macro.crit
+            self._check()
+        elif self.micro:
+            self.opt_micro.next_step()
+            self.crit = self.opt_micro.crit
+            self.best_x = self.opt_micro.best_x
+            self.best_y = self.opt_micro.best_y
+            self.best_f = self.opt_micro.best_f
+
+    def _check(self):
+        if self.macro:
+            if self.opt_macro.crit<=self.switch:
+                print('Switching to nevergrad optimization.')
+                self.macro,self.micro = False,True
+                self.kwargs['unity']=self.opt_macro.crit
+                #self.kwargs['shift']=self.opt_macro.best_x
+                self.opt_micro = nevergradopt(
+                        **self.kwargs)
+                self.opt_micro.initialize(start=self.opt_macro.best_x)
+                self.crit = self.opt_micro.crit
+                self.best_x = self.opt_micro.best_x
+                self.best_y = self.opt_micro.best_y
+                self.best_f = self.opt_micro.best_f
+
+
 class nelder_mead(OptimizerInstance):
     '''
     Nelder-Mead Optimizer! Uses the general dimension simplex method, so should
@@ -655,7 +721,6 @@ class nelder_mead(OptimizerInstance):
 class bfgs(OptimizerInstance):
 
     def initialize(self,start):
-        print('Performing a bfgs optimization.')
         OptimizerInstance.initialize(self,start)
         # find approximate hessian
         self.x0 = np.asmatrix(start) # row vec? 
@@ -813,10 +878,6 @@ class bfgs(OptimizerInstance):
 
 
 
-
-
-
-
 class nevergradopt:
     def __init__(self,
             function,
@@ -850,6 +911,9 @@ class nevergradopt:
         self.shift = shift
         self.use_radians=use_radians
         self.unity = unity
+        print('###########')
+        print(unity,shift)
+        print('###########')
         if not self.use_radians:
             self.unity = self.unity*(180/pi)
 
@@ -868,7 +932,7 @@ class nevergradopt:
                 self._update_MaxDist()
             else:
                 dist = 0 
-                for i in range(len(self.vectors[0][1])):
+                for i in range(len(self.vectors[0][2])):
                     dist+=(self.vectors[0][2][i]-self.y[i])**2
                 dist = dist**(1/2)
                 comp2 = self.E<self.vectors[ 0][0]
@@ -881,7 +945,7 @@ class nevergradopt:
                                     i,
                                     [
                                         self.E,
-                                        self.x.copy(),
+                                        self.x,
                                         self.y.copy(),
                                         dist]
                                     )
@@ -892,7 +956,7 @@ class nevergradopt:
                             0,
                             [
                                 self.E,
-                                self.x.copy(),
+                                self.x,
                                 self.y.copy(),
                                 0])
                     del self.vectors[self.Nv]
@@ -919,16 +983,18 @@ class nevergradopt:
 
     def initialize(self,start):
         self.Np = len(start)
+        self.temp_dat = []
         if type(self.shift)==type(None):
-            self.shift = [0]*self.Np
+            self.shift = start
         self.opt = registry[self.opt_name](
-                dimension=len(start),
+                len(start),
                 budget=self.max_iter
                 )
         for i in range(0,self.Nv):
-            x = np.asarray(self.opt.ask())
-            y = x*self.unity+self.shift
+            x = self.opt.ask()
+            y = np.asarray(x.args)[0]*self.unity+self.shift
             E = self.f(y)
+            self.temp_dat.append([x.args,E])
             self.energy_calls+=1
             self.vectors.append(
                 [
@@ -937,16 +1003,54 @@ class nevergradopt:
                     y,
                     0])
             self.opt.tell(x,E)
-        self.x = x.copy()
-        self.y = y.copy()
+        self.x = x
+        self.y = y
         self.E = E
         self.check(initial=True)
 
 
     def next_step(self):
-        self.x = np.asarray(self.opt.ask())
-        self.y = self.x.copy()*self.unity+self.shift
+        self.x = self.opt.ask()
+        self.y = np.asarray(self.x.args)[0]*self.unity+self.shift
         self.E = self.f(self.y)
         self.opt.tell(self.x,self.E)
+        self.temp_dat.append([self.x.args,self.E])
         self.check()
         self.energy_calls+=1 
+
+
+    def save_opt(self):
+        '''
+        little function to try and convert an object and see if it will save
+        properly with pickle.
+        '''
+        del self.opt,self.x
+
+    def reload_opt(self):
+        '''
+        function to reload data from the temp_dat object 
+        '''
+        self.opt = registry[self.opt_name](
+                self.Np,
+                budget=self.max_iter
+                )
+        #try:
+        #    for step in self.temp_dat:
+        #        for i in range(step[1].count):
+        #            x = self.opt.ask()
+        #            print(x,step[0],step[1].mean)
+        #            self.opt.tell(x,step[1].mean)
+        #except Exception as e:
+        #    traceback.print_exc()
+        okay = True
+        try:
+            for item in self.temp_dat:
+                x = self.opt.ask()
+                print(x.args,item[0])
+                self.opt.tell(x,item[1])
+        except KeyError:
+            print('huh')
+            okay=False
+            it+=1 
+
+
