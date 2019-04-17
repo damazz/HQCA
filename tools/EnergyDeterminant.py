@@ -297,6 +297,10 @@ def energy_eval_nordm(
             if QuantStore.ec=='hyperplane':
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T
+                if Store.pr_m>2:
+                    print('1RDM after correction')
+                    print(noca)
+                    print(nocb)
             wf,rdm2 = build_2e_2rdm_spin(
                     Store,
                     noca,
@@ -304,6 +308,9 @@ def energy_eval_nordm(
                     N,
                     proc.signs,
                     Store.pr_m)
+            if Store.pr_m>2:
+                print('Wavefunction: ')
+                print(wf)
         else:
             N = QuantStore.No
             wf = {'{}{}{}'.format('0'*i,'1','0'*(N-1-i))*2:1 for i in range(N)}
