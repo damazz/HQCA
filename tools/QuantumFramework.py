@@ -286,6 +286,7 @@ def run_circuits(
             prov=Aer
         elif provider=='IBMQ':
             prov=IBMQ
+            prov.load_accounts()
         try:
             return prov.get_backend(backend)
         except Exception:
