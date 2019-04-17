@@ -322,15 +322,18 @@ def run_circuits(
                 shots=QuantStore.Ns
         )
             )
-    try:
+    if QuantStore.use_noise:
         job = beo.run(qo,backend_options=backend_options)
-        for circuit in circuit_list:
-            name = circuit[0]
-            counts.append(job.result().get_counts(name))
-    except Exception as e:
-        print('Error: ')
-        print(e)
-        traceback.print_exc()
+    else:
+        try:
+            job = beo.run(qo)
+            for circuit in circuit_list:
+                name = circuit[0]
+                counts.append(job.result().get_counts(name))
+        except Exception as e:
+            print('Error: ')
+            print(e)
+            traceback.print_exc()
     #if verbose:
     #    print('Circuit counts:')
     #    for i in counts:
