@@ -20,7 +20,7 @@ mol.as_No = mol.nbas #spatial
 #prog = sp(mol,'noft',calc_E=True,pr_g=2)
 filename = '/home/scott/Documents/research/software/hqca/examples/'
 filename +='sp-noft_041619-1630.run'
-prog =sp(mol,'noft',calc_E=True,verbose=False,restart=filename)
+prog =sp(mol,'noft',calc_E=True,verbose=False,restart=False)
 kw_qc = {
         'Nqb':mol.as_No*2,
         'num_shots':4096,
@@ -31,7 +31,8 @@ kw_qc = {
         'info':None,
         'transpile':True,
         'use_radians':True,
-        'tomo_extra':'sign_2e',
+        'tomo_extra':'sign_2e_pauli',
+        'tomo_approx':'full',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',
         'error_correction':'hyperplane',
@@ -41,7 +42,7 @@ kw_qc = {
 kw_opt = {
         #'optimizer':'NM-ng',
         'optimizer':'nevergrad',
-        'unity':np.pi,
+        'unity':np.pi/2,
         'nevergrad_opt':'Cobyla',
         'max_iter':5000,
         'conv_crit_type':'MaxDist',
@@ -52,12 +53,12 @@ kw_opt = {
 orb_opt = {
         'conv_threshold':1e-8
         }
-##prog.set_print(level='default')
-###prog.set_print(level='diagnostic_en')
-###prog.update_var(**{'pr_m':0})
-##prog.update_var(target='qc',**kw_qc )
-##prog.update_var(target='opt',**kw_opt)
-##prog.update_var(target='orb_opt',**orb_opt)
-##prog.build()
+prog.set_print(level='default')
+#prog.set_print(level='diagnostic_en')
+#prog.update_var(**{'pr_m':0})
+prog.update_var(target='qc',**kw_qc )
+prog.update_var(target='opt',**kw_opt)
+prog.update_var(target='orb_opt',**orb_opt)
+prog.build()
 prog.execute()
 prog.analysis()

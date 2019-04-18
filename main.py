@@ -194,7 +194,7 @@ class scan(sp):
     '''
     def update_rdm(self,para):
         self.run.single('rdm',para)
-        self.Store.update_rdm2()
+        #self.Store.update_rdm2()
 
     def update_full_ints(self,para):
         self.run.single('orb',para)

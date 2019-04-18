@@ -115,6 +115,7 @@ class CompositePolytope:
         self.poly[self.Nf]['Umi'] = measured_face.affine(ideal_face)
         self.Nf+=1
 
+
 def generate_error_polytope(Store,QuantStore,**kw):
     '''
     Function to generate polytope with hyperplanes.

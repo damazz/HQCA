@@ -285,7 +285,30 @@ class GenerateDirectCircuit:
                         self.qc.rx(pi/2,self.q[index[ind]])
                     self.sg+=1
                     ind+=1
-    
+
+    def __apply_pauli_op(self,loc,sigma='x'):
+        if sigma=='z':
+            pass
+        elif sigma=='x':
+            self.qc.h(self.q[loc])
+        elif sigma=='i':
+            pass
+        elif sigma=='y':
+            self.qc.rx(pi/2,self.q[loc])
+
+    def _pauli_2rdm(self,i,j,k,l,pauli='zzzz'):
+        '''
+        applies operators on i,j,k,l, assuming that they are ordered
+        '''
+        for a in range(i+1,j):
+            self.qc.z(self.q[a])
+        for b in range(k+1,l):
+            self.qc.z(self.q[b])
+        self.__apply_pauli_op(i,pauli[0])
+        self.__apply_pauli_op(j,pauli[1])
+        self.__apply_pauli_op(k,pauli[2])
+        self.__apply_pauli_op(l,pauli[3])
+
     def _UCC2_con_12(self,phi1,i,j,k,l):
         '''
         Omitted 3rd degree

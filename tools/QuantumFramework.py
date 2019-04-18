@@ -27,10 +27,6 @@ from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.NoiseSimulator import get_noise_model
 from math import pi
 
-
-SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
-            '/qiskit/backends/qasm_simulator_cpp')
-
 def build_circuits(
         QuantStore,
         **kw
@@ -45,7 +41,8 @@ def build_circuits(
         return Nq,qb_orbs,No
 
     '''
-    Begin actual circuit generation. 
+    Given certain instructions, will actually build the circuits. This is
+    initial function that is called from other modules. 
     '''
     if QuantStore.fermion_mapping=='compact':
         Nq,qb_orbs,No = _init_compact(**kw)
@@ -63,10 +60,12 @@ def build_circuits(
                 )
     return circ,circ_list
 
-
 def _direct_tomography(
         QuantStore,
         ):
+    '''
+    Called by build_circuits(), will generate the tomography circuits of the 
+    '''
     def _get_pairs(tomo_basis,alp,bet):
         if tomo_basis in ['hada','hada+imag']:
             qtp = nqtpp
@@ -209,7 +208,7 @@ def _direct_tomography(
     if QuantStore.tomo_ext=='sign_2e':
         # looking for NO 2RDM terms to give sign info 
         for a,b,c,d in QuantStore.tomo_quad:
-            QuantStore.Ns=1024
+            #QuantStore.Ns=1024
             temp = 'sign{}-{}-{}-{}'.format(str(a),str(b),str(c),str(d))
             Q = GenerateDirectCircuit(
                     QuantStore,
@@ -219,6 +218,27 @@ def _direct_tomography(
             Q.qc.measure(Q.q,Q.c)
             circuit_list.append([temp])
             circuit.append(Q.qc)
+    elif QuantStore.tomo_ext=='sign_2e_pauli':
+        for a,b,c,d in QuantStore.tomo_quad:
+            if QuantStore.tomo_approx=='full':
+                operators = [
+                        'xxxx','xxyy','xyxy','xyyx',
+                        'yxxy','yxyx','yyxx','yyyy']
+            elif QuantStore.tomo_approx=='fo':
+                operators = ['xxxx','yyyy']
+            elif QuantStore.tomo_approx=='so':
+                operators = ['xxxx','xxyy','yyxx','yyyy']
+            for op in operators:
+                temp = 'sign{}-{}-{}-{}-{}'.format(
+                        str(a),str(b),str(c),str(d),op)
+                Q = GenerateDirectCircuit(
+                        QuantStore,
+                        _name=temp
+                        )
+                Q._pauli_2rdm(a,b,c,d,pauli=op)
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append([temp])
+                circuit.append(Q.qc)
     return circuit,circuit_list
 
 def _compact_tomography(
@@ -237,6 +257,7 @@ def _compact_tomography(
             ind+=1
         return qb_sign
     '''
+    rawr
     '''
     circuit,circuit_list = [],[]
     if tomo_rdm=='1rdm' and tomo_basis=='no':
@@ -323,7 +344,13 @@ def run_circuits(
         )
             )
     if QuantStore.use_noise:
-        job = beo.run(qo,backend_options=backend_options)
+        try:
+            job = beo.run(qo,backend_options=backend_options)
+        except Exception as e:
+            traceback.print_exc()
+        for circuit in circuit_list:
+            name = circuit[0]
+            counts.append(job.result().get_counts(name))
     else:
         try:
             job = beo.run(qo)

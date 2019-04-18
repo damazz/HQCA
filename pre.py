@@ -31,7 +31,7 @@ def NOFT_2e():
             'Nqb':4,
             'noise_model_loc':None,
             'noise':False,
-            'tomo_basis':'hada+imag',
+            'tomo_basis':'no',
             'tomo_rdm':'1rdm',
             'tomo_extra':False,
             'spin_mapping':'default',

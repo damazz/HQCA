@@ -40,6 +40,7 @@ class QuantumStorage:
             beta_mos,
             single_point,
             theory='noft',
+            tomo_approx=None,
             Nqb_backend=None,
             fermion_mapping='jordan-wigner',
             load_triangle=False,
@@ -79,6 +80,7 @@ class QuantumStorage:
         '''
         self.opt_kw = opt
         self.theory= theory
+        self.tomo_approx = tomo_approx
         self.pr_g =pr_g
         self.use_radians=use_radians
         self.Ns = num_shots
@@ -145,7 +147,7 @@ class QuantumStorage:
             self._map_rdm_jw()
             self._get_ent_pairs_jw()
             self._gip()
-            if self.tomo_ext=='sign_2e':
+            if self.tomo_ext in ['sign_2e','sign_2e_pauli']:
                 self._get_2e_no()
         if self.ec=='hyperplane':
             self._get_hyper_para()

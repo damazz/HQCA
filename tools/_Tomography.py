@@ -18,9 +18,6 @@ from numpy import log10,floor,complex_
 from numpy import log10,floor
 from numpy import zeros,multiply,real
 
-SIM_EXEC = ('/usr/local/lib/python3.5/dist-packages'
-            ' /qiskit/backends/qasm_simulator_cpp')
-
 def combine_dictionary(one,two):
     for key,val in two.items():
         try:
@@ -55,10 +52,11 @@ class Process:
         if self.qs.pr_q>2:
             print('Circuit, counts:')
         for name,counts in output:
+            prbdis = self.proc_counts(counts)
             if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
                 print('Counts : {}'.format(counts))
-            prbdis = self.proc_counts(counts)
+                print('Avg    : {}'.format(prbdis))
             if name[0]=='ii':
                 self.data['ii']['counts']=counts
                 self.data['ii']['pd']=prbdis
@@ -82,7 +80,7 @@ class Process:
                 k+=1
             elif name[0][0:4]=='sign':
                 self.data['sign'].append({})
-                self.data['sign'][s]['qbs']=name[0][4:]
+                self.data['sign'][s]['name']=name[0][4:]
                 self.data['sign'][s]['counts']=counts
                 self.data['sign'][s]['pd']=prbdis
                 s+=1 
@@ -91,17 +89,95 @@ class Process:
 
     def sign_from_2rdm(self):
         self.sign = [1]
-        for item in self.data['sign']:
-            i,j,k,l = item['qbs'].split('-')
-            i,j,k,l = int(i),int(j),int(k),int(l)
-            # note, now we are constructing 2rdm elements
-            t1 = 0.25*(item['pd'][i]-item['pd'][j])
-            #print(i,j,k,l,t1)
-            if t1>0:
-                self.sign.append(1)
-            else:
+        if self.qs.tomo_ext=='sign_2e':
+            for s,item in enumerate(self.data['sign']):
+                i,j,k,l = item['name'].split('-')
+                i,j,k,l = int(i),int(j),int(k),int(l)
+                # note, now we are constructing 2rdm elements
+                t1 = 0.25*(item['pd'][i]-item['pd'][j])
+                #print(i,j,k,l,t1
+                if t1>0:
+                    self.sign.append(1)
+                else:
+                    self.sign.append(-1)
+            if self.qs.pr_q>2:
+                print('rdm2 sign element: {}'.format(t1))
+        elif self.qs.tomo_ext=='sign_2e_pauli':
+            hold = []
+            holding = {}
+            for s,item in enumerate(self.data['sign']):
+                self._measure_z_rdm2(s)
+                if item['qbs'] in hold:
+                    holding[item['qbs']][item['pauli']]=item['z']
+                else:
+                    hold.append(item['qbs'])
+                    holding[item['qbs']]={
+                        item['pauli']:item['z']
+                        }
+            for quad in holding.keys():
+                dat =  holding[quad]
+                rdme = {
+                        '++--':0,
+                        '+-+-':0,
+                        '+--+':0,
+                        'fo':0,
+                        'so':0,
+                        }
+                for seq,val in dat.items():
+                    a,b,c,d,e=1/8,1/8,1/8,0,0
+                    if seq in ['xxxx','yyyy']:
+                        d,e = 1/2,1/4
+                    elif seq in ['xxyy','yyxx']:
+                        a*=-1
+                        e=1/4
+                    elif seq in ['xyyx','yxxy']:
+                        c*=-1
+                    elif seq in ['xyxy','yxyx']:
+                        b*=-1
+                    rdme['++--']+= a*val
+                    rdme['+-+-']+= b*val
+                    rdme['+--+']+= c*val
+                    rdme['fo']+= d*val
+                    rdme['so']+=(e*val)
+                holding[quad]['rdme']=rdme
+            if self.qs.tomo_approx=='full':
+                test = rdme['+-+-']
+            elif self.qs.tomo_approx=='fo':
+                test = rdme['fo']
+            elif self.qs.tomo_approx=='so':
+                test = rdme['so']
+            if test<0:
                 self.sign.append(-1)
+            else:
+                self.sign.append(+1)
+            if self.qs.pr_q>2:
+                print('rdm2 sign elements: {}'.format(rdme))
 
+    def _measure_z_rdm2(self,s):
+        '''
+        function to analyze counts for some double excitaiton pauli operators
+        measurement is made in the z basis
+        indices should be sequenctial, i.e. - i<j<k<l
+        '''
+        total = 0
+        val = 0 
+        i,j,k,l,pauli = self.data['sign'][s]['name'].split('-')
+        self.data['sign'][s]['qbs']='-'.join((i,j,k,l))
+        i,j,k,l = int(i),int(j),int(k),int(l)
+        self.data['sign'][s]['pauli']=pauli
+        self.ns = 0
+        for det,count in self.data['sign'][s]['counts'].items():
+            total += count
+            temp = 1
+            for p in range(i,l+1):
+                if p<k and p>j:
+                    pass
+                else:
+                    if det[p]=='1':
+                        temp = temp*-1
+            val += temp*count
+        self.data['sign'][s]['z']=val/total
+        #print(pauli,val/total)
 
     def proc_counts(self,counts):
         Nc = 0
@@ -178,8 +254,6 @@ class Process:
                     val = 0.5*(item['pd'][i2]-item['pd'][i1])
                     self.rdm[i2,i1]+=val*(-1j)
                     self.rdm[i1,i2]+=val*(1j)
-        elif self.tomo_basis=='pauli':
-            pass
         elif self.tomo_basis=='no':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
@@ -220,228 +294,4 @@ class Process:
                     )
             if self.pr_q>2:
                 print('Trace of 2-RDM: {}'.format(self.rdm2trace))
-
-    def assemble_2rdm(self):
-        '''
-        Method (somewhat general, as much as it can be)
-        to generate a 2RDM from what is given to it....
-        we will see how this goes. 
-        '''
-        def measure(data,reverse=True):
-            '''
-            To measure a counts instance. If reverse is true, then it will
-            output in the reversed order. Why is this important? Not sure. It
-            has to be reversed at some point.
-            '''
-            unit = list(data.keys())
-            total_count=0
-            r = zeros(len(unit[0]))
-            for qubit, count in data.items():
-                total_count += count
-                n_qb = len(qubit)
-                for i in range(0,n_qb):
-                    if qubit[n_qb-1-i]=='0':
-                        if reverse:
-                            r[i]+= count
-                        else:
-                            r[n_qb-1-i]+= count
-            r = multiply(r,total_count**-1)
-            return r # len in how many qubits
-
-        def rdm_update(
-                rdm,element,
-                i,j,k,l,
-                t1,t2,t3,t4,
-                s1,s2,
-                spin_restrict=True,
-                e1='alpha',
-                e2='alpha'
-                ):
-            if element=='iklj':
-                rdm[i,k,l,j]+= t1*s1*s2
-                rdm[k,i,j,l]+= t1*s1*s2
-                rdm[j,l,k,i]+= t1*s1*s2
-                rdm[l,j,i,k]+= t1*s1*s2
-                rdm[i,l,k,j]+= t2*s1*s2
-                rdm[l,i,j,k]+= t2*s1*s2
-                rdm[j,k,l,i]+= t2*s1*s2
-                rdm[k,j,i,l]+= t2*s1*s2
-                if e1==e2:
-                    rdm[k,i,l,j]-= t1*s1*s2
-                    rdm[i,k,j,l]-= t1*s1*s2
-                    rdm[l,j,k,i]-= t1*s1*s2
-                    rdm[j,l,i,k]-= t1*s1*s2
-                    rdm[l,i,k,j]-= t2*s1*s2
-                    rdm[i,l,j,k]-= t2*s1*s2
-                    rdm[k,j,l,i]-= t2*s1*s2
-                    rdm[j,k,i,l]-= t2*s1*s2
-            elif element=='ikli':
-                rdm[i,k,l,i]+= t1*s2
-                rdm[k,i,i,l]+= t1*s2
-                rdm[i,l,k,i]+= t1*s2
-                rdm[l,i,i,k]+= t1*s2
-                rdm[j,k,l,j]+= t2*s2
-                rdm[k,j,j,l]+= t2*s2
-                rdm[j,l,k,j]+= t2*s2
-                rdm[l,j,j,k]+= t2*s2
-                if e1==e2:
-                    rdm[k,i,l,i]-= t1*s2
-                    rdm[i,k,i,l]-= t1*s2
-                    rdm[l,i,k,i]-= t1*s2
-                    rdm[i,l,i,k]-= t1*s2
-                    rdm[j,k,j,l]-= t2*s2
-                    rdm[k,j,l,j]-= t2*s2
-                    rdm[j,l,j,k]-= t2*s2
-                    rdm[l,j,k,j]-= t2*s2
-            elif element=='ikki':
-                rdm[j,l,l,j]+= t4
-                rdm[l,j,j,l]+= t4
-                rdm[j,k,k,j]+= t3
-                rdm[k,j,j,k]+= t3
-                rdm[i,l,l,i]+= t2
-                rdm[l,i,i,l]+= t2
-                rdm[k,i,i,k]+= t1
-                rdm[i,k,k,i]+= t1
-                if e1==e2:
-                    rdm[j,l,j,l]-= t4
-                    rdm[l,j,l,j]-= t4
-                    rdm[j,k,j,k]-= t3
-                    rdm[k,j,k,j]-= t3
-                    rdm[i,l,i,l]-= t2
-                    rdm[l,i,l,i]-= t2
-                    rdm[k,i,k,i]-= t1
-                    rdm[i,k,i,k]-= t1
-            return rdm
-
-        rdm2 = zeros((
-            self.Norb,
-            self.Norb,
-            self.Norb,
-            self.Norb)
-            )
-        temp_ij_rot = self.qb_orbs.copy()
-        temp_ii_rot = self.qb_orbs.copy()
-        #for k,v in self.data.items():
-        #    print(k)
-        for key,v in self.data.items():
-            if key[0:4]=='iklj':
-                pairs = self.pair_map[key[4:]]
-                pair_list = pairs.split(',')
-                temp = measure(v)
-                for item in pair_list:
-                    q1,q2 = int(item[0]),int(item[1])
-                    alp1 = 1 - 2*temp[q1] # sum of terms 
-                    alp2 = 1 - 2*temp[q2] # difference of terms 
-                    temp1 = 0.25*(alp1+alp2)
-                    temp2 = 0.25*(alp1-alp2)
-                    i = self.Norb-1-q1
-                    j = q1
-                    k = self.Norb-1-q2
-                    l = q2
-                    s1 = self.qb_sign[q1]
-                    s2 = self.qb_sign[q2]
-                    rdm2 = rdm_update(
-                        rdm2,'iklj',
-                        i,j,k,l,
-                        temp1,temp2,0,0,
-                        s1,s2
-                        )
-            elif key[0:4]=='ikli' or key[0:4]=='ikkj':
-                # akin to..something. 
-                pairs = self.pair_map[key[4:]]
-                pair_list = pairs.split(',')
-                temp = measure(v)
-                for item in pair_list:
-                    q1,q2 = int(item[0]),int(item[1])
-                    if key[0:4]=='ikkj':
-                        q1,q2 = q2,q1
-                    bet2 = 1 - 2*temp[q2] # difference of terms 
-                    temp1 = -0.25*(+bet2)
-                    temp2 = -0.25*(-bet2)
-
-                    i,j = self.Norb-1-q1,q1
-                    k,l = self.Norb-1-q2,q2
-                    s1 = self.qb_sign[q1]
-                    s2 = self.qb_sign[q2]
-                    #print(item,temp1,temp2,q1,q2,i,k,l,j,s1,s2)
-                    rdm2 = rdm_update(
-                        rdm2,'ikli',
-                        i,j,k,l,
-                        temp1,temp2,0,0,
-                        s1,s2
-                        )
-            elif key[0:4]=='ikki':
-                pairs = self.pair_map[key[4:]]
-                pair_list = pairs.split(',')
-                temp = measure(v)
-                for item in pair_list:
-                    q1,q2 = int(item[0]),int(item[1])
-    
-                    i,j = self.Norb-1-q1,q1
-                    k,l = self.Norb-1-q2,q2
-                    s1 = 1#self.qb_sign[q1]
-                    s2 = 1#self.qb_sign[q2]
-    
-                    m_q1 = temp[q1]
-                    m_q2c= temp[q2]
-                    temp1 = 0.5*(- m_q1 + m_q2c) #ikki, delta
-                    temp2 = 0.5*(- m_q1 - m_q2c) #illi, gamma
-                    temp3 = 0.5*(+ m_q1 - m_q2c) #jkkj, beta
-                    temp4 = 0.5*(+ m_q1 + m_q2c) #jllj, alpha
-                    rdm2 = rdm_update(
-                        rdm2,'ikki',
-                        i,j,k,l,
-                        temp1,temp2,temp3,temp4,
-                        s1,s2
-                        )
-            elif key[0:2]=='ii':
-                temp = measure(v)
-                for k2,v2 in self.pair_map.items():
-                    pair_list = v2.split(',')
-                    for item in pair_list:
-                        #print(item)
-                        q1,q2 = int(item[0]),int(item[1])
-                        i,j = self.Norb-1-q1,q1
-                        k,l = self.Norb-1-q2,q2
-                        s1 = self.qb_sign[q1]
-                        s2 = self.qb_sign[q2]
-                        m_q2 = temp[q2]
-                        temp1 = 0.5*(+ 1 - m_q2) #ikki, delta
-                        temp2 = 0.5*(+ 1 + m_q2) #illi, gamma
-                        temp3 = 0.5*(+ 1 - m_q2) #jkkj, beta
-                        temp4 = 0.5*(- 1 + m_q2) #jllj, alpha
-                        rdm2 = rdm_update(
-                            rdm2,'ikki',
-                            i,j,k,l,
-                            temp1,temp2,temp3,temp4,
-                            s1,s2
-                            )
-            elif key[0:2]=='ij':
-                temp = measure(v)
-                for k2,v2 in self.pair_map.items():
-                    pair_list = v2.split(',')
-                    for item in pair_list:
-                        q1,q2 = int(item[0]),int(item[1])
-                        i,j = self.Norb-1-q1,q1
-                        k,l = self.Norb-1-q2,q2
-                        s1 = self.qb_sign[q1]
-                        s2 = self.qb_sign[q2]
-                        bet1 = -0.25*(1-2*temp[q2])
-                        bet2 = -0.25*(1-2*temp[q1])
-                        rdm2 = rdm_update(
-                            rdm2,'ikli',
-                            i,j,k,l,
-                            bet1,bet1,0,0,
-                            s1,s2
-                            )
-                        rdm2 = rdm_update(
-                            rdm2,'ikli',
-                            k,l,i,j,
-                            bet2,bet2,0,0,
-                            s2,s1
-                            )
-        if self.pr_q>2:
-            print('Done with 2-RDM! yay! whew.')
-        return rdm2
-
 
