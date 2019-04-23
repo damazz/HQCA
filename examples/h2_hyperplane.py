@@ -29,7 +29,7 @@ kw_qc = {
         'depth':1,
         'transpile':True,
         'backend_configuration':None,
-        'noise':True,
+        'noise':False,
         'noise_model_loc':'20190410_ibmqx4',
         'pr_e':2,
         'qc':True,
@@ -62,8 +62,8 @@ prog.build()
 
 start = [0]
 index = [0]
-low = [-pi/180]
-high= [pi/180]
+low = [-pi]
+high= [pi]
 ns = [50]
 prog.scan('rdm',start,index,high,low,ns,prop='on')
 

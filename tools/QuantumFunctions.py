@@ -42,6 +42,7 @@ class QuantumStorage:
             theory='noft',
             tomo_approx=None,
             Nqb_backend=None,
+            error_shift=None,
             fermion_mapping='jordan-wigner',
             load_triangle=False,
             qc=True,
@@ -82,6 +83,10 @@ class QuantumStorage:
         self.theory= theory
         self.tomo_approx = tomo_approx
         self.pr_g =pr_g
+        if type(error_shift)==type(None):
+            self.error_shift = False
+        else:
+            self.error_shift = np.asarray(error_shift)
         self.use_radians=use_radians
         self.Ns = num_shots
         self.Nq = Nqb  # active qubits
@@ -220,6 +225,7 @@ class QuantumStorage:
                     del temp[-1]
                     self.ec_para.append(temp)
                 self.ec_para = [self.ec_para]
+                print(self.ec_para)
             elif expand:
                 arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
                 self.ec_para = []

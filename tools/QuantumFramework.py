@@ -354,7 +354,6 @@ def run_circuits(
     #        print(j)
     #    print('')
     #    print('')
-    #sys.exit()
     if QuantStore.use_noise:
         try:
             job = beo.run(qo,backend_options=backend_options)

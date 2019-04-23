@@ -59,6 +59,9 @@ class GenerateDirectCircuit:
                 'UCC2c12v2':{
                     'f':self._UCC2_con_12v2,
                     'np':1},
+                'UCC2c12v3':{
+                    'f':self._UCC2_test,
+                    'np':1},
                 'UCC2c23':{
                     'f':self._UCC2_con_23,
                     'np':1},
@@ -341,22 +344,69 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=0)
 
-    def _UCC2_test(self,phi1,i,j,k,l):
+    def _UCC2_con_12v3(self,phi1,i,j,k,l):
+        '''
+        Omitted 3rd degree
+        {iT jT k  l } + {i j  kT lT}
+        {iT j  kT l } + {i jT k  lT }
+        '''
+        self._UCC2_test(phi1,i,j,k,l,skip=False)
+
+    def _UCC2_test(self,phi,i,j,k,l,skip=False):
+        if phi>-0.02 and phi<=0:
+            phi=-0.02
+        elif phi>0 and phi<0.02:
+            phi=0.02
+        sequence = [['h','h','h','y']]#,['y','y','y','h']]
+        var =  [[+1]]#,[-1]]
+        index = [i,j,k,l]
+        for nt,term in enumerate(sequence):
+            ind=0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
+            for control in range(i,l):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            self.qc.rz(phi*var[nt][0]/2,self.q[l])
+            self.sg+=1
+            for control in reversed(range(i,l)):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            ind = 0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(-pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
+
+    def _UCC2_con(self,phi1,i,j,k,l,omit=0,skip=True):
         if phi1>-0.02 and phi1<0.02 and skip:
             pass
         else:
-            sequence = [['h','h','h','y'],['h','y','y','y'],
-                    ['y','h','h','h'],['y','y','y','h']]
-            var =  [[+1,+1,-1],[+1,+1,+1],[-1,-1,-1],[-1,-1,+1]]
-            sequence = [['h','h','y','h'],['h','y','y','y'],
-                    ['y','h','h','h'],['y','y','h','y']]
-            var =  [[+1,-1,+1],[+1,+1,+1],[-1,-1,-1],[-1,+1,-1],
-                    ]
-            sequence = [['h','y','h','h'],['h','y','y','y'],
-                    ['y','h','h','h'],['y','h','y','y']]
-            var =  [[-1,+1,+1],[+1,+1,+1],[-1,-1,-1],[+1,-1,-1]]
-            index = [i,j,k,l]
             t = [0,1,2]
+            index = [i,j,k,l]
+            if omit==2:
+                sequence = [['h','h','h','y'],['h','y','y','y'],
+                        ['y','h','h','h'],['y','y','y','h']]
+                var =  [[+1,+1,-1],[+1,+1,+1],[-1,-1,-1],[-1,-1,+1]]
+            elif omit==1:
+                sequence = [['h','h','y','h'],['h','y','y','y'],
+                        ['y','h','h','h'],['y','y','h','y']]
+                var =  [[+1,-1,+1],[+1,+1,+1],[-1,-1,-1],[-1,+1,-1],
+                        ]
+            elif omit==0:
+                sequence = [['h','y','h','h'],['h','y','y','y'],
+                        ['y','h','h','h'],['y','h','y','y']]
+                var =  [[-1,+1,+1],[+1,+1,+1],[-1,-1,-1],[+1,-1,-1]]
             t.remove(omit)
             for nt,term in enumerate(sequence):
                 ind=0
@@ -371,7 +421,7 @@ class GenerateDirectCircuit:
                     target = control+1
                     self.qc.cx(self.q[control],self.q[target])
                     self.cg+=1
-                self.qc.rz(phi1*var[nt][t[0]]/4,self.q[l])
+                self.qc.rz(phi1*var[nt]/2,self.q[l])
                 self.sg+=1
                 for control in reversed(range(i,l)):
                     target = control+1
@@ -390,6 +440,8 @@ class GenerateDirectCircuit:
         if phi1>-0.02 and phi1<0.02 and skip:
             pass
         else:
+            t = [0,1,2]
+            index = [i,j,k,l]
             if omit==2:
                 sequence = [['h','h','h','y'],['h','y','y','y'],
                         ['y','h','h','h'],['y','y','y','h']]
@@ -403,8 +455,9 @@ class GenerateDirectCircuit:
                 sequence = [['h','y','h','h'],['h','y','y','y'],
                         ['y','h','h','h'],['y','h','y','y']]
                 var =  [[-1,+1,+1],[+1,+1,+1],[-1,-1,-1],[+1,-1,-1]]
-            index = [i,j,k,l]
-            t = [0,1,2]
+            elif omit==4:
+                sequence = [['h','y','y','y'],['y','h','h','h']]
+                var =  [[+1,+1,+1],[-1,-1,-1]]
             t.remove(omit)
             for nt,term in enumerate(sequence):
                 ind=0
