@@ -9,8 +9,10 @@ from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 mol = gto.Mole()
 d =0.85 # 0.9374 +0.5626
 mol.atom = [['H',(0,0,0)],['H',(d,0,0)]]
+    #,['H',(-d,0,0)]]
 mol.basis= 'sto-3g'
 #mol.basis='6-31g'
+#mol.charge=+1
 #mol.basis='cc-pvdz'
 mol.spin=0
 mol.verbose=0
@@ -21,8 +23,8 @@ mol.as_No = mol.nbas #spatial
 prog = sp(mol,'noft',calc_E=True,verbose=True)
 kw_qc = {
         'Nqb':mol.as_No*2,
-        'Nqb_backend':5,
-        'num_shots':4096,
+        #'Nqb_backend':5,
+        'num_shots':2048,
         'entangler_q':'UCC2c12v2',
         'spin_mapping':'default',
         'depth':1,
@@ -35,7 +37,7 @@ kw_qc = {
         'use_radians':True,
         'pr_q':3,
         'tomo_extra':'sign_2e_pauli',
-        'tomo_approx':'full',
+        'tomo_approx':'fo',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',
         'error_correction':'hyperplane'

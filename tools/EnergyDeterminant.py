@@ -173,8 +173,6 @@ def energy_eval_rdm(
             print(nora)
             print('Beta:')
             print(norb)
-
-
         noccs,norbs = np.linalg.eig(rdm1)
         idx = noccs.argsort()[::-1]
         norbs = norbs[:,idx]
@@ -289,6 +287,10 @@ def energy_eval_nordm(
                 nocb,norb = np.linalg.eig(rdmb)
                 noca.sort()
                 nocb.sort()
+                if Store.pr_m>2:
+                    print('Eigenvalues: ')
+                    print(noca)
+                    print(nocb)
                 noca = np.real(noca[::-1])
                 nocb = np.real(nocb[::-1])
                 N = len(noca)

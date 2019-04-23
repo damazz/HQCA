@@ -102,6 +102,21 @@ class Process:
                     self.sign.append(-1)
             if self.qs.pr_q>2:
                 print('rdm2 sign element: {}'.format(t1))
+            '''
+            for s,item in enumerate(self.data['sign']):
+                i,j,k,l = item['name'].split('-')
+                i,j,k,l = int(i),int(j),int(k),int(l)
+                # note, now we are constructing 2rdm elements
+                t1 = 0.25*(item['pd'][i]-item['pd'][j])
+                #print(i,j,k,l,t1
+                if t1>0:
+                    self.sign.append(1)
+                else:
+                    self.sign.append(-1)
+            
+            if self.qs.pr_q>2:
+                print('rdm2 sign element: {}'.format(t1))
+            '''
         elif self.qs.tomo_ext=='sign_2e_pauli':
             hold = []
             holding = {}
@@ -140,18 +155,18 @@ class Process:
                     rdme['fo']+= d*val
                     rdme['so']+=(e*val)
                 holding[quad]['rdme']=rdme
-            if self.qs.tomo_approx=='full':
-                test = rdme['+-+-']
-            elif self.qs.tomo_approx=='fo':
-                test = rdme['fo']
-            elif self.qs.tomo_approx=='so':
-                test = rdme['so']
-            if test<0:
-                self.sign.append(-1)
-            else:
-                self.sign.append(+1)
-            if self.qs.pr_q>2:
-                print('rdm2 sign elements: {}'.format(rdme))
+                if self.qs.tomo_approx=='full':
+                    test = rdme['+-+-']
+                elif self.qs.tomo_approx=='fo':
+                    test = rdme['fo']
+                elif self.qs.tomo_approx=='so':
+                    test = rdme['so']
+                if test<0:
+                    self.sign.append(-1)
+                else:
+                    self.sign.append(+1)
+                if self.qs.pr_q>2:
+                    print('rdm2 sign elements: {}'.format(rdme))
 
     def _measure_z_rdm2(self,s):
         '''
@@ -173,11 +188,11 @@ class Process:
                 if p<k and p>j:
                     pass
                 else:
-                    if det[p]=='1':
-                        temp = temp*-1
+                    if det[self.Nq_tot-1-p]=='1':
+                        temp = temp*(-1)
             val += temp*count
         self.data['sign'][s]['z']=val/total
-        #print(pauli,val/total)
+        print(pauli,val/total)
 
     def proc_counts(self,counts):
         Nc = 0

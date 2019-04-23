@@ -26,6 +26,7 @@ from qiskit.compiler import assemble_circuits,RunConfig
 from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.NoiseSimulator import get_noise_model
 from math import pi
+from sympy import pprint
 
 def build_circuits(
         QuantStore,
@@ -148,8 +149,10 @@ def _direct_tomography(
                         Q = apply_1rdm_basis_tomo(
                                 Q,int(pair[0]),int(pair[1]))
                         temp.append(pair)
-                except TypeError:
-                    pass
+                except TypeError as e:
+                    print(e)
+                except Exception as e:
+                    traceback.print_exc()
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
@@ -164,7 +167,7 @@ def _direct_tomography(
                 Q = GenerateDirectCircuit(QuantStore,_name='ijR{:02}'.format(i))
                 temp = ['ijR{:02}'.format(i)]
                 for pair in ca:
-                    Q = (
+                    Q = apply_1rdm_basis_tomo(
                             Q,int(pair[0]),int(pair[1]))
                     temp.append(pair)
                 try:
@@ -172,8 +175,10 @@ def _direct_tomography(
                         Q = apply_1rdm_basis_tomo(
                                 Q,int(pair[0]),int(pair[1]))
                         temp.append(pair)
-                except TypeError:
-                    pass
+                except TypeError as e:
+                    print(e)
+                except Exception as e:
+                    traceback.print_exc()
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
@@ -214,7 +219,8 @@ def _direct_tomography(
                     QuantStore,
                     _name=temp
                     )
-            Q._UCC2_con_12(pi/2,a,b,c,d)
+            #Q._UCC2_con_12(pi/2,a,b,c,d)
+            Q._UCC2_con_23(-pi/2,a,b,c,d)
             Q.qc.measure(Q.q,Q.c)
             circuit_list.append([temp])
             circuit.append(Q.qc)
@@ -343,6 +349,12 @@ def run_circuits(
                 shots=QuantStore.Ns
         )
             )
+    #for i in qo.experiments:
+    #    for j in i.instructions:
+    #        print(j)
+    #    print('')
+    #    print('')
+    #sys.exit()
     if QuantStore.use_noise:
         try:
             job = beo.run(qo,backend_options=backend_options)

@@ -23,7 +23,7 @@ prog = scan(mol,'noft',calc_E=True,verbose=False)
 kw_qc = {
         'Nqb':mol.as_No*2,
         'Nqb_backend':5,
-        'num_shots':4096,
+        'num_shots':2048,
         'entangler_q':'UCC2c12v2',
         'spin_mapping':'default',
         'depth':1,
@@ -37,7 +37,7 @@ kw_qc = {
         'tomo_approx':'fo', #'fo','so','full'
         'ansatz':'nat-orb-no',
         #'error_correction':'hyperplane'
-        'error_correction':None
+        'error_correction':None,
         }
 kw_opt = {
         'optimizer':'nevergrad',
@@ -48,13 +48,12 @@ kw_opt = {
         'N_vectors':5
         }
 
-prog.set_print(level='default')
+prog.set_print(level='diagnostic')
 prog.update_var(target='qc',**kw_qc )
 prog.update_var(target='opt',**kw_opt)
 #
 prog.build()
-for i in np.linspace(-pi/4,pi/4,7):
-    print('para: {}'.format(i))
+for i in np.linspace(pi/4,pi/2,2):
     prog.update_rdm([i])
     print('')
     print('')
