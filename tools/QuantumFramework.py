@@ -24,7 +24,7 @@ from qiskit.mapper import Layout
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble_circuits,RunConfig
 from qiskit.tools.monitor import backend_overview,job_monitor
-from hqca.tools.NoiseSimulator import get_noise_model
+from hqca.tools.NoiseSimulator import get_noise_model,get_coupling_map
 from math import pi
 from sympy import pprint
 
@@ -327,11 +327,24 @@ def run_circuits(
         noise_model=QuantStore.noise_model
         backend_options['noise_model']=noise_model
         backend_options['basis_gates']=noise_model.basis_gates
+        coupling = noise_model.coupling_map
+    else:
+        if QuantStore.be_coupling in [None,False]:
+            coupling = beo.configuration().coupling_map
+        else:
+            try:
+                coupling = get_coupling_map(
+                        device=QuantStore.backend,
+                        saved=QuantStore.noise_model_loc
+                        )
+            except Exception as e:
+                sys.exit()
+                print(e)
     if QuantStore.bec is not None:
         layout = []
         for i in QuantStore.bec:
             if i is not None:
-                layout.append((test.q,i))
+                layout.append(i)
             else:
                 layout.append(None)
     else:
@@ -340,7 +353,7 @@ def run_circuits(
         circuits = transpile(
                 circuits=circuits,
                 backend=beo,
-                coupling_map=beo.configuration().coupling_map,
+                coupling_map=coupling,
                 initial_layout=layout
                 )
     qo = assemble_circuits(
@@ -388,6 +401,7 @@ class Construct:
     def find_signs(self):
         self.qo.sign_from_2rdm()
         self.signs = self.qo.sign
+        self.holding = self.qo.holding
 
 def add_to_config_log(backend,connect):
     '''
@@ -469,44 +483,6 @@ def wait_for_machine(QuantStore,Nw=10):
         pass
     else:
         raise NotAvailableError
-'''
-backends = available_backends({'local': True})
-
-test=get_backend('local_qasm_simulator')
-shots = 1024
-q = qiskit.QuantumRegister(2)
-c = qiskit.ClassicalRegister(2)
-qc = qiskit.QuantumCircuit(q,c)
-qc.h(q[0])
-qc.cx(q[1],q[0])
-qc.measure(q,c)
-
-q1 = qiskit.QuantumRegister(2)
-c1= qiskit.ClassicalRegister(2)
-qc1 = qiskit.QuantumCircuit(q1,c1)
-qo = qiskit.compile(qc,test)
-qc1.h(q1[0])
-qc1.cx(q1[1],q1[0])
-qc1.measure(q1,c1)
-
-
-qo = qiskit.compile([qc,qc1],test)
-print(qc.name)
-qr =  test.run(qo)
-print(qr)
-print(qr.running)
-time.sleep(1)
-print(qr.running)
-
-print(qr.result().get_counts('circuit1'))
-print(test.configuration)
-print(test.calibration)
-print(test.parameters)
-
-#for i,j in qr.items():
-#    print(i,j)
-
-'''
 
 
 

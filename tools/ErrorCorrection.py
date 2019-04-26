@@ -133,11 +133,15 @@ def generate_error_polytope(Store,QuantStore,**kw):
             len(QuantStore.beta_qb),
             len(QuantStore.beta_qb))
             )
-        for j in range(QuantStore.ec_Nv): #number of vertices 
+        for j in range(QuantStore.ec_Nv): #number of vertices
             QuantStore.parameters = np.asarray(QuantStore.ec_para[i][j])
-            QuantStore.parameters+= QuantStore.error_shift[j,:]
-            print('Shifted by: ')
-            print(QuantStore.error_shift[j,:])
+            try:
+                QuantStore.parameters+= QuantStore.error_shift[j,:]
+                #print('Shifted by: ')
+                print(QuantStore.error_shift[j,:])
+            except Exception as e:
+                #print(e)
+                pass
             q_circ,qc_list = build_circuits(QuantStore)
             qc_obj = run_circuits(
                     q_circ,

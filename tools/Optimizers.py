@@ -526,7 +526,7 @@ class nelder_mead_ng(OptimizerInstance):
                 print('Switching to nevergrad optimization.')
                 self.macro,self.micro = False,True
                 self.kwargs['unity']=self.opt_macro.crit
-                #self.kwargs['shift']=self.opt_macro.best_x
+                self.kwargs['shift']=self.opt_macro.best_x
                 self.opt_micro = nevergradopt(
                         **self.kwargs)
                 self.opt_micro.initialize(start=self.opt_macro.best_x)
@@ -774,6 +774,8 @@ class bfgs(OptimizerInstance):
         self.best_f = self.f(np.asarray(self.x0)[0,:])
         if self.conv_crit_type=='default':
             self.crit = np.sqrt(np.sum(np.square(self.g0)))
+        else:
+            self.crit = np.sqrt(np.sum(np.square(self.g0)))
         self.stuck = np.zeros((3,self.N))
         self.stuck_ind = 0
 
@@ -919,14 +921,14 @@ class nevergradopt:
 
 
     def check(self,initial=False):
-        if self.opt_crit in ['default','iterations']:
+        if self.opt_crit in ['iterations']:
             if self.energy_calls>=self.max_iter:
                 self.crit=0
             else:
                 self.crit=1
         elif self.opt_crit=='ImpAv':
             pass
-        elif self.opt_crit=='MaxDist':
+        elif self.opt_crit in ['default','MaxDist']:
             if initial:
                 self.vectors.sort(key=lambda x:x[0],reverse=False)
                 self._update_MaxDist()

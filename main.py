@@ -200,6 +200,13 @@ class scan(sp):
         self.run.single('orb',para)
         self.Store.update_full_ints()
 
+    def search_for_polytope(self):
+        '''
+        run to look for the polytope extrema
+        '''
+        self.run.single('orb',para)
+
+
     def scan(self,
             target,
             start,
@@ -207,7 +214,8 @@ class scan(sp):
             high,
             low,
             ns,
-            prop='en'):
+            prop='en',
+            save=False):
         import matplotlib.pyplot as plt
         from matplotlib import cm
         from mpl_toolkits.mplot3d import Axes3D
@@ -219,6 +227,7 @@ class scan(sp):
             if prop=='on':
                 Ya = []
                 Yb = []
+                S = []
             else:
                 Y = np.zeros(ns[0])
             for n,i in enumerate(X):
@@ -230,14 +239,23 @@ class scan(sp):
                 elif prop=='on':
                     Ya.append(self.run.E[0])
                     Yb.append(self.run.E[1])
+                    test = self.run.E[2].holding
+                    stemp = []
+                    for k in test.keys():
+                        stemp.append(test[k]['rdme']['fo'])
+                        stemp.append(test[k]['rdme']['so'])
+                        stemp.append(test[k]['rdme']['+-+-'])
+                    S.append(stemp)
                 print('{:.1f}%'.format((n+1)*100/ns[0]))
             fig = plt.figure()
             Xp = X*(180/np.pi)
             if prop=='on':
-                ax1 = fig.add_subplot(121)
-                ax2 = fig.add_subplot(122)
+                ax1 = fig.add_subplot(131)
+                ax2 = fig.add_subplot(132)
+                ax3 = fig.add_subplot(133)
                 Ya = np.asarray(Ya)
                 Yb = np.asarray(Yb)
+                S = np.asarray(S)
                 Ta = np.sum(Ya,axis=1)
                 Tb = np.sum(Yb,axis=1)
                 for i in range(Ya.shape[1]):
@@ -248,44 +266,83 @@ class scan(sp):
                     Av_b = np.average(Yb[:,i])
                     print(np.sqrt(np.sum(np.square(Ya[:,i]-Av_a))))
                     print(np.sqrt(np.sum(np.square(Yb[:,i]-Av_b))))
+                for i in range(S.shape[1]//3):
+                    ax3.plot(Xp, S[:,3*i],label='fo-{}'.format(i))
+                    ax3.plot(Xp, S[:,3*i+1],label='so-{}'.format(i))
+                    ax3.plot(Xp, S[:,3*i+2],label='to-{}'.format(i))
                 ax1.plot(Xp,Ta,label='total')
                 ax2.plot(Xp,Tb,label='total')
                 ax1.set_xlabel('alpha')
                 ax2.set_xlabel('beta')
-                ax1.legend()
+                ax3.set_xlabel('signs')
+                #ax1.legend()
+                ax3.legend()
             else:
                 ax = fig.add_subplot(111)
-                ax.plot(Xp, Y,linewidth=3)
+                ax.plot(Xp,Y,linewidth=3)
                 # Plot the surface.
-            plt.show()
+            if save==False:
+                plt.show()
+            else:
+                plt.savefig(save,format='png')
         elif len(index)==2:
             para1 = np.linspace(low[0],high[0],ns[0])
             para2 = np.linspace(low[1],high[1],ns[1])
             X,Y = np.meshgrid(para1,para2,indexing='ij')
-            Z = np.zeros((ns[0],ns[1]))
+            Np = len(start)
+            if prop=='on':
+                Za = np.zeros((ns[0],ns[1],Np+1))
+                Zb = np.zeros((ns[0],ns[1],Np+1))
+                S = np.zeros((ns[0],ns[1],Np))
+            else:
+                Z = np.zeros((ns[0],ns[1]))
             for i,a in enumerate(para1):
                 for j,b in enumerate(para2):
                     temp = start.copy()
                     temp[index[0]]=a
                     temp[index[1]]=b
                     self.run.single(target,para=temp,prop=prop)
-                    Z[i,j] = self.run.E
+                    if prop=='on':  
+                        Za[i,j,:]=self.run.E[0]
+                        Zb[i,j,:]=self.run.E[1]
+                        test = self.run.E[2].holding
+                        for n,k in enumerate(test.keys()):
+                            S[i,j,n]=test[k]['rdme']['fo']
+                    else:
+                        Z[i,j] = self.run.E[0]
                 print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()
-            ax = fig.add_subplot(111,projection='3d')
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
-            maps = ax.plot_surface(X, Y, Z,
-                    cmap=cm.coolwarm,
-                    linewidth=0)
-            for n,i in enumerate(Z):
-                print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
-                        X[n,np.argmin(i)],
-                        Y[n,np.argmin(i)],
-                        Z[n,np.argmin(i)]))
-            plt.colorbar(maps)
-            # Plot the surface.
+            ax1 = fig.add_subplot(131,projection='3d')
+            ax1.set_xlabel('x')
+            ax1.set_ylabel('y')
+            ax2 = fig.add_subplot(132,projection='3d')
+            ax2.set_xlabel('x')
+            ax2.set_ylabel('y')
+            ax3 = fig.add_subplot(133,projection='3d')
+            ax3.set_xlabel('x')
+            ax3.set_ylabel('y')
+            for i in range(0,Np+1):
+                maps = ax1.plot_surface(X, Y, Za[:,:,i],
+                        cmap=cm.coolwarm,
+                        linewidth=1)
+                #plt.colorbar(maps)
+                maps= ax2.plot_surface(X,Y,Zb[:,:,i],
+                        cmap=cm.coolwarm,
+                        linewidth=1)
+                #plt.colorbar(maps)
+            for i in range(0,Np):
+                sign = ax3.plot_wireframe(X,Y,S[:,:,i],
+                        cmap=cm.coolwarm,
+                        linewidth=2)
+                #plt.colorbar(sign)
             plt.show()
+
+            #for n,i in enumerate(Z):
+            #    print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
+            #            X[n,np.argmin(i)],
+            #            Y[n,np.argmin(i)],
+            #            Z[n,np.argmin(i)]))
+            # Plot the surface.
 
         elif len(index)==3:
             para1 = np.linspace(low[0],high[0],ns[0])
@@ -312,4 +369,9 @@ class scan(sp):
                 plt.colorbar(maps)
                 # Plot the surface.
                 plt.show()
+    
+
+    def look_for_polytope():
+        pass
+
 

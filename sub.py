@@ -359,7 +359,7 @@ class RunNOFT(QuantumRun):
             pass
         if self.total.done and not self.total.err==False:
             print('Got an error.')
-            raise self.total.err
+            raise Exception
 
         self.total.crit = self.Store.energy_best
         self.main.crit=0
@@ -453,4 +453,20 @@ class RunNOFT(QuantumRun):
         self.main=Cache()
         self.main.done=True
         self._OptOrb()
+
+    def find_occ(self,on=0,spin='alpha'):
+
+        def f_test(para,**kw):
+            self.single(para,**kw)
+            if spin=='alpha':
+                return -self.E[0][on]
+            elif spin=='beta':
+                return -self.E[1][on]
+        self.Run = opt.Optimizer(
+                function=f_test,
+                **self.kw_opt)
+        self.Run.initialize(self.QuantStore.parameters)
+            
+
+
 

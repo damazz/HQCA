@@ -353,10 +353,10 @@ class GenerateDirectCircuit:
         self._UCC2_test(phi1,i,j,k,l,skip=False)
 
     def _UCC2_test(self,phi,i,j,k,l,skip=False):
-        if phi>-0.02 and phi<=0:
-            phi=-0.02
-        elif phi>0 and phi<0.02:
-            phi=0.02
+        if phi>-0.01 and phi<=0:
+            phi=-0.01
+        elif phi>0 and phi<0.01:
+            phi=0.01
         sequence = [['h','h','h','y']]#,['y','y','y','h']]
         var =  [[+1]]#,[-1]]
         index = [i,j,k,l]

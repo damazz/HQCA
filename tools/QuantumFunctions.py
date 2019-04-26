@@ -50,6 +50,7 @@ class QuantumStorage:
             spin_mapping='default',
             method='variational',
             backend_configuration=None,
+            backend_mod_coupling=None,
             noise_model_loc=None, #specify file name for noise_model 
             noise=False,
             transpile=False,
@@ -134,6 +135,7 @@ class QuantumStorage:
         self.ansatz = ansatz
         self.spin_mapping = spin_mapping
         self.bec = backend_configuration
+        self.be_coupling = backend_mod_coupling
         self.qubit_to_backend = backend_configuration
         if self.qubit_to_backend is None:
             self.qubit_to_backend=KeyDict()
@@ -164,6 +166,7 @@ class QuantumStorage:
                     device=backend,
                     times=circuit_times,
                     saved=noise_model_loc)
+        self.noise_model_loc = noise_model_loc
         if self.pr_g>1:
             print('# Summary of quantum parameters:')
             print('#  backend   : {}'.format(self.backend))
@@ -419,32 +422,40 @@ def get_direct_stats(QuantStore,extra=False):
         import qiskit
         test.qc.measure(test.q,test.c)
         be = Aer.get_backend('qasm_simulator')
-        IBMQ.load_accounts()
-        ibm= IBMQ.get_backend('ibmqx4')
-        coupling = ibm.configuration().coupling_map
-        print(coupling)
         # going to try transpiler? yeah. 
-        print(QuantStore.bec)
         print(test.qc)
-        backend_overview()
         #layout = Layout()
+        if QuantStore.be_coupling in [None,False]:
+            IBMQ.load_accounts()
+            backend_overview()
+            beo = IBMQ.get_backend(QuantStore.backend)
+            coupling = beo.configuration().coupling_map
+        else:
+            try:
+                coupling = NoiseSimulator.get_coupling_map(
+                        device=QuantStore.backend,
+                        saved=QuantStore.noise_model_loc
+                        )
+            except Exception as e:
+                print(e)
+                sys.exit()
         if QuantStore.bec is not None:
             layout = []
+            for i in QuantStore.bec:
+                layout.append(i)
+            '''
             for i in QuantStore.bec:
                 if i is not None:
                     layout.append((test.q,i))
                 else:
                     layout.append(None)
-            #for n,i in enumerate(QuantStore.bec):
-            #    if i is not None:
-            #        layout[n] = (test.q,i)
-            #    else:
-            #        layout[n] = None
+            '''
             print(layout)
             print('')
             print('space')
         else:
             layout = None
+        print(coupling)
         qt = transpile(test.qc,
                 backend=be,
                 coupling_map=coupling,
