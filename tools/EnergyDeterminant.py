@@ -249,12 +249,11 @@ def energy_eval_nordm(
     Has several different methods, which use similar pinning principals. 
     Main difference is between classical and quantum computer algorithms. 
     '''
-    print('Para: {}'.format(para))
     if QuantStore.method=='generalized':
         pass
     elif QuantStore.method=='carlson-keller':
         if Store.pr_m>1:
-            print('Parameters, degrees: ')
+            print('Parameters: ')
             print(para)
         spin_mapping = QuantStore.spin_mapping
         unrestrict=False

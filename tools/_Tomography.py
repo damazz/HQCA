@@ -193,7 +193,9 @@ class Process:
                         temp = temp*(-1)
             val += temp*count
         self.data['sign'][s]['z']=val/total
-        print(pauli,val/total)
+
+        if self.qs.pr_q>2:
+            print('Pauli:',pauli,val/total)
 
     def proc_counts(self,counts):
         Nc = 0
