@@ -62,6 +62,9 @@ class GenerateDirectCircuit:
                 'UCC2c12v3':{
                     'f':self._UCC2_test,
                     'np':1},
+                'UCC2c12v4':{
+                    'f':self._UCC2_test2,
+                    'np':1},
                 'UCC2c23':{
                     'f':self._UCC2_con_23,
                     'np':1},
@@ -388,6 +391,41 @@ class GenerateDirectCircuit:
                 self.sg+=1
                 ind+=1
 
+    def _UCC2_test2(self,phi,i,j,k,l,skip=False):
+        if phi>-0.01 and phi<=0:
+            phi=-0.01
+        elif phi>0 and phi<0.01:
+            phi=0.01
+        sequence = [['h','h','h','y'],['y','y','y','h']]
+        var =  [[+1],[-1]]
+        index = [i,j,k,l]
+        for nt,term in enumerate(sequence):
+            ind=0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
+            for control in range(i,l):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            self.qc.rz(phi*var[nt][0]/2,self.q[l])
+            self.sg+=1
+            for control in reversed(range(i,l)):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            ind = 0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(-pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
     def _UCC2_con(self,phi1,i,j,k,l,omit=0,skip=True):
         if phi1>-0.02 and phi1<0.02 and skip:
             pass

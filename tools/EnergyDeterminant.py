@@ -293,8 +293,15 @@ def energy_eval_nordm(
                 noca = np.real(noca[::-1])
                 nocb = np.real(nocb[::-1])
                 N = len(noca)
+                print(noca,nocb)
                 if QuantStore.random=='on': #i.e., a random keywor
                     return noca,nocb,proc
+                elif QuantStore.random=='on_opt_a':
+                    oni = QuantStore.random2
+                    return -noca[oni]
+                elif QuantStore.random=='on_opt_b':
+                    oni = QuantStore.random2
+                    return -nocb[oni]
             if QuantStore.ec=='hyperplane':
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T

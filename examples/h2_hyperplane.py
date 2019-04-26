@@ -64,7 +64,7 @@ start = [0]
 index = [0]
 low = [-pi]
 high= [pi]
-ns = [50]
+ns = [20]
 prog.scan('rdm',start,index,high,low,ns,prop='on')
 
 

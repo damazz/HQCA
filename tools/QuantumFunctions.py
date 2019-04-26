@@ -50,6 +50,8 @@ class QuantumStorage:
             spin_mapping='default',
             method='variational',
             backend_configuration=None,
+            random=None,
+            random2=None,
             backend_mod_coupling=None,
             noise_model_loc=None, #specify file name for noise_model 
             noise=False,
@@ -114,7 +116,8 @@ class QuantumStorage:
         self.ent_circ_p = entangler_p
         self.ent_circ_q = entangler_q
         self.depth = depth
-        self.random = None
+        self.random = random
+        self.random2= random2
         self.init = initialize
         self.algorithm = algorithm
         self.method = method
