@@ -369,7 +369,7 @@ class GenerateDirectCircuit:
                 if item=='h':
                     self.qc.h(self.q[index[ind]])
                 elif item=='y':
-                    self.qc.rx(pi/2,self.q[index[ind]])
+                    self.qc.rx(-pi/2,self.q[index[ind]])
                 self.sg+=1
                 ind+=1
             for control in range(i,l):
@@ -387,7 +387,7 @@ class GenerateDirectCircuit:
                 if item=='h':
                     self.qc.h(self.q[index[ind]])
                 elif item=='y':
-                    self.qc.rx(-pi/2,self.q[index[ind]])
+                    self.qc.rx(pi/2,self.q[index[ind]])
                 self.sg+=1
                 ind+=1
 
@@ -405,7 +405,7 @@ class GenerateDirectCircuit:
                 if item=='h':
                     self.qc.h(self.q[index[ind]])
                 elif item=='y':
-                    self.qc.rx(pi/2,self.q[index[ind]])
+                    self.qc.rx(-pi/2,self.q[index[ind]])
                 self.sg+=1
                 ind+=1
             for control in range(i,l):
@@ -423,7 +423,7 @@ class GenerateDirectCircuit:
                 if item=='h':
                     self.qc.h(self.q[index[ind]])
                 elif item=='y':
-                    self.qc.rx(-pi/2,self.q[index[ind]])
+                    self.qc.rx(pi/2,self.q[index[ind]])
                 self.sg+=1
                 ind+=1
     def _UCC2_con(self,phi1,i,j,k,l,omit=0,skip=True):
