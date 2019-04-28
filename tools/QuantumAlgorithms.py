@@ -121,6 +121,16 @@ class GenerateDirectCircuit:
             for quad in (self.qs.quad_list):
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
+                if self.ent_q==self._UCC2_test2 and h==0:
+                    self._UCC2_test(*temp,
+                            i=self.map[quad[0]],
+                            j=self.map[quad[1]],
+                            k=self.map[quad[2]],
+                            l=self.map[quad[3]])
+                    h += 1
+                    continue
+                    # special condition to reduce number of
+                    # entangling gates for the 6 orbital case
                 self.ent_q(*temp,
                         i=self.map[quad[0]],
                         j=self.map[quad[1]],
@@ -376,7 +386,7 @@ class GenerateDirectCircuit:
                 target = control+1
                 self.qc.cx(self.q[control],self.q[target])
                 self.cg+=1
-            self.qc.rz(phi*var[nt][0]/2,self.q[l])
+            self.qc.rz(phi*var[nt][0],self.q[l])
             self.sg+=1
             for control in reversed(range(i,l)):
                 target = control+1
