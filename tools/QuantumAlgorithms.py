@@ -396,8 +396,8 @@ class GenerateDirectCircuit:
             phi=-0.01
         elif phi>0 and phi<0.01:
             phi=0.01
-        sequence = [['h','h','h','y'],['y','y','y','h']]
-        var =  [[+1],[-1]]
+        sequence = [['h','h','h','y'],['h','y','y','y']]
+        var =  [[+1],[+1]]
         index = [i,j,k,l]
         for nt,term in enumerate(sequence):
             ind=0
@@ -426,6 +426,7 @@ class GenerateDirectCircuit:
                     self.qc.rx(pi/2,self.q[index[ind]])
                 self.sg+=1
                 ind+=1
+
     def _UCC2_con(self,phi1,i,j,k,l,omit=0,skip=True):
         if phi1>-0.02 and phi1<0.02 and skip:
             pass
