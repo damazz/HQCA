@@ -301,8 +301,8 @@ class QuantumStorage:
                 self.alpha_qb = self.keyword[0]
                 self.beta_qb  = self.keyword[1]
             except Exception:
-                self.alpha_qb = [0,4,2]
-                self.beta_qb  = [1,5,3]
+                self.alpha_qb = [0,2,4]
+                self.beta_qb  = [1,3,5]
             self.qubit_to_rdm = {
                     self.alpha_qb[0]:0,
                     self.alpha_qb[1]:1,
