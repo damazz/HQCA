@@ -67,7 +67,7 @@ def energy_eval_orbitals(
             )
     if spin_mapping=='restricted':
         T_b = T_a.copy()
-    elif spin_mapping in ['default','unrestricted']:
+    elif spin_mapping in ['default','unrestricted','alternating']:
         T_b = reduce(np.dot, (
                 Store.T_beta,
                 enf.rotation_parameter_generation(

@@ -60,6 +60,7 @@ class QuantumStorage:
             initialize='default',
             algorithm=None,
             pr_q=0,
+            keyword=None,
             pr_e=1,
             circuit_times=None,
             use_radians=False,
@@ -92,6 +93,7 @@ class QuantumStorage:
             self.error_shift = np.asarray(error_shift)
         self.use_radians=use_radians
         self.Ns = num_shots
+        self.keyword= keyword
         self.Nq = Nqb  # active qubits
         if Nqb_backend is not None:
             self.Nq_tot = Nqb_backend
@@ -140,13 +142,6 @@ class QuantumStorage:
         self.bec = backend_configuration
         self.be_coupling = backend_mod_coupling
         self.qubit_to_backend = backend_configuration
-        if self.qubit_to_backend is None:
-            self.qubit_to_backend=KeyDict()
-            self.backend_to_qubit=KeyDict()
-        else:
-            #self.backend_to_qubit={v:k for k,v in self.qubit_to_backend.items()}
-            self.qubit_to_backend=KeyDict()
-            self.backend_to_qubit=KeyDict()
         self.transpile = transpile
         self.use_noise = noise
         self.info=info
@@ -202,8 +197,16 @@ class QuantumStorage:
                     p='#  '
             print(p)
             p = '#  '
-            print('#  qubit entangled quadruplets:')
+            print('#  rdm entangled quadruplets:')
             for n,quad in enumerate(self.quad_list):
+                p+='{} '.format(quad)
+                if n%2==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            p = '#  '
+            print('#  qubit entangled quadruplets:')
+            for n,quad in enumerate(self.qc_quad_list):
                 p+='{} '.format(quad)
                 if n%2==0 and n>0:
                     print(p)
@@ -263,35 +266,82 @@ class QuantumStorage:
 
 
     def _map_rdm_jw(self):
-        self.qubit_to_rdm = {} #
-        self.backend_to_rdm = {}
+        '''
+        note, if you change the spin mapping, it also effects the quantum
+        circuit and the type of double excitation that you need
+        '''
+        self.qubit_to_rdm = {}
         if self.spin_mapping=='default':
             for n,alp in enumerate(self.alpha['active']):
                 self.qubit_to_rdm[n]=alp
                 self.alpha_qb.append(self.qubit_to_backend[n])
-                self.backend_to_rdm[self.qubit_to_backend[n]]=alp
             for n,bet in enumerate(self.beta['active']):
                 m = n+self.No
                 self.qubit_to_rdm[m]=bet
                 self.beta_qb.append(self.qubit_to_backend[m])
-                self.backend_to_rdm[self.qubit_to_backend[m]]=bet
         elif self.spin_mapping=='spin-free':
             for n,alp in enumerate(self.alpha['active']):
                 self.qubit_to_rdm[n]=alp
                 self.alpha_qb.append(self.qubit_to_backend[n])
-                self.backend_to_rdm[self.qubit_to_backend[n]]=alp
             for n,bet in enumerate(self.beta['active']):
                 m = n+self.No
                 self.qubit_to_rdm[m]=bet
                 self.alpha_qb.append(self.qubit_to_backend[m])
-                self.backend_to_rdm[self.qubit_to_backend[m]]=bet
-        self.rdm_to_backend = {v:k for k,v in self.backend_to_rdm.items()}
+        elif self.spin_mapping=='alternating':
+            #for n in range(len(self.alpha['active'])):
+            #    self.qubit_to_rdm[2*n]=self.alpha['active'][n]
+            #    self.qubit_to_rdm[2*n+1]=self.beta['active'][n]
+            #    l = self.qubit_to_backend[2*n]
+            #    m = self.qubit_to_backend[2*n+1]
+            #    self.alpha_qb.append(l)
+            #    self.beta_qb.append(m)
+            #    self.backend_to_rdm[l]=self.alpha['active'][n]
+            #    self.backend_to_rdm[m]=self.beta['active'][n]
+            try:
+                self.alpha_qb = self.keyword[0]
+                self.beta_qb  = self.keyword[1]
+            except Exception:
+                self.alpha_qb = [0,4,2]
+                self.beta_qb  = [1,5,3]
+            self.qubit_to_rdm = {
+                    self.alpha_qb[0]:0,
+                    self.alpha_qb[1]:1,
+                    self.alpha_qb[2]:2,
+                    self.beta_qb[0]:3,
+                    self.beta_qb[1]:4,
+                    self.beta_qb[2]:5
+                    }
+        self.rdm_to_qubit = {v:k for k,v in self.qubit_to_rdm.items()}
 
     def _get_ent_pairs_jw(self):
-        # ansatz also includes orders of excitations, etc. 
+        '''
+        using the jordan-wigner mapping, generate entangling pairs based on the
+        proper ansatz. for instance, we have ucc ansatz, with singles and double
+        excitations, but we also have simple double excitations in the NO basis 
+        that work for certain cases
+
+        possible ansatz:
+            -ucc
+            -default
+            -natural orbitals
+            -nat-orb-no (reduced form)
+            -a
+
+        Note, the proper functioning of this function should take entanglement
+        in the RDM basis, preparing quad list and pair list.
+
+        Then, it takes this function and arranges it according to qc format,
+        producing qc_quad_list and qc_pair_list. These are ordered and have the
+        proper operator for (below). 
+
+        Also, wyou can include the type of operator that is being applied for
+        the given configuration. For isntance, a transition form a1->a2, b1->b2
+        that is applied as i<j<k<l, would be a -+-+ operator, NOT ++--
+        '''
         self.pair_list = []
         self.quad_list = []
-        if self.ansatz=='ucc':
+        if self.ansatz=='ucc': 
+            # UPDATE
             if self.ent_pairs in ['sd','d']:
                 # generate double excitations
                 for l in range(0,len(self.alpha_qb)):
@@ -317,6 +367,7 @@ class QuantumStorage:
                     for i in range(self.No,j):
                         self.pair_list.append([i,j])
         elif self.ansatz=='default':
+            # UPDATE
             if self.ent_pairs in ['sd','d']:
                 for l in range(0,len(self.alpha_qb)):
                     for k in range(0,l):
@@ -353,12 +404,54 @@ class QuantumStorage:
                         i,j = k%self.No, l%self.No
                         self.quad_list.append([i,j,k,l])
         elif self.ansatz=='nat-orb-no':
+            # this is okay, important part is you are using len of beta_qb,
+            # and not the actula qb's 
             if self.ent_pairs in ['sd','d']:
                 for k in range(self.No,self.No+len(self.beta_qb)-1):
                     i= k%self.No
-                    self.quad_list.append([i,i+1,k,k+1])
+                    self.quad_list.append([i,i+1,k,k+1,'-+-+','aabb'])
+        # now, order them 
+        self.qc_quad_list = []
+        for quad in self.quad_list:
+            qd = []
+            for i in range(len(quad)-2):
+                qd.append(self.rdm_to_qubit[quad[i]])
+            try:
+                sign = list(quad[4])
+                spin = list(quad[5])
+            except IndexError:
+                sign = ['-','+','-','+']
+                spin = ['a','a','b','b']
+            sort = False
+            while not sort:
+                i,j,k,l = qd[0],qd[1],qd[2],qd[3]
+                sort = True
+                if i>j:
+                    qd[1],qd[0]=qd[0],qd[1]
+                    sign[0],sign[1]=sign[1],sign[0]
+                    spin[0],spin[1]=spin[1],spin[0]
+                    sort = False
+                if j>k:
+                    qd[1],qd[2]=qd[2],qd[1]
+                    sign[2],sign[1]=sign[1],sign[2]
+                    spin[2],spin[1]=spin[1],spin[2]
+                    sort = False
+                if k>l:
+                    sign[3],sign[2]=sign[2],sign[3]
+                    spin[2],spin[3]=spin[3],spin[2]
+                    qd[3],qd[2]=qd[2],qd[3]
+                    sort = False
+            qd.append(''.join(sign))
+            qd.append(''.join(spin))
+            self.qc_quad_list.append(qd)
 
     def _get_2e_no(self):
+        '''
+        set the tomography elements for the elements
+
+        note, these are also in the RDM basis. these have to get transferred to
+        other ones
+        '''
         self.tomo_quad = []
         temp = iter(zip(
                 self.alpha['active'][:-1],
@@ -367,6 +460,13 @@ class QuantumStorage:
                 self.beta['active'][1:]))
         for a,b,c,d in temp:
             self.tomo_quad.append([a,b,c,d])
+        self.qc_tomo_quad = []
+        for tq in self.tomo_quad:
+            temp = []
+            for e in tq:
+                temp.append(self.rdm_to_qubit[e])
+            self.qc_tomo_quad.append(temp)
+
 
     def _gip(self):
         '''
@@ -391,6 +491,13 @@ class QuantumStorage:
             print('Number of initial parameters: {}'.format(self.Np))
 
 def get_direct_stats(QuantStore,extra=False):
+    '''
+    function to do a few statistics on the proposed circuit,
+    namely it can:
+        do simple circuit gate counts
+        draw the pre- and post- compiled/transpiled circuits
+
+    '''
     from hqca.tools import QuantumAlgorithms
     QuantStore.parameters=[1]*QuantStore.Np
     test = QuantumAlgorithms.GenerateDirectCircuit(QuantStore)
@@ -416,7 +523,13 @@ def get_direct_stats(QuantStore,extra=False):
             test.qc.draw()
         except Exception as e:
             print(e)
-    elif extra=='compile':
+    elif extra in ['compile','qasm']:
+        def print_qasm(circuit):
+            print(circuit.qasm())
+            print(circuit.count_ops())
+            with open('h3_qasm.txt','w') as fp:
+                fp.write(circuit.qasm())
+
         from qiskit import Aer,IBMQ,execute
         from qiskit.mapper import Layout
         from qiskit.transpiler import transpile
@@ -425,8 +538,10 @@ def get_direct_stats(QuantStore,extra=False):
         import qiskit
         test.qc.measure(test.q,test.c)
         be = Aer.get_backend('qasm_simulator')
-        # going to try transpiler? yeah. 
-        print(test.qc)
+        if extra=='compile':
+            print(test.qc)
+        else:
+            import os 
         #layout = Layout()
         if QuantStore.be_coupling in [None,False]:
             IBMQ.load_accounts()
@@ -443,6 +558,7 @@ def get_direct_stats(QuantStore,extra=False):
                 print(e)
                 sys.exit()
         if QuantStore.bec is not None:
+
             layout = []
             for i in QuantStore.bec:
                 layout.append(i)
@@ -453,22 +569,19 @@ def get_direct_stats(QuantStore,extra=False):
                 else:
                     layout.append(None)
             '''
-            print(layout)
-            print('')
-            print('space')
         else:
             layout = None
-        print(coupling)
         qt = transpile(test.qc,
                 backend=be,
                 coupling_map=coupling,
                 initial_layout=layout
                 )
         #qo = be.run(qt)
-        result = execute(qt,be).result()
+        #result = execute(qt,be).result()
+        print_qasm(qt)
         print(qt)
-        print(result.get_counts())
-        sys.exit()
+
+        #print(result.get_counts())
     QuantStore.parameters=[0]*QuantStore.Np
 
 

@@ -128,7 +128,11 @@ class QuantumRun:
             qf.get_direct_stats(self.QuantStore,extra='compile')
             sys.exit()
         else:
-            pass
+            #print('Getting circuit information for keyword: {}'.format(
+            #    self.kw_qc['info'])
+            #    )
+            qf.get_direct_stats(self.QuantStore,extra=self.kw_qc['info'])
+            #sys.exit()
 
     def set_print(self,level='default',
             record=False

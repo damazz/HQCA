@@ -118,7 +118,7 @@ class Storage:
             if self.sp=='noft':
                 self.parameters=[0,0]
             elif self.sp=='rdm':
-                if self.kw['spin_mapping']=='default':
+                if self.kw['spin_mapping'] in ['default','alternating']:
                     Na = 1
                     Nb = 1
                 elif self.kw['spin_mapping']=='spin-free':
@@ -188,7 +188,7 @@ class Storage:
             ind+=1
         for i in range(0,self.Norb_v):
             self.alpha_mo['virtual'].append(ind)
-            ind+=1 
+            ind+=1
         for i in range(0,self.Norb_ia):
             self.beta_mo['inactive'].append(ind)
             ind+=1

@@ -151,13 +151,13 @@ def energy_eval_rdm(
                 nora[:,i]=norbs[:,i]
             elif i in Store.beta_mo['active']:
                 norb[:,i]=norbs[:,i]
-    else:
+    elif spin_mapping in ['default','alternating']:
         if Store.pr_m>1:
             print(rdm1)
         Nso = rdm1.shape[0]
-        rdma = rdm1[0:Nso//2,0:Nso//2]
-        rdmb = rdm1[Nso//2:,Nso//2:]
-
+        if spin_mapping=='default':
+            rdma = rdm1[0:Nso//2,0:Nso//2]
+            rdmb = rdm1[Nso//2:,Nso//2:]
         noca,nora = np.linalg.eig(rdma)
         idxa = noca.argsort()[::-1]
         noca = noca[idxa]
@@ -277,7 +277,7 @@ def energy_eval_nordm(
                 print(np.real(rdm1))
                 print('Imaginary components:')
                 print(np.imag(rdm1))
-            if spin_mapping=='default':
+            if spin_mapping in ['default','alternating']:
                 proc.find_signs()
                 Nso = rdm1.shape[0]
                 rdma = rdm1[0:Nso//2,0:Nso//2]
@@ -293,7 +293,6 @@ def energy_eval_nordm(
                 noca = np.real(noca[::-1])
                 nocb = np.real(nocb[::-1])
                 N = len(noca)
-                print(noca,nocb)
                 if QuantStore.random=='on': #i.e., a random keywor
                     return noca,nocb,proc
                 elif QuantStore.random=='on_opt_a':

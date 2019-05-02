@@ -73,7 +73,7 @@ class GenerateDirectCircuit:
                     'np':1},
                 'phase':{
                     'f':self._phase,
-                    'np':2}
+                    'np':2}, #c12 - ++-- + +-+-
                 }
         # note if self.ents has np not equal to 1, then uh....
         # you probably v need to change it in QuantumStorage class in 
@@ -92,7 +92,7 @@ class GenerateDirectCircuit:
         self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
         self.ent_q = self.ents[self.qs.ent_circ_q]['f']
         self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
-        self.map = QuantStore.rdm_to_backend
+        self.map = QuantStore.rdm_to_qubit
         self.cg = 0
         self.sg = 0
         self._gen_circuit()
@@ -102,10 +102,10 @@ class GenerateDirectCircuit:
         self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
         if self.qs.init=='default':
             for i in range(0,self.Ne_alp):
-                targ = self.qs.rdm_to_backend[self.qs.alpha['active'][i]]
+                targ = self.qs.alpha_qb[i]
                 self.qc.x(self.q[targ])
             for i in range(0,self.Ne_bet):
-                targ = self.qs.rdm_to_backend[self.qs.beta['active'][i]]
+                targ = self.qs.beta_qb[i]
                 self.qc.x(self.q[targ])
         self.sg+= self.Ne
 
@@ -114,32 +114,36 @@ class GenerateDirectCircuit:
         h = 0 
         for d in range(0,self.qs.depth):
             for pair in self.qs.pair_list:
+                #i,j = pair[0],pair[1]
                 a = self.ent_Np
                 temp = self.para[h:h+a]
                 self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
                 h+=self.ent_Np
-            for quad in (self.qs.quad_list):
+            for quad in (self.qs.qc_quad_list):
+                p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
-                if self.ent_q==self._UCC2_test2 and h==0:
+                ####### EDIT THIS ######
+                if self.ent_q==self._UCC2_test2 and h==0: # i.e., starting
                     self._UCC2_test(*temp,
-                            i=self.map[quad[0]],
-                            j=self.map[quad[1]],
-                            k=self.map[quad[2]],
-                            l=self.map[quad[3]])
+                            i=p,
+                            j=q,
+                            k=r,
+                            l=s,
+                            operator=sign)
                     h += 1
                     continue
                     # special condition to reduce number of
                     # entangling gates for the 6 orbital case
                 self.ent_q(*temp,
-                        i=self.map[quad[0]],
-                        j=self.map[quad[1]],
-                        k=self.map[quad[2]],
-                        l=self.map[quad[3]])
+                        i=p,
+                        j=q,
+                        k=r,
+                        l=s,
+                        operator=sign)
                 h+= self.ent_Nq
 
-
-    def _ent1_Ry_cN(self,phi,i,k,ddphi=False):
+    def _ent1_Ry_cN(self,phi,i,k,ddphi=False,**kw):
         if not ddphi:
             self.qc.cx(self.q[k],self.q[i])
             self.qc.x(self.q[k])
@@ -155,7 +159,7 @@ class GenerateDirectCircuit:
             self.cg+= 4
             self.sg+= 4
 
-    def _Uent1_cN(self,phi1,phi2,i,k):
+    def _Uent1_cN(self,phi1,phi2,i,k,**kw):
         self.qc.cx(self.q[k],self.q[i])
         self.qc.x(self.q[k])
         self.qc.rz(phi1,self.q[k])
@@ -168,11 +172,11 @@ class GenerateDirectCircuit:
         self.cg+= 3
         self.sg+= 4
 
-    def _phase(self,phi,theta,i,k):
+    def _phase(self,phi,theta,i,k,**kw):
         self.qc.rz(phi,self.q[i])
         self.qc.rz(theta,self.q[k])
 
-    def _UCC1(self,phi,i,k):
+    def _UCC1(self,phi,i,k,**kw):
         sequence = [['h','y'],
                 ['y','h']]
         index = [i,k]
@@ -204,7 +208,10 @@ class GenerateDirectCircuit:
                 ind+=1
                 self.sg+=1
 
-    def _UCC2_full(self,phi1,phi2,phi3,i,j,k,l):
+    def _UCC2_full(self,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):
+        '''
+        three parameters for appling '++--','-+-+','+--+', etc.
+        '''
         if phi1==0 and phi2==0 and phi3==0:
             pass
         else:
@@ -254,9 +261,9 @@ class GenerateDirectCircuit:
                     self.sg+=1
                     ind+=1
 
-    def _UCC2_1p(self,phi1,i,j,k,l):
+    def _UCC2_1p(self,phi1,i,j,k,l,**kw):
         if phi1>-0.02 and phi1<0.02:
-            pass
+            phi1 =  0.01
         else:
             sequence = [
                     ['h','h','h','y'],
@@ -325,7 +332,7 @@ class GenerateDirectCircuit:
         self.__apply_pauli_op(k,pauli[2])
         self.__apply_pauli_op(l,pauli[3])
 
-    def _UCC2_con_12(self,phi1,i,j,k,l):
+    def _UCC2_con_12(self,phi1,i,j,k,l,**kw):
         '''
         Omitted 3rd degree
         {iT jT k  l } + {i j  kT lT}
@@ -333,7 +340,7 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=2)
 
-    def _UCC2_con_12v2(self,phi1,i,j,k,l):
+    def _UCC2_con_12v2(self,phi1,i,j,k,l,**kw):
         '''
         Omitted 3rd degree
         {iT jT k  l } + {i j  kT lT}
@@ -341,7 +348,7 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=2,skip=False)
 
-    def _UCC2_con_13(self,phi1,i,j,k,l):
+    def _UCC2_con_13(self,phi1,i,j,k,l,**kw):
         '''
         Omitted 2nd degree
         {iT jT k  l } + {i j  kT lT}
@@ -349,7 +356,7 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=1)
 
-    def _UCC2_con_23(self,phi1,i,j,k,l):
+    def _UCC2_con_23(self,phi1,i,j,k,l,**kw):
         '''
         Omitted 1st degree
         {iT j  kT l } + {i jT k  lT }
@@ -357,7 +364,7 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_con(phi1,i,j,k,l,omit=0)
 
-    def _UCC2_con_12v3(self,phi1,i,j,k,l):
+    def _UCC2_con_12v3(self,phi1,i,j,k,l,**kw):
         '''
         Omitted 3rd degree
         {iT jT k  l } + {i j  kT lT}
@@ -365,12 +372,12 @@ class GenerateDirectCircuit:
         '''
         self._UCC2_test(phi1,i,j,k,l,skip=False)
 
-    def _UCC2_test(self,phi,i,j,k,l,skip=False):
-        if phi>-0.01 and phi<=0:
-            phi=-0.01
-        elif phi>0 and phi<0.01:
-            phi=0.01
-        sequence = [['h','h','h','y']]#,['y','y','y','h']]
+    def _UCC2_test(self,phi,i,j,k,l,skip=False,**kw):
+        if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+            phi= -0.01+2*pi*(phi//(2*pi))
+        elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+            phi= 0.01 +2*pi*(pi//(2*pi))
+        sequence = [['y','h','h','h']] #,['y','y','y','h']]
         var =  [[+1]]#,[-1]]
         index = [i,j,k,l]
         for nt,term in enumerate(sequence):
@@ -401,12 +408,19 @@ class GenerateDirectCircuit:
                 self.sg+=1
                 ind+=1
 
-    def _UCC2_test2(self,phi,i,j,k,l,skip=False):
-        if phi>-0.01 and phi<=0:
-            phi=-0.01
-        elif phi>0 and phi<0.01:
-            phi=0.01
-        sequence = [['h','h','h','y'],['h','y','y','y']]
+    def _UCC2_test2(self,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
+        # set phi
+        if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+            phi= -0.01+2*pi*(phi//(2*pi))
+        elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+            phi= 0.01 +2*pi*(pi//(2*pi))
+        # set operator
+        if spin in ['aabb','bbaa']:
+            sequence = [['h','h','h','y'],['y','y','h','y']]
+        elif spin in ['abab','baba']:
+            sequence = [['h','h','h','y'],['y','h','y','y']]
+        elif spin in ['abba','baab']:
+            sequence = [['h','h','h','y'],['h','y','y','y']]
         var =  [[+1],[+1]]
         index = [i,j,k,l]
         for nt,term in enumerate(sequence):
@@ -535,6 +549,10 @@ class GenerateDirectCircuit:
                         self.qc.rx(pi/2,self.q[index[ind]])
                     self.sg+=1
                     ind+=1
+
+
+
+
 
 class GenerateCompactCircuit:
     '''

@@ -44,7 +44,7 @@ class Process:
         self.Nq_tot = QuantStore.Nq_tot
         self.add_data(output)
         self.occ_qb = []
-        for k,v in QuantStore.backend_to_rdm.items():
+        for k,v in QuantStore.qubit_to_rdm.items():
             self.occ_qb.append(k)
 
     def add_data(self,output):
@@ -102,24 +102,10 @@ class Process:
                     self.sign.append(-1)
             if self.qs.pr_q>2:
                 print('rdm2 sign element: {}'.format(t1))
-            '''
-            for s,item in enumerate(self.data['sign']):
-                i,j,k,l = item['name'].split('-')
-                i,j,k,l = int(i),int(j),int(k),int(l)
-                # note, now we are constructing 2rdm elements
-                t1 = 0.25*(item['pd'][i]-item['pd'][j])
-                #print(i,j,k,l,t1
-                if t1>0:
-                    self.sign.append(1)
-                else:
-                    self.sign.append(-1)
-            
-            if self.qs.pr_q>2:
-                print('rdm2 sign element: {}'.format(t1))
-            '''
         elif self.qs.tomo_ext=='sign_2e_pauli':
-            hold = []
+            hold = [] #stores....stuff? 
             holding = {}
+            nsign = 1
             for s,item in enumerate(self.data['sign']):
                 self._measure_z_rdm2(s)
                 if item['qbs'] in hold:
@@ -128,7 +114,10 @@ class Process:
                     hold.append(item['qbs'])
                     holding[item['qbs']]={
                         item['pauli']:item['z']
-                        }
+                        }   
+                    holding[item['qbs']]['n']=item['n']
+                nsign+=1 
+            self.sign=[1]*nsign
             for quad in holding.keys():
                 dat =  holding[quad]
                 rdme = {
@@ -139,6 +128,9 @@ class Process:
                         'so':0,
                         }
                 for seq,val in dat.items():
+                    if seq=='n':
+                        n = val
+                        continue
                     a,b,c,d,e=1/8,1/8,1/8,0,0
                     if seq in ['xxxx','yyyy']:
                         d,e = 1/2,1/4
@@ -162,9 +154,7 @@ class Process:
                 elif self.qs.tomo_approx=='so':
                     test = rdme['so']
                 if test<0:
-                    self.sign.append(-1)
-                else:
-                    self.sign.append(+1)
+                    self.sign[n]=-1
                 if self.qs.pr_q>2:
                     print('rdm2 sign elements: {}'.format(rdme))
             self.holding = holding
@@ -177,8 +167,9 @@ class Process:
         '''
         total = 0
         val = 0 
-        i,j,k,l,pauli = self.data['sign'][s]['name'].split('-')
+        i,j,k,l,n,pauli = self.data['sign'][s]['name'].split('-')
         self.data['sign'][s]['qbs']='-'.join((i,j,k,l))
+        self.data['sign'][s]['n']=n
         i,j,k,l = int(i),int(j),int(k),int(l)
         self.data['sign'][s]['pauli']=pauli
         self.ns = 0
@@ -216,13 +207,17 @@ class Process:
 
 
     def _build_direct_rdm(self):
-        self.a2b = self.qs.rdm_to_backend
+        '''
+        now, we have the qubit result. we just need to ocnvert this back to RDM
+        speak. 
+        '''
+        self.r2q = self.qs.rdm_to_qubit
+        self.q2r = self.qs.qubit_to_rdm
         if self.qs.tomo_bas=='bch':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
-                ind = self.a2b[actqb]
-                temp = self.data['ii']['pd'][ind]
-                self.rdm[actqb,actqb]=temp
+                ind = self.q2r[actqb]
+                self.rdm[ind,ind]=self.data['ii']['pd'][actqb]
             for item in self.data['iIj']:
                 for pair in item['qb']:
                     i1,i2 = int(pair[0]),int(pair[1])
@@ -275,9 +270,8 @@ class Process:
         elif self.tomo_basis=='no':
             self.rdm = zeros((self.Nq_act,self.Nq_act))
             for actqb in self.occ_qb:
-                ind = self.a2b[actqb]
-                temp = self.data['ii']['pd'][ind]
-                self.rdm[actqb,actqb]=temp
+                ind = self.q2r[actqb]
+                self.rdm[ind,ind]=self.data['ii']['pd'][actqb]
 
     def _build_compact_rdm(self,**kwargs):
         if self.qs.tomo_rdm=='1rdm':
