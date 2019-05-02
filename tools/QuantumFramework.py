@@ -212,7 +212,8 @@ def _direct_tomography(
             pass
     if QuantStore.tomo_ext=='sign_2e':
         # looking for NO 2RDM terms to give sign info 
-        for n,a,b,c,d in enumerate(QuantStore.qs_tomo_quad):
+        n = 0
+        for a,b,c,d in QuantStore.qs_tomo_quad:
             temp = 'sign{}-{}-{}-{}-{}'.format(
                     str(a),str(b),str(c),str(d),str(n))
             Q = GenerateDirectCircuit(
@@ -224,8 +225,10 @@ def _direct_tomography(
             Q.qc.measure(Q.q,Q.c)
             circuit_list.append([temp])
             circuit.append(Q.qc)
+            n+1 
     elif QuantStore.tomo_ext=='sign_2e_pauli':
-        for n,a,b,c,d in enumerate(QuantStore.tomo_quad):
+        n = 0 
+        for a,b,c,d in QuantStore.tomo_quad:
             if QuantStore.tomo_approx=='full':
                 operators = [
                         'xxxx','xxyy','xyxy','xyyx',
@@ -245,6 +248,7 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append([temp])
                 circuit.append(Q.qc)
+            n+=1 
     return circuit,circuit_list
 
 def _compact_tomography(

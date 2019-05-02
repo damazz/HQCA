@@ -129,7 +129,7 @@ class Process:
                         }
                 for seq,val in dat.items():
                     if seq=='n':
-                        n = val
+                        n = int(val)
                         continue
                     a,b,c,d,e=1/8,1/8,1/8,0,0
                     if seq in ['xxxx','yyyy']:

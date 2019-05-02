@@ -274,19 +274,19 @@ class QuantumStorage:
         if self.spin_mapping=='default':
             for n,alp in enumerate(self.alpha['active']):
                 self.qubit_to_rdm[n]=alp
-                self.alpha_qb.append(self.qubit_to_backend[n])
+                self.alpha_qb.append(n)
             for n,bet in enumerate(self.beta['active']):
                 m = n+self.No
                 self.qubit_to_rdm[m]=bet
-                self.beta_qb.append(self.qubit_to_backend[m])
+                self.beta_qb.append(m)
         elif self.spin_mapping=='spin-free':
             for n,alp in enumerate(self.alpha['active']):
                 self.qubit_to_rdm[n]=alp
-                self.alpha_qb.append(self.qubit_to_backend[n])
+                self.alpha_qb.append(n)
             for n,bet in enumerate(self.beta['active']):
                 m = n+self.No
                 self.qubit_to_rdm[m]=bet
-                self.alpha_qb.append(self.qubit_to_backend[m])
+                self.alpha_qb.append(m)
         elif self.spin_mapping=='alternating':
             #for n in range(len(self.alpha['active'])):
             #    self.qubit_to_rdm[2*n]=self.alpha['active'][n]
