@@ -121,6 +121,7 @@ class GenerateDirectCircuit:
                 h+=self.ent_Np
             for quad in (self.qs.qc_quad_list):
                 p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
+                spin = quad[5]
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
                 ####### EDIT THIS ######
@@ -130,8 +131,9 @@ class GenerateDirectCircuit:
                             j=q,
                             k=r,
                             l=s,
-                            operator=sign)
-                    h += 1
+                            operator=sign,
+                            spin=spin)
+                    h += self.ent_Nq
                     continue
                     # special condition to reduce number of
                     # entangling gates for the 6 orbital case
@@ -140,7 +142,8 @@ class GenerateDirectCircuit:
                         j=q,
                         k=r,
                         l=s,
-                        operator=sign)
+                        operator=sign,
+                        spin=spin)
                 h+= self.ent_Nq
 
     def _ent1_Ry_cN(self,phi,i,k,ddphi=False,**kw):
@@ -415,13 +418,14 @@ class GenerateDirectCircuit:
         elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
             phi= 0.01 +2*pi*(pi//(2*pi))
         # set operator
+        var =  [[+1],[+1]]
         if spin in ['aabb','bbaa']:
             sequence = [['h','h','h','y'],['y','y','h','y']]
         elif spin in ['abab','baba']:
             sequence = [['h','h','h','y'],['y','h','y','y']]
+            var =  [[-1],[-1]]
         elif spin in ['abba','baab']:
             sequence = [['h','h','h','y'],['h','y','y','y']]
-        var =  [[+1],[+1]]
         index = [i,j,k,l]
         for nt,term in enumerate(sequence):
             ind=0

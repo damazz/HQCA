@@ -151,7 +151,7 @@ def generate_error_polytope(Store,QuantStore,**kw):
                     qc_obj,
                     QuantStore)
             rdm1 = proc.rdm1
-            if QuantStore.spin_mapping=='default':
+            if QuantStore.spin_mapping in ['default','alternating']:
                 No = rdm1.shape[0]
                 rdma = rdm1[:No//2,:No//2]
                 rdmb = rdm1[No//2:,No//2:]

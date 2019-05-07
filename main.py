@@ -290,7 +290,7 @@ class scan(sp):
             para2 = np.linspace(low[1],high[1],ns[1])
             X,Y = np.meshgrid(para1,para2,indexing='ij')
             Np = len(start)
-            if prop=='on':
+            if prop in ['on','sign']:
                 Za = np.zeros((ns[0],ns[1],Np+1))
                 Zb = np.zeros((ns[0],ns[1],Np+1))
                 S = np.zeros((ns[0],ns[1],Np))
@@ -301,47 +301,88 @@ class scan(sp):
                     temp = start.copy()
                     temp[index[0]]=a
                     temp[index[1]]=b
-                    self.run.single(target,para=temp,prop=prop)
-                    if prop=='on':  
-                        Za[i,j,:]=self.run.E[0]
-                        Zb[i,j,:]=self.run.E[1]
-                        test = self.run.E[2].holding
-                        for n,k in enumerate(test.keys()):
-                            S[i,j,n]=test[k]['rdme']['fo']
+                    if prop in ['on','sign']:
+                        if self.run.QuantStore.qc:
+                            self.run.single(target,para=temp,prop='on')
+                            Za[i,j,:]=self.run.E[0]
+                            Zb[i,j,:]=self.run.E[1]
+                            test = self.run.E[2].holding
+                            sign_key = self.run.QuantStore.tomo_approx
+                            if sign_key=='full':
+                                sign_key='++--'
+                            for k in test.keys():
+                                idx = int(test[k]['n'])
+                                S[i,j,idx]=test[k]['rdme'][sign_key]
+                        else:
+                            self.run.single(target,para=temp,prop='on')
+                            wf = self.run.E
+                            S[i,j,0]=wf['100100']*wf['010010']
+                            S[i,j,1]=wf['001001']*wf['010010']
                     else:
-                        Z[i,j] = self.run.E[0]
+                        self.run.single(target,para=temp,prop=prop)
+                        try:
+                            Z[i,j] = self.run.E[0]
+                        except IndexError:
+                            Z[i,j] = self.run.E
                 print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()
-            ax1 = fig.add_subplot(131,projection='3d')
-            ax1.set_xlabel('x')
-            ax1.set_ylabel('y')
-            ax2 = fig.add_subplot(132,projection='3d')
-            ax2.set_xlabel('x')
-            ax2.set_ylabel('y')
-            ax3 = fig.add_subplot(133,projection='3d')
-            ax3.set_xlabel('x')
-            ax3.set_ylabel('y')
-            for i in range(0,Np+1):
-                maps = ax1.plot_surface(X, Y, Za[:,:,i],
+            if prop=='on':
+                ax1 = fig.add_subplot(131,projection='3d')
+                ax1.set_xlabel('x')
+                ax1.set_ylabel('y')
+                ax2 = fig.add_subplot(132,projection='3d')
+                ax2.set_xlabel('x')
+                ax2.set_ylabel('y')
+                ax3 = fig.add_subplot(133,projection='3d')
+                ax3.set_xlabel('x')
+                ax3.set_ylabel('y')
+                for i in range(0,Np+1):
+                    maps = ax1.plot_surface(X, Y, Za[:,:,i],
+                            cmap=cm.coolwarm,
+                            linewidth=1)
+                    #plt.colorbar(maps)
+                    maps= ax2.plot_surface(X,Y,Zb[:,:,i],
+                            cmap=cm.coolwarm,
+                            linewidth=1)
+                    #plt.colorbar(maps)
+                for i in range(0,Np):
+                    sign = ax3.plot_wireframe(X,Y,S[:,:,i],
+                            cmap=cm.coolwarm,
+                            linewidth=2)
+                    #plt.colorbar(sign)
+            elif prop=='sign':
+                print(X,Y,S)
+                ax1 = fig.add_subplot(121,projection='3d')
+                ax1.set_xlabel('x')
+                ax1.set_ylabel('y')
+                ax2 = fig.add_subplot(122,projection='3d')
+                ax2.set_xlabel('x')
+                ax2.set_ylabel('y')
+                sign1 = ax1.plot_surface(X,Y,S[:,:,0],
+                            cmap=cm.coolwarm,
+                            linewidth=2)
+                sign2 = ax2.plot_surface(X,Y,S[:,:,1],
+                            cmap=cm.coolwarm,
+                            linewidth=2)
+            else:
+                ax1 = fig.add_subplot(111,projection='3d')
+                ax1.set_xlabel('x')
+                ax1.set_ylabel('y')
+                maps = ax1.plot_surface(X, Y, Z,
                         cmap=cm.coolwarm,
                         linewidth=1)
-                #plt.colorbar(maps)
-                maps= ax2.plot_surface(X,Y,Zb[:,:,i],
-                        cmap=cm.coolwarm,
-                        linewidth=1)
-                #plt.colorbar(maps)
-            for i in range(0,Np):
-                sign = ax3.plot_wireframe(X,Y,S[:,:,i],
-                        cmap=cm.coolwarm,
-                        linewidth=2)
-                #plt.colorbar(sign)
+                for n,i in enumerate(Z):
+                    print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
+                            X[n,np.argmin(i)],
+                            Y[n,np.argmin(i)],
+                            Z[n,np.argmin(i)]))
+                for n,i in enumerate(Z.T):
+                    print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
+                            X[n,np.argmin(i)],
+                            Y[n,np.argmin(i)],
+                            Z[n,np.argmin(i)]))
             plt.show()
 
-            #for n,i in enumerate(Z):
-            #    print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
-            #            X[n,np.argmin(i)],
-            #            Y[n,np.argmin(i)],
-            #            Z[n,np.argmin(i)]))
             # Plot the surface.
 
         elif len(index)==3:
@@ -370,8 +411,5 @@ class scan(sp):
                 # Plot the surface.
                 plt.show()
     
-
-    def look_for_polytope():
-        pass
 
 

@@ -91,31 +91,32 @@ def grad_ackley(p):
     g.append(t)
     return g
 
-
-new = opt.Optimizer(
-        #'sGD',
-        'gpso',
-        #'bfgs',
-        #'GD',
-        #function=ackley,
-        #function=rosenbrock,
-        #gradient=grad_rosen,
-        #gradient=grad_ackley,
-        function=rastrigin,
-        gradient=grad_rastrigin,
-        examples=3,
-        particles=5,
-        unity=5.12,
-        pr_o=1,
-        pso_iterations=1,
-        gamma=0.001)
-new.initialize([5,-5])
-itera=0
-while abs(new.opt.crit)>1e-10 and itera<50:
-    new.next_step()
-    itera+=1 
-    #if i%100==0:
-    print('f:',new.opt.best_f,'g:',new.opt.crit,'x:',new.opt.best_x)
+if __name__=='__main__':
+    
+    new = opt.Optimizer(
+            #'sGD',
+            'gpso',
+            #'bfgs',
+            #'GD',
+            #function=ackley,
+            #function=rosenbrock,
+            #gradient=grad_rosen,
+            #gradient=grad_ackley,
+            function=rastrigin,
+            gradient=grad_rastrigin,
+            examples=3,
+            particles=5,
+            unity=5.12,
+            pr_o=1,
+            pso_iterations=1,
+            gamma=0.001)
+    new.initialize([5,-5])
+    itera=0
+    while abs(new.opt.crit)>1e-10 and itera<50:
+        new.next_step()
+        itera+=1 
+        #if i%100==0:
+        print('f:',new.opt.best_f,'g:',new.opt.crit,'x:',new.opt.best_x)
 
 
 

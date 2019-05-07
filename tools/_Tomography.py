@@ -114,9 +114,9 @@ class Process:
                     hold.append(item['qbs'])
                     holding[item['qbs']]={
                         item['pauli']:item['z']
-                        }   
+                        }
                     holding[item['qbs']]['n']=item['n']
-                nsign+=1 
+                    nsign+=1
             self.sign=[1]*nsign
             for quad in holding.keys():
                 dat =  holding[quad]
@@ -148,13 +148,13 @@ class Process:
                     rdme['so']+=(e*val)
                 holding[quad]['rdme']=rdme
                 if self.qs.tomo_approx=='full':
-                    test = rdme['+-+-']
+                    test = rdme['++--']
                 elif self.qs.tomo_approx=='fo':
                     test = rdme['fo']
                 elif self.qs.tomo_approx=='so':
                     test = rdme['so']
                 if test<0:
-                    self.sign[n]=-1
+                    self.sign[n+1]=-1
                 if self.qs.pr_q>2:
                     print('rdm2 sign elements: {}'.format(rdme))
             self.holding = holding

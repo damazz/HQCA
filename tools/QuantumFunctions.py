@@ -100,7 +100,7 @@ class QuantumStorage:
         else:
             self.Nq_tot = self.Nq
         self.Ne = Nels_as # active space
-        if spin_mapping=='default':
+        if spin_mapping in ['default','alternating']:
             self.Ne_alp = int(0.5*Nels_as+Sz)
         else:
             self.Ne_alp = int(Nels_as)
@@ -461,11 +461,24 @@ class QuantumStorage:
         for a,b,c,d in temp:
             self.tomo_quad.append([a,b,c,d])
         self.qc_tomo_quad = []
-        for tq in self.tomo_quad:
-            temp = []
-            for e in tq:
-                temp.append(self.rdm_to_qubit[e])
-            self.qc_tomo_quad.append(temp)
+        for quad in self.tomo_quad:
+            qd = []
+            for i in range(len(quad)):
+                qd.append(self.rdm_to_qubit[quad[i]])
+            sort = False
+            while not sort:
+                i,j,k,l = qd[0],qd[1],qd[2],qd[3]
+                sort = True
+                if i>j:
+                    qd[1],qd[0]=qd[0],qd[1]
+                    sort = False
+                if j>k:
+                    qd[1],qd[2]=qd[2],qd[1]
+                    sort = False
+                if k>l:
+                    qd[3],qd[2]=qd[2],qd[3]
+                    sort = False
+            self.qc_tomo_quad.append(qd)
 
 
     def _gip(self):

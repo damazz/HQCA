@@ -3,7 +3,6 @@
 
 Holds the subroutines for the optimizations.
 '''
-
 import pickle
 import threading
 import os, sys
@@ -13,7 +12,7 @@ import traceback
 import warnings
 warnings.simplefilter(action='ignore',category=FutureWarning)
 from hqca.tools import Functions as fx
-from hqca.tools import Optimizers as opt
+from hqca.optimizers.Control import Optimizer
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import EnergyFunctions as enf
 from hqca.tools import ErrorCorrection as ec
@@ -199,7 +198,7 @@ class RunRDM(QuantumRun):
         if self.kw['restart']==True:
             self._load()
         else:
-            Run = opt.Optimizer(
+            Run = Optimizer(
                     **self.kw_opt
                     )
             Run.initialize(self.QuantStore.parameters)
@@ -374,7 +373,7 @@ class RunNOFT(QuantumRun):
 
     def _set_opt_parameters(self):
         self.f = min(self.Store.F_alpha,self.Store.F_beta)
-        self.kw_opt['unity']=self.unity*(1-self.f*0.95)
+        self.kw_opt['unity']=self.unity*(1-self.f*0.5)
         #print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
 
     def _OptNO(self):
@@ -383,7 +382,7 @@ class RunNOFT(QuantumRun):
         if not self.restart:
             if self.total.iter>0:
                 self._set_opt_parameters()
-            self.Run[key] = opt.Optimizer(
+            self.Run[key] = Optimizer(
                     **self.kw_opt
                     )
             self.Run[key].initialize(
@@ -427,7 +426,7 @@ class RunNOFT(QuantumRun):
         if self.kw['restart']==True:
             self._load()
         else:
-            self.Run[key] = opt.Optimizer(
+            self.Run[key] = Optimizer(
                     **self.kw_orb_opt
                     )
             self.Run[key].initialize(self.para_orb)
@@ -469,7 +468,7 @@ class RunNOFT(QuantumRun):
                 return -self.E[0][on]
             elif spin=='beta':
                 return -self.E[1][on]
-        self.Run = opt.Optimizer(
+        self.Run = Optimizer(
                 function=f_test,
                 **self.kw_opt)
         self.Run.initialize(self.QuantStore.parameters)
