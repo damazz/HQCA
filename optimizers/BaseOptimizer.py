@@ -97,7 +97,7 @@ class OptimizerInstance:
     def initialize(self,start):
         self.N = len(start)
         if type(self.shift)==type(None):
-            self.shift = [0.0]*self.N
+            self.shift = np.asarray([0.0]*self.N)
         else:
             self.shift = np.asarray(self.shift)
 
