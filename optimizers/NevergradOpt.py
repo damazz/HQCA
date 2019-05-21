@@ -13,18 +13,18 @@ class nevergrad_opt(OptimizerInstance):
         '''
         Need to get the optimizer
         '''
-        OptimizerInstance(self,**kwargs)
-        Optimizer._gradient_keywords(self,**kwargs)
+        OptimizerInstance.__init__(self,**kwargs)
+        OptimizerInstance._nevergrad_keywords(self,**kwargs)
 
     def check(self,initial=False):
-        if self.opt_crit in ['iterations']:
+        if self._conv_crit in ['iterations']:
             if self.energy_calls>=self.max_iter:
                 self.crit=0
             else:
                 self.crit=1
-        elif self.opt_crit=='ImpAv':
+        elif self._conv_crit=='ImpAv':
             pass
-        elif self.opt_crit in ['default','MaxDist']:
+        elif self._conv_crit in ['default','MaxDist']:
             if initial:
                 self.vectors.sort(key=lambda x:x[0],reverse=False)
                 self._update_MaxDist()

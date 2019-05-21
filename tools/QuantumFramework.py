@@ -20,9 +20,8 @@ from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
 from hqca.tools.QuantumAlgorithms import algorithm_tomography
 import sys, traceback
 from qiskit import Aer,IBMQ,execute
-from qiskit.mapper import Layout
-from qiskit.transpiler import transpile
-from qiskit.compiler import assemble_circuits,RunConfig
+from qiskit.compiler import transpile
+from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.NoiseSimulator import get_noise_model,get_coupling_map
 from math import pi
@@ -360,11 +359,9 @@ def run_circuits(
                 coupling_map=coupling,
                 initial_layout=layout
                 )
-    qo = assemble_circuits(
-            circuits=circuits,
-            run_config=RunConfig(
-                shots=QuantStore.Ns
-        )
+    qo = assemble(
+            circuits,
+            shots=QuantStore.Ns
             )
     #for i in qo.experiments:
     #    for j in i.instructions:
@@ -406,6 +403,7 @@ class Construct:
         self.qo.sign_from_2rdm()
         self.signs = self.qo.sign
         self.holding = self.qo.holding
+
 
 def add_to_config_log(backend,connect):
     '''

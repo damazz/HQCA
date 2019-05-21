@@ -297,20 +297,19 @@ class QuantumStorage:
             #    self.beta_qb.append(m)
             #    self.backend_to_rdm[l]=self.alpha['active'][n]
             #    self.backend_to_rdm[m]=self.beta['active'][n]
-            try:
-                self.alpha_qb = self.keyword[0]
-                self.beta_qb  = self.keyword[1]
-            except Exception:
-                self.alpha_qb = [0,2,4]
-                self.beta_qb  = [1,3,5]
-            self.qubit_to_rdm = {
-                    self.alpha_qb[0]:0,
-                    self.alpha_qb[1]:1,
-                    self.alpha_qb[2]:2,
-                    self.beta_qb[0]:3,
-                    self.beta_qb[1]:4,
-                    self.beta_qb[2]:5
-                    }
+            i = 0
+            self.alpha_qb,self.beta_qb = [],[]
+            self.qubit_to_rdm = {}
+            a,b = 0,len(self.alpha['active'])
+            for i in range(len(self.alpha['active']+self.beta['active'])):
+                if i%2==0:
+                    self.alpha_qb.append(i)
+                    self.qubit_to_rdm[i]=a
+                    a+=1 
+                else:
+                    self.beta_qb.append(i)
+                    self.qubit_to_rdm[i]=b
+                    b+=1 
         self.rdm_to_qubit = {v:k for k,v in self.qubit_to_rdm.items()}
 
     def _get_ent_pairs_jw(self):
@@ -408,8 +407,10 @@ class QuantumStorage:
             # and not the actula qb's 
             if self.ent_pairs in ['sd','d']:
                 for k in range(self.No,self.No+len(self.beta_qb)-1):
+                    print(k)
                     i= k%self.No
                     self.quad_list.append([i,i+1,k,k+1,'-+-+','aabb'])
+                    print(i,i+1,k,k+1)
         # now, order them 
         self.qc_quad_list = []
         for quad in self.quad_list:
@@ -542,13 +543,13 @@ def get_direct_stats(QuantStore,extra=False):
             print(circuit.count_ops())
             with open('h3_qasm.txt','w') as fp:
                 fp.write(circuit.qasm())
-
         from qiskit import Aer,IBMQ,execute
         from qiskit.mapper import Layout
         from qiskit.transpiler import transpile
         from qiskit.compiler import assemble_circuits
         from qiskit.tools.monitor import backend_overview
         import qiskit
+        IBMQ.load_accounts()
         test.qc.measure(test.q,test.c)
         be = Aer.get_backend('qasm_simulator')
         if extra=='compile':
@@ -595,6 +596,7 @@ def get_direct_stats(QuantStore,extra=False):
         print(qt)
 
         #print(result.get_counts())
+        sys.exit()
     QuantStore.parameters=[0]*QuantStore.Np
 
 

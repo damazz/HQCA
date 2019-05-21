@@ -65,6 +65,12 @@ class GenerateDirectCircuit:
                 'UCC2c12v4':{
                     'f':self._UCC2_test2,
                     'np':1},
+                'UCC2c12v5':{
+                    'f':self._UCC2_test2,
+                    'np':1},
+                'UCC2c12v6':{
+                    'f':self._UCC2_test3,
+                    'np':1},
                 'UCC2c23':{
                     'f':self._UCC2_con_23,
                     'np':1},
@@ -125,7 +131,7 @@ class GenerateDirectCircuit:
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
                 ####### EDIT THIS ######
-                if self.ent_q==self._UCC2_test2 and h==0: # i.e., starting
+                if self.qs.ent_circ_q=='UCC2c12v4' and h==0:
                     self._UCC2_test(*temp,
                             i=p,
                             j=q,
@@ -441,6 +447,57 @@ class GenerateDirectCircuit:
                 self.qc.cx(self.q[control],self.q[target])
                 self.cg+=1
             self.qc.rz(phi*var[nt][0]/2,self.q[l])
+            self.sg+=1
+            for control in reversed(range(i,l)):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            ind = 0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
+
+    def _UCC2_test3(self,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
+        # set phi
+        if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+            phi= -0.01+2*pi*(phi//(2*pi))
+        elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+            phi= 0.01 +2*pi*(pi//(2*pi))
+        # set operator
+        if spin in ['aabb','bbaa']:
+            var =  [[+1],[-1],[-1],[+1]]
+            sequence = [
+                    ['h','y','h','h'],['y','h','y','y'],
+                    ['y','h','h','h'],['h','y','y','y']]
+        elif spin in ['abab','baba']:
+            var =  [[+1],[-1],[-1],[+1]]
+            sequence = [
+                    ['h','h','y','h'],['y','y','h','y'],
+                    ['y','h','h','h'],['h','y','y','y']]
+        elif spin in ['abba','baab']:
+            var =  [[+1],[-1],[-1],[+1]]
+            sequence = [
+                    ['h','h','h','y'],['y','y','y','h'],
+                    ['y','h','h','h'],['h','y','y','y']]
+        index = [i,j,k,l]
+        for nt,term in enumerate(sequence):
+            ind=0
+            for item in term:
+                if item=='h':
+                    self.qc.h(self.q[index[ind]])
+                elif item=='y':
+                    self.qc.rx(-pi/2,self.q[index[ind]])
+                self.sg+=1
+                ind+=1
+            for control in range(i,l):
+                target = control+1
+                self.qc.cx(self.q[control],self.q[target])
+                self.cg+=1
+            self.qc.rz(phi*var[nt][0]/4,self.q[l])
             self.sg+=1
             for control in reversed(range(i,l)):
                 target = control+1

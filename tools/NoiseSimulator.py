@@ -2,7 +2,7 @@ from qiskit import Aer,IBMQ
 import pickle
 import traceback
 from qiskit.tools.monitor import job_monitor
-from qiskit import compile, execute
+from qiskit import execute
 import qiskit
 from qiskit.providers.aer import noise
 from hqca.tools import Qconfig

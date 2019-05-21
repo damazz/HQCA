@@ -8,9 +8,7 @@
 
 #APItoken =  '539fd4fe5010f40adcafc170faba32d807eef288631ba290b77b4183f6d25a6b0f829418f5c4782c1b70deaa0f2f5625b3d613dccc4ff52dd3aefd51ad04dbff'
 #APItoken = '539fd4fe5010f40adcafc170faba32d807eef288631ba290b77b4183f6d25a6b0f829418f5c4782c1b70deaa0f2f5625b3d613dccc4ff52dd3aefd51ad04dbff'
-APItoken = '00a93bf008b489a8fb9a29171ac6029c440811b836ba27a72fe765c087c59f35c95261a46476478e4343951c0287fcec7904281395fab52b358d7470fc9628fe'
-
-SIM_EXECUTABLE = '/usr/local/lib/python3.5/dist-packages/qiskit/backends/qasm_simulator_cpp'
+APItoken = '82dc3a07ce3dec73cf40d282b9cccdac3dc269480811a8d817631de0c5f8ee6152bdd2a4820f3744cf27543bc4c9be3d5e2cef6b8788b1fc24381b26bdc2395f'
 
     # If you have access to IBM Q features, you also need to fill the "hub",
     # "group", and "project" details. Replace "None" on the lines below
@@ -20,6 +18,8 @@ SIM_EXECUTABLE = '/usr/local/lib/python3.5/dist-packages/qiskit/backends/qasm_si
     # URL for IBM Q.
 config = {
     'url': 'https://quantumexperience.ng.bluemix.net/api',
+    #'url':'https://api.quantum-computing.ibm.com/api/Hubs/ibm-q/Groups/open/Projects/main',
+    #'url':'https://api.quantum-computing.ibm.com/api',
     'hub': None,
     'group': None,
     'project': None

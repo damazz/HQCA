@@ -158,6 +158,9 @@ class Process:
                 if self.qs.pr_q>2:
                     print('rdm2 sign elements: {}'.format(rdme))
             self.holding = holding
+        else:
+            self.sign=[1]*10
+            self.holding = {}
 
     def _measure_z_rdm2(self,s):
         '''

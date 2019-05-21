@@ -327,29 +327,43 @@ class scan(sp):
                 print('{:.1f}%'.format((i+1)*100/ns[0]))
             fig = plt.figure()
             if prop=='on':
-                ax1 = fig.add_subplot(131,projection='3d')
+                ax1 = fig.add_subplot(231,projection='3d')
                 ax1.set_xlabel('x')
                 ax1.set_ylabel('y')
-                ax2 = fig.add_subplot(132,projection='3d')
+                ax2 = fig.add_subplot(232,projection='3d')
                 ax2.set_xlabel('x')
                 ax2.set_ylabel('y')
-                ax3 = fig.add_subplot(133,projection='3d')
+                ax3 = fig.add_subplot(233,projection='3d')
                 ax3.set_xlabel('x')
                 ax3.set_ylabel('y')
-                for i in range(0,Np+1):
-                    maps = ax1.plot_surface(X, Y, Za[:,:,i],
-                            cmap=cm.coolwarm,
-                            linewidth=1)
-                    #plt.colorbar(maps)
-                    maps= ax2.plot_surface(X,Y,Zb[:,:,i],
-                            cmap=cm.coolwarm,
-                            linewidth=1)
-                    #plt.colorbar(maps)
-                for i in range(0,Np):
-                    sign = ax3.plot_wireframe(X,Y,S[:,:,i],
-                            cmap=cm.coolwarm,
-                            linewidth=2)
-                    #plt.colorbar(sign)
+                ax4 = fig.add_subplot(234,projection='3d')
+                ax4.set_xlabel('x')
+                ax4.set_ylabel('y')
+                ax5 = fig.add_subplot(235,projection='3d')
+                ax5.set_xlabel('x')
+                ax5.set_ylabel('y')
+                ax6 = fig.add_subplot(236,projection='3d')
+                ax6.set_xlabel('x')
+                ax6.set_ylabel('y')
+                ax1.plot_surface(X, Y,Za[:,:,0],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                ax2.plot_surface(X, Y,Za[:,:,1],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                ax3.plot_surface(X, Y,Za[:,:,2],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                ax4.plot_surface(X,Y,Zb[:,:,0],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                ax5.plot_surface(X,Y,Zb[:,:,1],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                ax6.plot_surface(X,Y,Zb[:,:,2],
+                  cmap=cm.coolwarm,
+                  linewidth=1)
+                print(Za,Zb)
             elif prop=='sign':
                 print(X,Y,S)
                 ax1 = fig.add_subplot(121,projection='3d')
@@ -364,6 +378,9 @@ class scan(sp):
                 sign2 = ax2.plot_surface(X,Y,S[:,:,1],
                             cmap=cm.coolwarm,
                             linewidth=2)
+                print(S)
+                print(Za)
+                print(Zb)
             else:
                 ax1 = fig.add_subplot(111,projection='3d')
                 ax1.set_xlabel('x')
@@ -376,40 +393,5 @@ class scan(sp):
                             X[n,np.argmin(i)],
                             Y[n,np.argmin(i)],
                             Z[n,np.argmin(i)]))
-                for n,i in enumerate(Z.T):
-                    print('x,y:[{:+.4f},{:+.4f}],E:{:+.8f}'.format(
-                            X[n,np.argmin(i)],
-                            Y[n,np.argmin(i)],
-                            Z[n,np.argmin(i)]))
             plt.show()
-
-            # Plot the surface.
-
-        elif len(index)==3:
-            para1 = np.linspace(low[0],high[0],ns[0])
-            para2 = np.linspace(low[1],high[1],ns[1])
-            para3 = np.linspace(low[2],high[2],ns[2])
-            X,Y = np.meshgrid(para1,para2,indexing='ij')
-            for k,c in enumerate(para3):
-                temp1 = start.copy()
-                temp1[index[2]]=c
-                Z = np.zeros((ns[0],ns[1]))
-                for i,a in enumerate(para1):
-                    for j,b in enumerate(para2):
-                        temp = temp1.copy()
-                        temp[index[0]]=a
-                        temp[index[1]]=b
-                        self.run.single(target,para=temp)
-                        Z1[i,j] = self.run.E
-                    print('{:.1f}%'.format((i+1)*100/ns[0]))
-                fig = plt.figure()
-                ax = fig.add_subplot(111,projection='3d')
-                maps = ax.plot_surface(X, Y, Z,
-                        cmap=cm.coolwarm,
-                        linewidth=0)
-                plt.colorbar(maps)
-                # Plot the surface.
-                plt.show()
-    
-
 

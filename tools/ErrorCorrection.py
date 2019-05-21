@@ -136,7 +136,7 @@ def generate_error_polytope(Store,QuantStore,**kw):
         for j in range(QuantStore.ec_Nv): #number of vertices
             QuantStore.parameters = np.asarray(QuantStore.ec_para[i][j])
             try:
-                QuantStore.parameters+= QuantStore.error_shift[j,:]
+                QuantStore.parameters = QuantStore.error_shift[j,:]
                 #print('Shifted by: ')
                 print(QuantStore.error_shift[j,:])
             except Exception as e:

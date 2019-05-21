@@ -32,7 +32,7 @@ class OptimizerInstance:
     would map to the region [0,1] -> [0,pi]
     '''
     def __init__(self,
-            function=None,
+            function,
             gradient=None,
             pr_o=0,
             unity=2*pi,  # typically the bounds of the optimization
@@ -93,6 +93,10 @@ class OptimizerInstance:
             **kwargs):
         self.energy_calls=0
         self.vectors = []
+        self.opt_name = nevergrad_opt
+        self.max_iter = max_iter
+        self.Nv = N_vectors
+
 
     def initialize(self,start):
         self.N = len(start)

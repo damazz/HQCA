@@ -325,7 +325,7 @@ class nelder_mead_ng(OptimizerInstance):
         self.micro = False
         self.kwargs = kwargs
         self.switch = switch_thresh
-    
+
     def initialize(self,start):
         self.opt_macro.initialize(start)
 

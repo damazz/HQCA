@@ -292,12 +292,23 @@ def energy_eval_nordm(
                 for i in range(N):
                     rev_idxa[idxa[i]]=i
                     rev_idxb[idxb[i]]=i
-                noca = noca[idxa]
-                nocb = nocb[idxb]
+                #noca = noca[idxa]
+                #nocb = nocb[idxb]
                 if Store.pr_m>2:
                     print('Eigenvalues: ')
                     print(noca)
                     print(nocb)
+            if QuantStore.random=='on': #i.e., a random keywor
+                return noca,nocb,proc
+            elif QuantStore.random=='on_opt_a':
+                oni = QuantStore.random2
+                return -noca[oni]
+            elif QuantStore.random=='on_opt_b':
+                oni = QuantStore.random2
+                return -nocb[oni]
+            elif QuantStore.random=='on_opt':
+                oni = QuantStore.random2
+                return -noca[oni]-nocb[oni]
             if QuantStore.ec=='hyperplane':
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T
@@ -310,17 +321,6 @@ def energy_eval_nordm(
             else:
                 noca = noca[rev_idxa]
                 nocb = nocb[rev_idxb]
-            if QuantStore.random=='on': #i.e., a random keywor
-                return noca,nocb,proc
-            elif QuantStore.random=='on_opt_a':
-                oni = QuantStore.random2
-                return -noca[oni]
-            elif QuantStore.random=='on_opt_b':
-                oni = QuantStore.random2
-                return -nocb[oni]
-            elif QuantStore.random=='on_opt':
-                oni = QuantStore.random2
-                return -noca[oni]-nocb[oni]
             wf,rdm2 = build_2e_2rdm_spin(
                     Store,
                     noca,

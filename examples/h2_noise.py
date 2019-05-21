@@ -54,6 +54,7 @@ kw_opt = {
         }
 orb_opt = {
         }
+print(hold)
 prog.set_print(level='diagnostic')
 #prog.update_var(**{'pr_m':0})
 prog.update_var(target='qc',**kw_qc )
