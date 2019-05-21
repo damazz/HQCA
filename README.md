@@ -13,7 +13,7 @@ generalizable entanglement schemes are included.
 
 ### Prerequisites:
 python >= 3.6
-qiskit >= 0.8.0
+qiskit >= 1.0.0
 pyscf (and prerequisite packs) >= 1.5.4
 nevergrad >= 0.2.0
  

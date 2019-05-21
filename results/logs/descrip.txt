@@ -1,2 +1,0 @@
-Contains configuration or calibration info for the backends on the dates on
-which they are run. Is obtained once a day for every day it is run. 

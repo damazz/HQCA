@@ -1,7 +1,0 @@
-Got a 502 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7c89b7c13292003956279e?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: 502 Bad Gateway: Registered endpoint failed to handle the request.
-
-Got a 500 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7d25e66d769e004090823e?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: 500 Error: Failed to establish a backside connection
-Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7d36294926a20039354467?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
-Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7d395b4a7c6c004b0d606d?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
-Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7d395b4a7c6c004b0d606d?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}
-Got a 400 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b7d395b4a7c6c004b0d606d?access_token=guNEsIgEaSJuDFYL96EkGDS8ih8uUF85EBimC6qwBBHkVeqQKR4ZahJYwlZVIuwT: {"error":{"status":400,"message":"Generic error","code":"GENERIC_ERROR"}}

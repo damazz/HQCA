@@ -1,3 +1,0 @@
-Got a 502 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b83baa8f5ee6c004c5b3101?access_token=ehpA1H8Fv48GbjLRL8Pq4mpG0PvsyHykLAXutlDww0KRQWmOik3qADVZhP5R1Yc1: 502 Bad Gateway: Registered endpoint failed to handle the request.
-
-Got a 500 code response to https://quantumexperience.ng.bluemix.net/api/Jobs/5b83bf051eb6880038d54f6b?access_token=ehpA1H8Fv48GbjLRL8Pq4mpG0PvsyHykLAXutlDww0KRQWmOik3qADVZhP5R1Yc1: 500 Error: Failed to establish a backside connection
