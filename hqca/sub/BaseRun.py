@@ -1,15 +1,26 @@
-from hqca.tools import EnergyFunction as enf
+from hqca.tools import EnergyFunctions as enf
+from hqca.quantum import QuantumFunctions as qf
+import datetime
+import sys
 
+class Cache:
+    def __init__(self):
+        self.use=True
+        self.err=False
+        self.msg=None
+        self.iter=0
+        self.done=False
 
 class QuantumRun:
     '''
     Handles different runs which call the quantum functions package
     '''
     def __init__(self,
-            **kwargs
-            ):
-        self.built=False
+            theory):
+        self.theory = theory
+        self.built = False
         self.restart = False
+        self.Store=None
         now = datetime.datetime.today()
         m,d,y = now.strftime('%m'), now.strftime('%d'), now.strftime('%y')
         H,M,S = now.strftime('%H'), now.strftime('%M'), now.strftime('%S')
@@ -36,72 +47,36 @@ class QuantumRun:
             for k,v in args.items():
                 self.kw_orb_opt[k]=v
 
-    def _build_quantum(self):
-        self.
-
-    def build(self):
-        self.pr_g = self.kw['pr_g']
-        self.Store.pr_m = self.kw['pr_m']
-        if self.pr_g>1:
-            print('')
-            print('### #### ### ### ### ### ### ### ### ### ### ###')
-            print('')
-            print('# Initializing the optimization.')
-            print('#')
-            print('# Setting RDM parameters...')
+    def _build_energy(self,mol):
+        self.Store = enf.Store(mol)
         self.Store.gas()
         self.Store.gsm()
-        self.kw_qc['Nels_as'] = self.Store.Nels_as
-        self.kw_qc['Norb_as']=self.Store.Norb_as
-        self.kw_qc['alpha_mos']=self.Store.alpha_mo
-        self.kw_qc['beta_mos']=self.Store.beta_mo
-        self.kw_qc['single_point']=self.Store.sp
-        if self.pr_g>1:
-            print('# ...done.')
-            print('#')
-            print('# Setting QC parameters...')
-        self.QuantStore = qf.QuantumStorage(self.pr_g,**self.kw_qc)
-        if self.pr_g>1:
-            print('# ...done.')
-            print('#')
-            print('# Setting opt parameters...')
         self.Store.update_full_ints()
+        self.Store.find_npara_orb()
+
+    def _build_quantum(self):
+        self.kw_qc['theory']=self.theory
+        if not self.Store==None:
+            self.kw_qc['Nels_as'] = self.Store.Nels_as
+            self.kw_qc['Norb_as']=self.Store.Norb_as
+            self.kw_qc['alpha_mos']=self.Store.alpha_mo
+            self.kw_qc['beta_mos']=self.Store.beta_mo
+            self.kw_qc['single_point']=self.Store.sp
+        else:
+            try:
+                self.kw_qc['Nels_as']
+            except KeyError:
+                print('It is okay to not use energy, but you can\'t')
+                print('forget to specify the following parameters!')
+                print('  (1) Nels_as,   (2) Norb_as,')
+                print('  (3) alpha_mos, (4) beta_mos')
+                sys.exit()
+        self.QuantStore = qf.QuantumStorage(**self.kw_qc)
         self.kw_opt['function'] = enf.find_function(
-                self.Store.theory,
+                self.theory,
                 'qc',
                 self.Store,
                 self.QuantStore)
-        if self.pr_g>1:
-            if self.kw_opt['optimizer']=='nevergrad':
-                print('#  optimizer  : {}'.format(self.kw_opt['nevergrad_opt']))
-            else:
-                print('#  optimizer  : {}'.format(self.kw_opt['optimizer']))
-            print('#  max iter   : {}'.format(self.kw_opt['max_iter']))
-            print('#  stop crit  : {}'.format(self.kw_opt['conv_crit_type']))
-            print('#  crit thresh: {}'.format(self.kw_opt['conv_threshold']))
-            print('# ...done.')
-            print('# ')
-            print('# Initialized successfully. Beginning optimization.')
-            print('')
-            print('### ### ### ### ### ### ### ### ### ### ### ###')
-            print('')
-        if self.kw_qc['info'] in ['calc']:
-            qf.get_direct_stats(self.QuantStore)
-        elif self.kw_qc['info'] in ['draw']:
-            qf.get_direct_stats(self.QuantStore,extra='draw')
-            sys.exit()
-        elif self.kw_qc['info'] in ['count_only']:
-            qf.get_direct_stats(self.QuantStore)
-            sys.exit()
-        elif self.kw_qc['info'] in ['compile','check','check_circuit','transpile']:
-            qf.get_direct_stats(self.QuantStore,extra='compile')
-            sys.exit()
-        else:
-            #print('Getting circuit information for keyword: {}'.format(
-            #    self.kw_qc['info'])
-            #    )
-            qf.get_direct_stats(self.QuantStore,extra=self.kw_qc['info'])
-            #sys.exit()
 
     def set_print(self,level='default',
             record=False
@@ -140,3 +115,4 @@ class QuantumRun:
         elif level=='diagnostic_orb':
             self.kw['pr_s']=9
             self.kw_opt['pr_o']=9
+

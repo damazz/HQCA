@@ -6,7 +6,7 @@ tools/QuantumFunctions
 import numpy as np
 import sys
 from math import pi
-from hqca.tools import NoiseSimulator
+from hqca.quantum import NoiseSimulator
 class KeyDict(dict):
     def __missing__(self,key):
         return key
@@ -20,198 +20,163 @@ class QuantumStorage:
     Also should assign the difference parameters of the quantum algorithm.
     '''
     def __init__(self,
-            pr_g,
-            Nqb,
-            Nels_as,
-            Norb_as,
-            backend,
-            num_shots,
-            tomo_basis,
-            tomo_rdm,
-            tomo_extra,
-            provider,
-            entangled_pairs,
-            entangler_p,
-            entangler_q,
-            error_correction,
-            Sz,
-            depth,
-            alpha_mos=None,
-            beta_mos,
-            single_point,
-            theory='noft',
-            tomo_approx=None,
-            Nqb_backend=None,
-            error_shift=None,
-            fermion_mapping='jordan-wigner',
-            load_triangle=False,
+            pr_g=0,
             qc=True,
-            ansatz='default',
-            spin_mapping='default',
+            opt=None,
             method='variational',
-            backend_configuration=None,
-            random=None,
-            random2=None,
-            backend_mod_coupling=None,
-            noise_model_loc=None, #specify file name for noise_model 
-            noise=False,
-            transpile=False,
-            info=None,
-            initialize='default',
-            algorithm=None,
-            pr_q=0,
-            keyword=None,
-            pr_e=1,
-            circuit_times=None,
-            use_radians=False,
-            opt=None
+            **kwargs
             ):
-        '''
-        method;
-            variational
-            trotter?
-        variational;
-            default
-            ucc
-        entangler
-            Ry_cN
-            Rx_cN
-            Rz_cN
-            trott
-        spin_mapping
-            default
-            spin_free
-            spatial? not sure if necessary
-        '''
         self.opt_kw = opt
-        self.theory= theory
-        self.tomo_approx = tomo_approx
         self.pr_g =pr_g
-        if type(error_shift)==type(None):
-            self.error_shift = False
-        else:
-            self.error_shift = np.asarray(error_shift)
-        self.use_radians=use_radians
-        self.Ns = num_shots
-        self.keyword= keyword
-        self.Nq = Nqb  # active qubits
-        if Nqb_backend is not None:
-            self.Nq_tot = Nqb_backend
-        else:
-            self.Nq_tot = self.Nq
-        self.Ne = Nels_as # active space
-        if spin_mapping in ['default','alternating']:
-            self.Ne_alp = int(0.5*Nels_as+Sz)
-        else:
-            self.Ne_alp = int(Nels_as)
-        self.No = Norb_as # note, spatial orbitals
-        if self.No>self.Nq: # wrong!
-            print('Error in the mapping. Too many orbitals per qubits.')
-        self.backend = backend
-        self.Ns = num_shots
-        self.prov = provider
-        self.tomo_bas = tomo_basis
-        self.tomo_rdm = tomo_rdm
-        self.tomo_ext = tomo_extra
-        self.provider = provider
-        self.ent_pairs= entangled_pairs
-        self.ent_circ_p = entangler_p
-        self.ent_circ_q = entangler_q
-        self.depth = depth
-        self.random = random
-        self.random2= random2
-        self.init = initialize
-        self.algorithm = algorithm
         self.method = method
-        self.ec=error_correction
-        self.sp = single_point
-        self.alpha = alpha_mos
-        self.beta = beta_mos
-        if not qc:
+        self.qc = qc
+        if qc:
+            self._set_up_backend(**kwargs)
+            self._set_up_algorithm(**kwargs)
+            self._set_up_error_correction(**kwargs)
+        else:
             # need to check to make sure method is compatible
             classically_supported = ['borland-dennis','carlson-keller']
             if self.method in classically_supported:
                 pass
             else:
                 sys.exit('Trying to run a non-supported classical algorithm.')
-        self.qc = qc
-        self.pr_q = pr_q
-        self.pr_e = pr_e
-        self.ansatz = ansatz
+
+    def _set_up_algorithm(self,
+            pr_q=0,
+            Nels_as=None,  
+            Norb_as=None,
+            alpha_mos=None,
+            beta_mos=None,
+            Sz=0,
+            theory='noft',
+            fermion_mapping='jordan-wigner',
+            ansatz='default',
+            spin_mapping='default',
+            entangled_pairs='d',
+            entangler_p='Ry_cN',
+            entangler_q='UCC2c',
+            depth=1,
+            compact_algorithm=None,
+            tomo_basis='no',
+            tomo_rdm='1rdm',
+            tomo_extra=False,
+            tomo_approx=None,
+            **kwargs
+            ):
+        self.theory=theory
         self.spin_mapping = spin_mapping
-        self.bec = backend_configuration
-        self.be_coupling = backend_mod_coupling
-        self.qubit_to_backend = backend_configuration
-        self.transpile = transpile
-        self.use_noise = noise
-        self.info=info
+        self.ansatz = ansatz
+        self.No = Norb_as # note, spatial orbitals
+        self.alpha = alpha_mos
+        self.beta = beta_mos
+        self.Ne = Nels_as # active space
+        if spin_mapping in ['default','alternating']:
+            self.Ne_alp = int(0.5*Nels_as+Sz)
+        else:
+            self.Ne_alp = int(Nels_as)
+        self.tomo_bas = tomo_basis
+        self.tomo_rdm = tomo_rdm
+        self.tomo_ext = tomo_extra
+        self.tomo_approx = tomo_approx
+        self.ent_pairs= entangled_pairs
+        self.ent_circ_p = entangler_p
+        self.ent_circ_q = entangler_q
+        self.depth = depth
+        self.algorithm = compact_algorithm
         self.fermion_mapping = fermion_mapping
-        self.alpha_qb = [] # in the backend basis
-        self.beta_qb  = [] # backend set of qubits
         if self.fermion_mapping=='jordan-wigner':
             self._map_rdm_jw()
             self._get_ent_pairs_jw()
             self._gip()
             if self.tomo_ext in ['sign_2e','sign_2e_pauli']:
                 self._get_2e_no()
-        if self.ec=='hyperplane':
-            self._get_hyper_para()
-        elif self.ec=='hyperplane+':
-            self._get_hyper_para(expand=True)
+
+    def _set_up_backend(self,
+            Nq=10,
+            Nq_backend=20,
+            backend='qasm_simulator',
+            backend_coupling_layout=None,
+            backend_initial_layout=None,
+            noise=True,
+            noise_model_location=None,
+            circuit_times=None,
+            transpile=False,
+            num_shots=1024,
+            provider='Aer',
+            **kwargs):
+        self.alpha_qb = [] # in the backend basis
+        self.beta_qb  = [] # backend set of qubits
+        self.be_initial = backend_initial_layout
+        self.be_coupling = backend_coupling_layout
+        self.Nq = Nq  # active qubits
+        if Nq_backend is not None:
+            self.Nq_tot = Nq_backend
+        else:
+            self.Nq_tot = self.Nq
+        self.backend = backend
+        self.Ns = num_shots
+        self.provider = provider
+        self.use_noise = noise
         if self.use_noise:
             self.noise_model = NoiseSimulator.get_noise_model(
                     device=backend,
                     times=circuit_times,
-                    saved=noise_model_loc)
-        self.noise_model_loc = noise_model_loc
-        if self.pr_g>1:
-            print('# Summary of quantum parameters:')
-            print('#  backend   : {}'.format(self.backend))
-            print('#  num shots : {}'.format(self.Ns))
-            print('#  num qubit : {}'.format(self.Nq))
-            print('#  num e-    : {}'.format(self.Ne))
-            print('#  provider  : {}'.format(self.prov))
-            print('#  tomo type : {}'.format(tomo_rdm))
-            print('#  tomo basis: {}'.format(tomo_basis))
-            print('#  tomo extra: {}'.format(tomo_extra))
-            print('#  transpile  : {}'.format(self.transpile))
-            print('# Summary of quantum algorithm:')
-            print('#  spin orbs : {}'.format(self.No))
-            print('#  fermi map : {}'.format(self.fermion_mapping))
-            print('#  ansatz    : {}'.format(self.ansatz))
-            print('#  method    : {}'.format(self.method))
-            print('#  algorithm : {}'.format(self.algorithm))
-            print('#  spin map  : {}'.format(self.spin_mapping))
-            print('#  ent scheme: {}'.format(self.ent_pairs))
-            print('#  ent pairs : {}'.format(self.ent_circ_p))
-            print('#  ent quads : {}'.format(self.ent_circ_q))
-            print('#  circ depth: {}'.format(self.depth))
-            print('#  init type : {}'.format(self.init))
-            print('#  qubit entangled pairs:')
-            p = '#  '
-            for n,pair in enumerate(self.pair_list):
-                p+='{} '.format(pair)
-                if n%4==0 and n>0:
-                    print(p)
-                    p='#  '
-            print(p)
-            p = '#  '
-            print('#  rdm entangled quadruplets:')
-            for n,quad in enumerate(self.quad_list):
-                p+='{} '.format(quad)
-                if n%2==0 and n>0:
-                    print(p)
-                    p='#  '
-            print(p)
-            p = '#  '
-            print('#  qubit entangled quadruplets:')
-            for n,quad in enumerate(self.qc_quad_list):
-                p+='{} '.format(quad)
-                if n%2==0 and n>0:
-                    print(p)
-                    p='#  '
-            print(p)
-            print('# ')
+                    saved=noise_model_location)
+        self.noise_model_loc = noise_model_location
+
+    def _set_up_error_correction(self,
+            pr_e=0,
+            Nq_ancilla=0,
+            ec=False,
+            ec_method='parity',
+            ec_ent_list ='default',
+            **kwargs
+            ):
+        '''
+        Note there are three types of error correction.
+        (1) Post correction
+        (2) Correction in a entangler, in circuit
+        (3) Syndrome, in circuit
+        '''
+        self.Nq_ancilla = Nq_ancilla
+        self.ec = ec
+        self.ec_method = ec_method
+        self.ec_type = None
+        if self.ec_method=='hyperplane':
+            self._get_hyper_para()
+            self.ec_type='p'
+        elif self.ec_method=='hyperplane+':
+            self._get_hyper_para(expand=True)
+            self.ec_type='p'
+        else:
+            self.ancilla_qb = []
+            for i in range(self.Nq,self.Nq+Nq_ancilla):
+                print(self.Nq)
+                print(i)
+                if i<=self.Nq_tot:
+                    # basically your available ancilla
+                    self.ancilla_qb.append(i)
+        print(self.ancilla_qb)
+        if self.ec_method=='parity':
+            self.ec_circ = 'parity'
+            self.ec_type = 's'
+            self.ec_keys = []
+            if ec_ent_list=='default':
+                ec_ent_list = [1]*self.N_ent
+            if len(ec_ent_list)<self.N_ent:
+                print('## QuantumFunctions ##')
+                print('Not enough specified ec functions for a parity check.')
+                sys.exit('Goodbye!')
+            else:
+                self.ec_ent_list = ec_ent_list
+            for item in ec_ent_list:
+                if item==1:
+                    self.ec_keys.append(1-(-1**self.Ne))
+            self.ec_keys = zip(self.ec_keys,self.ancilla_qb)
+        elif self.ec=='multi':
+            pass
+
 
     def _get_hyper_para(self,expand=False):
         if self.method=='carlson-keller':
@@ -262,8 +227,6 @@ class QuantumStorage:
                     self.ec_vert[:,i] = self.ec_vert[:,i]+0.1*diff[:,i]
                 self.ec_para = [self.ec_para]
 
-
-
     def _map_rdm_jw(self):
         '''
         note, if you change the spin mapping, it also effects the quantum
@@ -287,15 +250,6 @@ class QuantumStorage:
                 self.qubit_to_rdm[m]=bet
                 self.alpha_qb.append(m)
         elif self.spin_mapping=='alternating':
-            #for n in range(len(self.alpha['active'])):
-            #    self.qubit_to_rdm[2*n]=self.alpha['active'][n]
-            #    self.qubit_to_rdm[2*n+1]=self.beta['active'][n]
-            #    l = self.qubit_to_backend[2*n]
-            #    m = self.qubit_to_backend[2*n+1]
-            #    self.alpha_qb.append(l)
-            #    self.beta_qb.append(m)
-            #    self.backend_to_rdm[l]=self.alpha['active'][n]
-            #    self.backend_to_rdm[m]=self.beta['active'][n]
             i = 0
             self.alpha_qb,self.beta_qb = [],[]
             self.qubit_to_rdm = {}
@@ -320,10 +274,8 @@ class QuantumStorage:
 
         possible ansatz:
             -ucc
-            -default
             -natural orbitals
             -nat-orb-no (reduced form)
-            -a
 
         Note, the proper functioning of this function should take entanglement
         in the RDM basis, preparing quad list and pair list.
@@ -364,36 +316,6 @@ class QuantumStorage:
                 for j in range(self.No,self.No+len(self.beta_qb)):
                     for i in range(self.No,j):
                         self.pair_list.append([i,j])
-        elif self.ansatz=='default':
-            # UPDATE
-            if self.ent_pairs in ['sd','d']:
-                for l in range(0,len(self.alpha_qb)):
-                    for k in range(0,l):
-                        for j in range(0,k):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.alpha_qb)):
-                   for k in range(0,l):
-                        for j in range(0,len(self.beta_qb)):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
-                for l in range(0,len(self.beta_qb)):
-                    for k in range(0,l):
-                        for j in range(0,k):
-                            for i in range(0,j):
-                                self.quad_list.append([i,j,k,l])
-            if self.ent_pairs in ['s','sd']:
-                for j in range(0,len(self.alpha_qb)):
-                    for i in range(0,j):
-                        self.pair_list.append([i,j])
-                for j in range(0,len(self.beta_qb)):
-                    for i in range(0,j):
-                        self.pair_list.append([i,j])
-            elif self.ent_pairs=='scheme1_Tavernelli':
-                for j in range(1,len(self.alpha_qb)):
-                    self.pair_list.append([j-1,j])
-                for j in range(1,len(self.beta_qb)):
-                    self.pair_list.append([j-1,j])
         elif self.ansatz=='natural-orbitals':
             if self.ent_pairs in ['sd','d']:
                 # generate double excitations
@@ -444,6 +366,7 @@ class QuantumStorage:
             qd.append(''.join(sign))
             qd.append(''.join(spin))
             self.qc_quad_list.append(qd)
+        self.N_ent = len(self.quad_list)+len(self.pair_list)
 
     def _get_2e_no(self):
         '''
@@ -480,15 +403,64 @@ class QuantumStorage:
                     sort = False
             self.qc_tomo_quad.append(qd)
 
+    def print_summary(self):
+        if self.pr_g>1:
+            print('# Summary of quantum parameters:')
+            print('#  backend   : {}'.format(self.backend))
+            print('#  num shots : {}'.format(self.Ns))
+            print('#  num qubit : {}'.format(self.Nq))
+            print('#  num e-    : {}'.format(self.Ne))
+            print('#  provider  : {}'.format(self.prov))
+            print('#  tomo type : {}'.format(tomo_rdm))
+            print('#  tomo basis: {}'.format(tomo_basis))
+            print('#  tomo extra: {}'.format(tomo_extra))
+            print('#  transpile  : {}'.format(self.transpile))
+            print('# Summary of quantum algorithm:')
+            print('#  spin orbs : {}'.format(self.No))
+            print('#  fermi map : {}'.format(self.fermion_mapping))
+            print('#  ansatz    : {}'.format(self.ansatz))
+            print('#  method    : {}'.format(self.method))
+            print('#  algorithm : {}'.format(self.algorithm))
+            print('#  spin map  : {}'.format(self.spin_mapping))
+            print('#  ent scheme: {}'.format(self.ent_pairs))
+            print('#  ent pairs : {}'.format(self.ent_circ_p))
+            print('#  ent quads : {}'.format(self.ent_circ_q))
+            print('#  circ depth: {}'.format(self.depth))
+            print('#  init type : {}'.format(self.init))
+            print('#  qubit entangled pairs:')
+            p = '#  '
+            for n,pair in enumerate(self.pair_list):
+                p+='{} '.format(pair)
+                if n%4==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            p = '#  '
+            print('#  rdm entangled quadruplets:')
+            for n,quad in enumerate(self.quad_list):
+                p+='{} '.format(quad)
+                if n%2==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            p = '#  '
+            print('#  qubit entangled quadruplets:')
+            for n,quad in enumerate(self.qc_quad_list):
+                p+='{} '.format(quad)
+                if n%2==0 and n>0:
+                    print(p)
+                    p='#  '
+            print(p)
+            print('# ')
 
     def _gip(self):
         '''
         'Get Initial Parameters (GIP) function.
         '''
-        if self.sp=='noft':
+        if self.theory=='noft':
             self.parameters=[0]*(self.No-1)
             self.Np = self.No-1
-        elif self.sp=='rdm':
+        elif self.theory=='rdm':
             self.c_ent_p=1
             self.c_ent_q=1
             if self.ent_circ_p=='Uent1_cN':
@@ -511,9 +483,9 @@ def get_direct_stats(QuantStore,extra=False):
         draw the pre- and post- compiled/transpiled circuits
 
     '''
-    from hqca.tools import QuantumAlgorithms
+    from hqca.quantum import BuildCircuit
     QuantStore.parameters=[1]*QuantStore.Np
-    test = QuantumAlgorithms.GenerateDirectCircuit(QuantStore)
+    test = BuildCircuit.GenerateDirectCircuit(QuantStore)
     if QuantStore.pr_g>1:
         print('# Getting circuit parameters...')
         print('#')

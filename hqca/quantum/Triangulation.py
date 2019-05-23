@@ -8,8 +8,7 @@ import time
 import timeit
 import sys
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import build_circuits,run_circuits,Construct
-from hqca.tools.QuantumFramework import wait_for_machine
+from hqca.quantum.QuantumFramework import build_circuits,run_circuits,Construct
 
 #
 # Triangulation functions

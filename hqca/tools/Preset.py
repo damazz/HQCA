@@ -87,6 +87,49 @@ def NOFT_2e():
         }
     return var
 
+def circuit():
+    var = {
+        'max_iter':25,
+        'restart':False,
+        'wait':True,
+        'pr_m':0,
+        'pr_g':2,
+        'pr_s':1,
+        'chem_orb':'HF',
+        'qc':{
+            'backend':'qasm_simulator',
+            'num_shots':2048,
+            'info':'calc',
+            'provider':'Aer',
+            'fermion_mapping':'jordan-wigner',
+            'backend_initial_layout':None,
+            'ansatz':'nat-orb-no',
+            'method':'carlson-keller',
+            'transpile':None,
+            'initialize':'default',
+            'Nqb':4,
+            'noise_model_location':None,
+            'noise':False,
+            'tomo_basis':'no',
+            'tomo_rdm':'1rdm',
+            'tomo_extra':False,
+            'spin_mapping':'default',
+            'entangled_pairs':'d', #
+            'entangler_p':'Ry_cN', #Ry with a constant N
+            'entangler_q':'UCC2_1s', #Ry with a constant N
+            'pr_e':0, # error correction
+            'pr_q':0,
+            'error_correction':False,
+            'Sz':0.0,
+            'depth':1,
+            'Nels_as':2,
+            'Norb_as':2,
+            'alpha_mos':{'active':[0,1]},
+            'beta_mos':{'active':[2,3]},
+            }
+        }
+    return var
+
 def NOFT():
     var = {
         'max_iter':25,

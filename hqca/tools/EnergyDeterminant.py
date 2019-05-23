@@ -11,8 +11,7 @@ import timeit
 import sys
 from math import pi
 np.set_printoptions(precision=6,suppress=True)
-from hqca.tools.QuantumFramework import build_circuits,run_circuits,Construct
-from hqca.tools.QuantumFramework import wait_for_machine
+from hqca.quantum.QuantumFramework import build_circuits,run_circuits,Construct
 try:
     from hqca.tools import Functions as fx
     from hqca.tools import Chem as chem

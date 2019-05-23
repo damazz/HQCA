@@ -78,7 +78,6 @@ class Storage:
             Ne_as='default',
             No_as='default',
             casci_ref=False,
-            theory=None,
             **kwargs):
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
@@ -90,7 +89,6 @@ class Storage:
         self.hf.kernel()
         self.hf.analyze()
         self.C= self.hf.mo_coeff
-        self.theory = theory
         if Ne_as=='default':
             self.Ne_as = mol.nelec[0]+mol.elec[1]
         else:

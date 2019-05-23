@@ -10,46 +10,46 @@ quite sure why though.
 import time
 import timeit
 from itertools import zip_longest
-from hqca.tools._Tomography import Process
-from hqca.tools.QuantumFunctions import local_qubit_tomo_pairs as lqtp
-from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_full as nqtpf
-from hqca.tools.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtpp
-from hqca.tools.QuantumFunctions import diag
-from hqca.tools.QuantumAlgorithms import GenerateDirectCircuit
-from hqca.tools.QuantumAlgorithms import GenerateCompactCircuit
-from hqca.tools.QuantumAlgorithms import algorithm_tomography
+from hqca.quantum.QuantumProcess import Process
+from hqca.quantum.QuantumFunctions import local_qubit_tomo_pairs as lqtp
+from hqca.quantum.QuantumFunctions import nonlocal_qubit_tomo_pairs_full as nqtpf
+from hqca.quantum.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtpp
+from hqca.quantum.QuantumFunctions import diag
+from hqca.quantum.BuildCircuit import GenerateDirectCircuit
+from hqca.quantum.BuildCircuit import GenerateCompactCircuit
+from hqca.quantum.algorithms._Tomo import *
 import sys, traceback
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
-from hqca.tools.NoiseSimulator import get_noise_model,get_coupling_map
+from hqca.quantum.NoiseSimulator import get_noise_model,get_coupling_map
 from math import pi
 from sympy import pprint
+
+
+class Construct:
+    def __init__(self,data,QuantStore):
+        self.qo = Process(data,QuantStore)
+        self.qo.build_rdm()
+        self.rdm1 = self.qo.rdm
+
+    def find_signs(self):
+        self.qo.sign_from_2rdm()
+        self.signs = self.qo.sign
+        self.holding = self.qo.holding
+
 
 def build_circuits(
         QuantStore,
         **kw
         ):
-    def _init_compact(
-            algorithm,
-            **kw
-            ):
-        Nq = algorithm_tomography[algorithm]['Nq']
-        qb_orbs = algorithm_tomography[algorithm]['qb_to_orb']
-        No = len(qb_orbs)
-        return Nq,qb_orbs,No
-
     '''
     Given certain instructions, will actually build the circuits. This is
-    initial function that is called from other modules. 
+    initial function that is called from other modules.
     '''
     if QuantStore.fermion_mapping=='compact':
-        Nq,qb_orbs,No = _init_compact(**kw)
-        kw['Nq']=Nq
-        kw['qb_orbs']=qb_orbs
-        kw['No']=No
-        q2s = {}
+        sys.exit('Please configure compact. Why.' )
         circ, circ_list = _compact_tomography(**kw)
     elif QuantStore.fermion_mapping=='jordan-wigner':
         circ, circ_list = _direct_tomography(QuantStore)
@@ -90,32 +90,6 @@ def _direct_tomography(
             rdm_bet.append(temp_arr)
         circ_pairs = zip_longest(rdm_alp,rdm_bet)
         return circ_pairs
-
-    def apply_1rdm_basis_tomo(Q,i,k,imag=False):
-        '''
-        generic 1rdm circuit for ses method
-        '''
-        # apply cz phase
-        for l in range(i+1,k):
-            Q.qc.cz(Q.q[i],Q.q[l])
-        # apply cnot1
-        Q.qc.cx(Q.q[k],Q.q[i])
-        Q.qc.x(Q.q[k])
-        if imag:
-            Q.qc.s(Q.q[k])
-        # ch gate
-        Q.qc.ry(pi/4,Q.q[k])
-        Q.qc.cx(Q.q[i],Q.q[k])
-        Q.qc.ry(-pi/4,Q.q[k])
-        if imag:
-            Q.qc.s(Q.q[k])
-            Q.qc.x(Q.q[i])
-            Q.qc.cz(Q.q[i],Q.q[k])
-            Q.qc.x(Q.q[i])
-        # apply cnot2
-        Q.qc.x(Q.q[k])
-        Q.qc.cx(Q.q[k],Q.q[i])
-        return Q
     '''
     Begin direct tomography
     '''
@@ -166,13 +140,13 @@ def _direct_tomography(
                 Q = GenerateDirectCircuit(QuantStore,_name='ijR{:02}'.format(i))
                 temp = ['ijR{:02}'.format(i)]
                 for pair in ca:
-                    Q = apply_1rdm_basis_tomo(
-                            Q,int(pair[0]),int(pair[1]))
+                    apply_1rdm_basis_tomo(
+                        Q,int(pair[0]),int(pair[1]))
                     temp.append(pair)
                 try:
                     for pair in cb:
-                        Q = apply_1rdm_basis_tomo(
-                                Q,int(pair[0]),int(pair[1]))
+                        apply_1rdm_basis_tomo(
+                            Q,int(pair[0]),int(pair[1]))
                         temp.append(pair)
                 except TypeError as e:
                     print(e)
@@ -209,23 +183,7 @@ def _direct_tomography(
         elif QuantStore.tomo_bas=='pauli':
             # projection into the pauli basis now...
             pass
-    if QuantStore.tomo_ext=='sign_2e':
-        # looking for NO 2RDM terms to give sign info 
-        n = 0
-        for a,b,c,d in QuantStore.qc_tomo_quad:
-            temp = 'sign{}-{}-{}-{}-{}'.format(
-                    str(a),str(b),str(c),str(d),str(n))
-            Q = GenerateDirectCircuit(
-                    QuantStore,
-                    _name=temp
-                    )
-            #Q._UCC2_con_12(pi/2,a,b,c,d)
-            Q._UCC2_con_23(-pi/2,a,b,c,d)
-            Q.qc.measure(Q.q,Q.c)
-            circuit_list.append([temp])
-            circuit.append(Q.qc)
-            n+1 
-    elif QuantStore.tomo_ext=='sign_2e_pauli':
+    if QuantStore.tomo_ext=='sign_2e_pauli':
         n = 0 
         for a,b,c,d in QuantStore.qc_tomo_quad:
             if QuantStore.tomo_approx=='full':
@@ -243,7 +201,7 @@ def _direct_tomography(
                         QuantStore,
                         _name=temp
                         )
-                Q._pauli_2rdm(a,b,c,d,pauli=op)
+                _pauli_2rdm(Q,a,b,c,d,pauli=op)
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append([temp])
                 circuit.append(Q.qc)
@@ -298,9 +256,6 @@ def _compact_tomography(
         print('Unnecessary!')
         sys.exit()
     return circuit, circuit_list
-
-
-
 
 def run_circuits(
         circuits,
@@ -363,11 +318,7 @@ def run_circuits(
             circuits,
             shots=QuantStore.Ns
             )
-    #for i in qo.experiments:
-    #    for j in i.instructions:
-    #        print(j)
-    #    print('')
-    #    print('')
+
     if QuantStore.use_noise:
         try:
             job = beo.run(qo,backend_options=backend_options)
@@ -386,110 +337,5 @@ def run_circuits(
             print('Error: ')
             print(e)
             traceback.print_exc()
-    #if verbose:
-    #    print('Circuit counts:')
-    #    for i in counts:
-    #        for k,v in i.items():
-    #            print('  {}:{}'.format(k,v))
     return zip(circuit_list,counts)
-
-class Construct:
-    def __init__(self,data,QuantStore):
-        self.qo = Process(data,QuantStore)
-        self.qo.build_rdm()
-        self.rdm1 = self.qo.rdm
-
-    def find_signs(self):
-        self.qo.sign_from_2rdm()
-        self.signs = self.qo.sign
-        self.holding = self.qo.holding
-
-
-def add_to_config_log(backend,connect):
-    '''
-    Function to add the current ibm credentials, configuration to the
-    ./results/logs/ directory, so it is stored for potential publications.
-    '''
-    # check if config file is already there
-    from datetime import date
-    import pickle
-    today = date.timetuple(date.today())
-    today = '{:04}{:02}{:02}'.format(today[0],today[1],today[2])
-    loc = '/home/scott/Documents/research/3_vqa/hqca/results/logs/'
-    filename = loc+today+'_'+backend
-    from qiskit import Aer
-    if connect:
-        from qiskit import IBMQ
-        prov = IBMQ
-        prov.load_accounts()
-    else:
-        prov = Aer
-    try:
-        with open(filename,'rb') as fp:
-            pass
-        print('----------')
-        print('Backend configuration file already written.')
-        print('Stored in following location:')
-        print('{}'.format(filename))
-        print('----------')
-    except FileNotFoundError:
-        avail = available_backends()
-        if backend in avail:
-            pass
-        elif backend=='ibmqx4':
-            backend='ibmq_5_tenerife'
-        with open(filename,'wb') as fp:
-            data  = {'name':be.name(),
-                    'config':be.configuration(),
-                    'properties':be.properties()}
-            name = be.name()
-            pickle.dump(
-                    data,
-                    fp,0
-                    )
-        print('----------')
-        print('Backend configuration file written.')
-        print('Stored in following location:')
-        print('{}'.format(filename))
-        print('----------')
-
-def wait_for_machine(QuantStore,Nw=10):
-    '''
-    Function to wait for machine given a certain backend. 
-    '''
-    from qiskit import IBMQ
-    qo = IBMQ.get_backend(QuantStore.backend)
-    def check(be):
-        stat = qo.status()
-        return stat.operational,stat.pending_jobs
-    use,pending = check(qo)
-    # develop function 
-    time_waited = 0
-    while (use and pending>Nw):
-        print('--- There are {:03} runs in queue. -----'.format(pending))
-        print('--- Waited {:05} minutes so far. ----'.format((time_waited//60)))
-        time.sleep(300) # wait for 5 minutes, check again
-        time_waited+= 300
-        try:
-            use,pending = check(qo)
-        except Exception as e:
-            print('Might have run into an error.')
-            print(e)
-            print('Waiting a bit...3 minutes.')
-            time.sleep(180)
-            try:
-                use,pending = check(qo)
-            except Exception:
-                raise NotAvailableError
-    if use:
-        pass
-    else:
-        raise NotAvailableError
-
-
-
-
-
-
-
 

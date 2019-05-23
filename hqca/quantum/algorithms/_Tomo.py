@@ -1,0 +1,49 @@
+def __apply_pauli_op(qgdc,loc,sigma='x'):
+    if sigma=='z':
+        pass
+    elif sigma=='x':
+        qgdc.qc.h(self.q[loc])
+    elif sigma=='i':
+        pass
+    elif sigma=='y':
+        qgdc.qc.rx(pi/2,self.q[loc])
+
+def _pauli_2rdm(qgdc,i,j,k,l,pauli='zzzz'):
+    '''
+    applies operators on i,j,k,l, assuming that they are ordered
+    '''
+    for a in range(i+1,j):
+        qgdc.qc.z(self.q[a])
+    for b in range(k+1,l):
+        qgdc.qc.z(self.q[b])
+    qgdc.__apply_pauli_op(i,pauli[0])
+    qgdc.__apply_pauli_op(j,pauli[1])
+    qgdc.__apply_pauli_op(k,pauli[2])
+    qgdc.__apply_pauli_op(l,pauli[3])
+
+def _ses_tomo_1rdm_(Q,i,k,imag=False):
+    '''
+    generic 1rdm circuit for ses method
+    '''
+    # apply cz phase
+    for l in range(i+1,k):
+        Q.qc.cz(Q.q[i],Q.q[l])
+    # apply cnot1
+    Q.qc.cx(Q.q[k],Q.q[i])
+    Q.qc.x(Q.q[k])
+    if imag:
+        Q.qc.s(Q.q[k])
+    # ch gate
+    Q.qc.ry(pi/4,Q.q[k])
+    Q.qc.cx(Q.q[i],Q.q[k])
+    Q.qc.ry(-pi/4,Q.q[k])
+    if imag:
+        Q.qc.s(Q.q[k])
+        Q.qc.x(Q.q[i])
+        Q.qc.cz(Q.q[i],Q.q[k])
+        Q.qc.x(Q.q[i])
+    # apply cnot2
+    Q.qc.x(Q.q[k])
+    Q.qc.cx(Q.q[k],Q.q[i])
+    return Q
+

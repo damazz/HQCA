@@ -2,7 +2,6 @@ import numpy as np
 import pickle
 import subprocess
 import traceback
-from hqca.tools.QuantumAlgorithms import algorithm_tomography
 
 
 def switch(mat):
@@ -154,8 +153,6 @@ def rdm(data,unitary=False):
     return r
 
 def filt(qb_counts,trace=[]):
-    '''['000','001','010','011','100','101','110','111']):
-    '''
     Nqb = len(list(qb_counts.keys())[0])
     Nf = Nqb-len(trace)
     qb_list = ['{:0{}b}'.format(i,Nf) for i in range(0,2**Nf)]
@@ -187,14 +184,14 @@ def counts_to_1rdm(
         order='default',
         use_err=False,
         **kwargs):
-    try:
-        trace = get_trace(
-                algorithm_tomography[algorithm]['Nq'],
-                algorithm_tomography[algorithm]['qb_to_orb']
-                )
-        Nq = algorithm_tomography[algorithm]['Nq']
-    except Exception:
-        traceback.print_exc()
+    #try:
+    #    trace = get_trace(
+    #            algorithm_tomography[algorithm]['Nq'],
+    #            algorithm_tomography[algorithm]['qb_to_orb']
+    #            )
+    #    Nq = algorithm_tomography[algorithm]['Nq']
+    #except Exception:
+    #    traceback.print_exc()
     if not use_err:
         err_elements = [0.5 for i in range(0,Nq)]
     else:

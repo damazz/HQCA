@@ -15,7 +15,7 @@ from hqca.tools import Functions as fx
 from hqca.optimizers.Control import Optimizer
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import EnergyFunctions as enf
-from hqca.sub.BaseRun import QuantumRun
+from hqca.sub.BaseRun import QuantumRun,Cache
 from hqca.quantum import ErrorCorrection as ec
 from hqca.quantum import Triangulation as tri
 from hqca.quantum import QuantumFunctions as qf
@@ -23,16 +23,9 @@ from hqca.tools.util import Errors
 from functools import reduce
 import datetime
 import sys
-import hqca.tools import Preset as pre
+from hqca.tools import Preset as pre
 np.set_printoptions(precision=3)
 
-class Cache:
-    def __init__(self):
-        self.use=True
-        self.err=False
-        self.msg=None
-        self.iter=0
-        self.done=False
 
 class RunNOFT(QuantumRun):
     '''
@@ -40,26 +33,31 @@ class RunNOFT(QuantumRun):
     computing treatment of the natural orbitals.
     '''
     def __init__(self,
+            mol,
             **kw
             ):
-        if store.kw['Nels_as']==2:
+        QuantumRun.__init__(self,**kw)
+        if mol==None:
+            print('Did you forget to specify a mol object form pyscf?')
+            print('Please try again.')
+            sys.exit()
+        QuantumRun._build_energy(self,mol)
+        if self.Store.kw['Nels_as']==2:
             self.kw = pre.NOFT_2e()
-        elif store.kw['Nels_as']==3:
+        elif self.Store.kw['Nels_as']==3:
             self.kw = pre.NOFT_3e()
         else:
+            print('Do not yet have support for more than 3 electron or less')
+            print('than 2 electrons. Goodbye!')
             sys.exit()
-        self.Store = enf.Store(mol)
-        QuantumRun.__init__(self,**kw)
-        self.Store.sp='noft'
+        self.kw_qc = self.kw['qc']
         self.kw_orb = self.kw['orb']
         self.kw_orb_opt = self.kw_orb['opt']
         self.total=Cache()
         self.Run = {}
 
-    def build(self):
-        self.Store.pr_s = self.kw['pr_s']
-        QuantumRun.build(self)
-        self.Store.find_npara_orb()
+    def build(self,mol=None):
+        QuantumRun._build_quantum(self)
         self.kw_orb_opt['function'] = enf.find_function(
                 'noft',
                 'orb',
@@ -80,27 +78,9 @@ class RunNOFT(QuantumRun):
                     'orb_grad',
                     self.Store,
                     self.QuantStore)
-        self.unity = self.kw_opt['unity']
-        self.shift = None
-        if self.pr_g>1:
-            if self.kw_orb_opt['optimizer']=='nevergrad':
-                print('#  orb opt    : {}'.format(self.kw_orb_opt['nevergrad_opt']))
-            else:
-                print('#  orb opt    : {}'.format(self.kw_orb_opt['optimizer']))
-            print('#  max iter   : {}'.format(self.kw_orb_opt['max_iter']))
-            print('#  stop crit  : {}'.format(self.kw_orb_opt['conv_crit_type']))
-            print('#  crit thresh: {}'.format(self.kw_orb_opt['conv_threshold']))
-            print('# ...done.')
-            print('# ')
-            print('# Initialized successfully. Beginning optimization.')
-            print('')
-            print('### ### ### ### ### ### ### ### ### ### ### ###')
-            print('')
-        self.built=True
-        if 'classical' in self.kw_qc['method']:
-            pass
-        else:
+        if not ('classical' in self.kw_qc['method']):
             self._pre()
+        self.built=True
 
     def _pre(self):
         try:
@@ -117,7 +97,7 @@ class RunNOFT(QuantumRun):
             self.QuantStore.ec_a = ec_a
             self.QuantStore.ec_b = ec_b
 
-    def go(self):
+    def run(self):
         if self.built:
             while not self.total.done:
                 self._OptNO()
@@ -154,7 +134,6 @@ class RunNOFT(QuantumRun):
         if self.total.done and not self.total.err==False:
             print('Got an error.')
             raise Exception
-
         self.total.crit = self.Store.energy_best
         self.main.crit=0
         self.sub.crit=0
@@ -164,7 +143,7 @@ class RunNOFT(QuantumRun):
 
     def _set_opt_parameters(self):
         self.f = min(self.Store.F_alpha,self.Store.F_beta)
-        self.kw_opt['unity']=self.unity*(1-self.f*0.5)
+        #self.kw_opt['unity']=self.kw_opt['unity']*(1-self.f*0.5)
         #print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
 
     def _OptNO(self):
@@ -238,10 +217,8 @@ class RunNOFT(QuantumRun):
             self.sub.iter+=1
         self.Store.update_full_ints()
 
-    def single(self,target,para,prop='en'):
+    def single(self,target,para):
         if target=='rdm':
-            if prop=='on':
-                self.QuantStore.random='on'
             self.E = self.kw_opt['function'](para)
         elif target=='orb':
             self.E = self.kw_orb_opt['function'](para)
@@ -252,7 +229,6 @@ class RunNOFT(QuantumRun):
         self._OptOrb()
 
     def find_occ(self,on=0,spin='alpha'):
-
         def f_test(para,**kw):
             self.single(para,**kw)
             if spin=='alpha':
@@ -264,6 +240,10 @@ class RunNOFT(QuantumRun):
                 **self.kw_opt)
         self.Run.initialize(self.QuantStore.parameters)
 
+    def go(self):
+        self.run()
+    def execute(self):
+        self.run()
 
 
 class RunRDM(QuantumRun):
@@ -275,9 +255,8 @@ class RunRDM(QuantumRun):
         self.kw = pre.RDM()
         self.rc=Cache()
         QuantumRun.__init(store,**kw)
-        self.Store.sp='rdm'
 
-    def go(self):
+    def run(self):
         if self.built:
             self._OptRDM()
             self._analyze()
@@ -285,7 +264,8 @@ class RunRDM(QuantumRun):
             sys.exit('# Not built yet! Run build() before execute(). ')
 
     def build(self):
-        QuantumRun.build(self)
+        QuantumRun._build_energy(self,mol)
+        QuantumRun._build_quantum(self)
         self.Store.fund_npara_orb()
         self.built=True
 
@@ -325,17 +305,8 @@ class RunRDM(QuantumRun):
             self.rc.iter+=1
         self.Store.update_rdm2()
 
-    def _load(self):
-        pass
-
-    def _analyze(self,
-            ):
-        if self.rc.err:
-            self.rc.done= True
-            print(self.rc.msg)
-            print(self.rc.msg)
-        if self.pr_g>0:
-            print('done!')
-
-
+    def go(self):
+        self.run()
+    def execute(self):
+        self.run()
 

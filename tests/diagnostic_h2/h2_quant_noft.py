@@ -1,10 +1,9 @@
 from pyscf import gto,scf,mcscf
 from pyscf.tools import molden,cubegen
-from hqca.main import sp
+from hqca.hqca import sp
 import sys
 import numpy as np
 from functools import reduce
-from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
 d = 0.5 #0.9374 +3.5626
@@ -15,12 +14,11 @@ mol.basis='sto-3g'
 mol.spin=0
 mol.verbose=0
 mol.build()
-mol.as_Ne = 2
-mol.as_No = mol.nbas #spatial
 #prog = sp(mol,'noft',calc_E=True,pr_g=2)
 filename = '/home/scott/Documents/research/software/hqca/examples/'
 filename +='sp-noft_041619-1630.run'
-prog =sp(mol,'noft',calc_E=True,verbose=False,restart=False)
+#prog =sp(mol,'noft',calc_E=True,verbose=False,restart=False)
+prog = sp(mol,theory='noft')
 kw_qc = {
         'Nqb':mol.as_No*2,
         'num_shots':4096,
@@ -40,7 +38,6 @@ kw_qc = {
         #'error_correction':None
         }
 kw_opt = {
-        #'optimizer':'NM-ng',
         'optimizer':'nevergrad',
         'unity':np.pi/2,
         'nevergrad_opt':'Cobyla',

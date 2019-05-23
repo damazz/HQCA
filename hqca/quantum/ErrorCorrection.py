@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-from hqca.tools.QuantumFramework import build_circuits,run_circuits,Construct
+from hqca.quantum.QuantumFramework import build_circuits,run_circuits,Construct
 
 class HyperPlane:
     '''
