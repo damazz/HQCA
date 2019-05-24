@@ -37,22 +37,27 @@ class RunNOFT(QuantumRun):
             **kw
             ):
         QuantumRun.__init__(self,**kw)
+        self.theory = 'noft'
         if mol==None:
             print('Did you forget to specify a mol object form pyscf?')
             print('Please try again.')
             sys.exit()
-        QuantumRun._build_energy(self,mol)
-        if self.Store.kw['Nels_as']==2:
+        QuantumRun._build_energy(self,mol,**kw)
+        if self.Store.Ne_as==2:
             self.kw = pre.NOFT_2e()
-        elif self.Store.kw['Nels_as']==3:
+        elif self.Store.Ne_as==3:
             self.kw = pre.NOFT_3e()
         else:
             print('Do not yet have support for more than 3 electron or less')
             print('than 2 electrons. Goodbye!')
             sys.exit()
+        self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
+        self.kw_opt = self.kw['qc']['opt']
         self.kw_orb = self.kw['orb']
-        self.kw_orb_opt = self.kw_orb['opt']
+        self.kw_orb_opt = self.kw['orb']['opt']
+        self.Store.pr_m = self.kw['pr_m']
+        self.Store.pr_s = self.kw['pr_s']
         self.total=Cache()
         self.Run = {}
 
@@ -81,6 +86,12 @@ class RunNOFT(QuantumRun):
         if not ('classical' in self.kw_qc['method']):
             self._pre()
         self.built=True
+        qf.get_direct_stats(self.QuantStore)
+
+
+    def update_var(self,**kw):
+        QuantumRun.update_var(self,**kw)
+        self.Store.pr_m = self.kw['pr_m']
 
     def _pre(self):
         try:
@@ -126,6 +137,7 @@ class RunNOFT(QuantumRun):
                 print(self.sub.msg)
         elif abs(self.main.crit-self.sub.crit)<crit:
             self.total.done=True
+            self.Store.opt_analysis()
         elif self.total.iter>=max_iter:
             self.total.done=True
             self.total.err=True
@@ -184,9 +196,6 @@ class RunNOFT(QuantumRun):
             self.main.iter+=1
         self.kw_opt['shift']=self.Run[key].opt.best_y.copy()
         self.Store.update_rdm2()
-        if self.QuantStore.random in ['on','on_opt_a','on_opt_b','on_opt']:
-            self.total.done = True
-            sys.exit()
 
     def _OptOrb(self):
         self.sub=Cache()
@@ -216,7 +225,7 @@ class RunNOFT(QuantumRun):
                 self.Run[key].opt_done=True
             self.sub.iter+=1
         self.Store.update_full_ints()
-
+    
     def single(self,target,para):
         if target=='rdm':
             self.E = self.kw_opt['function'](para)
@@ -252,9 +261,10 @@ class RunRDM(QuantumRun):
     wavefunction.
     '''
     def __init__(self,store,**k):
+        QuantumRun.__init__(self)
         self.kw = pre.RDM()
         self.rc=Cache()
-        QuantumRun.__init(store,**kw)
+        self.theory = 'rdm'
 
     def run(self):
         if self.built:

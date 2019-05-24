@@ -87,10 +87,10 @@ def _UCC2_full(qgdc,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):
 
 
 def _UCC2_1s(qgdc,phi,i,j,k,l,skip=False,**kw):
-    if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
-        phi= -0.01+2*pi*(phi//(2*pi))
-    elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
-        phi= 0.01 +2*pi*(pi//(2*pi))
+    #if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+    #    phi= -0.01+2*pi*(phi//(2*pi))
+    #elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+    #    phi= 0.01 +2*pi*(pi//(2*pi))
     sequence = [['y','h','h','h']] #,['y','y','y','h']]
     var =  [[+1]]#,[-1]]
     index = [i,j,k,l]
@@ -107,7 +107,8 @@ def _UCC2_1s(qgdc,phi,i,j,k,l,skip=False,**kw):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
             qgdc.cg+=1
-        qgdc.qc.rz(phi*var[nt][0],qgdc.q[l])
+        #qgdc.qc.rz(phi*var[nt][0],qgdc.q[l])
+        qgdc.qc.rz(phi,qgdc.q[l])
         qgdc.sg+=1
         for control in reversed(range(i,l)):
             target = control+1

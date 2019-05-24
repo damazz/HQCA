@@ -23,17 +23,20 @@ class QuantumStorage:
             pr_g=0,
             qc=True,
             opt=None,
+            info='calc',
             method='variational',
             **kwargs
             ):
         self.opt_kw = opt
+        self.kwargs = kwargs
         self.pr_g =pr_g
         self.method = method
         self.qc = qc
+        self.info = info
         if qc:
-            self._set_up_backend(**kwargs)
-            self._set_up_algorithm(**kwargs)
-            self._set_up_error_correction(**kwargs)
+            self._set_up_backend(**self.kwargs)
+            self._set_up_algorithm(**self.kwargs)
+            self._set_up_error_correction(**self.kwargs)
         else:
             # need to check to make sure method is compatible
             classically_supported = ['borland-dennis','carlson-keller']
@@ -42,10 +45,11 @@ class QuantumStorage:
             else:
                 sys.exit('Trying to run a non-supported classical algorithm.')
 
+
     def _set_up_algorithm(self,
             pr_q=0,
-            Nels_as=None,  
-            Norb_as=None,
+            Ne_as=None,  
+            No_as=None,
             alpha_mos=None,
             beta_mos=None,
             Sz=0,
@@ -64,17 +68,18 @@ class QuantumStorage:
             tomo_approx=None,
             **kwargs
             ):
+        self.pr_q = pr_q
         self.theory=theory
         self.spin_mapping = spin_mapping
         self.ansatz = ansatz
-        self.No = Norb_as # note, spatial orbitals
+        self.No = No_as # note, spatial orbitals
         self.alpha = alpha_mos
         self.beta = beta_mos
-        self.Ne = Nels_as # active space
+        self.Ne = Ne_as # active space
         if spin_mapping in ['default','alternating']:
-            self.Ne_alp = int(0.5*Nels_as+Sz)
+            self.Ne_alp = int(0.5*Ne_as+Sz)
         else:
-            self.Ne_alp = int(Nels_as)
+            self.Ne_alp = int(Ne_as)
         self.tomo_bas = tomo_basis
         self.tomo_rdm = tomo_rdm
         self.tomo_ext = tomo_extra
@@ -91,46 +96,64 @@ class QuantumStorage:
             self._gip()
             if self.tomo_ext in ['sign_2e','sign_2e_pauli']:
                 self._get_2e_no()
+        self.kwargs=kwargs
 
     def _set_up_backend(self,
-            Nq=10,
+            Nq=4,
             Nq_backend=20,
+            Nq_ancilla=0,
             backend='qasm_simulator',
             backend_coupling_layout=None,
             backend_initial_layout=None,
-            noise=True,
+            backend_file=None,
+            noise=False,
             noise_model_location=None,
-            circuit_times=None,
-            transpile=False,
+            noise_gate_times=None,
+            transpile='default',
+            transpiler_keywords={},
             num_shots=1024,
             provider='Aer',
             **kwargs):
         self.alpha_qb = [] # in the backend basis
         self.beta_qb  = [] # backend set of qubits
+        self.transpile=transpile
+        if self.transpile in [True,'default']:
+            self.transpile='default'
+        elif self.transpile in ['test']:
+            pass
+        else:
+            print('Transpilation scheme not recognized.')
+            sys.exit()
+        self.transpiler_keywords = transpiler_keywords
         self.be_initial = backend_initial_layout
         self.be_coupling = backend_coupling_layout
+        self.be_file = backend_file
         self.Nq = Nq  # active qubits
         if Nq_backend is not None:
-            self.Nq_tot = Nq_backend
+            self.Nq_be = Nq_backend
         else:
-            self.Nq_tot = self.Nq
+            self.Nq_be = self.Nq
+        self.Nq_anc = Nq_ancilla
+
+        self.Nq_tot = self.Nq_anc+self.Nq
         self.backend = backend
         self.Ns = num_shots
         self.provider = provider
         self.use_noise = noise
+        self.noise_gate_times=noise_gate_times
         if self.use_noise:
             self.noise_model = NoiseSimulator.get_noise_model(
                     device=backend,
-                    times=circuit_times,
+                    times=noise_gate_times,
                     saved=noise_model_location)
         self.noise_model_loc = noise_model_location
+        self.kwargs=kwargs
 
     def _set_up_error_correction(self,
             pr_e=0,
-            Nq_ancilla=0,
             ec=False,
-            ec_method='parity',
-            ec_ent_list ='default',
+            ec_method=None,
+            ec_ent_list='default',
             **kwargs
             ):
         '''
@@ -139,10 +162,11 @@ class QuantumStorage:
         (2) Correction in a entangler, in circuit
         (3) Syndrome, in circuit
         '''
-        self.Nq_ancilla = Nq_ancilla
+        self.pr_e = pr_e
         self.ec = ec
         self.ec_method = ec_method
         self.ec_type = None
+        self.ancilla_qb = []
         if self.ec_method=='hyperplane':
             self._get_hyper_para()
             self.ec_type='p'
@@ -150,14 +174,13 @@ class QuantumStorage:
             self._get_hyper_para(expand=True)
             self.ec_type='p'
         else:
-            self.ancilla_qb = []
-            for i in range(self.Nq,self.Nq+Nq_ancilla):
-                print(self.Nq)
-                print(i)
-                if i<=self.Nq_tot:
+            for i in range(self.Nq,self.Nq_tot):
+                if i<=self.Nq_be:
                     # basically your available ancilla
                     self.ancilla_qb.append(i)
-        print(self.ancilla_qb)
+        print('Number of active qubits: {}'.format(self.Nq))
+        print('Number of ancilla qubits: {}'.format(len(self.ancilla_qb)))
+        print('Number of backend qubits: {}'.format(self.Nq_tot))
         if self.ec_method=='parity':
             self.ec_circ = 'parity'
             self.ec_type = 's'
@@ -166,7 +189,7 @@ class QuantumStorage:
                 ec_ent_list = [1]*self.N_ent
             if len(ec_ent_list)<self.N_ent:
                 print('## QuantumFunctions ##')
-                print('Not enough specified ec functions for a parity check.')
+                print('Not enough specified functions for a parity check.')
                 sys.exit('Goodbye!')
             else:
                 self.ec_ent_list = ec_ent_list
@@ -176,6 +199,7 @@ class QuantumStorage:
             self.ec_keys = zip(self.ec_keys,self.ancilla_qb)
         elif self.ec=='multi':
             pass
+        self.kwargs=kwargs
 
 
     def _get_hyper_para(self,expand=False):
@@ -198,7 +222,6 @@ class QuantumStorage:
                     del temp[-1]
                     self.ec_para.append(temp)
                 self.ec_para = [self.ec_para]
-                print(self.ec_para)
             elif expand:
                 arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
                 self.ec_para = []
@@ -328,10 +351,8 @@ class QuantumStorage:
             # and not the actula qb's 
             if self.ent_pairs in ['sd','d']:
                 for k in range(self.No,self.No+len(self.beta_qb)-1):
-                    print(k)
                     i= k%self.No
                     self.quad_list.append([i,i+1,k,k+1,'-+-+','aabb'])
-                    print(i,i+1,k,k+1)
         # now, order them 
         self.qc_quad_list = []
         for quad in self.quad_list:
@@ -475,100 +496,104 @@ class QuantumStorage:
         if self.pr_g>1:
             print('Number of initial parameters: {}'.format(self.Np))
 
-def get_direct_stats(QuantStore,extra=False):
-    '''
-    function to do a few statistics on the proposed circuit,
-    namely it can:
-        do simple circuit gate counts
-        draw the pre- and post- compiled/transpiled circuits
+def print_qasm(circuit):
+    filename = input('Save qasm as: ')
+    print('Great!')
+    print(circuit.qasm())
+    print(circuit.count_ops())
+    with open('{}.qasm'.format(filename),'w') as fp:
+        fp.write(circuit.qasm())
 
+def get_direct_stats(QuantStore):
     '''
-    from hqca.quantum import BuildCircuit
+    function to preview and visualize circuits, can use one of the test examples
+    as a good template
+
+    'draw' - draw simple circuit
+    'tomo' - draw circuit with tomography
+    'build'- construct circuit with transpiler
+    'qasm' - get qasm from transpiler
+    'calc' - calculate counts
+    'stats'- do some more compilcated statistics
+    '''
+    from hqca.quantum.QuantumFramework import build_circuits
+    from qiskit import Aer,IBMQ,execute
+    from qiskit.tools.monitor import backend_overview
+    from qiskit.compiler import transpile
+
+    hold_para = QuantStore.parameters.copy()
     QuantStore.parameters=[1]*QuantStore.Np
-    test = BuildCircuit.GenerateDirectCircuit(QuantStore)
-    if QuantStore.pr_g>1:
-        print('# Getting circuit parameters...')
-        print('#')
-        print('# Gate counts:')
-        print('#  N one qubit gates: {}'.format(test.sg))
-        print('#  N two qubit gates: {}'.format(test.cg))
-        print('# ...done.')
-        print('# ')
+    qcirc,qcirc_list = build_circuits(QuantStore)
+    extra = QuantStore.info
+    print('')
     if extra=='draw':
-        try:
-            print(test.qc)
-            test.qc.measure(test.q,test.c)
-            test.qc.draw()
-        except Exception as e:
-            print(e)
+        print(qcirc[0])
+        print(qcirc[0].count_ops())
     elif extra=='tomo':
-        print('Trying to draw.')
-        try:
-            print(test.qc)
-            test.qc.draw()
-        except Exception as e:
-            print(e)
-    elif extra in ['compile','qasm']:
-        def print_qasm(circuit):
-            print(circuit.qasm())
-            print(circuit.count_ops())
-            with open('h3_qasm.txt','w') as fp:
-                fp.write(circuit.qasm())
-        from qiskit import Aer,IBMQ,execute
-        from qiskit.mapper import Layout
-        from qiskit.transpiler import transpile
-        from qiskit.compiler import assemble_circuits
-        from qiskit.tools.monitor import backend_overview
-        import qiskit
+        for c,n in zip(qcirc,qcirc_list):
+            print('Circuit name: {}'.format(n))
+            print(c)
+            print(c.count_ops())
+    elif extra=='calc':
+        print('Gate counts:')
+        print(qcirc[0].count_ops())
+    elif extra=='ibm':
         IBMQ.load_accounts()
-        test.qc.measure(test.q,test.c)
+        be = IBMQ.get_backend(QuantStore.backend)
+        qt = transpile(qcirc[0],
+                backend=be,
+                **QuantStore.transpiler_keywords
+                )
+        print(qt)
+        print(qt.count_ops())
+    elif extra in ['qasm','build','stats']:
+        if extra=='stats':
+            print('Initial gate counts: ')
+            print(qcirc[0].count_ops())
         be = Aer.get_backend('qasm_simulator')
-        if extra=='compile':
-            print(test.qc)
-        else:
-            import os 
-        #layout = Layout()
-        if QuantStore.be_coupling in [None,False]:
-            IBMQ.load_accounts()
-            backend_overview()
-            beo = IBMQ.get_backend(QuantStore.backend)
-            coupling = beo.configuration().coupling_map
+        print('Getting coupling.')
+        if QuantStore.be_file in [None,False]:
+            if QuantStore.be_coupling in [None,False]:
+                if QuantStore.backend=='qasm_simulator':
+                    coupling=None
+                else:
+                    IBMQ.load_accounts()
+                    backend_overview()
+                    beo = IBMQ.get_backend(QuantStore.backend)
+                    coupling = beo.configuration().coupling_map
+            else:
+                coupling = QuantStore.be_coupling
         else:
             try:
                 coupling = NoiseSimulator.get_coupling_map(
                         device=QuantStore.backend,
-                        saved=QuantStore.noise_model_loc
+                        saved=QuantStore.be_file
                         )
             except Exception as e:
                 print(e)
                 sys.exit()
-        if QuantStore.bec is not None:
-
-            layout = []
-            for i in QuantStore.bec:
-                layout.append(i)
-            '''
-            for i in QuantStore.bec:
-                if i is not None:
-                    layout.append((test.q,i))
-                else:
-                    layout.append(None)
-            '''
+        if type(QuantStore.be_initial)==type(None):
+            be_initial=None
+        print('Transpiling...')
+        if QuantStore.transpile=='default':
+            qt = transpile(qcirc[0],
+                    backend=be,
+                    coupling_map=coupling,
+                    initial_layout=be_initial,
+                    **QuantStore.transpiler_keywords
+                    )
         else:
-            layout = None
-        qt = transpile(test.qc,
-                backend=be,
-                coupling_map=coupling,
-                initial_layout=layout
-                )
-        #qo = be.run(qt)
-        #result = execute(qt,be).result()
-        print_qasm(qt)
-        print(qt)
+            pass
+        if extra=='qasm':
+            print_qasm(qt)
+        elif extra=='build':
+            print(qt)
+            print(qt.count_ops())
+        elif extra=='stats':
+            print('Gates after compilation/transpilation')
+            print(qt.count_ops())
 
-        #print(result.get_counts())
-        sys.exit()
-    QuantStore.parameters=[0]*QuantStore.Np
+    QuantStore.parameters=hold_para
 
 
 

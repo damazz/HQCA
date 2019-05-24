@@ -49,8 +49,9 @@ class Process:
         if self.qs.pr_q>2:
             print('Circuit, counts:')
         for name,counts in output:
-            if 's' in self.qs.ec_type: #syndrome type
-                counts = self._syndrome(counts)
+            if self.qs.ec:
+                if 's' in self.qs.ec_type: #syndrome type
+                    counts = self._syndrome(counts)
             prbdis = self.proc_counts(counts)
             if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
@@ -164,8 +165,7 @@ class Process:
                     test = rdme['fo']
                 elif self.qs.tomo_approx=='so':
                     test = rdme['so']
-                if test<0:
-                    self.sign[n+1]=-1
+                self.sign[n+1]=test
                 if self.qs.pr_q>2:
                     print('rdm2 sign elements: {}'.format(rdme))
             self.holding = holding

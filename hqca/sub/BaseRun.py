@@ -15,16 +15,14 @@ class QuantumRun:
     '''
     Handles different runs which call the quantum functions package
     '''
-    def __init__(self,
-            theory):
-        self.theory = theory
+    def __init__(self,**kw):
         self.built = False
         self.restart = False
         self.Store=None
         now = datetime.datetime.today()
         m,d,y = now.strftime('%m'), now.strftime('%d'), now.strftime('%y')
         H,M,S = now.strftime('%H'), now.strftime('%M'), now.strftime('%S')
-        self.file = ''.join(('sp','-',theory,'_',m,d,y,'-',H,M))
+        self.file = ''.join(('sp','-',m,d,y,'-',H,M))
 
     def update_var(
             self,
@@ -47,8 +45,8 @@ class QuantumRun:
             for k,v in args.items():
                 self.kw_orb_opt[k]=v
 
-    def _build_energy(self,mol):
-        self.Store = enf.Store(mol)
+    def _build_energy(self,mol,**kw):
+        self.Store = enf.Storage(mol,**kw)
         self.Store.gas()
         self.Store.gsm()
         self.Store.update_full_ints()
@@ -57,18 +55,17 @@ class QuantumRun:
     def _build_quantum(self):
         self.kw_qc['theory']=self.theory
         if not self.Store==None:
-            self.kw_qc['Nels_as'] = self.Store.Nels_as
-            self.kw_qc['Norb_as']=self.Store.Norb_as
+            self.kw_qc['Ne_as'] = self.Store.Ne_as
+            self.kw_qc['No_as']=self.Store.No_as
             self.kw_qc['alpha_mos']=self.Store.alpha_mo
             self.kw_qc['beta_mos']=self.Store.beta_mo
-            self.kw_qc['single_point']=self.Store.sp
         else:
             try:
-                self.kw_qc['Nels_as']
+                self.kw_qc['Ne_as']
             except KeyError:
                 print('It is okay to not use energy, but you can\'t')
                 print('forget to specify the following parameters!')
-                print('  (1) Nels_as,   (2) Norb_as,')
+                print('  (1) Ne_as,   (2) No_as,')
                 print('  (3) alpha_mos, (4) beta_mos')
                 sys.exit()
         self.QuantStore = qf.QuantumStorage(**self.kw_qc)

@@ -22,25 +22,12 @@ def sp(theory,**kwargs):
     will return a single point energy calculation
     '''
     if theory=='noft':
-        return VQA.RunNOFT('noft',**kwargs)
+        return VQA.RunNOFT(**kwargs)
     elif theory=='rdm':
-        return VQA.RunRDM('rdm',**kwargs)
+        return VQA.RunRDM(**kwargs)
 
-class scan:
-    '''
-    special class for performing scans or more specific analysis of the
-    optimization or exploring the parameters in the optimization
-
-    might need to get storage, but maybe not! heh heh we have a good partition
-    now
-    '''
-    def update_rdm(self,para):
-        self.run.single('rdm',para)
-        #self.Store.update_rdm2()
-
-    def update_full_ints(self,para):
-        self.run.single('orb',para)
-        self.Store.update_full_ints()
+def scan(**kwargs):
+    return Scan.Scan(**kwargs)
 
 
 def circuit(theory,**kwargs):

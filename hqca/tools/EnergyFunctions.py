@@ -77,32 +77,35 @@ class Storage:
             mol,
             Ne_as='default',
             No_as='default',
-            casci_ref=False,
+            casci=False,
             **kwargs):
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e_ao = self.V_1e+self.T_1e
-        self.Norb = self.S.shape[0]
         self.ints_2e_ao = mol.intor('int2e')
         self.hf = scf.RHF(mol)
         self.hf.kernel()
+        self.mol = mol
         self.hf.analyze()
         self.C= self.hf.mo_coeff
         if Ne_as=='default':
-            self.Ne_as = mol.nelec[0]+mol.elec[1]
+            self.Ne_as = mol.nelec[0]+mol.nelec[1]
         else:
             self.Ne_as = int(Ne_as)
+        self.Ne_tot = mol.nelec[0]+mol.nelec[1]
         if No_as=='default':
             self.No_as = self.C.shape[0]
         else:
             self.No_as = int(No_as)
-        if casci_ref:
+        self.No_tot = self.C.shape[0]
+        if casci:
             self.mc = mcscf.CASCI(
                     self.hf,
                     self.No_as,
                     self.Ne_as)
             self.mc.kernel()
+            self.e_casci = self.mc.e_tot
         else:
             self.mc = None
         self.E_ne = self.mol.energy_nuc()
@@ -111,14 +114,13 @@ class Storage:
         self.energy_int = 0
         self.wf = {}
         self.rdm2=None
-        self.ints_1e =None
         self.Ci = np.linalg.inv(self.C)
+        self.ints_1e =None
         self.ints_2e = None
-        self.E_ne = E_ne
-        self.T_alpha = self.C
-        self.T_beta  = self.C
+        self.T_alpha = self.C.copy()
+        self.T_beta  = self.C.copy()
         self.opt_T_alpha = None
-        self.opt_T_beta  = None
+        self.opt_T_beta = None
         self.opt_done = False
         self.error = False
         self.occ_energy_calls = 0
@@ -146,10 +148,10 @@ class Storage:
                     Na = 1
                     Nb = 0
                 if self.kw['entangled_pairs']=='full':
-                    N = 0.5*((self.Norb_as*Na)**2-self.Norb_as*Na)
-                    N += 0.5*((self.Norb_as*Nb)**2-self.Norb_as*Nb)
+                    N = 0.5*((self.No_as*Na)**2-self.No_as*Na)
+                    N += 0.5*((self.No_as*Nb)**2-self.No_as*Nb)
                 elif self.kw['entangled_pairs']=='sequential':
-                    N = self.Norb_as-1
+                    N = self.No_as-1
                 elif self.kw['entangled_pairs']=='specified':
                     pass
                 self.parameters = [0 for i in range(int(N))]
@@ -163,10 +165,6 @@ class Storage:
         self._generate_active_space(**self.kw)
 
     def _generate_active_space(self,
-            Nels_tot,
-            Norb_tot,
-            Nels_as,
-            Norb_as,
             spin_mapping='default',
             **kw
             ):
@@ -185,44 +183,40 @@ class Storage:
                 'virtual':[],
                 'qc':[]
                 }
-        self.Nels_tot= Nels_tot
-        self.Nels_as = Nels_as
-        self.Norb_tot= Norb_tot
-        self.Norb_as = Norb_as
-        self.Nels_ia = self.Nels_tot-self.Nels_as
-        self.Norb_ia = self.Nels_ia//2
+        self.Ne_ia = self.Ne_tot-self.Ne_as
+        self.No_ia = self.Ne_ia//2
         self.spin = spin_mapping
-        self.Norb_v  = self.Norb_tot-self.Norb_ia-self.Norb_as
-        if self.Nels_ia%2==1:
+        self.No_v  = self.No_tot-self.No_ia-self.No_as
+        if self.Ne_ia%2==1:
             raise(SpinError)
-        if self.Nels_ia>0:
+        if self.Ne_ia>0:
             self.active_space_calc='CASSCF'
         ind=0 
-        for i in range(0,self.Norb_ia):
+        for i in range(0,self.No_ia):
             self.alpha_mo['inactive'].append(ind)
             ind+=1
-        for i in range(0,self.Norb_as):
+        for i in range(0,self.No_as):
             self.alpha_mo['active'].append(ind)
             ind+=1
-        for i in range(0,self.Norb_v):
+        for i in range(0,self.No_v):
             self.alpha_mo['virtual'].append(ind)
             ind+=1
-        for i in range(0,self.Norb_ia):
+        for i in range(0,self.No_ia):
             self.beta_mo['inactive'].append(ind)
             ind+=1
-        for i in range(0,self.Norb_as):
+        for i in range(0,self.No_as):
             self.beta_mo['active'].append(ind)
             ind+=1
-        for i in range(0,self.Norb_v):
+        for i in range(0,self.No_v):
             self.beta_mo['virtual'].append(ind)
             ind+=1
 
     def _generate_spin2spac_mapping(self):
         self.s2s = {}
-        for i in range(0,self.Norb_tot):
+        for i in range(0,self.No_tot):
             self.s2s[i]=i
-        for i in range(self.Norb_tot,2*self.Norb_tot):
-            self.s2s[i]=i-self.Norb_tot
+        for i in range(self.No_tot,2*self.No_tot):
+            self.s2s[i]=i-self.No_tot
 
     def opt_update_wf(self,energy,wf,para):
         if energy<self.energy_wf:
@@ -247,7 +241,7 @@ class Storage:
                 self.beta_mo,
                 region='full')
         self.rdm1 = rdmf.check_2rdm(
-                self.rdm2,self.Nels_tot)
+                self.rdm2,self.Ne_tot)
         self.rdm2 = fx.contract(self.rdm2)
 
     def update_full_ints(self):
@@ -257,18 +251,7 @@ class Storage:
             self.T_alpha = self.opt_T_alpha.copy()
             self.T_beta  = self.opt_T_beta.copy()
         except Exception as e:
-            print('ERROR ERROR ERROR')
-            print(e)
-            print('')
-            print('')
-            print('')
-            print('')
-            print('')
-            print('')
-            print('')
-            print('')
-        #self.opt_T_alpha = None
-        #self.opt_T_beta = None
+            pass
         self.ints_1e = chem.gen_spin_1ei(
                 self.ints_1e_ao.copy(),
                 self.T_alpha.T,
@@ -291,15 +274,15 @@ class Storage:
         # now, determining trace fidelity
         self.F_alpha = abs((reduce(np.dot, (
                 self.T_alpha_old.T,
-                self.Ci_a.T,
-                self.Ci_a,
+                self.Ci.T,
+                self.Ci,
                 self.T_alpha
                 )
             ).trace()))*(1/len(self.T_alpha))
         self.F_beta = abs((reduce(np.dot, (
                 self.T_beta_old.T,
-                self.Ci_b.T,
-                self.Ci_b,
+                self.Ci.T,
+                self.Ci,
                 self.T_beta
                 )
             ).trace()))*(1/len(self.T_beta))
@@ -342,30 +325,30 @@ class Storage:
     def opt_analysis(self):
         print('  --  --  --  --  --  --  -- ')
         print('--  --  --  --  --  --  --  --')
+        print('E, scf: {:.9f} H'.format(self.hf.e_tot))
         print('E, run: {:.9f} H'.format(self.energy_best))
         try:
-            diff = 1000*( self.energy_best-self.kw['e_fci'])
-            print('E, fci: {:.9f} H'.format(self.kw['e_fci']))
+            diff = 1000*( self.energy_best-self.e_casci)
+            print('E, fci: {:.9f} H'.format(self.e_casci))
             print('Energy difference from FCI: {:.8f} mH'.format(diff))
         except KeyError:
             pass
-        rdm1 = rdmf.check_2rdm(fx.expand(self.rdm2),self.Nels_tot)
+        rdm1 = rdmf.check_2rdm(fx.expand(self.rdm2),self.Ne_tot)
         print('Occupations of the 1-RDM:')
         print(np.real(np.diag(rdm1)))
         print('Natural orbital wavefunction:')
         for k,v in self.wf.items():
             print(' |{}>: {}'.format(k,v))
-        self.Ci_a = np.linalg.inv(self.C_a)
-        self.Ci_b = np.linalg.inv(self.C_b)
+        self.Ci = np.linalg.inv(self.C)
         self.Ti_a = np.linalg.inv(self.T_alpha)
         self.Ti_b = np.linalg.inv(self.T_beta)
         Ni_a = reduce(
                 np.dot, (
-                    self.Ti_a,self.C_a)
+                    self.Ti_a,self.C)
                 )
         Ni_b = reduce(
                 np.dot, (
-                    self.Ti_b,self.C_b)
+                    self.Ti_b,self.C)
                 )
         rdm2_mo = rdmf.rotate_2rdm(
                 fx.expand(self.rdm2),
@@ -378,7 +361,7 @@ class Storage:
                 )
         rdm1_mo = rdmf.check_2rdm(
                 rdm2_mo,
-                self.Nels_tot)
+                self.Ne_tot)
         print('1-RDM in the molecular orbital basis.')
         print(np.real(rdm1_mo))
         print('NO coefficients (in terms of MO):')
@@ -404,13 +387,12 @@ class Storage:
                 s2s=self.s2s)
         print('1-RDM in the Lowdin atomic orbital basis.')
         #print('MO coefficients: ')
-        #print(self.C_a)
-        rdm1_mo_a = rdm1_mo[0:self.Norb_tot,0:self.Norb_tot]
-        rdm1_mo_b = rdm1_mo[self.Norb_tot:,self.Norb_tot:]
+        rdm1_mo_a = rdm1_mo[0:self.No_tot,0:self.No_tot]
+        rdm1_mo_b = rdm1_mo[self.No_tot:,self.No_tot:]
         print('Alpha:')
-        print(np.real(reduce(np.dot, (self.C_a,rdm1_mo_a,self.Ci_a))))
+        print(np.real(reduce(np.dot, (self.C,rdm1_mo_a,self.Ci))))
         print('Beta:')
-        print(np.real(reduce(np.dot, (self.C_b,rdm1_mo_b,self.Ci_b))))
+        print(np.real(reduce(np.dot, (self.C,rdm1_mo_b,self.Ci))))
         print('Sz value: {:.6f}'.format(np.real(sz)))
         print('S2 value: {:.6f}'.format(np.real(s2)))
         print('--  --  --  --  --  --  --  --')
@@ -438,12 +420,6 @@ class Storage:
             print('Difference in orbital and occupation energies: {:8f} mH'.format(diff))
         self.energy_wf  = 0
         self.energy_int = 0 
-
-    def update_fci(self,energy,ints_1e_no,ints_2e_no):
-        self.fci = energy
-        self.energy_int = energy
-        self.ints_1e = ints_1e_no
-        self.ints_2e = ints_2e_no
 
     def update_calls(self,orb,occ):
         self.occ_energy_calls +=  occ
@@ -484,12 +460,12 @@ def rotation_parameter_generation(
         -outputs the rotation matrix (require para input)
         -otherwise, outputs array with zeros that is the proper length
     '''
-    Norb_tot = len(spin_mo['virtual']+spin_mo['active']+spin_mo['inactive'])
+    No_tot = len(spin_mo['virtual']+spin_mo['active']+spin_mo['inactive'])
     if output=='matrix':
-        rot_mat = np.identity(Norb_tot)
+        rot_mat = np.identity(No_tot)
     count =  0
     hold=[]
-    N = Norb_tot
+    N = No_tot
     if region in ['active','as','active_space']:
         for i in spin_mo['active']:
             for j in spin_mo['active']:
@@ -515,7 +491,7 @@ def rotation_parameter_generation(
         if output=='matrix':
             if para[count]==0:
                 continue
-            temp=np.identity(Norb_tot)
+            temp=np.identity(No_tot)
             c = np.cos(((para[count])))
             s = np.sin(((para[count])))
             temp[z[0],z[0]] = c

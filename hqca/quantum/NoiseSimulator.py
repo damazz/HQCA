@@ -40,11 +40,7 @@ def get_coupling_map(device,saved=True):
         coupling = backend.configuration
     else:
         try:
-            loc = hqca.__file__
-            if loc[-11:]=='__init__.py':
-                loc = loc[:-12]
-            loc =  loc+'/results/logs/'+saved
-            with open(loc,'rb') as fp:
+            with open(saved,'rb') as fp:
                 data = pickle.load(fp)
         except FileNotFoundError:
             print('Wrong one :(')

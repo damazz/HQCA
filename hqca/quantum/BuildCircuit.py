@@ -1,5 +1,6 @@
 #from qiskit import register, available_backends, get_backend
 from qiskit import execute
+from qiskit.circuit import Parameter
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
 import hqca.quantum.algorithms._UCC as ucc
 import hqca.quantum.algorithms._ECC as ecc
@@ -7,6 +8,7 @@ import hqca.quantum.algorithms._Entanglers as ent
 import hqca.quantum.algorithms._Tomo as tomo
 from math import pi
 import traceback
+import sys
 '''
 
 ./tools/GenerateCircuit.py
@@ -16,7 +18,6 @@ Two main classes:
         - used in general mapping
     - GenerateCompactCircuit
         - used in special mapping cases
-    - 
 
 '''
 tf_ibm_qx2 = {'01':True,'02':True, '12':True, '10':False,'20':False, '21':False}
@@ -80,6 +81,8 @@ class GenerateDirectCircuit:
                     }
                 }
         self.para = QuantStore.parameters
+        self.Np = len(self.para)
+        self.para = [Parameter('p{}'.format(i)) for i in range(self.Np)]
         self.qs = QuantStore
         self.Nq = QuantStore.Nq_tot
         self.q = QuantumRegister(self.Nq,name='q')
@@ -89,6 +92,15 @@ class GenerateDirectCircuit:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
+        try:
+            self.ent_p =  self.ents[self.qs.ent_circ_p]
+            self.ent_q =  self.ents[self.qs.ent_circ_q]
+        except KeyError:
+            print('')
+            print('Incorrect entangling gate.')
+            print('Supported gates are: ')
+            print(list(self.ents.keys()))
+            sys.exit()
         self.ent_p =  self.ents[self.qs.ent_circ_p]['f']
         self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
         self.ent_q =  self.ents[self.qs.ent_circ_q]['f']
@@ -159,8 +171,6 @@ class GenerateDirectCircuit:
                 h+= self.ent_Nq
                 if self.qs.ec:
                     n+= self.ec_Nq
-
-
 
 
 class GenerateCompactCircuit:

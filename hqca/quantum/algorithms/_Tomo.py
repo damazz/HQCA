@@ -1,25 +1,27 @@
-def __apply_pauli_op(qgdc,loc,sigma='x'):
+from math import pi
+
+def _apply_pauli_op(qgdc,loc,sigma='x'):
     if sigma=='z':
         pass
     elif sigma=='x':
-        qgdc.qc.h(self.q[loc])
+        qgdc.qc.h(qgdc.q[loc])
     elif sigma=='i':
         pass
     elif sigma=='y':
-        qgdc.qc.rx(pi/2,self.q[loc])
+        qgdc.qc.rx(pi/2,qgdc.q[loc])
 
 def _pauli_2rdm(qgdc,i,j,k,l,pauli='zzzz'):
     '''
     applies operators on i,j,k,l, assuming that they are ordered
     '''
     for a in range(i+1,j):
-        qgdc.qc.z(self.q[a])
+        qgdc.qc.z(qgdc.q[a])
     for b in range(k+1,l):
-        qgdc.qc.z(self.q[b])
-    qgdc.__apply_pauli_op(i,pauli[0])
-    qgdc.__apply_pauli_op(j,pauli[1])
-    qgdc.__apply_pauli_op(k,pauli[2])
-    qgdc.__apply_pauli_op(l,pauli[3])
+        qgdc.qc.z(qgdc.q[b])
+    _apply_pauli_op(qgdc,i,pauli[0])
+    _apply_pauli_op(qgdc,j,pauli[1])
+    _apply_pauli_op(qgdc,k,pauli[2])
+    _apply_pauli_op(qgdc,l,pauli[3])
 
 def _ses_tomo_1rdm_(Q,i,k,imag=False):
     '''

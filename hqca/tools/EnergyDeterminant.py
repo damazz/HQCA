@@ -21,35 +21,6 @@ except ImportError:
     import Chem as chem
     import RDMFunctions as rdmf
 
-def build_2e_2rdm(
-        Store,
-        nocc,
-        idx,
-        signs=None,
-        pr_m=True,
-        ):
-    '''
-    builds and returns 2rdm for a wavefunction in the NO basis
-    '''
-    if type(signs)==type(None):
-        signs = [1]*N//2
-    Ne_tot = np.sum(nocc)
-    wf = {}
-    for i in range(0,N//2):
-        term = '0'*(i)+'1'+'0'*(N//2-i-1)
-        term+= term
-        val = np.sqrt(max(0,(nocc[idx[2*i]]+nocc[idx[2*i+1]])/2))
-        wf[term]=(signs[i])*val
-    wf = fx.extend_wf(wf,
-            Store.Norb_tot,
-            Store.Nels_tot,
-            Store.alpha_mo,
-            Store.beta_mo)
-    rdm2 = rdmf.build_2rdm(
-            wf,
-            Store.alpha_mo,
-            Store.beta_mo)
-    return wf,rdm2
 
 def build_2e_2rdm_spin(
         Store,
@@ -73,19 +44,23 @@ def build_2e_2rdm_spin(
         noccb = [noccb]
     norm = 0
     for i in range(0,N):
+        if signs[i]<0:
+            sgn=-1 
+        else:
+            sgn=1
         term = '0'*(i)+'1'+'0'*(N-i-1)
         term+= term
         val = np.sqrt(
                 max(0,(nocca[0][i]+noccb[0][i])/2)
                 )
-        wf[term]=(signs[i])*val
+        wf[term]=(sgn)*val
         norm += val**2
     norm = norm**(1/2)
     for key in wf.keys():
         wf[key]=wf[key]*(1/norm)
     wf = fx.extend_wf(wf,
-            Store.Norb_tot,
-            Store.Nels_tot,
+            Store.No_tot,
+            Store.Ne_tot,
             Store.alpha_mo,
             Store.beta_mo)
     rdm2 = rdmf.build_2rdm(
@@ -291,23 +266,12 @@ def energy_eval_nordm(
                 for i in range(N):
                     rev_idxa[idxa[i]]=i
                     rev_idxb[idxb[i]]=i
-                #noca = noca[idxa]
-                #nocb = nocb[idxb]
+                noca = noca[idxa]
+                nocb = nocb[idxb]
                 if Store.pr_m>2:
                     print('Eigenvalues: ')
                     print(noca)
                     print(nocb)
-            if QuantStore.random=='on': #i.e., a random keywor
-                return noca,nocb,proc
-            elif QuantStore.random=='on_opt_a':
-                oni = QuantStore.random2
-                return -noca[oni]
-            elif QuantStore.random=='on_opt_b':
-                oni = QuantStore.random2
-                return -nocb[oni]
-            elif QuantStore.random=='on_opt':
-                oni = QuantStore.random2
-                return -noca[oni]-nocb[oni]
             if QuantStore.ec=='hyperplane':
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T
@@ -339,25 +303,14 @@ def energy_eval_nordm(
                 for i in range(n+1,N):
                    wf[wfa[i]]*= np.sin(p/2)
             wf = fx.extend_wf(wf,
-                    Store.Norb_tot,
-                    Store.Nels_tot,
+                    Store.No_tot,
+                    Store.Ne_tot,
                     Store.alpha_mo,
                     Store.beta_mo)
             rdm2 = rdmf.build_2rdm(
                     wf,
                     Store.alpha_mo,
                     Store.beta_mo)
-            if QuantStore.random=='on': #i.e., a random keywor
-                return wf
-            elif QuantStore.random=='on_opt_a':
-                oni = QuantStore.random2
-                return -noca[oni]
-            elif QuantStore.random=='on_opt_b':
-                oni = QuantStore.random2
-                return -nocb[oni]
-            elif QuantStore.random=='on_opt':
-                oni = QuantStore.random2
-                return -noca[oni]-nocb[oni]
         if spin_mapping=='spin-free':
             rdm2 = rdmf.rotate_2rdm_unrestricted(
                     rdm2,
@@ -434,8 +387,8 @@ def energy_eval_nordm(
         wf = fx.map_wf(wf,wf_mapping)
         wf = fx.extend_wf(
                 wf,
-                Store.Norb_tot,
-                Store.Nels_tot,
+                Store.No_tot,
+                Store.Ne_tot,
                 Store.alpha_mo,
                 Store.beta_mo)
         if type(Store.rdm2)==type(None):
@@ -453,9 +406,9 @@ def energy_eval_nordm(
                     beta=Store.beta_mo,
                     region=region,
                     rdm2=Store.rdm2.copy())
-        rdm1 = rdmf.check_2rdm(rdm2,Store.Nels_tot)
+        rdm1 = rdmf.check_2rdm(rdm2,Store.Ne_tot)
         np.set_printoptions(precision=5)
-        norb = Store.Norb_tot
+        norb = Store.No_tot
         if method=='diagnostic':
             on, onv = np.linalg.eig(rdm1)
             on.sort()
@@ -466,7 +419,7 @@ def energy_eval_nordm(
             E_t = np.real(E_h1+E_h2+store.E_ne)
             return m_on[0:3],r_on[0:3],p_on[0:3],E_t
     elif method=='classical-diagnostic':
-        N = store.Norb_as//2
+        N = store.No_as//2
         if N==3:
             Theta,Phi = (para[0]+45)%90 - 45, (para[1]+45)%90 - 45
             pt,pp = (para[0]+45)//90, (para[1]+45)//90
@@ -487,8 +440,8 @@ def energy_eval_nordm(
         wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
         wf = fx.extend_wf(
                 wf,
-                store.Norb_tot,
-                store.Nels_tot,
+                store.No_tot,
+                store.Ne_tot,
                 store.alpha_mo,
                 store.beta_mo)
         if type(store.rdm2)==type(None):
@@ -506,7 +459,7 @@ def energy_eval_nordm(
                     beta=Store.beta_mo,
                     region=region,
                     rdm2=Store.rdm2.copy())
-        rdm1 = rdmf.check_2rdm(rdm2,Store.Nels_tot) # from that, build the spin 1RDM
+        rdm1 = rdmf.check_2rdm(rdm2,Store.Ne_tot) # from that, build the spin 1RDM
         on, onv = np.linalg.eig(rdm1)
         on.sort()
         on = on[A::-1]
@@ -520,7 +473,7 @@ def energy_eval_nordm(
         E_t = np.real(E_h1+E_h2+store.E_ne)
         return on[0:3], E_t
     elif method=='classical-default':
-        N = store.Norb_as
+        N = store.No_as
         if N==3:
             pt = (para[0]+45)//90
             pp = (para[1]+45)//90
@@ -543,8 +496,8 @@ def energy_eval_nordm(
         wf = fx.map_wf(wf,wf_mapping) # map wavefunction to Hamiltonian wf
         wf = fx.extend_wf(
                 wf,
-                store.Norb_tot,
-                store.Nels_tot,
+                store.No_tot,
+                store.Ne_tot,
                 store.alpha_mo,
                 store.beta_mo)
         if type(store.rdm2)==type(None):
@@ -562,7 +515,7 @@ def energy_eval_nordm(
                     beta=store.beta_mo,
                     region=region,
                     rdm2=store.rdm2.copy())
-        rdm1 = rdmf.check_2rdm(rdm2,store.Nels_tot) # from that, build the spin 1RDM
+        rdm1 = rdmf.check_2rdm(rdm2,store.Ne_tot) # from that, build the spin 1RDM
     else:
         sys.exit('Not configured yet. Goodbye!')
     rdm2 = fx.contract(rdm2)

@@ -17,7 +17,7 @@ from hqca.quantum.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtp
 from hqca.quantum.QuantumFunctions import diag
 from hqca.quantum.BuildCircuit import GenerateDirectCircuit
 from hqca.quantum.BuildCircuit import GenerateCompactCircuit
-from hqca.quantum.algorithms._Tomo import *
+from hqca.quantum.algorithms import _Tomo as tomo
 import sys, traceback
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile
@@ -194,6 +194,11 @@ def _direct_tomography(
                 operators = ['xxxx','yyyy']
             elif QuantStore.tomo_approx=='so':
                 operators = ['xxxx','xxyy','yyxx','yyyy']
+            else:
+                print('Improper tomography operators for tomography specified.')
+                print('In \'tomo_approx\' keyword, please use:')
+                print('(1) \'full\' , (2) \'fo\' , (3) \'so\'')
+                sys.exit()
             for op in operators:
                 temp = 'sign{}-{}-{}-{}-{}-{}'.format(
                         str(a),str(b),str(c),str(d),str(n),op)
@@ -201,7 +206,7 @@ def _direct_tomography(
                         QuantStore,
                         _name=temp
                         )
-                _pauli_2rdm(Q,a,b,c,d,pauli=op)
+                tomo._pauli_2rdm(Q,a,b,c,d,pauli=op)
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append([temp])
                 circuit.append(Q.qc)
@@ -298,27 +303,28 @@ def run_circuits(
             except Exception as e:
                 sys.exit()
                 print(e)
-    if QuantStore.bec is not None:
+    if QuantStore.be_initial is not None:
         layout = []
-        for i in QuantStore.bec:
+        for i in QuantStore.be_inital:
             if i is not None:
                 layout.append(i)
             else:
                 layout.append(None)
     else:
         layout = None
-    if QuantStore.transpile:
+    if QuantStore.transpile=='default':
         circuits = transpile(
                 circuits=circuits,
                 backend=beo,
                 coupling_map=coupling,
                 initial_layout=layout
                 )
+    else:
+        sys.exit('Configure pass manager.')
     qo = assemble(
             circuits,
             shots=QuantStore.Ns
             )
-
     if QuantStore.use_noise:
         try:
             job = beo.run(qo,backend_options=backend_options)
