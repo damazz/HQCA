@@ -1,4 +1,5 @@
 import numpy as np
+np.set_printoptions(precision=4,suppress=True)
 import sys
 from functools import reduce,partial
 from hqca.tools import RDMFunctions as rdmf

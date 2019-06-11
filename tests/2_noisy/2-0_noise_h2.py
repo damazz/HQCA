@@ -1,10 +1,9 @@
 from pyscf import gto,scf,mcscf
 from pyscf.tools import molden,cubegen
-from hqca.main import sp
+from hqca.hqca import sp
 import sys
 import numpy as np
 from functools import reduce
-from hqca.tools.bases.ccpvnz import h1,h2,h3,h4,h5
 
 mol = gto.Mole()
 d =0.85 # 0.9374 +0.5626
@@ -22,7 +21,8 @@ mol.as_No = mol.nbas #spatial
 #prog = sp(mol,'noft',calc_E=True,pr_g=2)
 prog = sp(mol,'noft',calc_E=True,verbose=True)
 kw_qc = {
-        'Nqb':mol.as_No*2,
+        'Nq':4,
+        'Nq_ancilla':1,
         #'Nqb_backend':5,
         'num_shots':2048,
         'entangler_q':'UCC2c12v3',
@@ -36,8 +36,20 @@ kw_qc = {
         'info':None,
         'use_radians':True,
         'pr_q':3,
-        'tomo_extra':'sign_2e_pauli',
-        'tomo_approx':'fo',
+        'ec_comp_ent':True,
+        'ec_comp_ent_kw':{
+            'ec_replace_quad':[ #list of quad sequences
+                { #entry for gate 1
+                    'replace':True,
+                    'N_anc':1,
+                    'circ':'pauli_UCC2_test',
+                    'kw':{'pauli':'xxxx'},
+                    'use':'sign',
+                    }
+                ]
+            },
+        'tomo_extra':'sign_2e_from_ancilla',
+        #'tomo_approx':'fo',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',
         'error_correction':'hyperplane'

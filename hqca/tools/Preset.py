@@ -1,11 +1,13 @@
+'''
+tools/Preset.py
+
+provides preset configurations for most....not sure if they are okay, or if they
+are really needed. But, good to have a default configuration. 
+
+'''
 from math import pi
-# pre.py
-#
-# Reads the configuration file, which has been set by the main program, and then
-# read in all of the parameters. Then, if any parameters have not been assigned,
-# critical ones which must be assigned as set to default values. 
-# 
-#
+ 
+
 
 def NOFT_2e():
     var = {

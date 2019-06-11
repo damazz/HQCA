@@ -12,25 +12,20 @@ def _UCC1(qgdc,phi,i,k,**kw):
             elif item=='y':
                 qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
             ind+=1
-            qgdc.sg+=1
         for control in range(i,k):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         qgdc.qc.rz(phi/2,qgdc.q[k])
         for control in reversed(range(i,k)):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         ind = 0
-        qgdc.sg+=1
         for item in term:
             if item=='h':
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
                 qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
             ind+=1
-            qgdc.sg+=1
 
 def _UCC2_full(qgdc,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):
     '''
@@ -65,33 +60,28 @@ def _UCC2_full(qgdc,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):
                 elif item=='y':
                     qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
                 ind+=1
-                qgdc.sg+=1
             for control in range(i,l):
                 target = control+1
                 qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-                qgdc.cg+=1
             qgdc.qc.rz(theta/8,qgdc.q[l])
-            qgdc.sg+=1
             for control in reversed(range(i,l)):
                 target = control+1
                 qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-                qgdc.cg+=1
             ind =  0
             for item in term:
                 if item=='h':
                     qgdc.qc.h(qgdc.q[index[ind]])
                 elif item=='y':
                     qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
-                qgdc.sg+=1
                 ind+=1
 
 
 def _UCC2_1s(qgdc,phi,i,j,k,l,skip=False,**kw):
-    #if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
-    #    phi= -0.01+2*pi*(phi//(2*pi))
-    #elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
-    #    phi= 0.01 +2*pi*(pi//(2*pi))
-    sequence = [['y','h','h','h']] #,['y','y','y','h']]
+    if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+        phi= -0.01+2*pi*(phi//(2*pi))
+    elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+        phi= 0.01 +2*pi*(pi//(2*pi))
+    sequence = [['h','h','h','y']] #,['y','y','y','h']]
     var =  [[+1]]#,[-1]]
     index = [i,j,k,l]
     for nt,term in enumerate(sequence):
@@ -100,27 +90,25 @@ def _UCC2_1s(qgdc,phi,i,j,k,l,skip=False,**kw):
             if item=='h':
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
-                qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
+                qgdc.qc.z(qgdc.q[index[ind]])
+                qgdc.qc.s(qgdc.q[index[ind]])
+                qgdc.qc.h(qgdc.q[index[ind]])
             ind+=1
         for control in range(i,l):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         #qgdc.qc.rz(phi*var[nt][0],qgdc.q[l])
         qgdc.qc.rz(phi,qgdc.q[l])
-        qgdc.sg+=1
         for control in reversed(range(i,l)):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         ind = 0
         for item in term:
             if item=='h':
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
-                qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
+                qgdc.qc.h(qgdc.q[index[ind]])
+                qgdc.qc.s(qgdc.q[index[ind]])
             ind+=1
 
 def _UCC2_2s(qgdc,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
@@ -146,25 +134,20 @@ def _UCC2_2s(qgdc,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
                 qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
             ind+=1
         for control in range(i,l):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         qgdc.qc.rz(phi*var[nt][0]/2,qgdc.q[l])
-        qgdc.sg+=1
         for control in reversed(range(i,l)):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         ind = 0
         for item in term:
             if item=='h':
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
                 qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
             ind+=1
 
 def _UCC2_4s(qgdc,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
@@ -197,24 +180,19 @@ def _UCC2_4s(qgdc,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
                 qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
             ind+=1
         for control in range(i,l):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         qgdc.qc.rz(phi*var[nt][0]/4,qgdc.q[l])
-        qgdc.sg+=1
         for control in reversed(range(i,l)):
             target = control+1
             qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-            qgdc.cg+=1
         ind = 0
         for item in term:
             if item=='h':
                 qgdc.qc.h(qgdc.q[index[ind]])
             elif item=='y':
                 qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
-            qgdc.sg+=1
             ind+=1
 

@@ -118,13 +118,13 @@ class Scan:
                 self.run.single(temp)
                 Ya.append(self.run.noca)
                 Yb.append(self.run.nocb)
-                test = self.run.proc.holding
-                stemp = []
-                for k in test.keys():
-                    stemp.append(test[k]['rdme']['fo'])
-                    stemp.append(test[k]['rdme']['so'])
-                    stemp.append(test[k]['rdme']['+-+-'])
-                S.append(stemp)
+                #test = self.run.proc.holding
+                #stemp = []
+                #for k in test.keys():
+                #    stemp.append(test[k]['rdme']['fo'])
+                #    stemp.append(test[k]['rdme']['so'])
+                #    stemp.append(test[k]['rdme']['+-+-'])
+                S.append(self.run.proc.signs[1:])
                 print('{:.1f}%'.format((n+1)*100/steps[0]))
             fig = plt.figure(figsize=(12,4))
             Xp = X*(180/np.pi)
@@ -139,15 +139,15 @@ class Scan:
             for i in range(Ya.shape[1]):
                 ax1.scatter(Xp, Ya[:,i],label='nocc{}'.format(i))
                 ax2.scatter(Xp, Yb[:,i],label='nocc{}'.format(i))
-                print('Std dev for alpha, beta occ {}'.format(i))
-                Av_a = np.average(Ya[:,i])
-                Av_b = np.average(Yb[:,i])
-                print(np.sqrt(np.sum(np.square(Ya[:,i]-Av_a))))
-                print(np.sqrt(np.sum(np.square(Yb[:,i]-Av_b))))
-            for i in range(S.shape[1]//3):
-                ax3.scatter(Xp, S[:,3*i],label='fo-{}'.format(i))
-                ax3.scatter(Xp, S[:,3*i+1],label='so-{}'.format(i))
-                ax3.scatter(Xp, S[:,3*i+2],label='to-{}'.format(i))
+                #print('Std dev for alpha, beta occ {}'.format(i))
+                #Av_a = np.average(Ya[:,i])
+                #Av_b = np.average(Yb[:,i])
+                #print(np.sqrt(np.sum(np.square(Ya[:,i]-Av_a))))
+                #print(np.sqrt(np.sum(np.square(Yb[:,i]-Av_b))))
+            for i in range(S.shape[1]):
+                ax3.scatter(Xp,S[:,i],label='sign-{}'.format(i))
+                #ax3.scatter(Xp, S[:,3*i+1],label='so-{}'.format(i))
+                #ax3.scatter(Xp, S[:,3*i+2],label='to-{}'.format(i))
             ax1.scatter(Xp,Ta,label='total')
             ax2.scatter(Xp,Tb,label='total')
             ax1.set_xlabel('alpha')
@@ -159,18 +159,21 @@ class Scan:
             para2 = np.linspace(lowers[1],uppers[1],steps[1])
             X,Y = np.meshgrid(para1,para2,indexing='ij')
             Np = len(shift)
-            Za = np.zeros((steps[0],steps[1],Np+1))
-            Zb = np.zeros((steps[0],steps[1],Np+1))
+            #Za = np.zeros((steps[0],steps[1],Np+1))
+            #Zb = np.zeros((steps[0],steps[1],Np+1))
+            Za,Zb = [],[]
             S = np.zeros((steps[0],steps[1],Np))
             for i,a in enumerate(para1):
+                Za.append([])
+                Zb.append([])
                 for j,b in enumerate(para2):
                     temp = shift.copy()
                     temp[index[0]]+=a
                     temp[index[1]]+=b
                     if self.run.QuantStore.qc:
                         self.run.single(para=temp)
-                        Ya.append(self.run.noca)
-                        Yb.append(self.run.nocb)
+                        Za[i].append(np.sort(self.run.noca)[::-1])
+                        Zb[i].append(self.run.nocb)
                         test = self.run.proc.holding
                         sign_key = self.run.QuantStore.tomo_approx
                         if sign_key=='full':
@@ -184,26 +187,28 @@ class Scan:
                         S[i,j,0]=wf['100100']*wf['010010']
                         S[i,j,1]=wf['001001']*wf['010010']
                 print('{:.1f}%'.format((i+1)*100/steps[0]))
+            Za = np.asarray(Za)
+            Zb = np.asarray(Zb)
             fig = plt.figure()
-            if self.scanning=='on':
+            if self.scanning=='occ':
                 ax1 = fig.add_subplot(231,projection='3d')
-                ax1.set_xlabel('x')
-                ax1.set_ylabel('y')
+                ax1.set_xlabel('Theta')
+                ax1.set_ylabel('Phi')
                 ax2 = fig.add_subplot(232,projection='3d')
-                ax2.set_xlabel('x')
-                ax2.set_ylabel('y')
+                ax2.set_xlabel('Theta')
+                ax2.set_ylabel('Phi')
                 ax3 = fig.add_subplot(233,projection='3d')
-                ax3.set_xlabel('x')
-                ax3.set_ylabel('y')
+                ax3.set_xlabel('Theta')
+                ax3.set_ylabel('Phi')
                 ax4 = fig.add_subplot(234,projection='3d')
-                ax4.set_xlabel('x')
-                ax4.set_ylabel('y')
+                ax4.set_xlabel('Theta')
+                ax4.set_ylabel('Phi')
                 ax5 = fig.add_subplot(235,projection='3d')
-                ax5.set_xlabel('x')
-                ax5.set_ylabel('y')
+                ax5.set_xlabel('Theta')
+                ax5.set_ylabel('Phi')
                 ax6 = fig.add_subplot(236,projection='3d')
-                ax6.set_xlabel('x')
-                ax6.set_ylabel('y')
+                ax6.set_xlabel('Theta')
+                ax6.set_ylabel('Phi')
                 ax1.plot_surface(X, Y,Za[:,:,0],
                   cmap=cm.coolwarm,
                   linewidth=1)
@@ -222,7 +227,6 @@ class Scan:
                 ax6.plot_surface(X,Y,Zb[:,:,2],
                   cmap=cm.coolwarm,
                   linewidth=1)
-                print(Za,Zb)
             elif self.scanning=='sign':
                 print(X,Y,S)
                 ax1 = fig.add_subplot(121,projection='3d')

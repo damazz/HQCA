@@ -1,3 +1,12 @@
+'''
+quantum/ErrorCorreciton.py
+
+Used to implement the hyperplane error correction, i.e. projection onto a GPC
+plane. Does not include other forms of error correction, although certain types
+of post correction might be suitable. 
+
+'''
+
 import numpy as np
 import sys
 from hqca.quantum.QuantumFramework import build_circuits,run_circuits,Construct

@@ -13,8 +13,6 @@ def _ent1_Ry_cN(qgdc,phi,i,k,ddphi=False,**kw):
         #for s in range(i,k):
             #qgdc.qc.cz(self.q[k],self.q[s])
             #qgdc.qc.z(self.q[s])
-        qgdc.cg+= 4
-        qgdc.sg+= 4
 
 def _Uent1_cN(qgdc,phi1,phi2,i,k,**kw):
     qgdc.qc.cx(self.q[k],self.q[i])
@@ -26,8 +24,6 @@ def _Uent1_cN(qgdc,phi1,phi2,i,k,**kw):
     qgdc.qc.rz(-phi1,self.q[k])
     qgdc.qc.x(self.q[k])
     qgdc.qc.cx(self.q[k],self.q[i])
-    qgdc.cg+= 3
-    qgdc.sg+= 4
 
 def _phase(qgdc,phi,theta,i,k,**kw):
     qgdc.qc.rz(phi,self.q[i])

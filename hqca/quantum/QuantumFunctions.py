@@ -1,12 +1,16 @@
 '''
 tools/QuantumFunctions
 
-
+Contains QuantumStorage and other useful quantum functions. Basically,
+QuantumStorage is a class which is needed for any quantum calculation on the QC.
+Generates important information to that end.
 '''
 import numpy as np
+np.set_printoptions(suppress=True,precision=4)
 import sys
 from math import pi
 from hqca.quantum import NoiseSimulator
+import hqca.quantum.algorithms._ECC as ecc
 class KeyDict(dict):
     def __missing__(self,key):
         return key
@@ -44,11 +48,12 @@ class QuantumStorage:
                 pass
             else:
                 sys.exit('Trying to run a non-supported classical algorithm.')
-
+        self.active_qb = self.alpha_qb+self.beta_qb
+        self.print_summary()
 
     def _set_up_algorithm(self,
             pr_q=0,
-            Ne_as=None,  
+            Ne_as=None,
             No_as=None,
             alpha_mos=None,
             beta_mos=None,
@@ -94,7 +99,10 @@ class QuantumStorage:
             self._map_rdm_jw()
             self._get_ent_pairs_jw()
             self._gip()
-            if self.tomo_ext in ['sign_2e','sign_2e_pauli']:
+            if self.tomo_ext in ['sign_2e',
+                    'sign_2e_pauli',
+                    'sign_2e_from_ancilla'
+                    ]:
                 self._get_2e_no()
         self.kwargs=kwargs
 
@@ -151,104 +159,159 @@ class QuantumStorage:
 
     def _set_up_error_correction(self,
             pr_e=0,
-            ec=False,
-            ec_method=None,
-            ec_ent_list='default',
+            ec_syndrome=False,
+            ec_syndrome_kw={},
+            ec_post=False,
+            ec_post_kw={},
+            ec_comp_ent=False, #composite entangler
+            ec_comp_ent_kw={},
+            ec_custom=False,
             **kwargs
             ):
         '''
         Note there are three types of error correction.
-        (1) Post correction
-        (2) Correction in a entangler, in circuit
-        (3) Syndrome, in circuit
+            (1) Post correction (hyperplane, symmetry)
+                ec_type = 'post'
+            (2) Correction in a entangler, in circuit
+                ec_type = 'ent'
+            (3) Syndrome, in circuit
+                ec_type = 'syndrome'
+        Honestly, probably better to just manually specify them...
         '''
         self.pr_e = pr_e
-        self.ec = ec
-        self.ec_method = ec_method
-        self.ec_type = None
-        self.ancilla_qb = []
-        if self.ec_method=='hyperplane':
+        self.ec_syndrome=ec_syndrome
+        self.ec_post=ec_post
+        self.ec_comp_ent=ec_comp_ent
+        self.ancilla = [] # used ancilla
+        self.ancilla_list = [i+self.Nq for i in range(self.Nq_anc)] # potential
+        if self.ec_post:
+            self.__set_ec_post_correction(**ec_post_kw)
+        if self.ec_syndrome:
+            self.__set_ec_syndrome(**ec_syndrome_kw)
+        if self.ec_comp_ent:
+            self.__set_ec_composite_entangler(**ec_comp_ent_kw)
+
+
+    def __set_ec_post_correction(self,
+            symm_verify=False,
+            symmetries=[],
+            hyperplane=False,
+            **kwargs):
+        '''
+        Used for hyper plane set-up, as well as verifying symmetries in the
+        wavefunction.
+        '''
+        self.hyperplane=hyperplane
+        self.symm_verify = symm_verify
+        self.symmetries = symmetries
+        if hyperplane:
             self._get_hyper_para()
-            self.ec_type='p'
-        elif self.ec_method=='hyperplane+':
-            self._get_hyper_para(expand=True)
-            self.ec_type='p'
+
+    def __set_ec_syndrome(self,
+            apply_syndromes={},
+            **kwargs):
+        try:
+            self.ancilla_sign
+        except Exception:
+            self.ancilla_sign=[]
+        '''
+        Included in the circuit, checks for certain types of errors, at
+        different locations in the overall circuit.
+
+        Includes circuits designed to check for symmetries of the system. Most
+        can simply be added at the end. Might use ancilla qubits, maybe not. 
+
+        locations, where to check for then
+        '''
+        self.syndromes = apply_syndromes
+        ind = 0
+        for synd,locations in self.syndromes.items():
+            for item in locations:
+                try:
+                    item['ancilla']=self.ancilla_list[ind:ind+item['N_anc']]
+                except Exception as e:
+                    print(e)
+                    sys.exit('Huh.')
+                self.ancilla += self.ancilla_list[ind:ind+item['N_anc']]
+                if item['use']=='sign':
+                    self.ancilla_sign.append(item['ancilla'])
+                ind+= item['N_anc']
+
+
+
+    def __set_ec_composite_entangler(self,
+            ec_replace_pair='default',
+            ec_replace_quad='default',
+            **kwargs):
+        '''
+        Sets up entangling gates that some useful error correction in them.
+        Will almost always use ancilla qubits, but also draws from different
+        circuits.
+
+        Specifying the entangling gates will be a little different in
+        most cases .
+
+        '''
+        try:
+            self.ancilla_sign
+        except Exception:
+            self.ancilla_sign=[]
+        if ec_replace_pair=='default':
+            entry = {
+                    'replace':False,
+                    'N_anc':0,
+                    'circ':None,
+                    'kw':{},
+                    }
+            self.ec_replace_pair=[entry]*len(self.pair_list)
+        elif len(ec_replace_pair)<len(self.pair_list):
+            sys.exit('Wrong number of gates for composite pair entanglers..')
         else:
-            for i in range(self.Nq,self.Nq_tot):
-                if i<=self.Nq_be:
-                    # basically your available ancilla
-                    self.ancilla_qb.append(i)
-        print('Number of active qubits: {}'.format(self.Nq))
-        print('Number of ancilla qubits: {}'.format(len(self.ancilla_qb)))
-        print('Number of backend qubits: {}'.format(self.Nq_tot))
-        if self.ec_method=='parity':
-            self.ec_circ = 'parity'
-            self.ec_type = 's'
-            self.ec_keys = []
-            if ec_ent_list=='default':
-                ec_ent_list = [1]*self.N_ent
-            if len(ec_ent_list)<self.N_ent:
-                print('## QuantumFunctions ##')
-                print('Not enough specified functions for a parity check.')
-                sys.exit('Goodbye!')
-            else:
-                self.ec_ent_list = ec_ent_list
-            for item in ec_ent_list:
-                if item==1:
-                    self.ec_keys.append(1-(-1**self.Ne))
-            self.ec_keys = zip(self.ec_keys,self.ancilla_qb)
-        elif self.ec=='multi':
-            pass
-        self.kwargs=kwargs
+            self.ec_replace_pair = ec_replace_pair
+
+        if ec_replace_quad=='default':
+            entry = {
+                    'replace':False,
+                    'N_an':0,
+                    'circ':None,
+                    'use':'None',
+                    'kw':{},
+                    }
+            self.ec_replace_quad=[entry]*len(self.quad_list)
+        elif len(ec_replace_quad)<len(self.quad_list):
+            sys.exit('Wrong number of gates for composite quad entanglers..')
+        else:
+            self.ec_replace_quad = ec_replace_quad
+        ind = 0
+        for item in self.ec_replace_quad:
+            item['ancilla']=self.ancilla_list[ind:ind+item['N_anc']]
+            self.ancilla += self.ancilla_list[ind:ind+item['N_anc']]
+            if item['use']=='sign':
+                self.ancilla_sign.append(item['ancilla'])
+            ind+= item['N_anc']
 
 
     def _get_hyper_para(self,expand=False):
         if self.method=='carlson-keller':
-            if not expand:
-                arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
-                self.ec_para = []
-                self.ec_Ns = 1
-                self.Nv = self.Nq//2
-                self.ec_Nv = self.Nv
-                self.ec_vert = np.zeros((self.Nv,self.Nv))
-                for i in range(0,self.Nv):
-                    temp = []
-                    for j in range(0,i+1):
-                        self.ec_vert[j,i]=1/(i+1)
-                        temp.append(arc[j])
-                    for k in range(i+1,self.Nv):
-                        temp.insert(0,0)
-                    temp = temp[::-1]
-                    del temp[-1]
-                    self.ec_para.append(temp)
-                self.ec_para = [self.ec_para]
-            elif expand:
-                arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
-                self.ec_para = []
-                self.ec_Ns = 1
-                self.Nv = self.Nq//2
-                self.ec_Nv = self.Nv
-                self.ec_vert = np.zeros((self.Nv,self.Nv))
-                self.mid = np.zeros(self.Nv)
-                for i in range(0,self.Nv):
-                    for j in range(i,self.Nv):
-                        self.mid[i]+=1/(j+1)
-                self.mid = self.mid/self.Nv
-                diff = np.zeros((self.Nv,self.Nv))
-                for i in range(0,self.Nv):
-                    temp = []
-                    for j in range(0,i+1):
-                        self.ec_vert[j,i]=1/(i+1)
-                        temp.append(arc[j])
-                    for k in range(i+1,self.Nv):
-                        temp.insert(0,0)
-                    temp = temp[::-1]
-                    del temp[-1]
-                    self.ec_para.append(temp)
-                for i in range(0,self.Nv):
-                    diff[:,i] = self.ec_vert[:,i]-self.mid
-                    self.ec_vert[:,i] = self.ec_vert[:,i]+0.1*diff[:,i]
-                self.ec_para = [self.ec_para]
+            arc = [2*np.arccos(1/np.sqrt(i)) for i in range(1,self.Nq+1)]
+            self.ec_para = []
+            self.ec_Ns = 1
+            self.Nv = self.Nq//2
+            self.ec_Nv = self.Nv
+            self.ec_vert = np.zeros((self.Nv,self.Nv))
+            for i in range(0,self.Nv):
+                temp = []
+                for j in range(0,i+1):
+                    self.ec_vert[j,i]=1/(i+1)
+                    temp.append(arc[j])
+                for k in range(i+1,self.Nv):
+                    temp.insert(0,0)
+                temp = temp[::-1]
+                del temp[-1]
+                self.ec_para.append(temp)
+            self.ec_para = [self.ec_para]
+        else:
+            sys.exit('Unsupported method!')
 
     def _map_rdm_jw(self):
         '''
@@ -387,7 +450,6 @@ class QuantumStorage:
             qd.append(''.join(sign))
             qd.append(''.join(spin))
             self.qc_quad_list.append(qd)
-        self.N_ent = len(self.quad_list)+len(self.pair_list)
 
     def _get_2e_no(self):
         '''
@@ -426,6 +488,9 @@ class QuantumStorage:
 
     def print_summary(self):
         if self.pr_g>1:
+            print('# Number of active qubits: {}'.format(self.Nq))
+            print('# Number of ancilla qubits: {}'.format(len(self.ancilla)))
+            print('# Number of backend qubits: {}'.format(self.Nq_tot))
             print('# Summary of quantum parameters:')
             print('#  backend   : {}'.format(self.backend))
             print('#  num shots : {}'.format(self.Ns))
@@ -473,6 +538,9 @@ class QuantumStorage:
                     p='#  '
             print(p)
             print('# ')
+            print('Unused kwargs:')
+            for k,v in self.kwargs.items():
+                print(k,v)
 
     def _gip(self):
         '''
@@ -572,14 +640,12 @@ def get_direct_stats(QuantStore):
             except Exception as e:
                 print(e)
                 sys.exit()
-        if type(QuantStore.be_initial)==type(None):
-            be_initial=None
         print('Transpiling...')
         if QuantStore.transpile=='default':
             qt = transpile(qcirc[0],
                     backend=be,
                     coupling_map=coupling,
-                    initial_layout=be_initial,
+                    initial_layout=QuantStore.be_initial,
                     **QuantStore.transpiler_keywords
                     )
         else:

@@ -27,9 +27,11 @@ kw_qc = {
         'tomo_approx':'fo',
         'tomo_basis':'no',
         'ansatz':'nat-orb-no',
-        'ec_method':'hyperplane',
         'pr_e':2,
-        #'error_correction':None
+        'ec_post':True,
+        'ec_post_kw':{
+            'hyperplane':True
+            }
         }
 kw_opt = {
         'optimizer':'nevergrad',

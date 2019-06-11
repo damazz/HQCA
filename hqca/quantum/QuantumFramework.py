@@ -2,8 +2,8 @@
 /tools/QuantumFramework.py
 
 File for managing IBM process- note it does not actually load the IBM or qiskit
-modules, but calls QuantumTomography, which does include those modules. Not
-quite sure why though. 
+modules, but is involved with , which does include those modules. Not
+quite sure why though.
 
 '''
 
@@ -102,6 +102,7 @@ def _direct_tomography(
         if QuantStore.tomo_bas in ['no','NO']:
             Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)
+            print(Q.qc)
             circuit.append(Q.qc)
             circuit_list.append(['ii'])
         elif QuantStore.tomo_bas=='hada':
@@ -210,6 +211,32 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append([temp])
                 circuit.append(Q.qc)
+            n+=1
+    elif QuantStore.tomo_ext=='sign_2e_pauli_symm':
+        operators = ['xxxx']
+        for a,b,c,d in QuantStore.qc_tomo_quad:
+            temp = 'sign{}-{}-{}-{}-{}-{}'.format(
+                    str(a),str(b),str(c),str(d),str(n),op)
+            Q = GenerateDirectCircuit(
+                    QuantStore,
+                    _name=temp
+                    )
+    elif QuantStore.tomo_ext=='sign_2e_from_ancilla':
+        operators = ['xxxx','yyyy']
+        n=0
+        for a,b,c,d in (QuantStore.qc_tomo_quad):
+            for op in operators:
+                temp = 'sign{}-{}-{}-{}-{}-{}'.format(
+                        str(a),str(b),str(c),str(d),str(n),op)
+                QuantStore.ec_replace_quad[n]['kw']['pauli']=op
+                Q = GenerateDirectCircuit(
+                        QuantStore,
+                        _name=temp,
+                        _flag_sign=True,
+                        )
+                Q.qc.measure(Q.q,Q.c)
+                circuit_list.append([temp])
+                circuit.append(Q.qc)
             n+=1 
     return circuit,circuit_list
 
@@ -292,32 +319,33 @@ def run_circuits(
         backend_options['basis_gates']=noise_model.basis_gates
         coupling = noise_model.coupling_map
     else:
-        if QuantStore.be_coupling in [None,False]:
-            coupling = beo.configuration().coupling_map
+        if QuantStore.be_file in [None,False]:
+            if QuantStore.be_coupling in [None,False]:
+                if QuantStore.backend=='qasm_simulator':
+                    coupling=None
+                else:
+                    IBMQ.load_accounts()
+                    backend_overview()
+                    beo = IBMQ.get_backend(QuantStore.backend)
+                    coupling = beo.configuration().coupling_map
+            else:
+                coupling = QuantStore.be_coupling
         else:
             try:
-                coupling = get_coupling_map(
+                coupling = NoiseSimulator.get_coupling_map(
                         device=QuantStore.backend,
-                        saved=QuantStore.noise_model_loc
+                        saved=QuantStore.be_file
                         )
             except Exception as e:
-                sys.exit()
                 print(e)
-    if QuantStore.be_initial is not None:
-        layout = []
-        for i in QuantStore.be_inital:
-            if i is not None:
-                layout.append(i)
-            else:
-                layout.append(None)
-    else:
-        layout = None
+                sys.exit()
     if QuantStore.transpile=='default':
         circuits = transpile(
                 circuits=circuits,
                 backend=beo,
                 coupling_map=coupling,
-                initial_layout=layout
+                initial_layout=QuantStore.be_initial,
+                **QuantStore.transpiler_keywords
                 )
     else:
         sys.exit('Configure pass manager.')

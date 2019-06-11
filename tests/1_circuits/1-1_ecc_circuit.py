@@ -2,7 +2,9 @@ from hqca.hqca import circuit
 from math import pi
 
 '''
-get input, and then visualize circuit
+1-1_ecc_circuit 
+
+test for error correction circuit, with....some capacity
 '''
 print('Would you like to:')
 print('(1) draw  - visualize the circuit')
@@ -23,6 +25,7 @@ print('Lets go. ')
 print('')
 
 
+
 prog = circuit(theory='noft')
 kw_qc = {
         'Ne_as':2,
@@ -36,10 +39,32 @@ kw_qc = {
         'spin_mapping':'default',
         'depth':1,
         'info':info,
-        'ec':True,
-        'ec_method':'parity',
+        'ec_comp_ent':True,
+        'ec_comp_ent_kw':{
+            'ec_replace_quad':[ #list of quad sequences
+                { #entry for gate 1
+                    'replace':True,
+                    'N_anc':1,
+                    'circ':'pauli_UCC2_test',
+                    'kw':{'pauli':'hhhh'},
+                    'use':'sign',
+                    }
+                ]
+            },
         'tomo_extra':'sign_2e_pauli',
         'tomo_approx':'fo',
+        'transpile':'default',
+        'transpiler_keywords':{
+            'optimization_level':0,
+            },
+        'transpiler_keywords':{
+            #'optimization_level':0,
+            #'seed_transpiler':15,
+            },
+        'transpiler_keywords':{
+            #'optimization_level':0,
+            #'seed_transpiler':15,
+            },
         'transpile':'default',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',

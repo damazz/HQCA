@@ -1,4 +1,17 @@
-#from qiskit import register, available_backends, get_backend
+'''
+
+./tools/BuildCircuit.py
+
+Two main classes:
+    - GenerateDirectCircuit
+        - used in general mapping
+    - GenerateCompactCircuit
+        - used in special mapping cases
+
+Interfaces with qiskit to actually build the quantum circuits. Only handles the
+construction. Also loads different gates from the algorithms folder
+
+'''
 from qiskit import execute
 from qiskit.circuit import Parameter
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
@@ -9,17 +22,6 @@ import hqca.quantum.algorithms._Tomo as tomo
 from math import pi
 import traceback
 import sys
-'''
-
-./tools/GenerateCircuit.py
-
-Two main classes:
-    - GenerateDirectCircuit
-        - used in general mapping
-    - GenerateCompactCircuit
-        - used in special mapping cases
-
-'''
 tf_ibm_qx2 = {'01':True,'02':True, '12':True, '10':False,'20':False, '21':False}
 tf_ibm_qx4 = {'01':False,'02':False, '12':False, '10':True,'20':True, '21':True}
 # note, qx4 is 'raven', or 'tenerife'
@@ -31,14 +33,17 @@ class GenerateDirectCircuit:
     def __init__(
             self,
             QuantStore,
-            _name=False
+            _name=False,
+            _flag_sign=False,
+            _flag_tomo=False,
             ):
         '''
-        Want to do a different approach than previously. Want to make a
-        simulated one that has variable size constraints.
-
         Note is self.ents has np>1, then it needs to be changed in
         QuantumFunctions
+
+        What is behavior we want:
+            if ec_type=='ent', then we want it to go look for the different
+            entangling type?
         '''
         self.ents = {
                 'Ry_cN':{
@@ -78,14 +83,25 @@ class GenerateDirectCircuit:
                 'parity':{
                     'f':ecc._ec_ucc2_parity_single,
                     'anc':1
-                    }
+                    },
+                'pauli_UCC2_test':{
+                    'f':ecc._ec_ancilla_UCC2_test_1s,
+                    'anc':1,
+                    'np':1,
+                    },
+                'ancilla_sign':{
+                    'f':ecc._ec_ancilla_sign,
+                    'anc':1,
+                    },
                 }
         self.para = QuantStore.parameters
+        self._sign = _flag_sign
+        self._tomo = _flag_tomo
         self.Np = len(self.para)
-        self.para = [Parameter('p{}'.format(i)) for i in range(self.Np)]
         self.qs = QuantStore
         self.Nq = QuantStore.Nq_tot
         self.q = QuantumRegister(self.Nq,name='q')
+        #self.c = ClassicalRegister(4,name='c')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.Ne = QuantStore.Ne
         if _name==False:
@@ -105,14 +121,11 @@ class GenerateDirectCircuit:
         self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
         self.ent_q =  self.ents[self.qs.ent_circ_q]['f']
         self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
-        self.anc_qb = self.qs.ancilla_qb
-        if self.qs.ec:
-            self.ec_q = self.ec[self.qs.ec_circ]['f']
-            self.ec_Nq = self.ec[self.qs.ec_circ]['anc']
         self.map = QuantStore.rdm_to_qubit
-        self.cg = 0
-        self.sg = 0
-        self._gen_circuit()
+        if self.qs.ec_syndrome or self.qs.ec_comp_ent:
+            self._gen_ecc_circuit()
+        else:
+            self._gen_circuit()
 
     def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp
@@ -123,55 +136,120 @@ class GenerateDirectCircuit:
         for i in range(0,self.Ne_bet):
             targ = self.qs.beta_qb[i]
             self.qc.x(self.q[targ])
-        self.sg+= self.Ne
+
 
     def _gen_circuit(self):
         self._initialize()
-        h,n = 0,0
+        hp = 0
         for d in range(0,self.qs.depth):
-            for pair in self.qs.pair_list:
+            for n,pair in enumerate(self.qs.pair_list):
+                a = self.ent_Np
+                temp = self.para[hp:hp+a]
+                self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
+                hp+=self.ent_Np
+            for n,quad in enumerate(self.qs.quad_list):
+                p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
+                spin = quad[5]
+                a = self.ent_Nq
+                temp = self.para[hp:hp+a]
+                if self.qs.ent_circ_q=='UCC2_2s' and h==0:
+                    ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
+                            operator=sign,
+                            spin=spin)
+                else:
+                    self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
+                            operator=sign,
+                            spin=spin)
+                hp+= self.ent_Nq
+
+    def _gen_ecc_circuit(self):
+        self._initialize()
+        h = 0 #h keeps track of parameters
+        anc = 0
+        for d in range(0,self.qs.depth):
+            for n,pair in enumerate(self.qs.pair_list):
                 a = self.ent_Np
                 temp = self.para[h:h+a]
                 self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
                 h+=self.ent_Np
-                n+=1 
-            for quad in (self.qs.qc_quad_list):
+            for n,quad in enumerate(self.qs.quad_list):
                 p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
                 spin = quad[5]
                 a = self.ent_Nq
                 temp = self.para[h:h+a]
-                if self.qs.ent_circ_q=='UCC2_2s' and h==0:
-                    ucc._UCC2_1s(self,*temp,
-                            i=p,
-                            j=q,
-                            k=r,
-                            l=s,
-                            operator=sign,
-                            spin=spin)
+                # first, check if we are using a composite circuit
+                if self.qs.ec_comp_ent: 
+                    temp_rep = self.qs.ec_replace_quad[n]
+                    if temp_rep['replace'] in [False,0]:
+                        if self.qs.ent_circ_q=='UCC2_2s' and h==0:
+                            ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
+                                    operator=sign,
+                                    spin=spin)
+                        else:
+                            self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
+                                    operator=sign,
+                                    spin=spin)
+                    else:
+                        if temp_rep['use']=='sign' and not self._sign:
+                            if self.qs.ent_circ_q=='UCC2_2s' and h==0:
+                                ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
+                                        operator=sign,
+                                        spin=spin)
+                            else:
+                                self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
+                                        operator=sign,
+                                        spin=spin)
+                        else:
+                            temp_Cq=self.ec[temp_rep['circ']]['f']
+                            temp_Np=self.ec[temp_rep['circ']]['np']
+                            temp_Na=self.ec[temp_rep['circ']]['anc']
+                            temp_kw=temp_rep['kw']
+                            temp_anc = temp_rep['ancilla']
+                            if not temp_Np==a:
+                                print('See BuildCircuit.py')
+                                sys.exit('Parameter mismatch quad gates.')
+                            elif not temp_Na==len(temp_anc):
+                                print('See BuildCircuit.py')
+                                text = 'Mismatch between circuit and ancilla.'
+                                sys.exit(text)
+                            else:
+                                temp_Cq(self,*temp,
+                                        i=p,j=q,k=r,l=s,
+                                        anc=temp_anc,
+                                        operator=sign,spin=spin,
+                                        **temp_kw
+                                        )
                 else:
-                    self.ent_q(self,*temp,
-                            i=p,
-                            j=q,
-                            k=r,
-                            l=s,
-                            operator=sign,
-                            spin=spin)
-                if self.qs.ec and ('s' in self.qs.ec_type):
-                    anc = self.qs.ancilla_qb[n:n+self.ec_Nq]
-                    if self.qs.ec_ent_list[n]==1:
-                        self.ec_q(self,
-                                i=p,
-                                j=q,
-                                k=r,
-                                l=s,
-                                an=anc
-                                )
-                    elif not self.qs.ec_ent_list[n] in [0,None,False]:
-                        sys.exit('Build Circuit: not configured yet.')
+                    if self.qs.ent_circ_q=='UCC2_2s' and h==0:
+                        ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
+                                operator=sign,
+                                spin=spin)
+                    else:
+                        self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
+                                operator=sign,
+                                spin=spin)
+                if self.qs.ec_syndrome:
+                    for synd,locations in self.qs.syndromes.items():
+                        m = n+len(self.qs.pair_list)
+                        temp = locations[m]
+                        if temp['use'] in [False,0]:
+                            pass
+                        else:
+                            if temp['use']=='sign' and (not self._sign):
+                                pass
+                            else:
+                                temp_anc = temp['ancilla']
+                                temp_Cq = self.ec[temp['circ']]['f']
+                                temp_Na = self.ec[temp['circ']]['anc']
+                                temp_kw = temp['kw']
+                                if not temp_Na==len(temp_anc):
+                                    print('See BuildCircuit.py')
+                                    text = 'Mismatch between circuit and ancilla.'
+                                    sys.exit(text)
+                                temp_Cq(self,i=p,j=q,k=r,l=s,
+                                        anc=temp_anc,
+                                        **temp_kw)
                 h+= self.ent_Nq
-                if self.qs.ec:
-                    n+= self.ec_Nq
-
 
 class GenerateCompactCircuit:
     '''
@@ -201,7 +279,7 @@ class GenerateCompactCircuit:
         self.apply_algorithm(order)
 
     def apply_algorithm(self,order='default'):
-        ''' 
+        '''
         List of algorithms for use with quantum computer. Reminder to read
         the top of this module before adding or removing algorithms.
         '''

@@ -1,3 +1,13 @@
+'''
+quantum/NoiseSimulator.py
+
+Contains information for loading, handling, and constructing noise simulators
+with qiskit. Ideally, would be more general and would have different components,
+but this currently is not the case. 
+
+
+'''
+import sys
 from qiskit import Aer,IBMQ
 import pickle
 import traceback

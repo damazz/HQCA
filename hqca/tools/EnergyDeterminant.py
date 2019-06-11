@@ -272,7 +272,7 @@ def energy_eval_nordm(
                     print('Eigenvalues: ')
                     print(noca)
                     print(nocb)
-            if QuantStore.ec=='hyperplane':
+            if QuantStore.ec_post==True and QuantStore.hyperplane==True:
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T
                 if Store.pr_m>2:

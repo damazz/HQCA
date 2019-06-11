@@ -34,22 +34,41 @@ kw_qc = {
         'Nq_ancilla':1,
         'num_shots':4096,
         'entangler_q':'UCC2_1s',
-        'spin_mapping':'default',
+        'spin_mapping':'alternating',
         'depth':1,
-        #'provider':'IBMQ',
-        #'backend':'ibmq_16_melbourne',
-        #'backend':'ibmqx2',
-        #'backend_file':os.getcwd()+'/20190514_ibmqx2',
         'info':info,
-        'ec':True,
-        'ec_method':'parity',
+        'ec_comp_ent':False,
+        'ec_syndrome':True,
+        'ec_syndrome_kw':{
+            'apply_syndromes':{
+                'sign':[
+                    {
+                    'N_anc':1,
+                    'circ':'ancilla_sign',
+                    'use':'sign',
+                    'kw':{}
+                        }
+                    ],
+                }
+            },
+        'ec_comp_ent_kw':{
+            'ec_replace_quad':[ #list of quad sequences
+                { #entry for gate 1
+                    'replace':True,
+                    'N_anc':1,
+                    'circ':'pauli_UCC2_test',
+                    'kw':{'pauli':'hhhh'},
+                    'use':'sign',
+                    }
+                ]
+            },
         'tomo_extra':'sign_2e_pauli',
         'tomo_approx':'fo',
         'transpile':'default',
         'transpiler_keywords':{
-            #'optimization_level':0,
-            #'seed_transpiler':15,
+            'optimization_level':0,
             },
+        'transpile':'default',
         'ansatz':'nat-orb-no',
         'tomo_basis':'no',
         }

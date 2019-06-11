@@ -17,14 +17,13 @@ from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import EnergyFunctions as enf
 from hqca.sub.BaseRun import QuantumRun,Cache
 from hqca.quantum import ErrorCorrection as ec
-from hqca.quantum import Triangulation as tri
 from hqca.quantum import QuantumFunctions as qf
 from hqca.tools.util import Errors
 from functools import reduce
 import datetime
 import sys
 from hqca.tools import Preset as pre
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=3,suppress=True)
 
 
 class RunNOFT(QuantumRun):
@@ -94,14 +93,7 @@ class RunNOFT(QuantumRun):
         self.Store.pr_m = self.kw['pr_m']
 
     def _pre(self):
-        try:
-            if self.kw_qc['tri']:
-                self.kw_qc['triangle']=tri.find_triangle(
-                        Ntri=self.kw_qc['method_Ntri'],
-                        **self.kw_qc)
-        except KeyError:
-            pass
-        if self.kw_qc['error_correction'] and self.QuantStore.qc:
+        if self.kw_qc['ec'] and self.QuantStore.qc:
             ec_a,ec_b =ec.generate_error_polytope(
                     self.Store,
                     self.QuantStore)
@@ -202,13 +194,13 @@ class RunNOFT(QuantumRun):
         key = 'orb{}'.format(self.total.iter)
         self.sub.done=False
         self.para_orb = np.asarray([0.0]*self.Store.Np_orb)
-        if self.kw['restart']==True:
-            self._load()
-        else:
-            self.Run[key] = Optimizer(
-                    **self.kw_orb_opt
-                    )
-            self.Run[key].initialize(self.para_orb)
+        #if self.kw['restart']==True:
+        #    self._load()
+        #else:
+        self.Run[key] = Optimizer(
+                **self.kw_orb_opt
+                )
+        self.Run[key].initialize(self.para_orb)
         while not self.sub.done:
             self.Run[key].next_step()
             if self.kw['pr_s']>0 and self.sub.iter%1==0:

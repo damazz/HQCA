@@ -1,8 +1,10 @@
 '''
 /tools/QuantumProcess.py
 
-File needed for executing and processing the tomography to get the final
-circuit. 
+File needed for executing and processing the circuit back to an RDM. 
+
+Handles converting different tomography circuits back to RDM, and also processes
+different sign elements, ancilla registers, and symmetry constraints. 
 '''
 from hqca.tools import RDMFunctions as rdmf
 from hqca.tools import Functions as fx
@@ -49,9 +51,11 @@ class Process:
         if self.qs.pr_q>2:
             print('Circuit, counts:')
         for name,counts in output:
-            if self.qs.ec:
-                if 's' in self.qs.ec_type: #syndrome type
-                    counts = self._syndrome(counts)
+            if self.qs.ec_syndrome:
+                #sys.exit('Haven\'t set up process for syndrome yet!')
+                #if 's' in self.qs.ec_type: #syndrome type
+                #    counts = self._syndrome(counts)
+                pass
             prbdis = self.proc_counts(counts)
             if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
@@ -88,6 +92,9 @@ class Process:
                 pass
 
     def _syndrome(self,counts):
+        '''
+        function which applies the syndrome according to what it should be
+        '''
         syn_counts = {}
         filt = []
         for qv,qi in self.ec_keys:
@@ -97,7 +104,6 @@ class Process:
                 if str(qv)==qb[self.Nq_tot-1-qi]:
                     syn_counts[qb]=nc
         return fx.filt(syn_count,trace=filt)
-
 
     def sign_from_2rdm(self):
         self.sign = [1]
@@ -114,6 +120,69 @@ class Process:
                     self.sign.append(-1)
             if self.qs.pr_q>2:
                 print('rdm2 sign element: {}'.format(t1))
+        elif self.qs.tomo_ext=='sign_2e_from_ancilla':
+            hold = []
+            nsign=1
+            holding={}
+            for s,item in enumerate(self.data['sign']):
+                for qbs in self.qs.ancilla_sign:
+                    if len(qbs)==1:
+                        meas_z = self._measure_z_counts(
+                                item['counts'],qbs[0])
+                i,j,k,l,n,pauli = self.data['sign'][s]['name'].split('-')
+                item['qbs']='-'.join((i,j,k,l))
+                item['n']=n
+                item['pauli']=pauli
+                if item['qbs'] in hold:
+                    holding[item['qbs']][item['pauli']]=meas_z
+                else:
+                    hold.append(item['qbs'])
+                    holding[item['qbs']]={
+                        pauli:meas_z
+                        }
+                    holding[item['qbs']]['n']=item['n']
+                    nsign+=1
+            self.sign=[1]*nsign
+            for quad in holding.keys():
+                dat =  holding[quad]
+                rdme = {
+                        '++--':0,
+                        '+-+-':0,
+                        '+--+':0,
+                        'fo':0,
+                        'so':0,
+                        }
+                for seq,val in dat.items():
+                    if seq=='n':
+                        n = int(val)
+                        continue
+                    a,b,c,d,e=1/8,1/8,1/8,0,0
+                    if seq in ['xxxx','yyyy']:
+                        print(val,seq)
+                        d,e = 1/2,1/4
+                    elif seq in ['xxyy','yyxx']:
+                        a*=-1
+                        e=1/4
+                    elif seq in ['xyyx','yxxy']:
+                        c*=-1
+                    elif seq in ['xyxy','yxyx']:
+                        b*=-1
+                    rdme['++--']+= a*val
+                    rdme['+-+-']+= b*val
+                    rdme['+--+']+= c*val
+                    rdme['fo']+= d*val
+                    rdme['so']+=(e*val)
+                holding[quad]['rdme']=rdme
+                if self.qs.tomo_approx=='full':
+                    test = rdme['++--']
+                elif self.qs.tomo_approx=='fo':
+                    test = rdme['fo']
+                elif self.qs.tomo_approx=='so':
+                    test = rdme['so']
+                self.sign[n+1]=test
+                if self.qs.pr_q>2:
+                    print('rdm2 sign elements: {}'.format(rdme))
+            self.holding = holding
         elif self.qs.tomo_ext=='sign_2e_pauli':
             hold = [] #stores....stuff? 
             holding = {}
@@ -173,6 +242,17 @@ class Process:
             self.sign=[1]*10
             self.holding = {}
 
+    def _measure_z_counts(self,counts,i):
+        val,total= 0,0
+        for det,n in counts.items():
+            if det[self.Nq_tot-i-1]=='1':
+                val-=n
+            else:
+                val+=n
+            total+=n
+        return val/total
+
+
     def _measure_z_rdm2(self,s):
         '''
         function to analyze counts for some double excitaiton pauli operators
@@ -202,7 +282,38 @@ class Process:
         if self.qs.pr_q>2:
             print('Pauli:',pauli,val/total)
 
+    def _symm_proc_counts(self,counts,symm='N'):
+        ncounts = {}
+        if symm=='N':
+            # counts active qubits in JW
+            for qb,res in counts.items():
+                if self.qs.fermion_mapping=='jordan-wigner':
+                    n = 0
+                    for i in self.qs.active_qb:
+                        if qb[i]=='1':
+                            n+=1 
+                    if n==self.qs.Ne:
+                        ncounts[qb]=res
+        elif symm=='Sz':
+            for qb,res in counts.items():
+                if self.qs.fermion_mapping=='jordan-wigner':
+                    if self.qs.spin_mapping in ['default','alternating']:
+                        n = 0 
+                        for i in self.qs.alpha_qb:
+                            if qb[i]=='1':
+                                n+=1 
+                        for i in self.qs.beta_qb:
+                            if qb[i]=='1':
+                                n-=1
+                        if n==int(2*self.qs.Sz):
+                            ncounts[qb]=res
+        return ncounts
+
+
     def proc_counts(self,counts):
+        if self.qs.ec_post:
+            for symm in self.qs.symmetries:
+                counts = self._symm_proc_counts(counts,symm)
         Nc = 0
         r  = zeros(self.Nq_tot)
         for qb_state,outcome in counts.items():
@@ -222,7 +333,7 @@ class Process:
 
     def _build_direct_rdm(self):
         '''
-        now, we have the qubit result. we just need to ocnvert this back to RDM
+        now, we have the qubit result. we just need to convert this back to RDM
         speak. 
         '''
         self.r2q = self.qs.rdm_to_qubit
