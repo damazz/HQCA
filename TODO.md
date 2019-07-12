@@ -1,18 +1,28 @@
  TODO/Changelog List
 
-### 6/5/2019
+### 6/13/2019
 
-*  
+* Need to write down test cases. What is the best way to do the 1-RDM tomography
+  with low error (in a consistent way) 
+    * Need to complete test cases
+    * Currently we have:
+        * full 1-RDM on off-diagonal measurements
+        * full sign measurements (can we simplify?)
+        * parametrized method with signs
+        * test 
+* how does exhibit quantum algorithm?
+    * doesn't really, but pushes model to limit 
+* Configure experiemtns for IBM device? 
 
 ### 5/31/2019
 
-* Add possible input circuit configuration
-* Determine what product of pauli matrices gives....when ancilla'ed
-* See if we can specify qubit/classical registers, i.e. swaps  
+* ~~Add possible input circuit configuration~~
+* ~~Determine what product of pauli matrices gives....when ancilla'ed~~
+* ~~See if we can specify qubit/classical registers, i.e. swaps  ~~
 
 ### 5/30/2019
 
-* Configure post correction 
+* ~~Configure post correction~~
 * Configure correctly for IBM device
 * Error Mitigation
     * Document the error correction types a little better

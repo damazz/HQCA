@@ -16,7 +16,8 @@ mol.spin=0
 mol.verbose=0
 mol.build()
 prog = scan(theory='noft',scan_type='occ',mol=mol)
-
+filename = '/home/scott/Documents/research/software/'
+filename+= 'hqca/tests/2_noisy/20190514_ibmqx2'
 kw_qc = {
         'Ne_as':2,
         'No_as':2,
@@ -24,36 +25,35 @@ kw_qc = {
         'beta_mos':{'active':[2,3]},
         'Nq':4,
         'Nq_ancilla':1,
-        'num_shots':4096,
+        'num_shots':8192,
         'entangler_q':'UCC2_1s',
         'spin_mapping':'alternating',
         'depth':1,
         'info':'draw',
+        'noise':True,
+        'noise_model_location':filename,
+        'backend_initial_layout':[0,1,2,3,4],
+        'backend_file':filename,
         'ec_comp_ent':True,
+        'ec_post':True,
         'ec_syndrome':False,
-        'ec_syndrome_kw':{
-            'apply_syndromes':{
-                'sign':[
-                    {
-                    'N_anc':1,
-                    'circ':'ancilla_sign',
-                    'use':'sign',
-                    'kw':{}
-                        }
-                    ],
-                }
-            },
         'ec_comp_ent_kw':{
             'ec_replace_quad':[ #list of quad sequences
                 { #entry for gate 1
                     'replace':True,
                     'N_anc':1,
                     'circ':'pauli_UCC2_test',
-                    'kw':{'pauli':'hhhh'},
+                    'kw':{},
                     'use':'sign',
                     }
                 ]
             },
+        'ec_post_kw':{
+            'symm_verify':True,
+            'symmetries':['N','Sz'],
+            },
+        #'tomo_basis':'pauli_symm',
+        'tomo_basis':'no',
         'tomo_extra':'sign_2e_from_ancilla',
         'tomo_approx':'fo',
         'transpile':'default',
@@ -62,7 +62,6 @@ kw_qc = {
             },
         'transpile':'default',
         'ansatz':'nat-orb-no',
-        'tomo_basis':'no',
         }
 prog.update_var(target='qc',**kw_qc )
 prog.set_print(level='diagnostic_qc')

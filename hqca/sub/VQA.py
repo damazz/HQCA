@@ -18,6 +18,7 @@ from hqca.tools import EnergyFunctions as enf
 from hqca.sub.BaseRun import QuantumRun,Cache
 from hqca.quantum import ErrorCorrection as ec
 from hqca.quantum import QuantumFunctions as qf
+from hqca.quantum import NoiseSimulator as ns
 from hqca.tools.util import Errors
 from functools import reduce
 import datetime
@@ -62,6 +63,9 @@ class RunNOFT(QuantumRun):
 
     def build(self,mol=None):
         QuantumRun._build_quantum(self)
+        if self.QuantStore.ec_pre:
+            if self.QuantStore.filter_meas:
+                ns.get_measurement_filter(self.QuantStore)
         self.kw_orb_opt['function'] = enf.find_function(
                 'noft',
                 'orb',
@@ -82,23 +86,18 @@ class RunNOFT(QuantumRun):
                     'orb_grad',
                     self.Store,
                     self.QuantStore)
-        if not ('classical' in self.kw_qc['method']):
-            self._pre()
         self.built=True
         qf.get_direct_stats(self.QuantStore)
+        self._pre()
 
+    def _pre(self):
+        if self.QuantStore.ec_post:
+            if self.QuantStore.hyperplane in [True,'custom']:
+                ec.generate_error_polytope(self.QuantStore)
 
     def update_var(self,**kw):
         QuantumRun.update_var(self,**kw)
         self.Store.pr_m = self.kw['pr_m']
-
-    def _pre(self):
-        if self.kw_qc['ec'] and self.QuantStore.qc:
-            ec_a,ec_b =ec.generate_error_polytope(
-                    self.Store,
-                    self.QuantStore)
-            self.QuantStore.ec_a = ec_a
-            self.QuantStore.ec_b = ec_b
 
     def run(self):
         if self.built:
@@ -109,7 +108,7 @@ class RunNOFT(QuantumRun):
 
     def _restart(self):
         self.restart = True
-    
+
     def _check(self,
             crit,
             max_iter

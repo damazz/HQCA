@@ -11,6 +11,7 @@ import sys
 from math import pi
 from hqca.quantum import NoiseSimulator
 import hqca.quantum.algorithms._ECC as ecc
+from qiskit import IBMQ,Aer
 class KeyDict(dict):
     def __missing__(self,key):
         return key
@@ -71,11 +72,13 @@ class QuantumStorage:
             tomo_rdm='1rdm',
             tomo_extra=False,
             tomo_approx=None,
+            entangler_kw=None,
             **kwargs
             ):
         self.pr_q = pr_q
         self.theory=theory
         self.spin_mapping = spin_mapping
+        self.Sz=Sz
         self.ansatz = ansatz
         self.No = No_as # note, spatial orbitals
         self.alpha = alpha_mos
@@ -92,6 +95,7 @@ class QuantumStorage:
         self.ent_pairs= entangled_pairs
         self.ent_circ_p = entangler_p
         self.ent_circ_q = entangler_q
+        self.ent_kw = entangler_kw
         self.depth = depth
         self.algorithm = compact_algorithm
         self.fermion_mapping = fermion_mapping
@@ -147,6 +151,8 @@ class QuantumStorage:
         self.backend = backend
         self.Ns = num_shots
         self.provider = provider
+        if self.provider=='IBMQ':
+            IBMQ.load_accounts()
         self.use_noise = noise
         self.noise_gate_times=noise_gate_times
         if self.use_noise:
@@ -159,6 +165,8 @@ class QuantumStorage:
 
     def _set_up_error_correction(self,
             pr_e=0,
+            ec_pre=False,
+            ec_pre_kw={},
             ec_syndrome=False,
             ec_syndrome_kw={},
             ec_post=False,
@@ -181,9 +189,12 @@ class QuantumStorage:
         self.pr_e = pr_e
         self.ec_syndrome=ec_syndrome
         self.ec_post=ec_post
+        self.ec_pre = ec_pre
         self.ec_comp_ent=ec_comp_ent
         self.ancilla = [] # used ancilla
         self.ancilla_list = [i+self.Nq for i in range(self.Nq_anc)] # potential
+        if self.ec_pre:
+            self.__set_ec_pre_filters(**ec_pre_kw)
         if self.ec_post:
             self.__set_ec_post_correction(**ec_post_kw)
         if self.ec_syndrome:
@@ -191,11 +202,20 @@ class QuantumStorage:
         if self.ec_comp_ent:
             self.__set_ec_composite_entangler(**ec_comp_ent_kw)
 
+    def __set_ec_pre_filters(self,
+            filter_measurements=False,
+            **kw
+            ):
+        self.filter_meas = filter_measurements
+
+
 
     def __set_ec_post_correction(self,
             symm_verify=False,
             symmetries=[],
             hyperplane=False,
+            error_shift=None,
+            vertices=None,
             **kwargs):
         '''
         Used for hyper plane set-up, as well as verifying symmetries in the
@@ -204,8 +224,15 @@ class QuantumStorage:
         self.hyperplane=hyperplane
         self.symm_verify = symm_verify
         self.symmetries = symmetries
-        if hyperplane:
+        self.error_shift=error_shift
+        self.hyperplane_custom=False
+        if hyperplane==True:
             self._get_hyper_para()
+        elif hyperplane=='custom':
+            self.hyperplane_custom=True
+            self._get_hyper_para()
+            self.hyper_alp = np.asarray(vertices[0])
+            self.hyper_bet = np.asarray(vertices[1])
 
     def __set_ec_syndrome(self,
             apply_syndromes={},
@@ -219,7 +246,7 @@ class QuantumStorage:
         different locations in the overall circuit.
 
         Includes circuits designed to check for symmetries of the system. Most
-        can simply be added at the end. Might use ancilla qubits, maybe not. 
+        can simply be added at the end. Might use ancilla qubits, maybe not.
 
         locations, where to check for then
         '''
@@ -237,8 +264,6 @@ class QuantumStorage:
                     self.ancilla_sign.append(item['ancilla'])
                 ind+= item['N_anc']
 
-
-
     def __set_ec_composite_entangler(self,
             ec_replace_pair='default',
             ec_replace_quad='default',
@@ -249,8 +274,7 @@ class QuantumStorage:
         circuits.
 
         Specifying the entangling gates will be a little different in
-        most cases .
-
+        most cases.
         '''
         try:
             self.ancilla_sign
@@ -303,7 +327,7 @@ class QuantumStorage:
                 temp = []
                 for j in range(0,i+1):
                     self.ec_vert[j,i]=1/(i+1)
-                    temp.append(arc[j])
+                    temp.append(-arc[j])
                 for k in range(i+1,self.Nv):
                     temp.insert(0,0)
                 temp = temp[::-1]
@@ -450,6 +474,8 @@ class QuantumStorage:
             qd.append(''.join(sign))
             qd.append(''.join(spin))
             self.qc_quad_list.append(qd)
+        print('Excitations on the quantum computer: ')
+        print(self.qc_quad_list)
 
     def _get_2e_no(self):
         '''
@@ -469,22 +495,38 @@ class QuantumStorage:
         self.qc_tomo_quad = []
         for quad in self.tomo_quad:
             qd = []
-            for i in range(len(quad)):
-                qd.append(self.rdm_to_qubit[quad[i]])
+            for i in quad:
+                qd.append(self.rdm_to_qubit[i])
+            try:
+                sign = list(quad[4])
+                spin = list(quad[5])
+            except IndexError:
+                sign = ['-','+','-','+']
+                spin = ['a','a','b','b']
             sort = False
             while not sort:
                 i,j,k,l = qd[0],qd[1],qd[2],qd[3]
                 sort = True
                 if i>j:
                     qd[1],qd[0]=qd[0],qd[1]
+                    sign[0],sign[1]=sign[1],sign[0]
+                    spin[0],spin[1]=spin[1],spin[0]
                     sort = False
                 if j>k:
                     qd[1],qd[2]=qd[2],qd[1]
+                    sign[2],sign[1]=sign[1],sign[2]
+                    spin[2],spin[1]=spin[1],spin[2]
                     sort = False
                 if k>l:
+                    sign[3],sign[2]=sign[2],sign[3]
+                    spin[2],spin[3]=spin[3],spin[2]
                     qd[3],qd[2]=qd[2],qd[3]
                     sort = False
+            qd.append(''.join(sign))
+            qd.append(''.join(spin))
             self.qc_tomo_quad.append(qd)
+        print('Tomography on the quantum computer: ')
+        print(self.qc_tomo_quad)
 
     def print_summary(self):
         if self.pr_g>1:
@@ -588,7 +630,6 @@ def get_direct_stats(QuantStore):
     from qiskit import Aer,IBMQ,execute
     from qiskit.tools.monitor import backend_overview
     from qiskit.compiler import transpile
-
     hold_para = QuantStore.parameters.copy()
     QuantStore.parameters=[1]*QuantStore.Np
     qcirc,qcirc_list = build_circuits(QuantStore)
@@ -606,14 +647,16 @@ def get_direct_stats(QuantStore):
         print('Gate counts:')
         print(qcirc[0].count_ops())
     elif extra=='ibm':
-        IBMQ.load_accounts()
         be = IBMQ.get_backend(QuantStore.backend)
-        qt = transpile(qcirc[0],
-                backend=be,
-                **QuantStore.transpiler_keywords
-                )
-        print(qt)
-        print(qt.count_ops())
+        print(be.configuration().coupling_map)
+        for c,n in zip(qcirc,qcirc_list):
+            print('Circuit name: {}'.format(n))
+            qt = transpile(c,be,
+                    initial_layout=QuantStore.be_initial,
+                    **QuantStore.transpiler_keywords
+                    )
+            print(qt)
+            print(qt.count_ops())
     elif extra in ['qasm','build','stats']:
         if extra=='stats':
             print('Initial gate counts: ')
@@ -641,6 +684,7 @@ def get_direct_stats(QuantStore):
                 print(e)
                 sys.exit()
         print('Transpiling...')
+
         if QuantStore.transpile=='default':
             qt = transpile(qcirc[0],
                     backend=be,

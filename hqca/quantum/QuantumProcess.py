@@ -1,4 +1,5 @@
 '''
+
 /tools/QuantumProcess.py
 
 File needed for executing and processing the circuit back to an RDM. 
@@ -16,6 +17,7 @@ import qiskit
 from numpy import log10,floor,complex_
 from numpy import log10,floor
 from numpy import zeros,multiply,real
+from numpy import cos,sin,ones
 
 def combine_dictionary(one,two):
     for key,val in two.items():
@@ -32,8 +34,8 @@ class Process:
             ):
         # First, want to combine results
         self.data = {
-                'ii':{},'ij':[],'ijkl':[],
-                'ijR':[],'ijI':[],'ij':[],
+                'ii':{},'ij':{},'ijkl':[],
+                'ijR':[],'ijI':[],
                 'sign':[]
                 }
         self.tomo_rdm = QuantStore.tomo_rdm
@@ -52,44 +54,54 @@ class Process:
             print('Circuit, counts:')
         for name,counts in output:
             if self.qs.ec_syndrome:
-                #sys.exit('Haven\'t set up process for syndrome yet!')
-                #if 's' in self.qs.ec_type: #syndrome type
-                #    counts = self._syndrome(counts)
                 pass
-            prbdis = self.proc_counts(counts)
             if self.qs.pr_q>2:
                 print('Circuit: {}'.format(name))
                 print('Counts : {}'.format(counts))
+            try:
+                ncounts,prbdis = self.proc_counts(counts)
+            except ZeroDivisionError:
+                if name[0][0:4]=='sign' and self.qs.tomo_ext=='sign_2e_pauli':
+                    pass
+                else:
+                    sys.exit()
+            if self.qs.pr_q>2:
                 print('Avg    : {}'.format(prbdis))
             if name[0]=='ii':
-                self.data['ii']['counts']=counts
+                self.data['ii']['counts']=ncounts
                 self.data['ii']['pd']=prbdis
             elif name[0][0:3]=='ijR':
                 self.data['ijR'].append({})
                 self.data['ijR'][l]['qb']=name[1:]
-                self.data['ijR'][l]['counts']=counts
+                self.data['ijR'][l]['counts']=ncounts
                 self.data['ijR'][l]['pd']=prbdis
                 l+=1
             elif name[0][0:3]=='ijI':
                 self.data['ijI'].append({})
                 self.data['ijI'][j]['qb']=name[1:]
-                self.data['ijI'][j]['counts']=counts
+                self.data['ijI'][j]['counts']=ncounts
                 self.data['ijI'][j]['pd']=prbdis
                 j+=1
             elif name[0][0:2]=='ij' and (not name[0][0:4]=='ijkl'):
-                self.data['ij'].append({})
-                self.data['ij'][k]['qb']=name[1:]
-                self.data['ij'][k]['counts']=counts
-                self.data['ij'][k]['pd']=prbdis
-                k+=1
+                idx,term = name[0].split('-')[1:]
+                try:
+                    self.data['ij'][idx]
+                except Exception:
+                    self.data['ij'][idx]={'counts':{}}
+                self.data['ij'][idx]['qb']=name[1:]
+                self.data['ij'][idx]['counts'][term]=ncounts
             elif name[0][0:4]=='sign':
                 self.data['sign'].append({})
                 self.data['sign'][s]['name']=name[0][4:]
-                self.data['sign'][s]['counts']=counts
+                if self.qs.tomo_ext=='sign_2e_pauli':
+                    self.data['sign'][s]['counts']=counts
+                else:
+                    self.data['sign'][s]['counts']=ncounts
                 self.data['sign'][s]['pd']=prbdis
                 s+=1 
             else:
-                pass
+                print(name,ncounts)
+                sys.exit('Some kind of error. :( ')
 
     def _syndrome(self,counts):
         '''
@@ -120,127 +132,84 @@ class Process:
                     self.sign.append(-1)
             if self.qs.pr_q>2:
                 print('rdm2 sign element: {}'.format(t1))
-        elif self.qs.tomo_ext=='sign_2e_from_ancilla':
-            hold = []
-            nsign=1
-            holding={}
-            for s,item in enumerate(self.data['sign']):
-                for qbs in self.qs.ancilla_sign:
-                    if len(qbs)==1:
-                        meas_z = self._measure_z_counts(
-                                item['counts'],qbs[0])
-                i,j,k,l,n,pauli = self.data['sign'][s]['name'].split('-')
-                item['qbs']='-'.join((i,j,k,l))
-                item['n']=n
-                item['pauli']=pauli
-                if item['qbs'] in hold:
-                    holding[item['qbs']][item['pauli']]=meas_z
-                else:
-                    hold.append(item['qbs'])
-                    holding[item['qbs']]={
-                        pauli:meas_z
-                        }
-                    holding[item['qbs']]['n']=item['n']
-                    nsign+=1
-            self.sign=[1]*nsign
+        elif self.qs.tomo_ext in ['sign_2e_from_ancilla','sign_2e_pauli']:
+            if self.qs.tomo_ext=='sign_2e_from_ancilla':
+                hold = []
+                nsign=1
+                holding={}
+                for s,item in enumerate(self.data['sign']):
+                    for qbs in self.qs.ancilla_sign:
+                        if len(qbs)==1:
+                            meas_z = self._measure_z_counts(
+                                    item['counts'],qbs[0])
+                    i,j,k,l,n,pauli = self.data['sign'][s]['name'].split('-')
+                    item['qbs']='-'.join((i,j,k,l))
+                    item['n']=n
+                    item['pauli']=pauli
+                    if item['qbs'] in hold:
+                        holding[item['qbs']][item['pauli']]=meas_z
+                    else:
+                        hold.append(item['qbs'])
+                        holding[item['qbs']]={
+                            pauli:meas_z
+                            }
+                        holding[item['qbs']]['n']=item['n']
+                        nsign+=1
+                self.sign=[1]*nsign
+            elif self.qs.tomo_ext=='sign_2e_pauli':
+                hold = [] #stores....stuff? 
+                holding = {}
+                nsign = 1
+                for s,item in enumerate(self.data['sign']):
+                    self._measure_z_rdm2(s)
+                    if item['qbs'] in hold:
+                        holding[item['qbs']][item['pauli']]=item['z']
+                    else:
+                        hold.append(item['qbs'])
+                        holding[item['qbs']]={
+                            item['pauli']:item['z']
+                            }
+                        holding[item['qbs']]['n']=item['n']
+                        nsign+=1
+                self.sign=[1]*nsign
             for quad in holding.keys():
                 dat =  holding[quad]
-                rdme = {
-                        '++--':0,
-                        '+-+-':0,
-                        '+--+':0,
-                        'fo':0,
-                        'so':0,
-                        }
+                rdme = 0
                 for seq,val in dat.items():
                     if seq=='n':
                         n = int(val)
                         continue
-                    a,b,c,d,e=1/8,1/8,1/8,0,0
-                    if seq in ['xxxx','yyyy']:
-                        print(val,seq)
-                        d,e = 1/2,1/4
-                    elif seq in ['xxyy','yyxx']:
-                        a*=-1
-                        e=1/4
-                    elif seq in ['xyyx','yxxy']:
-                        c*=-1
-                    elif seq in ['xyxy','yxyx']:
-                        b*=-1
-                    rdme['++--']+= a*val
-                    rdme['+-+-']+= b*val
-                    rdme['+--+']+= c*val
-                    rdme['fo']+= d*val
-                    rdme['so']+=(e*val)
-                holding[quad]['rdme']=rdme
-                if self.qs.tomo_approx=='full':
-                    test = rdme['++--']
-                elif self.qs.tomo_approx=='fo':
-                    test = rdme['fo']
-                elif self.qs.tomo_approx=='so':
-                    test = rdme['so']
-                self.sign[n+1]=test
-                if self.qs.pr_q>2:
-                    print('rdm2 sign elements: {}'.format(rdme))
-            self.holding = holding
-        elif self.qs.tomo_ext=='sign_2e_pauli':
-            hold = [] #stores....stuff? 
-            holding = {}
-            nsign = 1
-            for s,item in enumerate(self.data['sign']):
-                self._measure_z_rdm2(s)
-                if item['qbs'] in hold:
-                    holding[item['qbs']][item['pauli']]=item['z']
-                else:
-                    hold.append(item['qbs'])
-                    holding[item['qbs']]={
-                        item['pauli']:item['z']
-                        }
-                    holding[item['qbs']]['n']=item['n']
-                    nsign+=1
-            self.sign=[1]*nsign
-            for quad in holding.keys():
-                dat =  holding[quad]
-                rdme = {
-                        '++--':0,
-                        '+-+-':0,
-                        '+--+':0,
-                        'fo':0,
-                        'so':0,
-                        }
+                accept = ['xxxx','yyyy','xxyy','yyxx','yxyx','xyxy',
+                        'xyyx','yxxy']
                 for seq,val in dat.items():
-                    if seq=='n':
-                        n = int(val)
-                        continue
-                    a,b,c,d,e=1/8,1/8,1/8,0,0
-                    if seq in ['xxxx','yyyy']:
-                        d,e = 1/2,1/4
-                    elif seq in ['xxyy','yyxx']:
-                        a*=-1
-                        e=1/4
-                    elif seq in ['xyyx','yxxy']:
-                        c*=-1
-                    elif seq in ['xyxy','yxyx']:
-                        b*=-1
-                    rdme['++--']+= a*val
-                    rdme['+-+-']+= b*val
-                    rdme['+--+']+= c*val
-                    rdme['fo']+= d*val
-                    rdme['so']+=(e*val)
+                    if seq in accept:
+                        rdme += self.qs.tomo_operators[n][seq]*val
                 holding[quad]['rdme']=rdme
-                if self.qs.tomo_approx=='full':
-                    test = rdme['++--']
-                elif self.qs.tomo_approx=='fo':
-                    test = rdme['fo']
-                elif self.qs.tomo_approx=='so':
-                    test = rdme['so']
-                self.sign[n+1]=test
+                self.sign[n+1]=rdme
                 if self.qs.pr_q>2:
                     print('rdm2 sign elements: {}'.format(rdme))
             self.holding = holding
+        elif self.qs.tomo_ext=='classical':
+            para = self.qs.parameters
+            terms = ones(len(para)+1)
+            for n,p in enumerate(para):
+                terms[n]= terms[n]*cos(p/2)
+            for t in range(len(para)+1):
+                for n,p in enumerate(para):
+                    if t>n:
+                        terms[t]= terms[t]*sin(p/2)
+            print(terms)
+            signs = [1]
+            for i in range(len(para)):
+                signs.append(terms[i]*terms[i+1])
+            self.sign = signs
+            self.holding = {}
+            print('Sign: ')
+            print(para,self.sign)
         else:
             self.sign=[1]*10
             self.holding = {}
+
 
     def _measure_z_counts(self,counts,i):
         val,total= 0,0
@@ -250,6 +219,17 @@ class Process:
             else:
                 val+=n
             total+=n
+        return val/total
+
+    def _measure_z_rdm1(self,counts,i,j):
+        total,val = 0,0
+        for det,count in counts.items():
+            temp = 1 
+            total+=count
+            for q in range(i,j+1):
+                if det[self.Nq_tot-1-q]=='1':
+                    temp = temp*(-1)
+            val += temp*count
         return val/total
 
 
@@ -278,9 +258,8 @@ class Process:
                         temp = temp*(-1)
             val += temp*count
         self.data['sign'][s]['z']=val/total
-
-        if self.qs.pr_q>2:
-            print('Pauli:',pauli,val/total)
+        #if self.qs.pr_q>2:
+        #    print('Pauli:',pauli,val/total)
 
     def _symm_proc_counts(self,counts,symm='N'):
         ncounts = {}
@@ -290,8 +269,9 @@ class Process:
                 if self.qs.fermion_mapping=='jordan-wigner':
                     n = 0
                     for i in self.qs.active_qb:
-                        if qb[i]=='1':
-                            n+=1 
+                        #print(qb,i,self.Nq_tot-i-1,qb[i],qb[self.Nq_tot-i-1])
+                        if qb[self.Nq_tot-i-1]=='1':
+                            n+=1
                     if n==self.qs.Ne:
                         ncounts[qb]=res
         elif symm=='Sz':
@@ -300,29 +280,40 @@ class Process:
                     if self.qs.spin_mapping in ['default','alternating']:
                         n = 0 
                         for i in self.qs.alpha_qb:
-                            if qb[i]=='1':
+                            if qb[self.Nq_tot-1-i]=='1':
                                 n+=1 
                         for i in self.qs.beta_qb:
-                            if qb[i]=='1':
+                            if qb[self.Nq_tot-1-i]=='1':
                                 n-=1
                         if n==int(2*self.qs.Sz):
                             ncounts[qb]=res
         return ncounts
 
-
-    def proc_counts(self,counts):
-        if self.qs.ec_post:
+    def proc_counts(self,counts,symm=True):
+        if self.qs.ec_pre:
+            if self.qs.filter_meas:
+                counts = self.qs.meas_filter.apply(
+                    counts,
+                    #method='least_squares'
+                    method='pseudo_inverse'
+                    )
+                #counts = mitigated.get_counts(0)
+                print('Filtered counts for measurement:')
+                print(counts)
+        if self.qs.ec_post and symm:
             for symm in self.qs.symmetries:
                 counts = self._symm_proc_counts(counts,symm)
+                print('Filtered counts for {}:'.format(symm))
+                print(counts)
         Nc = 0
         r  = zeros(self.Nq_tot)
         for qb_state,outcome in counts.items():
-            for i in range(0,self.Nq_tot):
+            for i in self.qs.active_qb+self.qs.ancilla_list:
                 if qb_state[i]=='1':
                     r[self.Nq_tot-1-i]+=outcome
             Nc += outcome
         r = r*(1/Nc)
-        return r
+        return counts,r
 
     def build_rdm(self):
         if self.qs.fermion_mapping=='jordan-wigner':
@@ -397,6 +388,56 @@ class Process:
             for actqb in self.occ_qb:
                 ind = self.q2r[actqb] #MAPPING! q2r
                 self.rdm[ind,ind]=self.data['ii']['pd'][actqb]
+        elif self.tomo_basis=='pauli':
+            self.rdm  = zeros((self.Nq_act,self.Nq_act),dtype=complex_)
+            for actqb in self.occ_qb:
+                ind = self.q2r[actqb]
+                self.rdm[ind,ind]=self.data['ii']['pd'][actqb]
+            for circ,item in self.data['ij'].items():
+                for pair in item['qb']:
+                    i,j = int(pair[0]),int(pair[1])
+                    qi,qj = self.r2q[i],self.r2q[j]
+                    ri,rj = self.q2r[qi],self.q2r[qj]
+                    for pauli,count in item['counts'].items():
+                        z = self._measure_z_rdm1(count,qi,qj)
+                        if pauli in ['xy']:
+                            self.rdm[ri,rj]+=1j*(z/4)
+                            self.rdm[rj,ri]-=1j*(z/4)
+                        elif pauli in ['xy']:
+                            self.rdm[ri,rj]-=1j*(z/4)
+                            self.rdm[rj,ri]+=1j*(z/4)
+                        elif pauli in ['xx','yy']:
+                            self.rdm[ri,rj]+=z/4
+                            self.rdm[rj,ri]+=z/4
+            if self.qs.pr_q>2:
+                print('RDM from quantum computer:')
+                print(self.rdm)
+        elif self.tomo_basis=='pauli_symm':
+            self.rdm  = zeros((self.Nq_act,self.Nq_act),dtype=complex_)
+            for actqb in self.occ_qb:
+                ind = self.q2r[actqb]
+                self.rdm[ind,ind]=self.data['ii']['pd'][actqb]
+            for circ,item in self.data['ij'].items():
+                for pair in item['qb']:
+                    i,j = int(pair[0]),int(pair[1])
+                    #qi,qj = self.r2q[i],self.r2q[j]
+                    qi,qj = i,j
+                    ri,rj = self.q2r[qi],self.q2r[qj]
+                    for pauli,count in item['counts'].items():
+                        anc = self.qs.ancilla_list[0]
+                        z = self._measure_z_counts(count,anc)
+                        if pauli in ['xy']:
+                            self.rdm[ri,rj]+=1j*(z/4)
+                            self.rdm[rj,ri]-=1j*(z/4)
+                        elif pauli in ['xy']:
+                            self.rdm[ri,rj]-=1j*(z/4)
+                            self.rdm[rj,ri]+=1j*(z/4)
+                        elif pauli in ['xx','yy']:
+                            self.rdm[ri,rj]+=z/4
+                            self.rdm[rj,ri]+=z/4
+            if self.qs.pr_q>2:
+                print('RDM from quantum computer:')
+                print(self.rdm)
 
     def _build_compact_rdm(self,**kwargs):
         if self.qs.tomo_rdm=='1rdm':

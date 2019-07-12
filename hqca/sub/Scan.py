@@ -16,10 +16,10 @@ class Scan:
         if theory=='noft':
             if scan_type=='en':
                 self.run = RunNOFT(**kw)
-            elif scan_type=='occ':
+            elif scan_type in ['occ','sign']:
                 self.run = Quantum(**kw)
         elif theory=='rdm':
-            if scan_type=='occ':
+            if scan_type in ['occ','sign']:
                 self.run = Quantum(**kw)
 
     def update_var(self,**kw):
@@ -102,6 +102,7 @@ class Scan:
             lowers,
             uppers,
             steps,
+            ordered=False,
             **kw
             ):
         if len(index)>2:
@@ -118,12 +119,6 @@ class Scan:
                 self.run.single(temp)
                 Ya.append(self.run.noca)
                 Yb.append(self.run.nocb)
-                #test = self.run.proc.holding
-                #stemp = []
-                #for k in test.keys():
-                #    stemp.append(test[k]['rdme']['fo'])
-                #    stemp.append(test[k]['rdme']['so'])
-                #    stemp.append(test[k]['rdme']['+-+-'])
                 S.append(self.run.proc.signs[1:])
                 print('{:.1f}%'.format((n+1)*100/steps[0]))
             fig = plt.figure(figsize=(12,4))
@@ -139,15 +134,8 @@ class Scan:
             for i in range(Ya.shape[1]):
                 ax1.scatter(Xp, Ya[:,i],label='nocc{}'.format(i))
                 ax2.scatter(Xp, Yb[:,i],label='nocc{}'.format(i))
-                #print('Std dev for alpha, beta occ {}'.format(i))
-                #Av_a = np.average(Ya[:,i])
-                #Av_b = np.average(Yb[:,i])
-                #print(np.sqrt(np.sum(np.square(Ya[:,i]-Av_a))))
-                #print(np.sqrt(np.sum(np.square(Yb[:,i]-Av_b))))
             for i in range(S.shape[1]):
                 ax3.scatter(Xp,S[:,i],label='sign-{}'.format(i))
-                #ax3.scatter(Xp, S[:,3*i+1],label='so-{}'.format(i))
-                #ax3.scatter(Xp, S[:,3*i+2],label='to-{}'.format(i))
             ax1.scatter(Xp,Ta,label='total')
             ax2.scatter(Xp,Tb,label='total')
             ax1.set_xlabel('alpha')
@@ -172,15 +160,21 @@ class Scan:
                     temp[index[1]]+=b
                     if self.run.QuantStore.qc:
                         self.run.single(para=temp)
-                        Za[i].append(np.sort(self.run.noca)[::-1])
-                        Zb[i].append(self.run.nocb)
+                        if ordered:
+                            Za[i].append(np.sort(self.run.noca)[::-1])
+                            Zb[i].append(np.sort(self.run.nocb)[::-1])
+                        else:
+                            Za[i].append(self.run.noca)
+                            Zb[i].append(self.run.nocb)
                         test = self.run.proc.holding
                         sign_key = self.run.QuantStore.tomo_approx
-                        if sign_key=='full':
-                            sign_key='++--'
-                        for k in test.keys():
-                            idx = int(test[k]['n'])
-                            S[i,j,idx]=test[k]['rdme'][sign_key]
+                        S[i,j,:]=self.run.proc.signs[1:]
+                        #print(self.run.proc.signs)
+                        #if sign_key=='full':
+                        #    sign_key='++--'
+                        #for k in test.keys():
+                        ##    idx = int(test[k]['n'])
+                        #    S[i,j,idx]=test[k]['rdme'][sign_key]
                     else:
                         self.run.single(target,para=temp)
                         wf = self.run.E
@@ -189,6 +183,7 @@ class Scan:
                 print('{:.1f}%'.format((i+1)*100/steps[0]))
             Za = np.asarray(Za)
             Zb = np.asarray(Zb)
+            print(Za,Zb)
             fig = plt.figure()
             if self.scanning=='occ':
                 ax1 = fig.add_subplot(231,projection='3d')

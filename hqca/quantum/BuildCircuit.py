@@ -78,6 +78,12 @@ class GenerateDirectCircuit:
                 'phase':{
                     'f':ent._phase,
                     'np':2}, #c12 - ++-- + +-+-
+                'UCC2_2s_custom':{
+                    'f':ucc._UCC2_2s_custom,
+                    'np':1},
+                'UCC2_1s_custom':{
+                    'f':ucc._UCC2_1s_custom,
+                    'np':1},
                 }
         self.ec = {
                 'parity':{
@@ -88,6 +94,16 @@ class GenerateDirectCircuit:
                     'f':ecc._ec_ancilla_UCC2_test_1s,
                     'anc':1,
                     'np':1,
+                    },
+                'pauli_UCC2_test_1s_rev':{
+                    'f':ecc._ec_ancilla_UCC2_test2_1s,
+                    'anc':1,
+                    'np':1,
+                    },
+                'pauli_UCC2_2s_test':{
+                    'f':ecc._ec_ancilla_UCC2_test_2s,
+                    'anc':1,
+                    'np':1
                     },
                 'ancilla_sign':{
                     'f':ecc._ec_ancilla_sign,
@@ -101,7 +117,6 @@ class GenerateDirectCircuit:
         self.qs = QuantStore
         self.Nq = QuantStore.Nq_tot
         self.q = QuantumRegister(self.Nq,name='q')
-        #self.c = ClassicalRegister(4,name='c')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.Ne = QuantStore.Ne
         if _name==False:
@@ -109,21 +124,26 @@ class GenerateDirectCircuit:
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
         try:
-            self.ent_p =  self.ents[self.qs.ent_circ_p]
-            self.ent_q =  self.ents[self.qs.ent_circ_q]
+            if self.qs.ent_circ_q=='custom':
+                pass
+            else:
+                self.ent_p =  self.ents[self.qs.ent_circ_p]
+                self.ent_q =  self.ents[self.qs.ent_circ_q]
+                self.ent_p =  self.ents[self.qs.ent_circ_p]['f']
+                self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
+                self.ent_q =  self.ents[self.qs.ent_circ_q]['f']
+                self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
         except KeyError:
             print('')
             print('Incorrect entangling gate.')
             print('Supported gates are: ')
             print(list(self.ents.keys()))
             sys.exit()
-        self.ent_p =  self.ents[self.qs.ent_circ_p]['f']
-        self.ent_Np = self.ents[self.qs.ent_circ_p]['np']
-        self.ent_q =  self.ents[self.qs.ent_circ_q]['f']
-        self.ent_Nq = self.ents[self.qs.ent_circ_q]['np']
         self.map = QuantStore.rdm_to_qubit
         if self.qs.ec_syndrome or self.qs.ec_comp_ent:
             self._gen_ecc_circuit()
+        elif self.qs.ent_circ_q=='custom':
+            self._gen_custom_circuit()
         else:
             self._gen_circuit()
 
@@ -147,7 +167,7 @@ class GenerateDirectCircuit:
                 temp = self.para[hp:hp+a]
                 self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
                 hp+=self.ent_Np
-            for n,quad in enumerate(self.qs.quad_list):
+            for n,quad in enumerate(self.qs.qc_quad_list):
                 p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
                 spin = quad[5]
                 a = self.ent_Nq
@@ -162,6 +182,32 @@ class GenerateDirectCircuit:
                             spin=spin)
                 hp+= self.ent_Nq
 
+    def _gen_custom_circuit(self):
+        self._initialize()
+        h = 0 #h keeps track of parameters
+        anc = 0
+        for d in range(0,self.qs.depth):
+            for n,pair in enumerate(self.qs.pair_list):
+                a = self.ent_Np
+                temp = self.para[h:h+a]
+                self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
+                h+=self.ent_Np
+            for n,quad in enumerate(self.qs.qc_quad_list):
+                p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
+                spin = quad[5]
+                # first, check if we are using a composite circuit
+                custom = self.qs.ent_kw['entanglers'][n]
+                c_Cq = self.ents[custom['circ']]['f']
+                c_Np = self.ents[custom['circ']]['np']
+                temp = self.para[h:h+c_Np]
+                c_kw = custom['kw']
+                c_Cq(self,*temp,
+                        i=p,j=q,k=r,l=s,
+                        operator=sign,spin=spin,
+                        **c_kw
+                        )
+                h+= c_Np
+
     def _gen_ecc_circuit(self):
         self._initialize()
         h = 0 #h keeps track of parameters
@@ -172,30 +218,46 @@ class GenerateDirectCircuit:
                 temp = self.para[h:h+a]
                 self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
                 h+=self.ent_Np
-            for n,quad in enumerate(self.qs.quad_list):
+            for n,quad in enumerate(self.qs.qc_quad_list):
                 p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
                 spin = quad[5]
-                a = self.ent_Nq
-                temp = self.para[h:h+a]
                 # first, check if we are using a composite circuit
-                if self.qs.ec_comp_ent: 
+                if self.qs.ec_comp_ent:
                     temp_rep = self.qs.ec_replace_quad[n]
                     if temp_rep['replace'] in [False,0]:
-                        if self.qs.ent_circ_q=='UCC2_2s' and h==0:
-                            ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
-                                    operator=sign,
-                                    spin=spin)
+                        if self.qs.ent_circ_q=='custom':
+                            custom = self.qs.ent_kw['entanglers'][n]
+                            c_Cq = self.ents[custom['circ']]['f']
+                            c_Np = self.ents[custom['circ']]['np']
+                            temp = self.para[h:h+c_Np]
+                            h+= c_Np
+                            c_kw = custom['kw']
+                            c_Cq(self,*temp,
+                                    i=p,j=q,k=r,l=s,
+                                    operator=sign,spin=spin,
+                                    **c_kw
+                                    )
                         else:
                             self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
                                     operator=sign,
                                     spin=spin)
                     else:
                         if temp_rep['use']=='sign' and not self._sign:
-                            if self.qs.ent_circ_q=='UCC2_2s' and h==0:
-                                ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
-                                        operator=sign,
-                                        spin=spin)
+                            if self.qs.ent_circ_q=='custom':
+                                custom = self.qs.ent_kw['entanglers'][n]
+                                c_Cq = self.ents[custom['circ']]['f']
+                                c_Np = self.ents[custom['circ']]['np']
+                                temp = self.para[h:h+c_Np]
+                                h+= c_Np
+                                c_kw = custom['kw']
+                                c_Cq(self,*temp,
+                                        i=p,j=q,k=r,l=s,
+                                        operator=sign,spin=spin,
+                                        **c_kw
+                                        )
                             else:
+                                temp = self.para[h:h+self.ent_Nq]
+                                h+= self.ent_Nq
                                 self.ent_q(self,*temp,i=p,j=q,k=r,l=s,
                                         operator=sign,
                                         spin=spin)
@@ -205,21 +267,30 @@ class GenerateDirectCircuit:
                             temp_Na=self.ec[temp_rep['circ']]['anc']
                             temp_kw=temp_rep['kw']
                             temp_anc = temp_rep['ancilla']
-                            if not temp_Np==a:
-                                print('See BuildCircuit.py')
-                                sys.exit('Parameter mismatch quad gates.')
-                            elif not temp_Na==len(temp_anc):
-                                print('See BuildCircuit.py')
-                                text = 'Mismatch between circuit and ancilla.'
-                                sys.exit(text)
-                            else:
-                                temp_Cq(self,*temp,
-                                        i=p,j=q,k=r,l=s,
-                                        anc=temp_anc,
-                                        operator=sign,spin=spin,
-                                        **temp_kw
-                                        )
+                            temp = self.para[h:h+temp_Np]
+                            h+= temp_Np
+                            temp_Cq(self,*temp,
+                                    i=p,j=q,k=r,l=s,
+                                    anc=temp_anc,
+                                    operator=sign,spin=spin,
+                                    **temp_kw
+                                    )
+                elif self.qs.ent_circ_q=='custom':
+                    custom = self.qs.ent_kw['entanglers'][n]
+                    c_Cq = self.ents[custom['circ']]['f']
+                    c_Np = self.ents[custom['circ']]['np']
+                    temp = self.para[h:h+c_Np]
+                    h+= c_Np
+                    c_kw = custom['kw']
+                    c_Cq(self,*temp,
+                            i=p,j=q,k=r,l=s,
+                            operator=sign,spin=spin,
+                            **c_kw
+                            )
                 else:
+                    a = self.ent_Nq
+                    temp = self.para[h:h+a]
+                    h+= a
                     if self.qs.ent_circ_q=='UCC2_2s' and h==0:
                         ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
                                 operator=sign,
@@ -237,6 +308,8 @@ class GenerateDirectCircuit:
                         else:
                             if temp['use']=='sign' and (not self._sign):
                                 pass
+                            elif temp['use']=='tomo' and (not self._tomo):
+                                pass
                             else:
                                 temp_anc = temp['ancilla']
                                 temp_Cq = self.ec[temp['circ']]['f']
@@ -249,7 +322,6 @@ class GenerateDirectCircuit:
                                 temp_Cq(self,i=p,j=q,k=r,l=s,
                                         anc=temp_anc,
                                         **temp_kw)
-                h+= self.ent_Nq
 
 class GenerateCompactCircuit:
     '''

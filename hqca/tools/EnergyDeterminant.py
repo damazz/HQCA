@@ -45,7 +45,7 @@ def build_2e_2rdm_spin(
     norm = 0
     for i in range(0,N):
         if signs[i]<0:
-            sgn=-1 
+            sgn=-1
         else:
             sgn=1
         term = '0'*(i)+'1'+'0'*(N-i-1)
@@ -87,10 +87,6 @@ def energy_eval_rdm(
     if spin_mapping=='spatial':
         para = para.tolist()
         para = para + para
-    #if QuantStore.use_radians==False
-    #    para = [i*pi/180 for i in para]
-    #else:
-    #    para = [i*pi for i in para]
     QuantStore.parameters = para
     q_circ,qc_list = build_circuits(QuantStore)
     qc_obj = run_circuits(
@@ -174,7 +170,6 @@ def energy_eval_rdm(
         rdm2t = rdmf.switch_alpha_beta(rdm2,
                 Store.alpha_mo,
                 Store.beta_mo)
-        #rdm2 = 0.5*rdm2t + 0.5*rdm2
         rdm1 = rdmf.check_2rdm(rdm2,2)
         noccs,norbs = np.linalg.eig(rdm1)
     rdm2 = fx.contract(rdm2)
@@ -272,18 +267,87 @@ def energy_eval_nordm(
                     print('Eigenvalues: ')
                     print(noca)
                     print(nocb)
-            if QuantStore.ec_post==True and QuantStore.hyperplane==True:
+            if QuantStore.ec_post and QuantStore.hyperplane in [True,'custom']:
                 noca = QuantStore.ec_a.map(noca.T).T
                 nocb = QuantStore.ec_b.map(nocb.T).T
                 if Store.pr_m>2:
                     print('1RDM after correction')
                     print(noca)
                     print(nocb)
-                noca = noca[0,rev_idxa]
-                nocb = nocb[0,rev_idxb]
+                if Nso==4:
+                    if noca[0,0]<0.5 or noca[0,1]>0.5:
+                        noca[0,:]=[0.5,0.5,1]
+                    elif noca[0,0]>1.0 or noca[0,1]<0.0:
+                        noca[0,:]=[1.0,0,1]
+                    if nocb[0,0]<0.5 or nocb[0,1]>0.5:
+                        nocb[0,:]=[0.5,0.5,1]
+                    elif nocb[0,0]>1.0 or nocb[0,1]<0.0:
+                        nocb[0,:]=[1.0,0,1]
+                elif Nso==6:
+                    p1,p2 = np.matrix([[1,0,0]]),np.matrix([[1/2,1/2,0]])
+                    p3 = np.matrix([[1/3,1/3,1/3]])
+                    v1,v2,v3 = p2-p1,p3-p2,p1-p3
+                    m1,m2,m3 = p1+v1/2,p2+v2/2,p3+v3/2
+                    n1=v1/np.linalg.norm(v1)
+                    n2=v2/np.linalg.norm(v2)
+                    n3=v3/np.linalg.norm(v3)
+                    w1 = v2-n1*np.dot(n1,v2.T)[0,0]
+                    w2 = v3-n2*np.dot(n2,v3.T)[0,0]
+                    w3 = v1-n3*np.dot(n3,v1.T)[0,0]
+
+                    def project_to_line(vec,line):
+                        if line==1:
+                            t = m1+np.dot(vec-m1,n1.T)[0,0]*n1
+                        elif line==2:
+                            t = m2+np.dot(vec-m2,n2.T)[0,0]*n2
+                        elif line==3:
+                            t = m3+np.dot(vec-m3,n3.T)[0,0]*n3
+                        return t
+
+                    def fix_point(V,ind=0):
+                        ind+=1
+                        if ind==25:
+                            print('Max recursive point reached. Back!')
+                            return V
+                        c1 = np.dot(V-m1,w1.T)[0,0]
+                        c2 = np.dot(V-m2,w2.T)[0,0]
+                        c3 = np.dot(V-m3,w3.T)[0,0]
+                        t = 0
+                        for c in [c1,c2,c3]:
+                            if c<0:
+                                t-=1
+                        if t==-2:
+                            if c1>=0:
+                                V = p3
+                            elif c2>=0:
+                                V = p1
+                            elif c3>=0:
+                                V = p2
+                        elif t==-1:
+                            if c1<0:
+                                V= project_to_line(V,1)
+                            elif c2<0:
+                                V= project_to_line(V,2)
+                            elif c3<0:
+                                V= project_to_line(V,3)
+                            print('Step:')
+                            print(V)
+                            V = fix_point(V,ind)
+                        else:
+                            print('No correction needed.')
+                        return V
+                    noca[0,0:3]=fix_point(noca[0,0:3])
+                    nocb[0,0:3]=fix_point(nocb[0,0:3])
+                if Store.pr_m>2:
+                    print('1RDM after N-rep correction')
+                    print(noca)
+                    print(nocb)
+                #noca = noca[0,rev_idxa]
+                #nocb = nocb[0,rev_idxb]
             else:
-                noca = noca[rev_idxa]
-                nocb = nocb[rev_idxb]
+                pass
+                #noca = noca[rev_idxa]
+                #nocb = nocb[rev_idxb]
             wf,rdm2 = build_2e_2rdm_spin(
                     Store,
                     noca,

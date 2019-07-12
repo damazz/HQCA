@@ -12,7 +12,6 @@ import timeit
 import time
 import sys
 
-
 class Optimizer:
     '''
     Class optimizer which has optimizer run settings. Currently, available

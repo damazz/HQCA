@@ -1,4 +1,5 @@
 from qiskit import Aer,IBMQ,execute
+from os import getcwd
 import traceback
 from qiskit.tools.monitor import backend_overview
 import hqca
@@ -19,8 +20,7 @@ def add_to_config_log(backend,connect,location='default'):
             loc = loc[:-12]
     else:
         loc = location
-    loc = loc + '/results/logs/'
-    filename = loc+today+'_'+backend.name()
+    filename =getcwd()+'/'+be.name()
     try:
         with open(filename,'rb') as fp:
             pass

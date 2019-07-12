@@ -57,7 +57,6 @@ class OptimizerInstance:
             ):
         self.initial = initial_conditions
 
-
     def _gradient_keywords(self,
             gamma='default',
             **kwargs,
@@ -97,7 +96,6 @@ class OptimizerInstance:
         self.max_iter = max_iter
         self.Nv = N_vectors
 
-
     def initialize(self,start):
         self.N = len(start)
         if type(self.shift)==type(None):
@@ -107,4 +105,3 @@ class OptimizerInstance:
 
     def _check_MaxDist(self):
         pass
-

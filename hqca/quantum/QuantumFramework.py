@@ -71,7 +71,7 @@ def _direct_tomography(
             qtp = nqtpp
         elif tomo_basis=='sudo':
             qtp = lqtp
-        elif tomo_basis=='pauli':
+        elif tomo_basis in ['pauli','pauli_symm']:
             qtp = nqtpf
         else:
             qtp = diag
@@ -94,17 +94,78 @@ def _direct_tomography(
     Begin direct tomography
     '''
     circuit,circuit_list = [],[]
-    circ_pair = _get_pairs(
-            QuantStore.tomo_bas,
-            QuantStore.alpha_qb,
-            QuantStore.beta_qb)
+    if QuantStore.spin_mapping=='default':
+        circ_pair = _get_pairs(
+                QuantStore.tomo_bas,
+                QuantStore.alpha_qb,
+                QuantStore.beta_qb)
+    elif QuantStore.spin_mapping=='alternating':
+        circ_pair = zip(
+                [['02'],[]],
+                [[],['13']])
     if QuantStore.tomo_rdm=='1rdm':
         if QuantStore.tomo_bas in ['no','NO']:
             Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)
-            print(Q.qc)
             circuit.append(Q.qc)
             circuit_list.append(['ii'])
+        elif QuantStore.tomo_bas=='pauli':
+            Q = GenerateDirectCircuit(QuantStore,_name='ii')
+            Q.qc.measure(Q.q,Q.c)
+            circuit.append(Q.qc)
+            circuit_list.append(['ii'])
+            i=0
+            pauli = ['xx','xy','yx','yy']
+            for ca,cb in circ_pair:
+                for term in pauli:
+                    Q = GenerateDirectCircuit(
+                            QuantStore,_name='ij-{:02}-{}'.format(i,term))
+                    temp = ['ij-{:02}-{}'.format(i,term)]
+                    for pair in ca:
+                        q1 = QuantStore.qubit_to_rdm[int(pair[0])]
+                        q2 = QuantStore.qubit_to_rdm[int(pair[1])]
+                        p1,p2 = int(pair[0]),int(pair[1])
+                        tomo._pauli_1rdm(Q,p1,p2,pauli=term)
+                        pair = str(q1)+str(q2)
+                        temp.append(pair)
+                    try:
+                        for pair in cb:
+                            q1 = QuantStore.qubit_to_rdm[int(pair[0])]
+                            q2 = QuantStore.qubit_to_rdm[int(pair[1])]
+                            p1,p2 = int(pair[0]),int(pair[1])
+                            tomo._pauli_1rdm(Q,p1,p2,pauli=term)
+                            pair = str(q1)+str(q2)
+                            temp.append(pair)
+                    except TypeError as e:
+                        print(e)
+                    except Exception as e:
+                        traceback.print_exc()
+                    Q.qc.measure(Q.q,Q.c)
+                    circuit_list.append(temp)
+                    circuit.append(Q.qc)
+                i+=1
+        elif QuantStore.tomo_bas=='pauli_symm':
+            Q = GenerateDirectCircuit(QuantStore,_name='ii')
+            Q.qc.measure(Q.q,Q.c)
+            circuit.append(Q.qc)
+            circuit_list.append(['ii'])
+            i=0
+            pauli = ['xx','xy','yx','yy']
+            for ca,cb in circ_pair:
+                ab_pairs = ca+cb
+                for ce in ab_pairs:
+                    for term in pauli:
+                        Q = GenerateDirectCircuit(
+                                QuantStore,_name='ij-{:02}-{}'.format(i,term))
+                        temp = ['ij-{:02}-{}'.format(i,term)]
+                        tomo._pauli_1rdme_inline_symm(
+                                Q,int(ce[0]),int(ce[1]),
+                                QuantStore.ancilla_list,term)
+                        temp.append(ce)
+                        Q.qc.measure(Q.q,Q.c)
+                        circuit_list.append(temp)
+                        circuit.append(Q.qc)
+                    i+=1
         elif QuantStore.tomo_bas=='hada':
             Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)
@@ -130,7 +191,7 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
-                i+=1 
+                i+=1
         elif QuantStore.tomo_bas=='hada+imag':
             Q = GenerateDirectCircuit(QuantStore,_name='ii')
             Q.qc.measure(Q.q,Q.c)
@@ -156,7 +217,7 @@ def _direct_tomography(
                 Q.qc.measure(Q.q,Q.c)
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
-                i+=1 
+                i+=1
             circ_pair = _get_pairs(
                     QuantStore.tomo_bas,
                     QuantStore.alpha_qb,
@@ -181,63 +242,85 @@ def _direct_tomography(
                 circuit_list.append(temp)
                 circuit.append(Q.qc)
                 i+=1
-        elif QuantStore.tomo_bas=='pauli':
-            # projection into the pauli basis now...
-            pass
-    if QuantStore.tomo_ext=='sign_2e_pauli':
-        n = 0 
-        for a,b,c,d in QuantStore.qc_tomo_quad:
+    if QuantStore.tomo_ext in ['sign_2e_pauli','sign_2e_from_ancilla']:
+        n = 0
+        QuantStore.tomo_operators = []
+        for a,b,c,d,sign,spin in QuantStore.qc_tomo_quad:
             if QuantStore.tomo_approx=='full':
                 operators = [
                         'xxxx','xxyy','xyxy','xyyx',
                         'yxxy','yxyx','yyxx','yyyy']
-            elif QuantStore.tomo_approx=='fo':
+                if sign in ['++--','--++']:
+                    signs = [1/16,-1/16,1/16,1/16,1/16,1/16,-1/16,1/16]
+                elif sign in ['-+-+','+-+-']:
+                    signs = [1/16,1/16,-1/16,1/16,1/16,-1/16,1/16,1/16]
+                elif sign in ['+--+','-++-']:
+                    signs = [1/16,1/16,1/16,-1/16,-1/16,1/16,1/16,1/16]
+            elif QuantStore.tomo_approx=='zo':
                 operators = ['xxxx','yyyy']
+                signs = [1/4,1/4]
+            elif QuantStore.tomo_approx=='to':
+                operators = ['xxxx']
+                signs = [1/2]
+            elif QuantStore.tomo_approx=='fo':
+                if spin in ['abba','baab']:
+                    operators = ['xxxx','xyyx']
+                elif spin in ['abab','baba']:
+                    operators = ['xxxx','xyxy']
+                elif spin in ['aabb','bbaa']:
+                    operators = ['xxxx','xxyy']
+                signs = [1/4,1/4]
+            elif QuantStore.tomo_approx=='h3_fo':
+                if not spin in ['abab','baba']:
+                    sys.exit('Some kind of error.')
+                if n==0:
+                    operators = ['xxxx','yxyx'] # to match with yxxx
+                else:
+                    operators = ['xxxx','xyxy'] # to match with xxxy
+                signs = [1/4,1/4]
             elif QuantStore.tomo_approx=='so':
-                operators = ['xxxx','xxyy','yyxx','yyyy']
+                if spin in ['abba','baab']:
+                    operators = ['xxxx','yyyy','xyyx','yxxy']
+                elif spin in ['abab','baba']:
+                    operators = ['xxxx','yyyy','xyxy','yxyx']
+                elif spin in ['aabb','bbaa']:
+                    operators = ['xxxx','yyyy','xxyy','yyxx']
+                signs = [1/8,1/8,1/8,1/8]
             else:
                 print('Improper tomography operators for tomography specified.')
                 print('In \'tomo_approx\' keyword, please use:')
                 print('(1) \'full\' , (2) \'fo\' , (3) \'so\'')
+                print('(4) \'to\' , (5) \'zo\'')
                 sys.exit()
-            for op in operators:
-                temp = 'sign{}-{}-{}-{}-{}-{}'.format(
-                        str(a),str(b),str(c),str(d),str(n),op)
-                Q = GenerateDirectCircuit(
-                        QuantStore,
-                        _name=temp
-                        )
-                tomo._pauli_2rdm(Q,a,b,c,d,pauli=op)
-                Q.qc.measure(Q.q,Q.c)
-                circuit_list.append([temp])
-                circuit.append(Q.qc)
-            n+=1
-    elif QuantStore.tomo_ext=='sign_2e_pauli_symm':
-        operators = ['xxxx']
-        for a,b,c,d in QuantStore.qc_tomo_quad:
-            temp = 'sign{}-{}-{}-{}-{}-{}'.format(
-                    str(a),str(b),str(c),str(d),str(n),op)
-            Q = GenerateDirectCircuit(
-                    QuantStore,
-                    _name=temp
+            QuantStore.tomo_operators.append(
+                    {op:si for op,si in zip(operators,signs)}
                     )
-    elif QuantStore.tomo_ext=='sign_2e_from_ancilla':
-        operators = ['xxxx','yyyy']
-        n=0
-        for a,b,c,d in (QuantStore.qc_tomo_quad):
-            for op in operators:
-                temp = 'sign{}-{}-{}-{}-{}-{}'.format(
-                        str(a),str(b),str(c),str(d),str(n),op)
-                QuantStore.ec_replace_quad[n]['kw']['pauli']=op
-                Q = GenerateDirectCircuit(
-                        QuantStore,
-                        _name=temp,
-                        _flag_sign=True,
-                        )
-                Q.qc.measure(Q.q,Q.c)
-                circuit_list.append([temp])
-                circuit.append(Q.qc)
-            n+=1 
+            if QuantStore.tomo_ext=='sign_2e_from_ancilla':
+                for op in operators:
+                    temp = 'sign{}-{}-{}-{}-{}-{}'.format(
+                            str(a),str(b),str(c),str(d),str(n),op)
+                    QuantStore.ec_replace_quad[n]['kw']['pauli']=op
+                    Q = GenerateDirectCircuit(
+                            QuantStore,
+                            _name=temp,
+                            _flag_sign=True,
+                            )
+                    Q.qc.measure(Q.q,Q.c)
+                    circuit_list.append([temp])
+                    circuit.append(Q.qc)
+            else:
+                for op in operators:
+                    temp = 'sign{}-{}-{}-{}-{}-{}'.format(
+                            str(a),str(b),str(c),str(d),str(n),op)
+                    Q = GenerateDirectCircuit(
+                            QuantStore,
+                            _name=temp
+                            )
+                    tomo._pauli_2rdm(Q,a,b,c,d,pauli=op)
+                    Q.qc.measure(Q.q,Q.c)
+                    circuit_list.append([temp])
+                    circuit.append(Q.qc)
+            n+=1
     return circuit,circuit_list
 
 def _compact_tomography(
@@ -303,7 +386,7 @@ def run_circuits(
             prov=Aer
         elif provider=='IBMQ':
             prov=IBMQ
-            prov.load_accounts()
+            #prov.load_accounts()
         try:
             return prov.get_backend(backend)
         except Exception:
@@ -324,8 +407,6 @@ def run_circuits(
                 if QuantStore.backend=='qasm_simulator':
                     coupling=None
                 else:
-                    IBMQ.load_accounts()
-                    backend_overview()
                     beo = IBMQ.get_backend(QuantStore.backend)
                     coupling = beo.configuration().coupling_map
             else:
@@ -339,6 +420,10 @@ def run_circuits(
             except Exception as e:
                 print(e)
                 sys.exit()
+    #for circ,info in zip(circuits,circuit_list):
+    #    print(circ)
+    #    print(info)
+    #    print(circ.count_ops())
     if QuantStore.transpile=='default':
         circuits = transpile(
                 circuits=circuits,
@@ -355,7 +440,11 @@ def run_circuits(
             )
     if QuantStore.use_noise:
         try:
-            job = beo.run(qo,backend_options=backend_options)
+            job = beo.run(
+                    qo,
+                    backend_options=backend_options,
+                    noise_model=noise_model
+                    )
         except Exception as e:
             traceback.print_exc()
         for circuit in circuit_list:

@@ -1,5 +1,6 @@
 from hqca.tools import EnergyFunctions as enf
 from hqca.quantum import QuantumFunctions as qf
+from hqca.quantum import NoiseSimulator as ns
 import datetime
 import sys
 

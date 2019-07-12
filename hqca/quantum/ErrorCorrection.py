@@ -26,7 +26,6 @@ class HyperPlane:
             print('desired affine transformation.')
         self._find_normal_vector()
 
-
     def affine(self,G):
         '''
         Generates an affine transformation from  A (self) to B (G)
@@ -124,8 +123,7 @@ class CompositePolytope:
         self.poly[self.Nf]['Umi'] = measured_face.affine(ideal_face)
         self.Nf+=1
 
-
-def generate_error_polytope(Store,QuantStore,**kw):
+def generate_error_polytope(QuantStore):
     '''
     Function to generate polytope with hyperplanes.
     '''
@@ -143,43 +141,50 @@ def generate_error_polytope(Store,QuantStore,**kw):
             len(QuantStore.beta_qb))
             )
         for j in range(QuantStore.ec_Nv): #number of vertices
-            QuantStore.parameters = np.asarray(QuantStore.ec_para[i][j])
-            try:
-                QuantStore.parameters = QuantStore.error_shift[j,:]
-                #print('Shifted by: ')
-                print(QuantStore.error_shift[j,:])
-            except Exception as e:
-                #print(e)
-                pass
-            q_circ,qc_list = build_circuits(QuantStore)
-            qc_obj = run_circuits(
-                    q_circ,
-                    qc_list,
-                    QuantStore)
-            proc = Construct(
-                    qc_obj,
-                    QuantStore)
-            rdm1 = proc.rdm1
-            if QuantStore.spin_mapping in ['default','alternating']:
-                No = rdm1.shape[0]
-                rdma = rdm1[:No//2,:No//2]
-                rdmb = rdm1[No//2:,No//2:]
-                nocca,nora = np.linalg.eig(rdma)
-                nocca.sort()
-                nocca = np.real(nocca[::-1])
-                noccb,norb = np.linalg.eig(rdmb)
-                noccb.sort()
-                noccb = np.real(noccb[::-1])
-                tempa[:,j]=nocca
-                tempb[:,j]=noccb
-                if QuantStore.pr_e>1:
-                    print('Parameters: ')
-                    print(QuantStore.ec_para[i][j])
-                    print('Experimental occupations: ')
-                    print('Alpha: ')
-                    print(nocca)
-                    print('Beta: ')
-                    print(noccb)
+            if QuantStore.hyperplane_custom:
+                print('Using user provided polytope.')
+                tempa[:,j]=QuantStore.hyper_alp[:,j]
+                tempb[:,j]=QuantStore.hyper_bet[:,j]
+            else:
+                QuantStore.parameters = np.asarray(
+                        QuantStore.ec_para[i][j])
+                try:
+                    QuantStore.parameters = QuantStore.error_shift[j,:]
+                    #print('Shifted by: ')
+                    print(QuantStore.error_shift[j,:])
+                except Exception as e:
+                    #print(e)
+                    pass
+                q_circ,qc_list = build_circuits(QuantStore)
+                qc_obj = run_circuits(
+                        q_circ,
+                        qc_list,
+                        QuantStore)
+                proc = Construct(
+                        qc_obj,
+                        QuantStore)
+                rdm1 = proc.rdm1
+                if QuantStore.spin_mapping in ['default','alternating']:
+                    No = rdm1.shape[0]
+                    rdma = rdm1[:No//2,:No//2]
+                    rdmb = rdm1[No//2:,No//2:]
+                    noca,nora = np.linalg.eig(rdma)
+                    nocb,norb = np.linalg.eig(rdmb)
+                    N = len(noca)
+                    idxa = np.argsort(noca)[::-1]
+                    idxb = np.argsort(nocb)[::-1]
+                    noca = noca[idxa]
+                    nocb = nocb[idxb]
+                    tempa[:,j]=noca
+                    tempb[:,j]=nocb
+                    if QuantStore.pr_e>1:
+                        print('Parameters: ')
+                        print(QuantStore.ec_para[i][j])
+                        print('Experimental occupations: ')
+                        print('Alpha: ')
+                        print(noca)
+                        print('Beta: ')
+                        print(nocb)
         alp_hp = HyperPlane(tempa)
         bet_hp = HyperPlane(tempb)
         ideal = HyperPlane(QuantStore.ec_vert)
@@ -193,5 +198,6 @@ def generate_error_polytope(Store,QuantStore,**kw):
             print('Ideal hyperplane: ')
             print(QuantStore.ec_vert)
         QuantStore._gip()
-    return ec_a,ec_b
+    QuantStore.ec_a = ec_a
+    QuantStore.ec_b = ec_b
 

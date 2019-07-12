@@ -3,6 +3,7 @@ import hqca.quantum.QuantumFunctions as qf
 from hqca.quantum.QuantumFramework import build_circuits,run_circuits,Construct
 from hqca.tools import Preset as pre
 import numpy as np
+from hqca.quantum import NoiseSimulator as ns
 
 class Quantum(QuantumRun):
     '''
@@ -18,9 +19,9 @@ class Quantum(QuantumRun):
     def build(self):
         QuantumRun._build_quantum(self)
         qf.get_direct_stats(self.QuantStore)
-
-    def build_ec(self):
-        self._get_ec_pre()
+        if self.QuantStore.ec_pre:
+            if self.QuantStore.filter_meas:
+                ns.get_measurement_filter(self.QuantStore)
 
     def _get_ec_pre(self):
         '''
@@ -37,12 +38,6 @@ class Quantum(QuantumRun):
                         **self.kw_qc)
         except KeyError:
             pass
-        if self.kw_qc['error_correction'] and self.QuantStore.qc:
-            ec_a,ec_b =ec.generate_error_polytope(
-                    self.Store,
-                    self.QuantStore)
-            self.QuantStore.ec_a = ec_a
-            self.QuantStore.ec_b = ec_b
 
     def single(self,para):
         self.QuantStore.parameters = para

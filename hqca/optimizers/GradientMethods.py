@@ -65,7 +65,6 @@ class gradient_descent(OptimizerInstance):
         self.best_x = self.f1_x[:]
         self.best_y = self.f1_x[:]
 
-
 class bfgs(OptimizerInstance):
     def __init__(self,**kwargs):
         OptimizerInstance.__init__(self,**kwargs)
