@@ -72,7 +72,7 @@ class Storage:
 
     Also stores some basic properties of the molecule. However, does not hold
     properties related to the quantum optimization. Need to generate a
-    QuantumStorage object to do that. 
+    QuantumStorage object to do that.
     '''
     def __init__(self,
             mol,

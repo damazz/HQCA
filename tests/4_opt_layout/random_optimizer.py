@@ -6,14 +6,14 @@ import timeit
 from gloa.gloa import alg
 
 # load file
-filename = '071119_ibmq_16_melbourne'
-qasm = 'testing.qasm'
+filename = '071419_ibmq_16_melbourne'
+qasm = 'eight.qasm'
 mel = util.CircuitProperties(filename)
 mel.more()
 mel.load_qasm(qasm)
 
 kwf = {'Circuit':mel}
-kwr = {'Circuit':mel,'N':6}
+kwr = {'Circuit':mel,'N':8}
 kwm = {'Circuit':mel}
 
 fitness = partial(util.fitness_random_qasm,**kwf)

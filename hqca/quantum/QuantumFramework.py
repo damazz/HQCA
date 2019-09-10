@@ -39,7 +39,6 @@ class Construct:
         self.signs = self.qo.sign
         self.holding = self.qo.holding
 
-
 def build_circuits(
         QuantStore,
         **kw

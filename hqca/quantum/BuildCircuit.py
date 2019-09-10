@@ -29,6 +29,7 @@ tf_ibm_qx4 = {'01':False,'02':False, '12':False, '10':True,'20':True, '21':True}
 def read_qasm(input_qasm):
     pass
 
+
 class GenerateDirectCircuit:
     def __init__(
             self,
@@ -119,6 +120,7 @@ class GenerateDirectCircuit:
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.Ne = QuantStore.Ne
+        self.name = _name
         if _name==False:
             self.qc = QuantumCircuit(self.q,self.c)
         else:
@@ -162,11 +164,14 @@ class GenerateDirectCircuit:
         self._initialize()
         hp = 0
         for d in range(0,self.qs.depth):
-            for n,pair in enumerate(self.qs.pair_list):
-                a = self.ent_Np
-                temp = self.para[hp:hp+a]
-                self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
-                hp+=self.ent_Np
+            try:
+                for n,pair in enumerate(self.qs.pair_list):
+                    a = self.ent_Np
+                    temp = self.para[hp:hp+a]
+                    self.ent_p(*temp,i=self.map[pair[0]],k=self.map[pair[1]])
+                    hp+=self.ent_Np
+            except AttributeError:
+                pass
             for n,quad in enumerate(self.qs.qc_quad_list):
                 p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
                 spin = quad[5]
@@ -322,6 +327,10 @@ class GenerateDirectCircuit:
                                 temp_Cq(self,i=p,j=q,k=r,l=s,
                                         anc=temp_anc,
                                         **temp_kw)
+
+class GenerateCircuit(GenerateDirectCircuit):
+    def __init__(self,**kw):
+        GenerateDirectCircuit.__init__(self,**kw)
 
 class GenerateCompactCircuit:
     '''

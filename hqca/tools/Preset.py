@@ -7,6 +7,40 @@ are really needed. But, good to have a default configuration.
 '''
 from math import pi
  
+def qACSE():
+    var = {
+        'max_iter':25,
+        'pr_m':0,
+        'pr_g':2,
+        'pr_s':1,
+        'opt_thresh':0.00001,
+        'qc':{
+            'backend':'qasm_simulator',
+            'num_shots':2048,
+            'info':'calc',
+            'method':'acse',
+            'provider':'Aer',
+            'fermion_mapping':'jordan-wigner',
+            'backend_configuration':None,
+            'ansatz':'',
+            'transpile':None,
+            'initialize':'default',
+            'Nq':4,
+            'noise_model_loc':None,
+            'noise':False,
+            'tomo_basis':'no',
+            'tomo_rdm':'acse',
+            'spin_mapping':'default',
+            'entangled_pairs':'d', #
+            'entangler_p':'Ry_cN', #Ry with a constant N
+            'entangler_q':'UCC2c', #Ry with a constant N
+            'pr_e':0, # error correction
+            'pr_q':0,
+            'Sz':0,
+            'depth':1
+            }
+        }
+    return var
 
 
 def NOFT_2e():

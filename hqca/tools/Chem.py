@@ -315,10 +315,14 @@ def gen_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_a.T[b,Q]*temp1[P,b,:,:]
             for k in alpha:
+                if i==k:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
                 for l in alpha:
+                    if j==l:
+                        continue
                     new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
@@ -379,10 +383,14 @@ def gen_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_b.T[b,Q]*temp1[P,b,:,:]
             for k in beta:
+                if k==i:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
                 for l in beta:
+                    if j==l:
+                        continue
                     new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
@@ -439,7 +447,6 @@ def gen_spin_2ei_lr(
                     S = spin2spac[l]
                     for d in range(0,N):
                         new_ei[i,k,j,l]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
-
     # now, alpha beta block 
 
     temp1 = np.zeros((N,N,N,N))

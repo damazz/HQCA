@@ -12,7 +12,7 @@ import warnings
 warnings.simplefilter(action='ignore',category=FutureWarning)
 from functools import reduce
 import sys
-from hqca.sub import VQA,Scan,Circuit
+from hqca.sub import VQA,Scan,Circuit,ACSE
 import pickle
 
 version='0.1.2'
@@ -25,6 +25,9 @@ def sp(theory,**kwargs):
         return VQA.RunNOFT(**kwargs)
     elif theory=='rdm':
         return VQA.RunRDM(**kwargs)
+    elif theory=='acse':
+        kwargs['theory']='acse'
+        return ACSE.RunACSE(**kwargs)
 
 def scan(**kwargs):
     return Scan.Scan(**kwargs)
@@ -36,5 +39,4 @@ def circuit(theory,**kwargs):
     '''
     kwargs['theory']=theory
     return Circuit.Quantum(**kwargs)
-
 

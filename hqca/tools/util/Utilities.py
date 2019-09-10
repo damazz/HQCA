@@ -203,7 +203,7 @@ def fitness_qubits(qubits,Circuit,verbose=False):
     return 1-fcx*fro
 
 def fitness_qasm(qubits,Circuit,verbose=False):
-    # note, you should set the circuit qubit 
+    # note, you should set the circuit qubit
     q2q = {i:qubits[i] for i in range(len(qubits))} #qasm to qubits
     Nq = len(qubits)
     f_c = np.ones(Nq)
@@ -215,8 +215,8 @@ def fitness_qasm(qubits,Circuit,verbose=False):
             a,b = n.split('-')
             a,b = int(a),int(b)
             #f_c*= (1-Circuit.g[ins][n])
-            f_c[a] = f_c[a]*(1-Circuit.g[ins][n])
-            f_c[b] = f_c[b]*(1-Circuit.g[ins][n])
+            f_c[a] = f_c[a]*(1-0.75*Circuit.g[ins]['{}-{}'.format(q2q[a],q2q[b])])
+            f_c[b] = f_c[b]*(1-0.75*Circuit.g[ins]['{}-{}'.format(q2q[a],q2q[b])])
         else:
             #f_c*=  (1-Circuit.g[ins][q2q[n]])
             f_c[n] = f_c[n]*(1-Circuit.g[ins][q2q[n]])

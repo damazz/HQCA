@@ -88,6 +88,7 @@ class QuantumStorage:
             self.Ne_alp = int(0.5*Ne_as+Sz)
         else:
             self.Ne_alp = int(Ne_as)
+        self.Ne_bet = self.Ne-self.Ne_alp
         self.tomo_bas = tomo_basis
         self.tomo_rdm = tomo_rdm
         self.tomo_ext = tomo_extra
@@ -101,13 +102,14 @@ class QuantumStorage:
         self.fermion_mapping = fermion_mapping
         if self.fermion_mapping=='jordan-wigner':
             self._map_rdm_jw()
-            self._get_ent_pairs_jw()
-            self._gip()
-            if self.tomo_ext in ['sign_2e',
-                    'sign_2e_pauli',
-                    'sign_2e_from_ancilla'
-                    ]:
-                self._get_2e_no()
+            if self.method in ['variational','vqe']:
+                self._get_ent_pairs_jw()
+                self._gip()
+                if self.tomo_ext in ['sign_2e',
+                        'sign_2e_pauli',
+                        'sign_2e_from_ancilla'
+                        ]:
+                    self._get_2e_no()
         self.kwargs=kwargs
 
     def _set_up_backend(self,
@@ -135,6 +137,7 @@ class QuantumStorage:
             pass
         else:
             print('Transpilation scheme not recognized.')
+            print(self.transpile)
             sys.exit()
         self.transpiler_keywords = transpiler_keywords
         self.be_initial = backend_initial_layout
@@ -335,7 +338,9 @@ class QuantumStorage:
                 self.ec_para.append(temp)
             self.ec_para = [self.ec_para]
         else:
+            print('Error in function quantum/QuantumFunctions/_get_hyper_para')
             sys.exit('Unsupported method!')
+
 
     def _map_rdm_jw(self):
         '''

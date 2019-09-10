@@ -70,11 +70,12 @@ class QuantumRun:
                 print('  (3) alpha_mos, (4) beta_mos')
                 sys.exit()
         self.QuantStore = qf.QuantumStorage(**self.kw_qc)
-        self.kw_opt['function'] = enf.find_function(
-                self.theory,
-                'qc',
-                self.Store,
-                self.QuantStore)
+        if self.QuantStore.method=='variational':
+            self.kw_opt['function'] = enf.find_function(
+                    self.theory,
+                    'qc',
+                    self.Store,
+                    self.QuantStore)
 
     def set_print(self,level='default',
             record=False
