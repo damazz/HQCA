@@ -1,13 +1,13 @@
 from math import pi
 
 def _apply_pauli_op(Q,loc,sigma='x',inv=False):
-    if sigma=='z':
+    if sigma in ['z','Z']:
         pass
-    elif sigma=='x':
+    elif sigma in ['x','X']:
         Q.qc.h(Q.q[loc])
-    elif sigma=='i':
+    elif sigma in ['i','I']:
         pass
-    elif sigma=='y':
+    elif sigma in ['y','Y']:
         if not inv:
             Q.qc.rx(-pi/2,Q.q[loc])
             #Q.qc.z(Q.q[loc])

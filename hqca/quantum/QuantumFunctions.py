@@ -10,7 +10,7 @@ np.set_printoptions(suppress=True,precision=4)
 import sys
 from math import pi
 from hqca.quantum import NoiseSimulator
-import hqca.quantum.algorithms._ECC as ecc
+import hqca.quantum.primitives._ECC as ecc
 from qiskit import IBMQ,Aer
 class KeyDict(dict):
     def __missing__(self,key):
@@ -22,7 +22,6 @@ class QuantumStorage:
     particular, should generate the mapping between the quantum and molecular
     2RDMs.
 
-    Also should assign the difference parameters of the quantum algorithm.
     '''
     def __init__(self,
             pr_g=0,

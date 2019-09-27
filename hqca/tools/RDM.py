@@ -7,6 +7,10 @@ from functools import reduce
 
 
 class RDMs:
+    '''
+    RDM class which allows for construction from Hartree-Fock state,
+    reconstruction, multiplication and addition. 
+    '''
     def __init__(self,
             order=2,
             alpha=[],
@@ -26,6 +30,8 @@ class RDMs:
         self.Sz=Sz
         self.S2=S2
         self.Ne=Ne
+        self.N_alp = int((Ne+Sz)/2)
+        self.N_bet = Ne-self.N_alp
         if state in ['hartree','hf','scf']:
             if self.v>0:
                 print('Making Hartree-Fock {}-RDM'.format(self.p))
@@ -33,9 +39,13 @@ class RDMs:
         elif state in ['wf']:
             pass
         elif state in ['given','provided','spec']:
-            self.rdm = rdm.copy()
+            try:
+                self.rdm = rdm.copy()
+            except Exception:
+                self.rdm = rdm
         else:
-            self.rdm = np.zeros(tuple([self.r for i in range(2*self.p)]))
+            self.rdm = np.zeros(
+                    tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
 
     def copy(self):
         nRDM = RDMs(
@@ -101,7 +111,7 @@ class RDMs:
                     for x in range(0,self.r):
                         i2 = tuple([i,x,j,x])
                         nRDM.rdm[i1]+=self.rdm[i2]
-        nRDM.rdm*=self.p
+        nRDM.rdm*=(1/(self.p-1))
         return nRDM
 
     def __sub__(self,RDM):
@@ -229,7 +239,8 @@ class RDMs:
         '''
         build a p-RDM that comes from a single determinant
         '''
-        self.rdm = np.zeros(tuple([self.r for i in range(2*self.p)]))
+        self.rdm = np.zeros(
+                tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
         occAlp = self.alp[:self.Ne//2]
         occBet = self.bet[:self.Ne//2]
         Rec = Recursive(depth=self.p,choices=occAlp+occBet)
@@ -246,7 +257,33 @@ class RDMs:
                 for a in annPerm.total:
                     s = c[-1]*a[-1]
                     ind = tuple(c[:-1]+a[:-1])
-                    self.rdm[ind]=s*(1/factorial(self.p))
+                    self.rdm[ind]=s#*(1/factorial(self.p))
+
+    def _build_hf_doublet(self):
+        '''
+        build a p-RDM that comes from a single determinant,
+        but with Sz neq 0 
+        '''
+        self.rdm = np.zeros(
+                tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
+        occAlp = self.alp[:self.Ne//2]
+        occBet = self.bet[:self.Ne//2]
+        Rec = Recursive(depth=self.p,choices=occAlp+occBet)
+        Rec.permute()
+        self.total=Rec.total
+        for creInd in self.total:
+            #annInd = creInd[::-1]
+            annInd = creInd[:]
+            annPerm = Recursive(choices=annInd)
+            annPerm.unordered_permute()
+            crePerm = Recursive(choices=creInd)
+            crePerm.unordered_permute()
+            for c in crePerm.total:
+                for a in annPerm.total:
+                    s = c[-1]*a[-1]
+                    ind = tuple(c[:-1]+a[:-1])
+                    self.rdm[ind]=s#*(1/factorial(self.p))
+
 
     def switch(self):
         size = len(self.rdm.shape)

@@ -1,30 +1,92 @@
 from math import pi
+import sys
+'''
+Contains the different unitary coupled cluster operators which can be used as
+variational terms, i.e. are anticommuting. 
+'''
+def _UCC_NumExc_(Q,phi,p,q,r,num='p',condensed=False):
+    '''
+    number operator with an excitation
+    ''' 
+    sequence = [
+            ['h','i','y'],
+            ['y','i','h'],
+            ['h','z','y'],
+            ['y','z','h'],
+            ]
+    var =  [1,-1,-1,1]
+    index = [p,q,r]
+    for nt,term in enumerate(sequence):
+        ind=0
+        for item in term:
+            if item=='h':
+                Q.qc.h(Q.q[index[ind]])
+            elif item=='y':
+                Q.qc.rx(-pi/2,Q.q[index[ind]])
+            elif item in ['i','z']:
+                curr = item
+            ind+=1
+        if curr=='z':
+            for control in range(p,r):
+                target = control+1
+                Q.qc.cx(Q.q[control],Q.q[target])
+        elif curr=='i':
+            for control in range(p,r):
+                target = control+1
+                if control==num-1:
+                    target+=1
+                elif control==num:
+                    target-=1
+                    continue
+                Q.qc.cx(Q.q[control],Q.q[target])
+        Q.qc.rz(var[nt]*phi/4,Q.q[k])
+        if curr=='z':
+            for control in range(p,r):
+                target = control+1
+                Q.qc.cx(Q.q[control],Q.q[target])
+        elif curr=='i':
+            for control in range(p,r):
+                target = control+1
+                if control==num-1:
+                    target+=1
+                elif control==num:
+                    target-=1
+                    continue
+                Q.qc.cx(Q.q[control],Q.q[target])
+        ind = 0
+        for item in term:
+            if item=='h':
+                Q.qc.h(Q.q[index[ind]])
+            elif item=='y':
+                Q.qc.rx(pi/2,Q.q[index[ind]])
+            ind+=1
 
-def _UCC1(qgdc,phi,i,k,**kw):
+def _UCC_Exc(Q,phi,i,k,**kw):
     sequence = [['h','y'],
             ['y','h']]
+    term = [1,-1]
     index = [i,k]
     for nt,term in enumerate(sequence):
         ind=0
         for item in term:
             if item=='h':
-                qgdc.qc.h(qgdc.q[index[ind]])
+                Q.qc.h(Q.q[index[ind]])
             elif item=='y':
-                qgdc.qc.rx(-pi/2,qgdc.q[index[ind]])
+                Q.qc.rx(-pi/2,Q.q[index[ind]])
             ind+=1
         for control in range(i,k):
             target = control+1
-            qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
-        qgdc.qc.rz(phi/2,qgdc.q[k])
+            Q.qc.cx(Q.q[control],Q.q[target])
+        Q.qc.rz(term*phi/2,Q.q[k])
         for control in reversed(range(i,k)):
             target = control+1
-            qgdc.qc.cx(qgdc.q[control],qgdc.q[target])
+            qgdc.qc.cx(Q.q[control],Q.q[target])
         ind = 0
         for item in term:
             if item=='h':
-                qgdc.qc.h(qgdc.q[index[ind]])
+                Q.qc.h(Q.q[index[ind]])
             elif item=='y':
-                qgdc.qc.rx(pi/2,qgdc.q[index[ind]])
+                Q.qc.rx(pi/2,Q.q[index[ind]])
             ind+=1
 
 def _UCC2_full(qgdc,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):

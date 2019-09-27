@@ -228,7 +228,6 @@ def gen_spin_1ei(
                 new_ei[i,j]+= U_b.T[b,Q]*temp1[P,b]
     return new_ei
 
-
 def gen_spin_1ei_lr(
         ei1,
         Ua_l,
@@ -315,15 +314,11 @@ def gen_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_a.T[b,Q]*temp1[P,b,:,:]
             for k in alpha:
-                if i==k:
-                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
                 for l in alpha:
-                    if j==l:
-                        continue
-                    new_ei[i,k,j,l]=0
+                    #new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
                         new_ei[i,k,j,l]+= U_a.T[d,S]*temp3[P,Q,R,d]
@@ -383,15 +378,10 @@ def gen_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_b.T[b,Q]*temp1[P,b,:,:]
             for k in beta:
-                if k==i:
-                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
                 for l in beta:
-                    if j==l:
-                        continue
-                    new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
@@ -556,8 +546,6 @@ def rotate_2rdm(aa,ab,bb,U_a,U_b,alpha=[0,1,2],beta=[3,4,5],spin2spac=mss):
                     S = spin2spac[l]
                     for d in range(0,N):
                         n2rdm[i,k,l,j]+= U_a[S,d]*temp3[P,Q,R,d]
-
-
     # now, alpha beta block 
 
     temp1 = np.zeros((N,N,N,N))
@@ -633,9 +621,122 @@ def rotate_2rdm(aa,ab,bb,U_a,U_b,alpha=[0,1,2],beta=[3,4,5],spin2spac=mss):
     return n2rdm
 
 
+def gen_spin_2ei_QISKit(
+        ei2,
+        U_a,
+        U_b,
+        alpha,
+        beta,
+        region='active',
+        spin2spac=mss,
+        new_ei=None):
+    '''
+    Input is the standard electron integral matrices, ik format where i,k are
+    spatial orbitals. 
 
+    Output is a matrix with indices, i,k,l,j
+    except that j and l have been switched, so that the first index refers to
+    electron 1 and the second index refers to electron 2.
 
-
+    '''
+    ei2 = fx.expand(ei2)
+    N = len(U_a)
+    if region=='full':
+        alpha = alpha['inactive']+alpha['active']+alpha['virtual']
+        beta = beta['inactive']+beta['active']+beta['virtual']
+        new_ei = np.zeros((N*2,N*2,N*2,N*2))
+    elif region in ['active','as','active_space']:
+        alpha=alpha['active']+alpha['inactive']
+        beta =beta['active']+beta['inactive']
+        if type(new_ei)==type(None):
+            new_ei = np.zeros((N*2,N*2,N*2,N*2))
+        else:
+            new_ei = np.reshape(new_ei,(N*2,N*2,N*2,N*2))
+    else:
+        print('Error?')
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in alpha:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_a[P,a]*ei2[a,:,:,:]
+        for j in alpha:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,Q,:,:] += U_a.T[b,Q]*temp1[P,b,:,:]
+            for k in alpha:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
+                for l in alpha:
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        new_ei[i,k,l,j]+= U_a.T[d,S]*temp3[P,Q,R,d]
+    # now, alpha beta block 
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in alpha:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_a[P,a]*ei2[a,:,:,:]
+        for j in alpha:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,Q,:,:] += U_a.T[b,Q]*temp1[P,b,:,:]
+            for k in beta:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
+                for l in beta:
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        new_ei[i,k,l,j]+= U_b[S,d]*temp3[P,Q,R,d]
+                        #new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,Q,R,d]
+    # beta alpha block
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in beta:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_b[P,a]*ei2[a,:,:,:]
+        for j in beta:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,Q,:,:] += U_b.T[b,Q]*temp1[P,b,:,:]
+            for k in alpha:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
+                for l in alpha:
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        new_ei[i,k,l,j]+= U_a[S,d]*temp3[P,Q,R,d]
+                        #new_ei[i,k,j,l]+= U_a.T[d,S]*temp3[P,Q,R,d]
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in beta:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_b[P,a]*ei2[a,:,:,:]
+        for j in beta:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,Q,:,:] += U_b.T[b,Q]*temp1[P,b,:,:]
+            for k in beta:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
+                for l in beta:
+                    #new_ei[i,k,j,l]=0
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
+                        new_ei[i,k,l,j]+= U_b.T[d,S]*temp3[P,Q,R,d]
+    return new_ei #, temp0
 
 
 

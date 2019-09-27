@@ -15,10 +15,10 @@ construction. Also loads different gates from the algorithms folder
 from qiskit import execute
 from qiskit.circuit import Parameter
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
-import hqca.quantum.algorithms._UCC as ucc
-import hqca.quantum.algorithms._ECC as ecc
-import hqca.quantum.algorithms._Entanglers as ent
-import hqca.quantum.algorithms._Tomo as tomo
+import hqca.quantum.primitives._UCC as ucc
+import hqca.quantum.primitives._ECC as ecc
+import hqca.quantum.primitives._Entanglers as ent
+import hqca.quantum.primitives._Tomo as tomo
 from math import pi
 import traceback
 import sys
@@ -28,7 +28,6 @@ tf_ibm_qx4 = {'01':False,'02':False, '12':False, '10':True,'20':True, '21':True}
 
 def read_qasm(input_qasm):
     pass
-
 
 class GenerateDirectCircuit:
     def __init__(
@@ -56,7 +55,7 @@ class GenerateDirectCircuit:
                     'np':2,
                     'pre':False},
                 'UCC1':{
-                    'f':ucc._UCC1,
+                    'f':ucc._UCC_Exc,
                     'np':1,
                     'pre':False},
                 'UCC2':{
@@ -108,7 +107,7 @@ class GenerateDirectCircuit:
                     },
                 'ancilla_sign':{
                     'f':ecc._ec_ancilla_sign,
-                    'anc':1,
+                   'anc':1,
                     },
                 }
         self.para = QuantStore.parameters
@@ -149,8 +148,8 @@ class GenerateDirectCircuit:
         else:
             self._gen_circuit()
 
-    def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp
+    def _initialize(self):
         self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
         for i in range(0,self.Ne_alp):
             targ = self.qs.alpha_qb[i]
@@ -173,11 +172,12 @@ class GenerateDirectCircuit:
             except AttributeError:
                 pass
             for n,quad in enumerate(self.qs.qc_quad_list):
-                p,q,r,s,sign = quad[0],quad[1],quad[2],quad[3],quad[4]
+                p,q = int(quad[0]),int(quad[1])
+                r,s,sign = int(quad[2]),int(quad[3]),quad[4]
                 spin = quad[5]
                 a = self.ent_Nq
                 temp = self.para[hp:hp+a]
-                if self.qs.ent_circ_q=='UCC2_2s' and h==0:
+                if self.qs.ent_circ_q=='UCC2_2s' and hp==0:
                     ucc._UCC2_1s(self,*temp,i=p,j=q,k=r,l=s,
                             operator=sign,
                             spin=spin)

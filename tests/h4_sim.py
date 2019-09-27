@@ -6,7 +6,9 @@ from functools import reduce
 
 mol = gto.Mole()
 d = 2.0
-mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
+mol.atom=[['H',(0,0,0)],['H',(d,0,0)],
+        ['H',(d,d,0)],['H',(0,d,0)]
+        ]
 mol.basis='sto-3g'
 mol.spin=0
 mol.verbose=0
@@ -14,10 +16,10 @@ mol.build()
 prog = sp(theory='acse',mol=mol,casci=True,max_iter=50,time=0.1)
 kw_qc = {
         'Nq':mol.nbas*2,
-        'num_shots':8192*2,
+        'num_shots':8192,
         'entangler_q':'UCC2_2s',
         'spin_mapping':'default',
-        'method':'qc-acse2',
+        'method':'qq-acse2',
         'depth':1,
         'qc':True,
         'info':None,

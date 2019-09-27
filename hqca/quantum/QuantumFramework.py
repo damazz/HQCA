@@ -17,7 +17,7 @@ from hqca.quantum.QuantumFunctions import nonlocal_qubit_tomo_pairs_part as nqtp
 from hqca.quantum.QuantumFunctions import diag
 from hqca.quantum.BuildCircuit import GenerateDirectCircuit
 from hqca.quantum.BuildCircuit import GenerateCompactCircuit
-from hqca.quantum.algorithms import _Tomo as tomo
+from hqca.quantum.primitives import _Tomo as tomo
 import sys, traceback
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile

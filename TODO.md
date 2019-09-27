@@ -1,5 +1,33 @@
  TODO/Changelog List
 
+### 9/23/2019 
+
+* Adjusting ACSE, almost doing an overhaul of sorts. Lots of equations and small
+  details which don't work very well and are easily subject to variation. 
+    * Need to figure out an implementation of the Hamiltonian in an efficient
+      way
+    * So, from pyscf we can get a reduction of Hamiltonian - we can even feed it
+      the Fock matrix to get perturbed Hamiltonian
+    * Need to rebuild the build function
+    * Once we get the Hamiltonian, we need to deconstruct it. So.....hrm. 
+    * What does ACSE storage need to have? ACSE quantum storage? 
+    * Okay so we need to know what fermionic terms, and then to find at what
+      level to implement them, i.e. if they can be simplifeid, etc. 
+      So this is like the Entangler type. Defaults should be minimal, but that
+      is experimental side. 
+      Still, need to generate the pairs first, then simplify, and then implement
+      Finding pairs - functions
+      Simpliying - ansatz generation
+      Dont forget, quantum storage deals with backend, error mitigation, and
+      qubit transformations
+
+### 9/9/2019
+
+* Got a working system for the ACSE. Almost done with energy evaluation. 
+* Need to make sure the RDM element ordering is consistent. I.e., using the
+  RDM-< qubit key a little more often, make sure it works. Then, evaluate RDM,
+  and perform the ACSE manuever. 
+
 ### 6/13/2019
 
 * Need to write down test cases. What is the best way to do the 1-RDM tomography
