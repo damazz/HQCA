@@ -284,6 +284,19 @@ class RDMs:
                     ind = tuple(c[:-1]+a[:-1])
                     self.rdm[ind]=s#*(1/factorial(self.p))
 
+    def reconstruct(self,
+            approx='V',
+            method='cumulant',):
+        if not method=='cumulant':
+            sys.exit('Can\'t perform non-cumulant reconstruction.')
+        if self.p==2:
+            rdm1 = self.reduce_order()
+        if approx in ['v','V','valdemoro','Valdemoro']:
+            rdm3a = rdm1*rdm1*rdm1
+            rdm2w = self-rdm1*rdm1
+            rdm3b = (rdm2w*rdm1)*3
+            rdm3 = rdm3a + rdm3b
+            return rdm3
 
     def switch(self):
         size = len(self.rdm.shape)

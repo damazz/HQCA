@@ -86,7 +86,7 @@ class RunACSE(QuantumRun):
         # 2. prepare ansatz for euler or newton
         # 3. run the ansatz, give best guess
         if self.method=='qc-acse':
-            print('Eulers!')
+            #print('Eulers!')
             self.delta=0.1
             self.__euler_qc_acse(testS)
         elif self.method=='qc-acse2':
@@ -108,9 +108,9 @@ class RunACSE(QuantumRun):
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
         Psi.rdm2.switch()
-        print(np.real(Psi.rdm2.rdm))
+        #print(np.real(Psi.rdm2.rdm))
         Psi.rdm2.switch()
-        print(self.Store.rdm1.rdm)
+        #print(self.Store.rdm1.rdm)
 
 
     def __newton_qc_acse(self,testS):
@@ -211,8 +211,6 @@ class RunACSE(QuantumRun):
             elif self.method in ['qq-acse','qq-acse2']:
                 self.Store._get_HamiltonianOperators(full=True)
                 while not self.total.done:
-                    print('D,',self.Store.rdm2.rdm[0,2,0,2])
-                    print('D,',self.Store.rdm2.rdm[0,2,3,1])
                     self._run_qq_acse()
                     self._check()
             elif self.method in ['acse','cc-acse']:

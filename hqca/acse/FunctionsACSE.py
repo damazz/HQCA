@@ -138,9 +138,13 @@ class ModStorageACSE(Storage):
             ferOp = FermionicOperator(h1=self.ints_1e,
                     h2=self.ints_2e)
             qubOp = ferOp.mapping('JORDAN_WIGNER')
-        print(self.ints_1e)
-        print(self.ints_2e_qiskit)
+        #print(self.ints_1e)
+        #print(self.ints_2e_qiskit)
+        print('------------------------------------------')
+        print('Here is the qubit Hamiltonian: ')
+        print('------------------------------------------')
         print(qubOp.print_operators())
+        print('------------------------------------------')
         self.qubOp = qubOp.paulis
         #sys.exit()
         #print(self.qubOp)

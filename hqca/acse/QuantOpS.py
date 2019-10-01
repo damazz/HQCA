@@ -25,7 +25,7 @@ def findSPairsQuantum(Store,QuantStore):
     newPsi.construct_rdm()
     newPsi.rdm2.switch()
     #print(np.real(newPsi.rdm2.rdm))
-    print(np.imag(newPsi.rdm2.rdm))
+    #print(np.imag(newPsi.rdm2.rdm))
     newPsi.rdm2.switch()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
@@ -71,5 +71,6 @@ def findSPairsQuantum(Store,QuantStore):
                                 sqOp='++--',
                                 spin=spin)
                         newS.append(newOp)
+                        #print('New S',   newS)
     return newS
 

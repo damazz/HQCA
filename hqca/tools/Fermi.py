@@ -83,7 +83,7 @@ class FermiOperator:
         self.q2rdm = tc
 
 
-    def generateExcitationOperators(self,**kw):
+    def generateExcitationOperators(self,Nq='default',**kw):
         if self.opType=='nn':
             self._NumNumOperator(**kw)
         elif self.opType=='ne':
@@ -93,12 +93,12 @@ class FermiOperator:
         elif self.opType=='se':
             self._SingleExcOperator(**kw)
 
-    def _SingleExcOperator(self,**kw):
+    def _SingleExcOperator(self,Nq='default',**kw):
         self.pauliExp = []
         self.pauliCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
-        c = 1j
+        c = 1
         if self.qOp=='+-':
             qubSq+= ['XY','YX']
             qubCo+= [c/2,-c/2]
@@ -115,7 +115,7 @@ class FermiOperator:
             self.pauliExp.append(temp)
             self.pauliCoeff.append(co*self.qCo)
 
-    def _NumExcOperator(self,**kw):
+    def _NumExcOperator(self,Nq='default',**kw):
         self.pauliExp = []
         self.pauliCoeff = []
         inds = [
@@ -129,12 +129,12 @@ class FermiOperator:
         if inds[1]:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
-            c=1j/4
+            c=1/4
             qubSq+= ['XIY','XZY','YIX','YZX']
             if self.qOp in ['++--','-+-+']:
-                qubCo+= [c,c,c,c]
+                qubCo+= [-c,c,c,-c]
             elif self.qOp in ['+-+-','--++']:
-                qubCo+= [c,c,c,c]
+                qubCo+= [c,c,-c,-c]
             for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
@@ -144,130 +144,86 @@ class FermiOperator:
                         'Z'*n2,
                         item[2],
                         'I'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
+                self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
         elif inds[0]:
             n1= self.qInd[2]-(self.qInd[1]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
-            if real:
-                r = 1/2
-                if self.qOp=='+-+-':
-                    qubGet+=['ZXX','ZXX']
-                    qubSq+= ['IXX','ZXX']
-                    qubCo+= [+r/2,-r/2]
-                elif self.qOp=='+--+':
-                    qubGet+=['ZXX','ZXX']
-                    qubSq+= ['IXX','ZXX']
-                    qubCo+= [-r/2,+r/2]
-                elif self.qOp=='-++-':
-                    qubGet+=['ZXX','ZXX']
-                    qubSq+= ['IXX','ZXX']
-                    qubCo+= [+r/2,+r/2]
-                elif self.qOp=='-+-+':
-                    qubGet+=['ZXX','ZXX']
-                    qubSq+= ['IXX','ZXX']
-                    qubCo+= [-r/2,-r/2]
-            if imag:
-                c = 1j/2
-                if self.qOp=='+-+-':
-                    qubGet+=['ZXY','ZXY']
-                    qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,-c/4]
-                elif self.qOp=='+--+':
-                    qubGet+=['ZXY','ZXY']
-                    qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,-c/4]
-                elif self.qOp=='-++-':
-                    qubGet+=['ZXY','ZXY']
-                    qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,c/4]
-                elif self.qOp=='-+-+':
-                    qubGet+=['ZXY','ZXY']
-                    qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,c/4]
-            for item,co,get in zip(qubSq,qubCo,qubGet):
+            c = 1/4
+            qubSq+= ['IXY','ZXY','IYX','ZYX']
+            if self.qOp in ['+-+-','+--+']:
+                qubCo+= [+c,-c,-c,+c]
+            elif self.qOp in ['-++-','-+-+']:
+                qubCo+= [c,c,-c,-c]
+            for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
                         item[0],
-                        'I'*n1,
+                        'Z'*n1,
                         item[1],
                         'Z'*n2,
                         item[2],
                         'I'*(Nq-1-self.qInd[3]))
-                tempGet ='{}{}{}{}{}{}{}'.format(
-                        'Z'*self.qInd[0],
-                        get[0],
-                        'Z'*n1,
-                        get[1],
-                        'Z'*n2,
-                        get[2],
-                        'Z'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
+                self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
         elif inds[2]:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[2]-(self.qInd[1]+1)
-            if real:
-                r = 1/2
-                if self.qOp=='+-+-':
-                    qubGet+=['XXZ','XXZ']
-                    qubSq+= ['XXI','XXZ']
-                    qubCo+= [r/2,-r/2]
-                elif self.qOp=='-++-':
-                    qubGet+=['XXZ','XXZ']
-                    qubSq+= ['XXI','XXZ']
-                    qubCo+= [-r/2,r/2]
-                elif self.qOp=='+--+':
-                    qubGet+=['XXZ','XXZ']
-                    qubSq+= ['XXI','XXZ']
-                    qubCo+= [r/2,r/2]
-                elif self.qOp=='-+-+':
-                    qubGet+=['XXZ','XXZ']
-                    qubSq+= ['XXI','XXZ']
-                    qubCo+= [-r/2,-r/2]
-            if imag:
-                c = 1j/2
-                if self.qOp=='+-+-':
-                    qubGet+=['XYZ','XYZ']
-                    qubSq+= ['XYI','XYZ']
-                    qubCo+= [c/2,-c/2]
-                elif self.qOp=='-++-':
-                    qubGet+=['XYZ','XYZ']
-                    qubSq+= ['XYI','XYZ']
-                    qubCo+= [c/2,-c/2]
-                elif self.qOp=='+--+':
-                    qubGet+=['XYZ','XYZ']
-                    qubSq+= ['XYI','XYZ']
-                    qubCo+= [c/2,c/2]
-                elif self.qOp=='-+-+':
-                    qubGet+=['XYZ','XYZ']
-                    qubSq+= ['XYI','XYZ']
-                    qubCo+= [c/2,c/2]
-            for item,co,get in zip(qubSq,qubCo,qubGet):
+            c = 1/4
+            qubSq+= ['XYI','XYZ','YXI','YXZ']
+            if self.qOp in ['+-+-','-++-']:
+                qubCo+= [+c,-c,-c,+c]
+            elif self.qOp in ['+--+','-+-+']:
+                qubCo+= [+c,+c,-c,-c]
+            for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
                         item[0],
                         'Z'*n1,
                         item[1],
-                        'I'*n2,
+                        'Z'*n2,
                         item[2],
                         'I'*(Nq-1-self.qInd[3]))
-                tempGet = '{}{}{}{}{}{}{}'.format(
-                        'Z'*self.qInd[0],
-                        get[0],
-                        'Z'*n1,
-                        get[1],
-                        'Z'*n2,
-                        get[2],
-                        'Z'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
+                self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
 
-    def _ExcExcOperator(self,**kw):
-        pass
+    def _ExcExcOperator(self,Nq='default',**kw):
+        self.pauliExp = []
+        self.pauliCoeff = []
+        if Nq=='default':
+            Nq = max(self.qInd)
+        n1,n3 = self.qInd[1]-(self.qInd[0]+1),self.qInd[3]-(self.qInd[2]+1)
+        n2 = self.qInd[2]-(self.qInd[1]+1)
+        qubSq,qubCo=[],[]
+        c= 1/8
+        if self.qOp in ['++--','--++']:
+            qubSq+= ['XXXY','XXYX','XYXX','XYYY','YXXX','YXYY','YYXY','YYYX']
+            if self.qOp=='--++':
+                c*=-1
+            qubCo+= [-c,-c,+c,-c,+c,-c,+c,+c]
+        elif self.qOp in ['+-+-','-+-+']:
+            qubSq+= ['XXXY','XXYX','XYXX','XYYY','YXXX','YXYY','YYXY','YYYX']
+            if self.qOp=='-+-+':
+                c*=-1
+            qubCo+= [+c,-c,+c,+c,-c,-c,+c,-c]
+        elif self.qOp in ['+--+','-++-']:
+            qubSq+= ['XXXY','XXYX','XYXX','XYYY','YXXX','YXYY','YYXY','YYYX']
+            if self.qOp=='-++-':
+                c*=-1
+            qubCo+= [+c,-c,-c,-c,+c,+c,+c,-c]
+        for item,co in zip(qubSq,qubCo):
+            temp = '{}{}{}{}{}{}{}{}{}'.format(
+                    'I'*self.qInd[0],
+                    item[0],
+                    'Z'*n1,
+                    item[1],
+                    'I'*n2,
+                    item[2],
+                    'Z'*n3,
+                    item[3],
+                    'I'*(Nq-1-self.qInd[3]))
+            self.pauliExp.append(temp)
+            self.pauliCoeff.append(co*self.qCo)
 
     
     def generateTomoBasis(self,**kw):

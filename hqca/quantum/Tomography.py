@@ -113,7 +113,7 @@ class Tomography:
                 if j in self.paulis:
                     pass
                 else:
-                    print(j)
+                    #print(j)
                     self.paulis.append(j)
         self.op = self.paulis
 

@@ -19,6 +19,7 @@ import hqca.quantum.primitives._UCC as ucc
 import hqca.quantum.primitives._ECC as ecc
 import hqca.quantum.primitives._Entanglers as ent
 import hqca.quantum.primitives._Tomo as tomo
+from hqca.quantum.primitives._Hamiltonian import _generic_Pauli_term
 from math import pi
 import traceback
 import sys
@@ -28,6 +29,43 @@ tf_ibm_qx4 = {'01':False,'02':False, '12':False, '10':True,'20':True, '21':True}
 
 def read_qasm(input_qasm):
     pass
+
+class GenerateGenericCircuit:
+    def __init__(
+            self,
+            QuantStore,
+            Gates,
+            _name=False,
+            ):
+        self.qs = QuantStore
+        self.Nq = QuantStore.Nq_tot
+        self.q = QuantumRegister(self.Nq,name='q')
+        self.c = ClassicalRegister(self.Nq,name='c')
+        self.Ne = QuantStore.Ne
+        self.name = _name
+        if _name==False:
+            self.qc = QuantumCircuit(self.q,self.c)
+        else:
+            self.qc = QuantumCircuit(self.q,self.c,name=_name)
+        self._initialize()
+        for g in Gates:
+            try:
+                g.pauliExp
+            except AttributeError as Exception:
+                g.generateExcitationOperators()
+            for p,c in zip(g.pauliExp,g.pauliCoeff):
+                _generic_Pauli_term(self,c*g.qCo,p)
+
+    def _initialize(self):
+        self.Ne_alp = self.qs.Ne_alp
+        self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
+        for i in range(0,self.Ne_alp):
+            targ = self.qs.alpha_qb[i]
+            self.qc.x(self.q[targ])
+        for i in range(0,self.Ne_bet):
+            targ = self.qs.beta_qb[i]
+            self.qc.x(self.q[targ])
+
 
 class GenerateDirectCircuit:
     def __init__(
@@ -148,8 +186,8 @@ class GenerateDirectCircuit:
         else:
             self._gen_circuit()
 
-        self.Ne_alp = self.qs.Ne_alp
     def _initialize(self):
+        self.Ne_alp = self.qs.Ne_alp
         self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
         for i in range(0,self.Ne_alp):
             targ = self.qs.alpha_qb[i]

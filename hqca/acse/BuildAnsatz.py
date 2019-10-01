@@ -2,7 +2,7 @@ from hqca.quantum.BuildCircuit import GenerateDirectCircuit
 from hqca.tools import Functions as fx
 from hqca.tools.RDMFunctions import check_2rdm
 import numpy as np
-from hqca.quantum.BuildCircuit import GenerateCircuit
+from hqca.quantum.BuildCircuit import GenerateGenericCircuit
 from hqca.quantum.primitives import _Tomo as tomo
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile
@@ -37,7 +37,7 @@ class Ansatz(Tomography):
 
 
     def build_tomography(self,full=True,**kw):
-        print('Build tomography called.')
+        #print('Build tomography called.')
         self._adapt_S()
         if full:
             Tomography.generate_2rdme(self,**kw)
@@ -66,7 +66,10 @@ class Ansatz(Tomography):
     def _gen_full_tomography(self):
         for circ in self.op:
             self.circuit_list.append(circ)
-            Q = GenerateDirectCircuit(self.qs,_name=circ)
+            Q = GenerateGenericCircuit(
+                    self.qs,
+                    self.S,
+                    _name=circ)
             if self.propagate:
                 self._applyH(Q)
             for n,q in enumerate(circ):
@@ -100,14 +103,15 @@ class Ansatz(Tomography):
         '''
         self.qs.qc_quad_list = []
         self.qs.parameters = []
-        print(len(self.S))
+        #print(len(self.S))
         for item in self.S:
-            print('Adapt: ',item.qOp,item.qInd[:],item.qCo)
-            temp = item.qInd[:]
-            print(temp)
-            temp.append(item.qOp)
-            temp.append(item.qSp)
-            self.qs.qc_quad_list.append(temp)
-            self.qs.parameters.append(np.real(item.qCo))
+            item.generateExcitationOperators()
+            #print('Adapt: ',item.qOp,item.qInd[:],item.qCo)
+            #temp = item.qInd[:]
+            #print(temp)
+            #temp.append(item.qOp)
+            #temp.append(item.qSp)
+            #self.qs.qc_quad_list.append(temp)
+            #self.qs.parameters.append(np.real(item.qCo))
 
 

@@ -17,8 +17,41 @@ def __pauliOp(Q,loc,sigma='x',inv=False):
         else:
             Q.qc.rx(pi/2,Q.q[loc])
 
-def _generic_Pauli_term(Q,term,scaling=1):
+
+def _generic_Pauli_term(Q,val,pauli):
+    pauliTerms=0
+    ind = [] 
+    terms = []
+    for n,i in enumerate(pauli):
+        if not i in ['I','i']:
+            pauliTerms+=1
+            ind.append(n)
+            terms.append(i)
+    if pauliTerms==0:
+        Q.qc.u1(val,Q.q[0])
+        Q.qc.x(Q.q[0])
+        Q.qc.u1(val,Q.q[0])
+        Q.qc.x(Q.q[0])
+    else:
+        # basis
+        for n,p in zip(ind,terms):
+            __pauliOp(Q,n,p)
+        # exp cnot
+        for n in range(0,pauliTerms-1):
+            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
+        # parameter
+        Q.qc.rz(val,Q.q[ind[-1]])
+        # exp cnot
+        for n in reversed(range(pauliTerms-1)):
+            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
+        # inv. basis
+        for n,p in zip(ind,terms):
+            __pauliOp(Q,n,p,inv=True)
+    
+
+def _generic_Pauli_term_qiskit(Q,term,scaling=1):
     '''
+
     note input should be from qiskit
     entry 1 is value, entry to is a Pauli object
     '''
@@ -56,5 +89,5 @@ def _generic_Pauli_term(Q,term,scaling=1):
 
 def _add_Hamiltonian(Q,qubOp,scaling):
     for term in qubOp:
-        _generic_Pauli_term(Q,term,scaling=scaling)
+        _generic_Pauli_term_qiskit(Q,term,scaling=scaling)
 

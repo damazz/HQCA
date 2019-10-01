@@ -19,6 +19,8 @@ def findSPairs(Store):
     '''
     '''
     pass
+    print('--- reconstructing 3-RDM')
+    Store.rdm3 = Store.rdm2.reconstruct()
     alpha = Store.alpha_mo['active']
     beta = Store.beta_mo['active']
     S = []
