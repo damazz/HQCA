@@ -18,7 +18,7 @@ classical solution of the S matrix.
 def findSPairs(Store):
     '''
     '''
-    if Store.Nels>2:
+    if Store.Ne_tot>2:
         Store.rdm3 = Store.rdm2.reconstruct()
     alpha = Store.alpha_mo['active']
     beta = Store.beta_mo['active']
