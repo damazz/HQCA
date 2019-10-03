@@ -248,7 +248,9 @@ class RunACSE(QuantumRun):
         en = self.Store.evaluate_energy()
         self.total.iter+=1
         print('Step {:02}, Energy: {:.6f}, S: {:.6f}'.format(
-            self.total.iter,en,self.norm))
+            self.total.iter,
+            np.real(en),
+            np.real(self.norm)))
         if self.method in ['ac-acse','aq-acse']:
             if self.Store.t==float(1):
                 self.total.done=True
