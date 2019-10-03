@@ -111,7 +111,7 @@ class RunACSE(QuantumRun):
         testS = quantS.findSPairsQuantum(self.Store,self.QuantStore)
         self._check_norm(testS)
         if self.method=='qq-acse':
-            self.delta = 0.10
+            self.delta = 0.20
             self.__euler_qc_acse(testS)
         elif self.method=='qq-acse2':
             self.delta = 0.5
