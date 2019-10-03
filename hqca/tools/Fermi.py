@@ -1,4 +1,4 @@
-#import numpy as np
+import numpy as np
 
 class FermiOperator:
     def __init__(self,
@@ -11,7 +11,7 @@ class FermiOperator:
         self.ind =indices
         self.op = sqOp
         self.sp = spin
-        self.norm = self.c**2
+        self.norm = self.c*np.conj(self.c)
         self.order = len(sqOp)
         self.as_set = set(indices)
         self._qubit_order()

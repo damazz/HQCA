@@ -78,6 +78,8 @@ class RunACSE(QuantumRun):
         self.method = self.QuantStore.method # set method
         self.Store.method = self.method
         self.built=True
+        self.log_S = []
+        self.log_E = []
 
     def update_var(self,**kw):
         QuantumRun.update_var(self,**kw)
@@ -266,7 +268,15 @@ class RunACSE(QuantumRun):
                     self.old = en
         if en<self.old:
             self.old = en
+        self.log_E.append(en)
+        self.log_S.append(self.norm)
 
 
+
+    def save(self,
+            name
+            ):
+        np.savetxt(name,np.asarray(
+            [self.log_E,self.log_S]))
 
 
