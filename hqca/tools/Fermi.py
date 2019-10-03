@@ -11,7 +11,7 @@ class FermiOperator:
         self.ind =indices
         self.op = sqOp
         self.sp = spin
-        self.norm = np.square(np.real(coeff))
+        self.norm = self.c**2
         self.order = len(sqOp)
         self.as_set = set(indices)
         self._qubit_order()
