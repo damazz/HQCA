@@ -11,10 +11,12 @@ class FermiOperator:
         self.ind =indices
         self.op = sqOp
         self.sp = spin
+        self.norm = np.square(np.real(coeff))
         self.order = len(sqOp)
         self.as_set = set(indices)
         self._qubit_order()
         self._classify()
+
     
     def hasSameInd(self,b):
         '''
@@ -225,7 +227,6 @@ class FermiOperator:
             self.pauliExp.append(temp)
             self.pauliCoeff.append(co*self.qCo)
 
-    
     def generateTomoBasis(self,**kw):
         '''
         Note...provides the tomography elements to give the real and/or

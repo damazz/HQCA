@@ -10,7 +10,7 @@
     * Monitor convergence for 2/4 case, make sure everything is okay, then 2/6
         * Figure out a way to plot
         * Check convergence with respect to shots/counts
-        * Maybe implement unitaries
+        * Maybe implement unitarie2s
 
 
 

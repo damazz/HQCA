@@ -71,6 +71,9 @@ class RunACSE(QuantumRun):
         self.total=Cache()
 
     def build(self):
+        '''
+        Build the quantum object, QuantStore
+        '''
         QuantumRun._build_quantum(self)
         self.method = self.QuantStore.method # set method
         self.Store.method = self.method
@@ -81,17 +84,30 @@ class RunACSE(QuantumRun):
         self.Store.pr_m = self.kw['pr_m']
 
     def _run_qc_acse(self):
+        '''
+        Quantum Psi, Classical S
+         1. find S classically,
+         2. prepare ansatz for euler or newton
+         3. run the ansatz, give best guess
+        '''
         testS = classS.findSPairs(self.Store)
-        # 1. find S classically,
-        # 2. prepare ansatz for euler or newton
-        # 3. run the ansatz, give best guess
-        if self.method=='qc-acse':
-            #print('Eulers!')
+        self._check_norm(testS)
+        if self.method=='qc-acse': #eulers methods
             self.delta=0.1
-            self.__euler_qc_acse(testS)
-        elif self.method=='qc-acse2':
+            self.__euler_qc_acse(testS) 
+        elif self.method=='qc-acse2': #newtons methods
             self.delta = 0.25
             self.__newton_qc_acse(testS)
+
+    def _check_norm(self,testS):
+        '''
+        evaluate norm of S calculation
+        '''
+        self.norm = 0
+        for item in testS:
+            self.norm+= item.norm
+        self.norm = self.norm**(0.5)
+
 
     def __euler_qc_acse(self,testS):
         '''
@@ -107,10 +123,6 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
-        #Psi.rdm2.switch()
-        #print(np.real(Psi.rdm2.rdm))
-        #Psi.rdm2.switch()
-        #print(self.Store.rdm1.rdm)
 
 
     def __newton_qc_acse(self,testS):
@@ -229,10 +241,14 @@ class RunACSE(QuantumRun):
                     self._check()
 
     def _check(self):
+        '''
+        Internal check on the energy as well as norm of the S matrix
+        '''
         # need to find energy
         en = self.Store.evaluate_energy()
         self.total.iter+=1
-        print('Step {:02}, Energy: {}'.format(self.total.iter,en))
+        print('Step {:02}, Energy: {:.6f}, S: {:.6f}'.format(
+            self.total.iter,en,self.norm))
         if self.method in ['ac-acse','aq-acse']:
             if self.Store.t==float(1):
                 self.total.done=True

@@ -18,9 +18,8 @@ classical solution of the S matrix.
 def findSPairs(Store):
     '''
     '''
-    pass
-    print('--- reconstructing 3-RDM')
-    Store.rdm3 = Store.rdm2.reconstruct()
+    if Store.Nels>2:
+        Store.rdm3 = Store.rdm2.reconstruct()
     alpha = Store.alpha_mo['active']
     beta = Store.beta_mo['active']
     S = []
@@ -85,7 +84,7 @@ def findSPairs(Store):
                             term3+= temp3
                         term = term1+term2+term3
                         if abs(term)>0.01 and len(set([i,j,k,l]))==4:
-                            print('From ACSE calc: ',term,i,k,l,j)
+                            #print('From ACSE calc: ',term,i,k,l,j)
                             newFermi = FermiOperator(
                                     coeff=term,
                                     indices=[i,k,l,j],
