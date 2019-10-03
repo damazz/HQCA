@@ -241,8 +241,7 @@ class RunACSE(QuantumRun):
                 self.total.done=True
             else:
                 try:
-                    self.ol d
-                    
+                    self.old
                     #if self.old<en-0.005:
                     #    self.total.done=True
                 except Exception:
