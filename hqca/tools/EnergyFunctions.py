@@ -85,12 +85,20 @@ class Storage:
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e_ao = self.V_1e+self.T_1e
         self.ints_2e_ao = mol.intor('int2e')
-        self.hf = scf.RHF(mol)
-        self.hf.kernel()
-        self.mol = mol
-        self.hf.analyze()
-        self.C= self.hf.mo_coeff
-        self.f = self.hf.get_fock()
+        try:
+            self.hf = scf.RHF(mol)
+            self.hf.kernel()
+            self.mol = mol
+            self.hf.analyze()
+            self.C= self.hf.mo_coeff
+            self.f = self.hf.get_fock()
+        except Exception:
+            self.hf = scf.ROHF(mol)
+            self.hf.kernel()
+            self.mol = mol
+            self.hf.analyze()
+            self.C= self.hf.mo_coeff
+            self.f = self.hf.get_fock()
         if Ne_as=='default':
             self.Ne_as = mol.nelec[0]+mol.nelec[1]
         else:
