@@ -8,7 +8,9 @@ from hqca.tools import EnergyFunctions as enf
 from hqca.tools import EnergyDeterminant as end
 from hqca.tools import Functions as fx
 from hqca.tools import EnergyOrbital as eno
-from pyscf import gto,scf,mcscf
+from pyscf import gto,mcscf
+from pyscf import scf as pscf
+
 '''
 ./tools/EnergyFunctions.py
 
@@ -86,14 +88,14 @@ class Storage:
         self.ints_1e_ao = self.V_1e+self.T_1e
         self.ints_2e_ao = mol.intor('int2e')
         try:
-            self.hf = scf.RHF(mol)
+            self.hf = pscf.RHF(mol)
             self.hf.kernel()
             self.mol = mol
             self.hf.analyze()
             self.C= self.hf.mo_coeff
             self.f = self.hf.get_fock()
         except Exception:
-            self.hf = scf.ROHF(mol)
+            self.hf = pscf.ROHF(mol)
             self.hf.kernel()
             self.mol = mol
             self.hf.analyze()
