@@ -17,7 +17,7 @@ class RDMs:
             beta=[],
             state='hf',
             Ne=None,
-            Sz=0,
+            S=0,
             S2=0,
             verbose=0,
             rdm=None
@@ -27,15 +27,18 @@ class RDMs:
         self.v = verbose
         self.alp = alpha
         self.bet = beta
-        self.Sz=Sz
+        self.S=S
         self.S2=S2
         self.Ne=Ne
-        self.N_alp = int((Ne+Sz)/2)
+        self.N_alp = int(Ne+S)//2
         self.N_bet = Ne-self.N_alp
         if state in ['hartree','hf','scf']:
             if self.v>0:
                 print('Making Hartree-Fock {}-RDM'.format(self.p))
-            self._build_hf_singlet()
+            if self.S==0:
+                self._build_hf_singlet()
+            elif self.S==1:
+                self._build_hf_doublet()
         elif state in ['wf']:
             pass
         elif state in ['given','provided','spec']:
@@ -53,14 +56,22 @@ class RDMs:
                 alpha=self.alp,
                 beta=self.bet,
                 state=None,
+                S=self.S,
                 Ne=self.Ne,
                 )
         nRDM.rdm = self.rdm.copy()
         return nRDM
 
     def trace(self):
-        self.contract()
-        return self.rdm.trace()
+        try: 
+            self.rdm.trace()[0,0]
+            self.switch()
+            test=  self.rdm.trace()
+            self.switch()
+        except Exception as e:
+            test = self.rdm.trace()
+        return test
+
         # get trace of RDM
 
     def __add__(self,RDM):
@@ -69,16 +80,18 @@ class RDMs:
         else:
             sys.exit('Wrong type specified.')
         c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.Sz==RDM.Sz
+        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
         c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
         if c1+c2+c3+c4+c5+c6<6:
             print('Checks: ')
-            print(c1,c2,c3,c4,c5,c6)
+            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
+            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDMs(
                 order=self.p,
                 alpha=self.alp,
                 beta=self.bet,
+                S=self.S,
                 state=None,
                 Ne=self.Ne,
                 )
@@ -94,6 +107,7 @@ class RDMs:
                 beta=self.bet,
                 state=None,
                 Ne=self.Ne,
+                S=self.S,
                 )
         if self.p==3:
             for i in range(0,self.r):
@@ -111,7 +125,7 @@ class RDMs:
                     for x in range(0,self.r):
                         i2 = tuple([i,x,j,x])
                         nRDM.rdm[i1]+=self.rdm[i2]
-        nRDM.rdm*=(1/(self.p-1))
+        nRDM.rdm*=(1/(self.Ne-self.p+1))
         return nRDM
 
     def __sub__(self,RDM):
@@ -120,7 +134,7 @@ class RDMs:
         else:
             sys.exit('Wrong type specified.')
         c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.Sz==RDM.Sz
+        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
         c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
         if c1+c2+c3+c4+c5+c6<6:
             print('Checks: ')
@@ -131,12 +145,13 @@ class RDMs:
                 alpha=self.alp,
                 beta=self.bet,
                 state=None,
+                S=self.S,
                 Ne=self.Ne,
                 )
         self.expand()
         RDM.expand()
-        nRDM = self.rdm-RDM.rdm
-        return self
+        nRDM.rdm = self.rdm-RDM.rdm
+        return nRDM
 
     def __mul__(self,RDM):
         if type(RDM)==type(self):
@@ -147,7 +162,7 @@ class RDMs:
         self.expand()
         RDM.expand()
         c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.Sz==RDM.Sz
+        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
         c5 = (self.S2==RDM.S2)
         if c1+c2+c3+c4+c5<5:
             print('Checks: ')
@@ -159,6 +174,7 @@ class RDMs:
                 beta=self.bet,
                 state=None,
                 Ne=self.Ne,
+                S=self.S,
                 )
         non1 = list((np.nonzero(self.rdm)))
         non2 = list((np.nonzero(RDM.rdm)))
@@ -262,12 +278,12 @@ class RDMs:
     def _build_hf_doublet(self):
         '''
         build a p-RDM that comes from a single determinant,
-        but with Sz neq 0 
+        but with S neq 0
         '''
         self.rdm = np.zeros(
                 tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
-        occAlp = self.alp[:self.Ne//2]
-        occBet = self.bet[:self.Ne//2]
+        occAlp = self.alp[:int((self.Ne+self.S)//2)]
+        occBet = self.bet[:int((self.Ne-self.S)//2)]
         Rec = Recursive(depth=self.p,choices=occAlp+occBet)
         Rec.permute()
         self.total=Rec.total

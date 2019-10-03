@@ -34,14 +34,14 @@ class ModStorageACSE(Storage):
                 beta  = self.beta_mo['active'],
                 state='hf',
                 Ne=self.Ne_as,
-                Sz=0,S2=0)
+                S=self.Ne_alp-self.Ne_bet)
         self.rdm3 = RDMs(
                 order=3,
                 alpha = self.alpha_mo['active'],
                 beta  = self.beta_mo['active'],
                 state='hf',
                 Ne=self.Ne_as,
-                Sz=0,S2=0)
+                S=self.Ne_alp-self.Ne_bet)
         self.rdm1 = self.rdm2.reduce_order()
         self.update_full_ints()
         self.get_qiskit_ints2e()
@@ -94,7 +94,7 @@ class ModStorageACSE(Storage):
         e_h1 = reduce(np.dot, (self.K1,rdm1.rdm)).trace()
         rdm2.switch()
         e_h2 = reduce(np.dot, (self.K2,rdm2.rdm)).trace()
-        return e_h1 + e_h2 + self.E_ne
+        return e_h1 + 0.5*e_h2 + self.E_ne
 
 
     def update_ansatz(self,newS):
@@ -103,14 +103,24 @@ class ModStorageACSE(Storage):
 
         NEEDS WORK. DRASTICALLY
         '''
+        #for fermi in newS:
+        #    if len(self.ansatz)==0:
+        #        self.ansatz.append(fermi)
+        #    elif fermi.hasSameInd(self.ansatz[-1]):
+        #        self.ansatz[-1].qCo+= fermi.qCo
+        #        self.ansatz[-1].c+=fermi.c
+        #    else:
+        #        self.ansatz.append(fermi)
         for fermi in newS:
-            if len(self.ansatz)==0:
+            new = True
+            for old in self.ansatz:
+                if fermi.hasSameInd(old):
+                    old.qCo+= fermi.qCo
+                    old.c += fermi.c
+                    new = False
+            if new:
                 self.ansatz.append(fermi)
-            elif fermi.hasSameInd(self.ansatz[-1]):
-                self.ansatz[-1].qCo+= fermi.qCo
-                self.ansatz[-1].c+=fermi.c
-            else:
-                self.ansatz.append(fermi)
+
 
     def build_trial_ansatz(self,testS):
         '''
@@ -148,3 +158,5 @@ class ModStorageACSE(Storage):
         self.qubOp = qubOp.paulis
         #sys.exit()
         #print(self.qubOp)
+
+

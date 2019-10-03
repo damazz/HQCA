@@ -55,9 +55,11 @@ class QuantumStorage:
             pr_q=0,
             Ne_as=None,
             No_as=None,
+            Ne_alp='default',
+            Ne_bet='default',
             alpha_mos=None,
             beta_mos=None,
-            Sz=0,
+            spin=0,
             theory='noft',
             fermion_mapping='jordan-wigner',
             ansatz='default',
@@ -77,17 +79,18 @@ class QuantumStorage:
         self.pr_q = pr_q
         self.theory=theory
         self.spin_mapping = spin_mapping
-        self.Sz=Sz
+        self.spin=spin
+        if Ne_alp=='default':
+            self.Ne_alp = Ne_as//2
+            self.Ne_bet = Ne_as//2
+        else:
+            self.Ne_alp = Ne_alp
+            self.Ne_bet = Ne_bet
         self.ansatz = ansatz
         self.No = No_as # note, spatial orbitals
         self.alpha = alpha_mos
         self.beta = beta_mos
         self.Ne = Ne_as # active space
-        if spin_mapping in ['default','alternating']:
-            self.Ne_alp = int(0.5*Ne_as+Sz)
-        else:
-            self.Ne_alp = int(Ne_as)
-        self.Ne_bet = self.Ne-self.Ne_alp
         self.tomo_bas = tomo_basis
         self.tomo_rdm = tomo_rdm
         self.tomo_ext = tomo_extra

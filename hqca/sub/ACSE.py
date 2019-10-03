@@ -21,7 +21,7 @@ from functools import reduce
 import datetime
 import sys
 from hqca.tools import Preset as pre
-np.set_printoptions(precision=3,suppress=True)
+np.set_printoptions(precision=3,suppress=True,linewidth=200)
 
 class RunACSE(QuantumRun):
     '''
@@ -107,9 +107,9 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
-        Psi.rdm2.switch()
+        #Psi.rdm2.switch()
         #print(np.real(Psi.rdm2.rdm))
-        Psi.rdm2.switch()
+        #Psi.rdm2.switch()
         #print(self.Store.rdm1.rdm)
 
 
@@ -153,6 +153,11 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
+        #test = np.nonzero(Psi.rdm2.rdm)
+        #for i,j,k,l in zip(test[0],test[1],test[2],test[3]):
+        #    print(i,j,k,l,Psi.rdm2.rdm[i,j,k,l])
+        #print('Trace : {}'.format(Psi.rdm2.trace()))
+        #sys.exit()
 
     def _run_qq_acse(self):
         #self.Store._get_HamiltonianOperators(full=True)
@@ -236,8 +241,10 @@ class RunACSE(QuantumRun):
                 self.total.done=True
             else:
                 try:
-                    if self.old<en-0.005:
-                        self.total.done=True
+                    self.ol d
+                    
+                    #if self.old<en-0.005:
+                    #    self.total.done=True
                 except Exception:
                     self.old = en
         if en<self.old:

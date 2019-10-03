@@ -96,6 +96,8 @@ class Storage:
         else:
             self.Ne_as = int(Ne_as)
         self.Ne_tot = mol.nelec[0]+mol.nelec[1]
+        self.Ne_alp = mol.nelec[0]
+        self.Ne_bet = mol.nelec[1]
         if No_as=='default':
             self.No_as = self.C.shape[0]
         else:
@@ -130,6 +132,7 @@ class Storage:
         self.active_space_calc='FCI'
         self.F_alpha = 0
         self.F_beta = 0
+        self.spin = self.mol.spin
         self.kw = kwargs
 
     def gip(self):

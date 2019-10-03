@@ -79,6 +79,7 @@ class Ansatz(Tomography):
 
     def _gen_quantum_S(self):
         for circ in self.op:
+            print(self.circ)
             self.circuit_list.append(circ)
             Q = GenerateDirectCircuit(self.qs,_name=circ)
             if self.propagate:

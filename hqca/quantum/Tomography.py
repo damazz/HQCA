@@ -2,6 +2,7 @@ from hqca.quantum.BuildCircuit import GenerateDirectCircuit
 from hqca.tools.Fermi import FermiOperator as Fermi
 from hqca.tools import Functions as fx
 from hqca.tools.RDMFunctions import check_2rdm
+from hqca.quantum._ReduceCircuit import simplify_tomography
 import numpy as np
 from hqca.quantum.BuildCircuit import GenerateCircuit
 from hqca.quantum.primitives import _Tomo as tomo
@@ -11,6 +12,13 @@ from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.RDM import Recursive,RDMs
 import sys
+
+#
+#class SetTomography(Tomography):
+#    def __init__(self,**kwargs):
+#        Tomography.__init__(self,**kwargs)
+#        pass
+
 
 class Tomography:
     def __init__(self,
@@ -106,8 +114,13 @@ class Tomography:
         self.rdme = rdme
         self.generate_pauli_measurements()
 
+    def _use_reduced_setting(self):
+        self.rdme = simplify_tomography(self.rdme)
+        pass
+
     def generate_pauli_measurements(self):
         self.paulis = []
+        self._use_reduced_setting()
         for fermi in self.rdme:
             for j in fermi.pauliGet:
                 if j in self.paulis:

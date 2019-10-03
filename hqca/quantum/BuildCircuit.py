@@ -58,7 +58,7 @@ class GenerateGenericCircuit:
 
     def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp
-        self.Ne_bet = self.qs.Ne-self.qs.Ne_alp
+        self.Ne_bet = self.qs.Ne_bet
         for i in range(0,self.Ne_alp):
             targ = self.qs.alpha_qb[i]
             self.qc.x(self.q[targ])

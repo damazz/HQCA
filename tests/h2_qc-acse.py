@@ -14,7 +14,7 @@ mol.build()
 prog = sp(theory='acse',mol=mol,casci=True,max_iter=50,time=0.1)
 kw_qc = {
         'Nq':mol.nbas*2,
-        'num_shots':8192*2,
+        'num_shots':8192*1,
         'entangler_q':'UCC2_2s',
         'spin_mapping':'default',
         'method':'qc-acse',

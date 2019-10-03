@@ -5,19 +5,20 @@ import numpy as np
 from functools import reduce
 
 mol = gto.Mole()
-d = 2.0
-mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
+d = 1.0
+mol.atom=[['H',(0,0,0)],['H',(d,0,0)],['H',(-d,0,0)]]
 mol.basis='sto-3g'
 mol.spin=0
+mol.charge=1
 mol.verbose=0
 mol.build()
 prog = sp(theory='acse',mol=mol,casci=True,max_iter=50,time=0.1)
 kw_qc = {
         'Nq':mol.nbas*2,
-        'num_shots':8192*2,
+        'num_shots':8192,
         'entangler_q':'UCC2_2s',
         'spin_mapping':'default',
-        'method':'qc-acse',
+        'method':'qc-acse2',
         'depth':1,
         'qc':True,
         'info':None,

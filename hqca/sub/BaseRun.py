@@ -58,6 +58,8 @@ class QuantumRun:
         if not self.Store==None:
             self.kw_qc['Ne_as'] = self.Store.Ne_as
             self.kw_qc['No_as']=self.Store.No_as
+            self.kw_qc['Ne_alp']=self.Store.Ne_alp
+            self.kw_qc['Ne_bet']=self.Store.Ne_bet
             self.kw_qc['alpha_mos']=self.Store.alpha_mo
             self.kw_qc['beta_mos']=self.Store.beta_mo
         else:

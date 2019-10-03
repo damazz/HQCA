@@ -36,7 +36,6 @@ def qACSE():
             'entangler_q':'UCC2c', #Ry with a constant N
             'pr_e':0, # error correction
             'pr_q':0,
-            'Sz':0,
             'depth':1
             }
         }
