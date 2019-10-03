@@ -83,7 +83,7 @@ def findSPairs(Store):
                             temp3*= Store.ints_1e[p,q]
                             term3+= temp3
                         term = term1+term2+term3
-                        if abs(term)>0.01 and len(set([i,j,k,l]))==4:
+                        if abs(term)>0.000001 and len(set([i,j,k,l]))==4:
                             #print('From ACSE calc: ',term,i,k,l,j)
                             newFermi = FermiOperator(
                                     coeff=term,
