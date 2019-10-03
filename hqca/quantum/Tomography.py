@@ -36,11 +36,14 @@ class Tomography:
             self.rdme[0]
         except Exception:
             sys.exit('Have not specified the rdme elements for tomography.')
+        try:
+            self.counts
+        except AttributeError:
+            sys.exit('Did you forget to run the circuit? No counts available.')
         self._build_2RDM()
 
     def _build_2RDM(self):
         nRDM = np.zeros((self.Nq,self.Nq,self.Nq,self.Nq),dtype=np.complex_)
-        #print(self.counts['ZZZZ'])
         for r in self.rdme:
             temp = 0
             for get,Pauli,coeff in zip(r.pauliGet,r.pauliGates,r.pauliCoeff):
@@ -71,9 +74,7 @@ class Tomography:
                 rdm=nRDM)
 
 
-    def generate_2rdme(self,real=True,imag='default'):
-        if imag=='default':
-            imag=self.imTomo
+    def generate_2rdme(self,real=True,imag=False):
         alpha = self.qs.alpha['active']
         rdme = []
         beta = self.qs.beta['active']
@@ -112,21 +113,20 @@ class Tomography:
                                     Nq=self.qs.Nq)
                             rdme.append(test)
         self.rdme = rdme
-        self.generate_pauli_measurements()
+        self._generate_pauli_measurements()
 
     def _use_reduced_setting(self):
         self.rdme = simplify_tomography(self.rdme)
         pass
 
-    def generate_pauli_measurements(self):
+    def _generate_pauli_measurements(self):
         self.paulis = []
-        self._use_reduced_setting()
+        #self._use_reduced_setting()
         for fermi in self.rdme:
             for j in fermi.pauliGet:
                 if j in self.paulis:
                     pass
                 else:
-                    #print(j)
                     self.paulis.append(j)
         self.op = self.paulis
 
@@ -149,49 +149,6 @@ class Tomography:
             total+=n
         return val/total
 
-    def _gen_pauli_str(self,st):
-        '''
-        from a list, generates the corresponding pauli string
-        '''
-        i,j,k,l,sp,sq = st[0],st[1],st[2],st[3],st[4],st[5]
-        if self.imTomo==False:
-            if sp in ['abba','baab']:
-                ops = ['xxxx','xyyx']
-            elif sp in ['abab','baba']:
-                ops = ['xxxx','xyxy']
-            elif sp in ['aabb','bbaa']:
-                ops = ['xxxx','xxyy']
-            signs = [1/4,1/4]
-            ops = ['xxxx','xxyy']
-            for op in ops:
-                temp = 'i'*self.Nq
-                temp=temp[:i]+op[0]+temp[i+1:]
-                temp=temp[:j]+op[1]+temp[j+1:]
-                temp=temp[:k]+op[2]+temp[k+1:]
-                temp=temp[:l]+op[3]+temp[l+1:]
-                if temp in self.op:
-                    pass
-                else:
-                    self.op.append(temp)
-        else:
-            ops = ['xxxx','xxyy','yxxx','xyxx']
-            if sp in ['abba','baab']:
-                ops = ['xxxx','xyyx','xxxy','yxxx']
-            elif sp in ['abab','baba']:
-                ops = ['xxxx','xyxy','xxyx','yxxx']
-            elif sp in ['aabb','bbaa']:
-                ops = ['xxxx','xxyy','yxxx','xyxx']
-            signs = [1/4,1/4,1j/4,-1j/4]
-            for op in ops:
-                temp = 'i'*self.Nq
-                temp=temp[:i]+op[0]+temp[i+1:]
-                temp=temp[:j]+op[1]+temp[j+1:]
-                temp=temp[:k]+op[2]+temp[k+1:]
-                temp=temp[:l]+op[3]+temp[l+1:]
-                if temp in self.op:
-                    pass
-                else:
-                    self.op.append(temp)
 
     def run_circuit(self):
         def _tomo_get_backend(

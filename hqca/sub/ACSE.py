@@ -101,6 +101,22 @@ class RunACSE(QuantumRun):
             self.delta = 0.25
             self.__newton_qc_acse(testS)
 
+
+    def _run_qq_acse(self):
+        '''
+        # 1. find S quantumly,
+        # 2. prepare ansatz for euler or newton
+        # 3. run the ansatz, give best guess
+        '''
+        testS = quantS.findSPairsQuantum(self.Store,self.QuantStore)
+        self._check_norm(testS)
+        if self.method=='qq-acse':
+            self.delta = 0.10
+            self.__euler_qc_acse(testS)
+        elif self.method=='qq-acse2':
+            self.delta = 0.5
+            self.__newton_qc_acse(testS)
+
     def _check_norm(self,testS):
         '''
         evaluate norm of S calculation
@@ -157,6 +173,8 @@ class RunACSE(QuantumRun):
         d2D = (e2-d*e1)/(self.delta*d*(d-1))
         d1D = e1-self.delta*d2D
         # now, update for the Newton step
+        #print('Energies: {},{}'.format(e1,e2))
+        #print('Derivatives: {},{}'.format(d2D,d1D))
         for s in hold:
             s.qCo*= -d1D/d2D
             s.c *= -d1D/d2D
@@ -172,18 +190,6 @@ class RunACSE(QuantumRun):
         #    print(i,j,k,l,Psi.rdm2.rdm[i,j,k,l])
         #print('Trace : {}'.format(Psi.rdm2.trace()))
         #sys.exit()
-
-    def _run_qq_acse(self):
-        #self.Store._get_HamiltonianOperators(full=True)
-        testS = quantS.findSPairsQuantum(self.Store,self.QuantStore)
-        self.delta = 0.25
-        # 1. find S quantumly,
-        # 2. prepare ansatz for euler or newton
-        # 3. run the ansatz, give best guess
-        if self.method=='qq-acse':
-            self.__euler_qc_acse(testS)
-        elif self.method=='qq-acse2':
-            self.__newton_qc_acse(testS)
 
 
     def _run_adiabatic_acse(self):

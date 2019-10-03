@@ -156,7 +156,5 @@ class ModStorageACSE(Storage):
         print(qubOp.print_operators())
         print('------------------------------------------')
         self.qubOp = qubOp.paulis
-        #sys.exit()
-        #print(self.qubOp)
 
 

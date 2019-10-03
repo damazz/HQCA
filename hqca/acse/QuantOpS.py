@@ -20,18 +20,14 @@ def findSPairsQuantum(Store,QuantStore):
     '''
     newS = []
     newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=1.0)
-    newPsi.build_tomography(full=True,real=False,imag=True) #note we need imaginary as well
+    newPsi.build_tomography(real=False,imag=True) #note we need imaginary as well
     newPsi.run_circuit()
     newPsi.construct_rdm()
-    newPsi.rdm2.switch()
-    #print(np.real(newPsi.rdm2.rdm))
-    #print(np.imag(newPsi.rdm2.rdm))
-    newPsi.rdm2.switch()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]
-        if abs(val)>0.01:
+        if abs(val)>0.00001:
             newEl = set([i,k,j,l])
             if not len(newEl)==4:
                 continue

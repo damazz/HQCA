@@ -32,21 +32,13 @@ class Ansatz(Tomography):
         self.scaleH = scalingHam
         self.propagate=propagateTime
         if propagateTime:
-            self.imTomo=True
             self.qubOp = Store.qubOp
 
 
-    def build_tomography(self,full=True,**kw):
-        #print('Build tomography called.')
+    def build_tomography(self,**kw):
         self._adapt_S()
-        if full:
-            Tomography.generate_2rdme(self,**kw)
-            self._gen_full_tomography()
-        else:
-            self._gen_tomo_list()
-            self._gen_quantum_S()
-            if self.propagate:
-                self.__processH()
+        Tomography.generate_2rdme(self,**kw)
+        self._gen_full_tomography()
 
     def applyS(self,Q):
         pass
@@ -79,7 +71,6 @@ class Ansatz(Tomography):
 
     def _gen_quantum_S(self):
         for circ in self.op:
-            print(self.circ)
             self.circuit_list.append(circ)
             Q = GenerateDirectCircuit(self.qs,_name=circ)
             if self.propagate:
@@ -94,9 +85,6 @@ class Ansatz(Tomography):
         self.op.append('z'*self.Nq)
         for s in self.S:
             Tomography._gen_pauli_str(self,s)
-
-
-
 
     def _adapt_S(self):
         '''
