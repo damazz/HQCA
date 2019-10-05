@@ -11,17 +11,23 @@ Contains functions for performing ACSE calculations, with a focus on generating
 the S matrix through time evolution of the Hamiltonian. 
 '''
 
-def findSPairsQuantum(Store,QuantStore):
+def findSPairsQuantum(Store,QuantStore,verbose=False):
     '''
     need to do following:
         1. prepare the appropriate Hailtonian circuit
         2. implement it
         3. find S from resulting matrix
     '''
+    if verbose:
+        print('Generating new S pairs with Hamiltonian step.')
     newS = []
     newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=1.0)
     newPsi.build_tomography(real=False,imag=True) #note we need imaginary as well
-    newPsi.run_circuit()
+    if verbose:
+        print('Running circuits...')
+    newPsi.run_circuit(verbose=verbose)
+    if verbose:
+        print('Constructing the RDMs...')
     newPsi.construct_rdm()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
@@ -67,5 +73,7 @@ def findSPairsQuantum(Store,QuantStore):
                                 sqOp='++--',
                                 spin=spin)
                         newS.append(newOp)
+                        if verbose:
+                            print('S: ',i,k,l,j,val)
     return newS
 

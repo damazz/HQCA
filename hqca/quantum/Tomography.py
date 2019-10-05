@@ -151,7 +151,7 @@ class Tomography:
         return val/total
 
 
-    def run_circuit(self):
+    def run_circuit(self,verbose=False):
         def _tomo_get_backend(
                 provider,
                 backend

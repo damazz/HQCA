@@ -108,9 +108,8 @@ class RunACSE(QuantumRun):
         # 2. prepare ansatz for euler or newton
         # 3. run the ansatz, give best guess
         '''
-        print('Finding pairs of S: ')
-        testS = quantS.findSPairsQuantum(self.Store,self.QuantStore)
-        print('Found them!')
+        testS = quantS.findSPairsQuantum(self.Store,self.QuantStore,
+                verbose=True)
         self._check_norm(testS)
         if self.method=='qq-acse':
             self.delta = 0.40
