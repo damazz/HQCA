@@ -85,7 +85,7 @@ class FermiOperator:
         self.q2rdm = tc
 
 
-    def generateExcitationOperators(self,Nq='default',**kw):
+    def generateExcitationOperators(self,**kw):
         if self.opType=='nn':
             self._NumNumOperator(**kw)
         elif self.opType=='ne':
@@ -552,6 +552,7 @@ class FermiOperator:
             self.pauliGates.append(temp)
             self.pauliCoeff.append(co*self.qCo)
             self.pauliGet.append(tempGet)
+
 
 #a = FermiOperator(1,[0,3,3,1],'++--','abba')
 #a.generateTomoBasis(real=True,imag=True)

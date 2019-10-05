@@ -80,27 +80,18 @@ class Ansatz(Tomography):
             Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
 
-    def _gen_tomo_list(self):
-        self.op = []
-        self.op.append('z'*self.Nq)
-        for s in self.S:
-            Tomography._gen_pauli_str(self,s)
+    #def _gen_tomo_list(self):
+    #    self.op = []
+    #    self.op.append('z'*self.Nq)
+    #    for s in self.S:
+    #        Tomography._gen_pauli_str(self,s)
 
     def _adapt_S(self):
         '''
         put S into qubit language
         '''
-        self.qs.qc_quad_list = []
-        self.qs.parameters = []
-        #print(len(self.S))
         for item in self.S:
-            item.generateExcitationOperators()
-            #print('Adapt: ',item.qOp,item.qInd[:],item.qCo)
-            #temp = item.qInd[:]
-            #print(temp)
-            #temp.append(item.qOp)
-            #temp.append(item.qSp)
-            #self.qs.qc_quad_list.append(temp)
-            #self.qs.parameters.append(np.real(item.qCo))
+            item.generateExcitationOperators(Nq=self.qs.Nq_tot)
+
 
 

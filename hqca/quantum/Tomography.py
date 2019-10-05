@@ -44,6 +44,7 @@ class Tomography:
 
     def _build_2RDM(self):
         nRDM = np.zeros((self.Nq,self.Nq,self.Nq,self.Nq),dtype=np.complex_)
+        #print(self.counts['ZZZZZZ'])
         for r in self.rdme:
             temp = 0
             for get,Pauli,coeff in zip(r.pauliGet,r.pauliGates,r.pauliCoeff):

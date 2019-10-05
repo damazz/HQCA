@@ -83,6 +83,7 @@ class ModStorageACSE(Storage):
 
     def evaluate_energy(self):
         self.rdm1 = self.rdm2.reduce_order()
+        print(self.rdm1.rdm)
         e_h1 = reduce(np.dot, (self.K1,self.rdm1.rdm)).trace()
         self.rdm2.switch()
         e_h2 = reduce(np.dot, (self.K2,self.rdm2.rdm)).trace()
@@ -111,15 +112,23 @@ class ModStorageACSE(Storage):
         #        self.ansatz[-1].c+=fermi.c
         #    else:
         #        self.ansatz.append(fermi)
+        print('Old S: ')
+        for fermi in self.ansatz:
+            print(fermi.ind,fermi.c)
         for fermi in newS:
             new = True
             for old in self.ansatz:
                 if fermi.hasSameInd(old):
-                    old.qCo+= fermi.qCo
-                    old.c += fermi.c
+                    print(fermi.qCo,old.qCo)
+                    old.qCo = fermi.qCo+old.qCo
+                    old.c  = fermi.c+old.c
                     new = False
+                    print(fermi.qCo,old.qCo)
             if new:
                 self.ansatz.append(fermi)
+        print('New S: ')
+        for fermi in self.ansatz:
+            print(fermi.ind,fermi.c)
 
 
     def build_trial_ansatz(self,testS):

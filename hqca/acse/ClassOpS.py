@@ -20,6 +20,8 @@ def findSPairs(Store):
     '''
     if Store.Ne_tot>2:
         Store.rdm3 = Store.rdm2.reconstruct()
+        #print('3-RDM Trace: {}'.format(Store.rdm3.trace()))
+    print(Store.rdm3.reduce_order().reduce_order().rdm)
     alpha = Store.alpha_mo['active']
     beta = Store.beta_mo['active']
     S = []
@@ -30,6 +32,7 @@ def findSPairs(Store):
             [alpha,alpha,beta]
             ]
     block = ['aa','ab','bb']
+    largest = 0.00001
     for ze in range(len(blocks[0])):
         for i in blocks[0][ze]:
             for k in blocks[1][ze]:
@@ -83,8 +86,12 @@ def findSPairs(Store):
                             temp3*= Store.ints_1e[p,q]
                             term3+= temp3
                         term = term1+term2+term3
-                        if abs(term)>0.000001 and len(set([i,j,k,l]))==4:
-                            #print('From ACSE calc: ',term,i,k,l,j)
+                        if abs(term)>largest*0.1:
+                            #if set([i,j,k,l])==set([0,3,4,1]):
+                            #    continue
+                            if abs(term)>largest:
+                                largest = abs(term)
+                            print('From ACSE calc: ',term,i,k,l,j)
                             newFermi = FermiOperator(
                                     coeff=term,
                                     indices=[i,k,l,j],

@@ -108,7 +108,9 @@ class RunACSE(QuantumRun):
         # 2. prepare ansatz for euler or newton
         # 3. run the ansatz, give best guess
         '''
+        print('Finding pairs of S: ')
         testS = quantS.findSPairsQuantum(self.Store,self.QuantStore)
+        print('Found them!')
         self._check_norm(testS)
         if self.method=='qq-acse':
             self.delta = 0.40
@@ -173,9 +175,11 @@ class RunACSE(QuantumRun):
         d2D = (e2-d*e1)/(self.delta*d*(d-1))
         d1D = e1-self.delta*d2D
         # now, update for the Newton step
-        #print('Energies: {},{}'.format(e1,e2))
-        #print('Derivatives: {},{}'.format(d2D,d1D))
+        print('Energies: {},{}'.format(e1,e2))
+        print('Derivatives: {},{},{}'.format(d2D,d1D,d1D/d2D))
+        print('Current S: ')
         for s in hold:
+            print(s.c,s.ind)
             s.qCo*= -d1D/d2D
             s.c *= -d1D/d2D
         self.dx = abs(d1D/d2D)
@@ -185,10 +189,12 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
+
         #test = np.nonzero(Psi.rdm2.rdm)
         #for i,j,k,l in zip(test[0],test[1],test[2],test[3]):
         #    print(i,j,k,l,Psi.rdm2.rdm[i,j,k,l])
-        #print('Trace : {}'.format(Psi.rdm2.trace()))
+        print('Trace : {}'.format(Psi.rdm2.trace()))
+        print('1-RDM')
         #sys.exit()
 
 

@@ -5,12 +5,12 @@
 * Still adjusting ACSE
     * Implement different depth ansatz 
     * Troubleshooting 3/6 case
-    * Get sequoia to work
+    * ~~Get sequoia to work~~
     * Implement clique search
-    * Monitor convergence for 2/4 case, make sure everything is okay, then 2/6
-        * Figure out a way to plot
-        * Check convergence with respect to shots/counts
-        * Maybe implement unitarie2s
+    * ~~Monitor convergence for 2/4 case, make sure everything is okay, then 2/6~~
+        * ~~Figure out a way to plot~~
+        * ~~Check convergence with respect to shots/counts~~
+        * ~~Maybe implement unitarie2s~~
 
 
 

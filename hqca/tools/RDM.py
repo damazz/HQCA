@@ -234,7 +234,9 @@ class RDMs:
                         Term*= cre[-1]*ann[-1]
                         sumTerms+= Term
                 #sumTerms*=(len(antiSymmCre.total))**-1
-                sumTerms*=(len(antiSymmCre.total)*len(antiSymmAnn.total))**-1
+                sumTerms*=(len(antiSymmCre.total)*len(antiSymmAnn.total))**-(1)
+                sumTerms*=((factorial(self.p+RDM.p))/(
+                    factorial(self.p)*factorial(RDM.p)))
                 for cre in antiSymmCre.total:
                     for ann in antiSymmAnn.total:
                         indN = tuple(cre[:-1]+ann[:-1])

@@ -49,8 +49,8 @@ def findSPairsQuantum(Store,QuantStore):
                         spin=spin)
                 newS.append(newOp)
             else:
-                for i in newS:
-                    if i.as_set.difference(newEl):
+                for o in newS:
+                    if o.as_set.difference(newEl):
                         c1 =  (i in QuantStore.alpha['active'])
                         c2 =  (k in QuantStore.alpha['active'])
                         c3 =  (l in QuantStore.alpha['active'])
@@ -67,6 +67,5 @@ def findSPairsQuantum(Store,QuantStore):
                                 sqOp='++--',
                                 spin=spin)
                         newS.append(newOp)
-                        #print('New S',   newS)
     return newS
 

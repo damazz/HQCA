@@ -54,7 +54,17 @@ class GenerateGenericCircuit:
             except AttributeError as Exception:
                 g.generateExcitationOperators()
             for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,c*g.qCo,p)
+                _generic_Pauli_term(self,1.0*c*g.qCo,p)
+                #print(p,c)
+        '''
+        for g in reversed(Gates):
+            try:
+                g.pauliExp
+            except AttributeError as Exception:
+                g.generateExcitationOperators()
+            for p,c in zip(g.pauliExp,g.pauliCoeff):
+                _generic_Pauli_term(self,0.5*c*g.qCo,p)
+        '''
 
     def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp
