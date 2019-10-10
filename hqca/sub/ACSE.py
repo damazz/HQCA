@@ -115,7 +115,8 @@ class RunACSE(QuantumRun):
             self.delta = 0.40
             self.__euler_qc_acse(testS)
         elif self.method=='qq-acse2':
-            self.delta = 0.5
+            #self.delta = 0.5
+            self.delta = 0.25
             self.__newton_qc_acse(testS)
 
     def _check_norm(self,testS):
