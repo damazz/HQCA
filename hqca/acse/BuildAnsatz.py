@@ -11,6 +11,7 @@ from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.RDM import Recursive,RDMs
 from hqca.quantum.primitives._Hamiltonian import _add_Hamiltonian
+from hqca.quantum.primitives._Hamiltonian import _generic_Pauli_term
 import sys
 
 class Ansatz(Tomography):
@@ -32,8 +33,8 @@ class Ansatz(Tomography):
         self.scaleH = scalingHam
         self.propagate=propagateTime
         if propagateTime:
-            self.qubOp = Store.qubOp
-
+            self.qubOp = Store.qubOp[:]
+        self.qubitH = Store.qubitH
 
     def build_tomography(self,**kw):
         self._adapt_S()
@@ -44,16 +45,13 @@ class Ansatz(Tomography):
         pass
 
     def _applyH(self,Q):
-        _add_Hamiltonian(Q,self.qubOp,scaling=self.scaleH)
-        # now, need to add to measurements
-
-    def __processH(self):
-        for term in self.qubOp:
-            pauliString = term[1].to_label()
-            add = False
-            for i in pauliString:
-                if i in ['X','x','Y','y']:
-                    add=True
+        if self.qubitH=='qiskit':
+            iters = 1
+            for i in range(iters):
+                _add_Hamiltonian(Q,self.qubOp,scaling=self.scaleH/iters)
+        elif self.qubitH=='local':
+            for pauli,coeff in zip(self.qubOp[0],self.qubOp[1]):
+                _generic_Pauli_term(Q,coeff,pauli,scaling=self.scaleH)
 
     def _gen_full_tomography(self):
         for circ in self.op:
@@ -80,18 +78,10 @@ class Ansatz(Tomography):
             Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
 
-    #def _gen_tomo_list(self):
-    #    self.op = []
-    #    self.op.append('z'*self.Nq)
-    #    for s in self.S:
-    #        Tomography._gen_pauli_str(self,s)
-
     def _adapt_S(self):
         '''
         put S into qubit language
         '''
         for item in self.S:
-            item.generateExcitationOperators(Nq=self.qs.Nq_tot)
-
-
+            item.generateAntiHermitianExcitationOperators(Nq=self.qs.Nq_tot)
 

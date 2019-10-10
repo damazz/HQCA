@@ -30,4 +30,7 @@ kw_qc = {
 #prog.set_print(level='diagnostic')
 prog.update_var(target='qc',**kw_qc )
 prog.build()
+
+
+
 prog.run()

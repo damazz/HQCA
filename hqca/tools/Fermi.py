@@ -1,6 +1,12 @@
 import numpy as np
 
 class FermiOperator:
+    '''
+    Class of fermionic operators, obeys simple fermionic statistics. 
+    
+    Also used to generate raw lists of Pauli strings and subterms, which can be
+    compiled for circuits and tomography. 
+    '''
     def __init__(self,
             coeff=1,
             indices=[0,1,2,3], #orbital indices
@@ -17,12 +23,46 @@ class FermiOperator:
         self._qubit_order()
         self._classify()
 
-    
     def hasSameInd(self,b):
         '''
         is equal indices
         '''
         if self.qInd==b.qInd:
+            return True
+        else:
+            return False
+
+    def hasSameOp(self,b):
+        return self.qOp==b.qOp
+
+    def hasHermitianOp(self,b):
+        # if all unique elements
+        if len(b.qOp)==len(set(b.qOp)):
+            for l in range(len(b.qOp)):
+                if b.qOp[l]==self.qOp[l]:
+                    return False
+        else:
+            N = []
+            for l in range(len(b.qOp)-1):
+                if b.qInd[l]==b.qInd[l+1]:
+                    N.append(l)
+                    N.append(l+1)
+            for l in range(len(b.qOp)):
+                if l in N:
+                    pass
+                else:
+                    if b.qOp[l]==self.qOp[l]:
+                        return False
+        return True
+
+    def isSame(self,b):
+        if self.hasSameInd(b) and self.hasSameOp(b):
+            return True
+        else:
+            return False
+
+    def isHermitian(self,b):
+        if self.hasSameInd(b) and self.hasHermitianOp(b):
             return True
         else:
             return False
@@ -40,6 +80,8 @@ class FermiOperator:
                 self.opType = 'ne' # number-excitation operator
             elif l==4 and self.order==4:
                 self.opType = 'de' # double excitation operator
+            else:
+                self.opType = 'none'
             self.rdm = self.order//2
             Nb,Na = 0,0
             for i in self.sp:
@@ -84,31 +126,62 @@ class FermiOperator:
         self.qCo = tc
         self.q2rdm = tc
 
+    ##
+    #
+    # Hermitian Excitation Operators, such as in exp(iHt)
+    #
+    ##
 
-    def generateExcitationOperators(self,**kw):
+    def generateHermitianExcitationOperators(self,**kw):
         if self.opType=='nn':
-            self._NumNumOperator(**kw)
+            self._HermitianNumNumOperator(**kw)
         elif self.opType=='ne':
-            self._NumExcOperator(**kw)
+            self._HermitianNumExcOperator(**kw)
         elif self.opType=='de':
-            self._ExcExcOperator(**kw)
+            self._HermitianDoubleExcOperator(**kw)
         elif self.opType=='se':
-            self._SingleExcOperator(**kw)
+            self._HermitianSingleExcOperator(**kw)
+        elif self.opType=='no':
+            self._HermitianNumberOperator(**kw)
 
-    def _SingleExcOperator(self,Nq='default',**kw):
+    def _HermitianNumberOperator(self,Nq='default',**kw):
         self.pauliExp = []
         self.pauliCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         c = 1
+        qubSq,qubCo=[],[]
         if self.qOp=='+-':
-            qubSq+= ['XY','YX']
-            qubCo+= [c/2,-c/2]
+            qubSq+= ['I','Z']
+            qubCo+= [+c/2,-c/2]
         elif self.qOp=='-+':
-            qubSq+= ['XY','YX']
-            qubCo+= [c/2,-c/2]
+            qubSq+= ['I','Z']
+            qubCo+= [+c/2,+c/2]
         for item,co in zip(qubSq,qubCo):
-            temp = '{}{}{}{}{}{}{}'.format(
+            temp = '{}{}{}'.format(
+                    'I'*self.qInd[0],
+                    item[0],
+                    'I'*(Nq-1-self.qInd[0]))
+            self.pauliExp.append(temp)
+            self.pauliCoeff.append(co*self.qCo)
+
+
+    def _HermitianSingleExcOperator(self,Nq='default',**kw):
+        self.pauliExp = []
+        self.pauliCoeff = []
+        if Nq=='default':
+            Nq = max(self.qInd)
+        c = 1
+        n1= self.qInd[1]-(self.qInd[0]+1)
+        qubSq,qubCo=[],[]
+        if self.qOp=='+-':
+            qubSq+= ['XX','YY']
+            qubCo+= [c/2,c/2]
+        elif self.qOp=='-+':
+            qubSq+= ['XX','YY']
+            qubCo+= [c/2,c/2]
+        for item,co in zip(qubSq,qubCo):
+            temp = '{}{}{}{}{}'.format(
                     'I'*self.qInd[0],
                     item[0],
                     'Z'*n1,
@@ -117,7 +190,182 @@ class FermiOperator:
             self.pauliExp.append(temp)
             self.pauliCoeff.append(co*self.qCo)
 
-    def _NumExcOperator(self,Nq='default',**kw):
+    def _HermitianNumNumOperator(self,Nq='default',**kw):
+        '''
+        aka, Coloumb operator
+        ''' 
+        self.pauliExp = []
+        self.pauliCoeff = []
+        if Nq=='default':
+            Nq = max(self.qInd)
+        c = 1/4
+        n1= self.qInd[2]-(self.qInd[1]+1)
+        qubSq,qubCo=[],[]
+        if self.qOp=='+-+-':
+            qubSq+= ['II','IZ','ZI','ZZ']
+            qubCo+= [c,-c,-c,c]
+        elif self.qOp=='-+-+':
+            qubSq+= ['II','IZ','ZI','ZZ']
+            qubCo+= [c,c,c,c]
+        elif self.qOp=='-++-':
+            qubSq+= ['II','IZ','ZI','ZZ']
+            qubCo+= [c,-c,+c,-c]
+        elif self.qOp=='+--+':
+            qubSq+= ['II','IZ','ZI','ZZ']
+            qubCo+= [c,+c,-c,-c]
+        for item,co in zip(qubSq,qubCo):
+            temp = '{}{}{}{}{}'.format(
+                    'I'*self.qInd[0],
+                    item[0],
+                    'I'*n1,
+                    item[1],
+                    'I'*(Nq-1-self.qInd[2]))
+            self.pauliExp.append(temp)
+            self.pauliCoeff.append(co*self.qCo)
+
+    def _HermitianNumExcOperator(self,Nq='default',**kw):
+        self.pauliExp = []
+        self.pauliCoeff = []
+        inds = [
+                self.qInd[0]==self.qInd[1],
+                self.qInd[1]==self.qInd[2],
+                self.qInd[2]==self.qInd[3]
+                ]
+        if Nq=='default':
+            Nq = max(self.qInd)
+        qubSq,qubCo=[],[]
+        if inds[1]:
+            n1= self.qInd[1]-(self.qInd[0]+1)
+            n2= self.qInd[3]-(self.qInd[2]+1)
+            c=1/4
+            qubSq+= ['XIX','YIY','XZX','YZY']
+            if self.qOp in ['++--','-+-+']:
+                qubCo+= [c,c,-c,-c]
+            elif self.qOp in ['+-+-','--++']:
+                qubCo+= [c,c,c,c]
+            for item,co in zip(qubSq,qubCo):
+                temp = '{}{}{}{}{}{}{}'.format(
+                        'I'*self.qInd[0],
+                        item[0],
+                        'Z'*n1,
+                        item[1],
+                        'Z'*n2,
+                        item[2],
+                        'I'*(Nq-1-self.qInd[3]))
+                self.pauliExp.append(temp)
+                self.pauliCoeff.append(co*self.qCo)
+        elif inds[0]:
+            n1= self.qInd[2]-(self.qInd[1]+1)
+            n2= self.qInd[3]-(self.qInd[2]+1)
+            c = 1/4
+            qubSq+= ['IXX','ZXX','IYY','ZYY']
+            if self.qOp in ['+-+-','+--+']:
+                qubCo+= [+c,-c,+c,-c]
+            elif self.qOp in ['-++-','-+-+']:
+                qubCo+= [+c,+c,+c,+c]
+            for item,co in zip(qubSq,qubCo):
+                temp = '{}{}{}{}{}{}{}'.format(
+                        'I'*self.qInd[0],
+                        item[0],
+                        'Z'*n1,
+                        item[1],
+                        'Z'*n2,
+                        item[2],
+                        'I'*(Nq-1-self.qInd[3]))
+                self.pauliExp.append(temp)
+                self.pauliCoeff.append(co*self.qCo)
+        elif inds[2]:
+            n1= self.qInd[1]-(self.qInd[0]+1)
+            n2= self.qInd[2]-(self.qInd[1]+1)
+            c = 1/4
+            qubSq+= ['XXI','XXZ','YYI','YYZ']
+            if self.qOp in ['+-+-','-++-']:
+                qubCo+= [+c,-c,+c,-c]
+            elif self.qOp in ['+--+','-+-+']:
+                qubCo+= [+c,+c,+c,+c]
+            for item,co in zip(qubSq,qubCo):
+                temp = '{}{}{}{}{}{}{}'.format(
+                        'I'*self.qInd[0],
+                        item[0],
+                        'Z'*n1,
+                        item[1],
+                        'Z'*n2,
+                        item[2],
+                        'I'*(Nq-1-self.qInd[3]))
+                self.pauliExp.append(temp)
+                self.pauliCoeff.append(co*self.qCo)
+
+    def _HermitianDoubleExcOperator(self,Nq='default',**kw):
+        self.pauliExp = []
+        self.pauliCoeff = []
+        if Nq=='default':
+            Nq = max(self.qInd)
+        n1,n3 = self.qInd[1]-(self.qInd[0]+1),self.qInd[3]-(self.qInd[2]+1)
+        n2 = self.qInd[2]-(self.qInd[1]+1)
+        qubSq,qubCo=[],[]
+        c= 1/8
+        if self.qOp in ['++--','--++']:
+            qubSq+= ['XXXX','XXYY','XYXY','XYYX','YXXY','YXYX','YYXX','YYYY']
+            qubCo+= [-c,+c,-c,-c,-c,-c,+c,-c]
+        elif self.qOp in ['+-+-','-+-+']:
+            qubSq+= ['XXXX','XXYY','XYXY','XYYX','YXXY','YXYX','YYXX','YYYY']
+            qubCo+= [+c,+c,-c,+c,+c,-c,+c,+c]
+        elif self.qOp in ['+--+','-++-']:
+            qubSq+= ['XXXX','XXYY','XYXY','XYYX','YXXY','YXYX','YYXX','YYYY']
+            qubCo+= [-c,-c,-c,+c,+c,-c,-c,-c]
+        for item,co in zip(qubSq,qubCo):
+            temp = '{}{}{}{}{}{}{}{}{}'.format(
+                    'I'*self.qInd[0],
+                    item[0],
+                    'Z'*n1,
+                    item[1],
+                    'I'*n2,
+                    item[2],
+                    'Z'*n3,
+                    item[3],
+                    'I'*(Nq-1-self.qInd[3]))
+            self.pauliExp.append(temp)
+            self.pauliCoeff.append(co*self.qCo)
+
+    ##
+    #
+    # antiHermitian excitation operators, such as in exp(S)
+    #
+    ##
+
+    def generateAntiHermitianExcitationOperators(self,**kw):
+        if self.opType=='ne':
+            self._antiHermitianNumExcOperator(**kw)
+        elif self.opType=='de':
+            self._antiHermitianDoubleExcOperator(**kw)
+        elif self.opType=='se':
+            self._antiHermitianSingleExcOperator(**kw)
+
+    def _antiHermitianSingleExcOperator(self,Nq='default',**kw):
+        self.pauliExp = []
+        self.pauliCoeff = []
+        if Nq=='default':
+            Nq = max(self.qInd)
+        c = 1
+        n1= self.qInd[1]-(self.qInd[0]+1)
+        qubSq,qubCo=[],[]
+        if self.qOp=='+-':
+            qubSq+= ['XY','YX']
+            qubCo+= [c/2,-c/2]
+        elif self.qOp=='-+':
+            qubSq+= ['XY','YX']
+            qubCo+= [c/2,-c/2]
+        for item,co in zip(qubSq,qubCo):
+            temp = '{}{}{}{}{}'.format(
+                    'I'*self.qInd[0],
+                    item[0],
+                    'Z'*n1,
+                    item[1],
+                    'I'*(Nq-1-self.qInd[1]))
+            self.pauliExp.append(temp)
+            self.pauliCoeff.append(co*self.qCo)
+
+    def _antiHermitianNumExcOperator(self,Nq='default',**kw):
         self.pauliExp = []
         self.pauliCoeff = []
         inds = [
@@ -134,9 +382,9 @@ class FermiOperator:
             c=1/4
             qubSq+= ['XIY','XZY','YIX','YZX']
             if self.qOp in ['++--','-+-+']:
-                qubCo+= [-c,c,c,-c]
+                qubCo+= [+c,-c,-c,+c]
             elif self.qOp in ['+-+-','--++']:
-                qubCo+= [c,c,-c,-c]
+                qubCo+= [-c,-c,+c,+c]
             for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
@@ -189,7 +437,7 @@ class FermiOperator:
                 self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
 
-    def _ExcExcOperator(self,Nq='default',**kw):
+    def _antiHermitianDoubleExcOperator(self,Nq='default',**kw):
         self.pauliExp = []
         self.pauliCoeff = []
         if Nq=='default':
@@ -226,6 +474,12 @@ class FermiOperator:
                     'I'*(Nq-1-self.qInd[3]))
             self.pauliExp.append(temp)
             self.pauliCoeff.append(co*self.qCo)
+
+    ##
+    #
+    # Tomography operators 
+    #
+    ##
 
     def generateTomoBasis(self,**kw):
         '''
@@ -398,19 +652,19 @@ class FermiOperator:
                 if self.qOp=='+-+-':
                     qubGet+=['ZXY','ZXY']
                     qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,-c/4]
+                    qubCo+= [c/2,-c/2]
                 elif self.qOp=='+--+':
                     qubGet+=['ZXY','ZXY']
                     qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,-c/4]
+                    qubCo+= [c/2,-c/2]
                 elif self.qOp=='-++-':
                     qubGet+=['ZXY','ZXY']
                     qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,c/4]
+                    qubCo+= [c/2,c/2]
                 elif self.qOp=='-+-+':
                     qubGet+=['ZXY','ZXY']
                     qubSq+= ['IXY','ZXY']
-                    qubCo+= [c/4,c/4]
+                    qubCo+= [c/2,c/2]
             for item,co,get in zip(qubSq,qubCo,qubGet):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
@@ -515,19 +769,26 @@ class FermiOperator:
                 qubCo+= [-1/4,-1/4]
                 pass
         if imag:
-            c= (-1)**(int(self.qOp[0]=='-'))
-            if self.qOp in ['++--','--++']:
+            #c= (-1)**(int(self.qOp[0]=='-'))
+            c = 1j/4
+            if self.qOp in ['++--']:
                 qubSq+= ['XYXX','YXXX']
-                qubCo+= [c*1j/4,c*1j/4]
-                # -xyxy-xyyx
-            elif self.qOp in ['+-+-','-+-+']:
+                qubCo+= [c,c]
+            elif self.qOp in ['--++']:
+                qubSq+= ['XYXX','YXXX']
+                qubCo+= [-c,-c]
+            elif self.qOp in ['+-+-']:
                 qubSq+= ['XYXX','XXXY']
-                qubCo+= [c*1j/4,c*1j/4]
-                # xxyy+xyyx
-                pass
-            elif self.qOp in ['+--+','-++-']:
+                qubCo+= [c,c]
+            elif self.qOp in ['-+-+']:
+                qubSq+= ['XYXX','XXXY']
+                qubCo+= [-c,-c]
+            elif self.qOp in ['+--+']:
                 qubSq+= ['XXXY','YXXX']
-                qubCo+= [c*1j/4,c*1j/4]
+                qubCo+= [c,c]
+            elif self.qOp in ['-++-']:
+                qubSq+= ['XXXY','YXXX']
+                qubCo+= [-c,-c]
         for item,co in zip(qubSq,qubCo):
             temp = '{}{}{}{}{}{}{}{}{}'.format(
                     'I'*self.qInd[0],

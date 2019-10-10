@@ -44,7 +44,6 @@ class Tomography:
 
     def _build_2RDM(self):
         nRDM = np.zeros((self.Nq,self.Nq,self.Nq,self.Nq),dtype=np.complex_)
-        #print(self.counts['ZZZZZZ'])
         for r in self.rdme:
             temp = 0
             for get,Pauli,coeff in zip(r.pauliGet,r.pauliGates,r.pauliCoeff):
@@ -63,9 +62,9 @@ class Tomography:
                     ind1 = tuple(j[:2]+i[:2])
                     ind2 = tuple(i[:2]+j[:2])
                     s = i[2]*j[2]
-                    nRDM[ind1]+=temp*s#*0.5
+                    nRDM[ind1]+=temp*s
                     if set(opAnn).difference(set(opCre)):
-                        nRDM[ind2]+=np.conj(temp)*s#*0.5
+                        nRDM[ind2]+=np.conj(temp)*s
         self.rdm2 = RDMs(
                 order=2,
                 alpha=self.qs.alpha['active'],

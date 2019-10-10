@@ -18,7 +18,7 @@ kw_qc = {
         'num_shots':8192,
         'entangler_q':'UCC2_2s',
         'spin_mapping':'default',
-        'method':'qc-acse2',
+        'method':'qq-acse2',
         'depth':1,
         'qc':True,
         'info':None,

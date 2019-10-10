@@ -31,49 +31,45 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
     newPsi.construct_rdm()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
+    max_val = 0 
+    for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
+        if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])>max_val:
+            max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])
+    print('Max S val: {}'.format(max_val))
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]
-        if abs(val)>0.00001:
-            newEl = set([i,k,j,l])
-            if not len(newEl)==4:
-                continue
+        if abs(val)>0.1*max_val:
+            c1 =  (i in QuantStore.alpha['active'])
+            c2 =  (k in QuantStore.alpha['active'])
+            c3 =  (l in QuantStore.alpha['active'])
+            c4 =  (j in QuantStore.alpha['active'])
+            spin = '{}{}{}{}'.format(
+                    c1*'a'+(1-c1)*'b',
+                    c2*'a'+(1-c2)*'b',
+                    c3*'a'+(1-c3)*'b',
+                    c4*'a'+(1-c4)*'b',
+                    )
+            newEl = FermiOperator(
+                    -val,
+                    indices=[i,k,l,j],
+                    sqOp='++--',
+                    spin=spin
+                    )
             if len(newS)==0:
-                c1 =  (i in QuantStore.alpha['active'])
-                c2 =  (k in QuantStore.alpha['active'])
-                c3 =  (l in QuantStore.alpha['active'])
-                c4 =  (j in QuantStore.alpha['active'])
-                spin = '{}{}{}{}'.format(
-                        c1*'a'+(1-c1)*'b',
-                        c2*'a'+(1-c2)*'b',
-                        c3*'a'+(1-c3)*'b',
-                        c4*'a'+(1-c4)*'b',
-                        )
-                newOp = FermiOperator(
-                        coeff=val,
-                        indices=[i,k,l,j],
-                        sqOp='++--',
-                        spin=spin)
-                newS.append(newOp)
+                newS.append(newEl)
+                if verbose:
+                    print('S: {},{},{},{}: {}'.format(i,k,l,j,val))
+                    print(newEl.qOp,newEl.qInd,newEl.qSp)
             else:
+                add = True
                 for o in newS:
-                    if o.as_set.difference(newEl):
-                        c1 =  (i in QuantStore.alpha['active'])
-                        c2 =  (k in QuantStore.alpha['active'])
-                        c3 =  (l in QuantStore.alpha['active'])
-                        c4 =  (j in QuantStore.alpha['active'])
-                        spin = '{}{}{}{}'.format(
-                                c1*'a'+(1-c1)*'b',
-                                c2*'a'+(1-c2)*'b',
-                                c3*'a'+(1-c3)*'b',
-                                c4*'a'+(1-c4)*'b',
-                                )
-                        newOp = FermiOperator(
-                                coeff=val,
-                                indices=[i,k,l,j],
-                                sqOp='++--',
-                                spin=spin)
-                        newS.append(newOp)
-                        if verbose:
-                            print('S: ',i,k,l,j,val)
+                    if o.isSame(newEl) or o.isHermitian(newEl):
+                        add = False
+                        break
+                if add:
+                    newS.append(newEl)
+                    if verbose:
+                        print('S: {},{},{},{}: {}'.format(i,k,l,j,val))
+                        print(newEl.qOp,newEl.qInd,newEl.qSp)
     return newS
 

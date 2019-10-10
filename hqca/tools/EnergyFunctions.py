@@ -122,6 +122,8 @@ class Storage:
             self.e_casci = self.mc.e_tot
         else:
             self.mc = None
+        print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
+        print('CASCI Energy: {:.8f}'.format(float(self.e_casci)))
         self.E_ne = self.mol.energy_nuc()
         self.energy_best = 0
         self.energy_wf = 0

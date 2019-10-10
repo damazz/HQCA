@@ -305,6 +305,16 @@ class RDMs:
     def reconstruct(self,
             approx='V',
             method='cumulant',):
+        if self.p==2 and self.Ne<3:
+            nRDM = RDMs(
+                    order=self.p+1,
+                    alpha=self.alp,
+                    beta=self.bet,
+                    state=None,
+                    Ne=self.Ne,
+                    S=self.S,
+                    )
+            return nRDM
         if not method=='cumulant':
             sys.exit('Can\'t perform non-cumulant reconstruction.')
         if self.p==2:
