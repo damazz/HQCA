@@ -50,7 +50,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
                     c4*'a'+(1-c4)*'b',
                     )
             newEl = FermiOperator(
-                    -val,
+                    val,
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin
@@ -92,14 +92,14 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
     ## note.....de should have overlap 2
 
     ##ovlp = [overlap(op.qInd,hf) for op in newS]
-    #hold_type = [(op.opType=='de') for op in newS]
-    #new_S_ord = []
-    #for i in range(len(hold_type)):
-    #    if hold_type[i]:
-    #        new_S_ord.append(newS[i])
-    #for i in range(len(hold_type)):
-    #    if not hold_type[i]:
-    #        new_S_ord.append(newS[i])
-    #newS = new_S_ord[:]
+    hold_type = [(op.opType=='de') for op in newS]
+    new_S_ord = []
+    for i in range(len(hold_type)):
+        if hold_type[i]:
+            new_S_ord.append(newS[i])
+    for i in range(len(hold_type)):
+        if not hold_type[i]:
+            new_S_ord.append(newS[i])
+    newS = new_S_ord[:]
     return newS
 
