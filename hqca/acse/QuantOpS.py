@@ -71,5 +71,35 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
                     if verbose:
                         print('S: {},{},{},{}: {}'.format(i,k,l,j,val))
                         print(newEl.qOp,newEl.qInd,newEl.qSp)
+    # lets try reversed order
+    #hf = []
+    #for i in range(QuantStore.Ne_alp):
+    #    hf.append(Store.alpha_mo['active'][i])
+    #for i in range(QuantStore.Ne_bet):
+    #    hf.append(Store.beta_mo['active'][i])
+
+    #def overlap(op,hf):
+    #    if op.opType=='de':
+    #        if len(set(op.qInd).intersection(set(hf)))==2:
+    #            return True
+    #    elif op.opType=='ne':
+    #        ovlp = len(set(op.qInd).intersection(set(hf)))
+    #        if op.num in hf and ovlp==1:
+    #            pass
+    ## find the naive overlap with the ground state 
+    ## note.....ne prrq should have overlap 2 if r in hf
+    ##    well......if ovlp 
+    ## note.....de should have overlap 2
+
+    ##ovlp = [overlap(op.qInd,hf) for op in newS]
+    #hold_type = [(op.opType=='de') for op in newS]
+    #new_S_ord = []
+    #for i in range(len(hold_type)):
+    #    if hold_type[i]:
+    #        new_S_ord.append(newS[i])
+    #for i in range(len(hold_type)):
+    #    if not hold_type[i]:
+    #        new_S_ord.append(newS[i])
+    #newS = new_S_ord[:]
     return newS
 

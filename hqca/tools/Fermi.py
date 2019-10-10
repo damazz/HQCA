@@ -377,6 +377,7 @@ class FermiOperator:
             Nq = max(self.qInd)
         qubSq,qubCo=[],[]
         if inds[1]:
+            self.num = self.qInd[1]
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
             c=1/4
@@ -397,6 +398,7 @@ class FermiOperator:
                 self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
         elif inds[0]:
+            self.num =self.qInd[0]
             n1= self.qInd[2]-(self.qInd[1]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
             c = 1/4
@@ -417,6 +419,7 @@ class FermiOperator:
                 self.pauliExp.append(temp)
                 self.pauliCoeff.append(co*self.qCo)
         elif inds[2]:
+            self.num = self.qInd[2]
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[2]-(self.qInd[1]+1)
             c = 1/4
