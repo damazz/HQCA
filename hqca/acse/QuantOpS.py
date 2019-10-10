@@ -31,7 +31,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
     newPsi.construct_rdm()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
-    max_val = 0 
+    max_val = 0
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])>max_val:
             max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])
@@ -50,7 +50,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
                     c4*'a'+(1-c4)*'b',
                     )
             newEl = FermiOperator(
-                    val,
+                    -val,
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin
