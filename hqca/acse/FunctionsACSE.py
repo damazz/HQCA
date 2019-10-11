@@ -311,16 +311,18 @@ class ModStorageACSE(Storage):
             #
             pauli = []
             coeff = []
-            tp ,tc = [],[]
-            for item in ['no','nn']:
-                for op in operators[item]:
-                    for p,c in zip(op.pauliExp,op.pauliCoeff):
-                        tp.append(p)
-                        tc.append(c)
+            tp,tc = [],[]
+            for op in operators['no']:
+                for p,c in zip(op.pauliExp,op.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            for op in operators['nn']:
+                for p,c in zip(op.pauliExp,op.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
             tp,tc = simplify(tp,tc)
             pauli += tp[:]
             coeff += tc[:]
-
             added = []
             op_list = []
             for item1 in operators['se']:

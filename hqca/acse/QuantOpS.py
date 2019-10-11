@@ -39,6 +39,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False):
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]
         if abs(val)>0.1*max_val:
+            print(i,k,j,l)
             c1 =  (i in QuantStore.alpha['active'])
             c2 =  (k in QuantStore.alpha['active'])
             c3 =  (l in QuantStore.alpha['active'])
