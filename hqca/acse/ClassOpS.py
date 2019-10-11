@@ -40,8 +40,8 @@ def evaluate2S(i,k,l,j,Store):
                 Kt = Kt + Store.ints_1e[p,q]*t2
             for r in orb:
                 for s in orb:
-                    if [i,k,j,l]==[0,1,1,2]:
-                        print(p,r,s,q)
+                    #if [i,k,j,l]==[0,1,1,2]:
+                    #    print(p,r,s,q)
                     c1,c2 = int(i==q),int(i==s)
                     c3,c4 = int(k==q),int(k==s)
                     c5,c6 = int(j==p),int(l==p)
@@ -60,12 +60,12 @@ def evaluate2S(i,k,l,j,Store):
                     t1+=-(c5*c8-c7*c6)*Store.rdm2.rdm[i,k,q,s]
                     if p*N+r==q*N+s:
                         t1*=2
-                    if abs(t1)>1e-7 and [i,k,j,l]==[0,1,1,2]:
-                        print('2V: ',t1*Store.ints_2e[p,r,q,s],p,r,s,q)
+                    #if abs(t1)>1e-7 and [i,k,j,l]==[0,1,1,2]:
+                    #    print('2V: ',t1*Store.ints_2e[p,r,q,s],p,r,s,q)
                     Vt = Vt + Store.ints_2e[p,r,q,s]*t1
-    if [i,k,j,l]==[0,1,1,2]:
-        print('K: ',Kt,p,q)
-        print('V: ',Vt,p,q)
+    #if [i,k,j,l]==[0,1,1,2]:
+    #    print('K: ',Kt,p,q)
+    #    print('V: ',Vt,p,q)
     return 0.5*Kt,0.5*Vt
 
 
@@ -146,7 +146,6 @@ def findSPairs(Store):
             S.append(i)
     for item in S:
         print('S: {:.6f},{},{}'.format(np.real(item.c),item.qInd,item.qOp))
-    sys.exit()
     return S
 
 
