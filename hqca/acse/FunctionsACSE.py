@@ -20,7 +20,7 @@ class ModStorageACSE(Storage):
     objets, such as the 2S matrix
     '''
     def __init__(self,
-            qubit_hamiltonian='local',
+            qubit_hamiltonian='qiskit',
             **kwargs):
         Storage.__init__(self,**kwargs)
         Storage.gas(self)
@@ -118,7 +118,7 @@ class ModStorageACSE(Storage):
                 self.ansatz.append(fermi)
         print('New S:')
         for fermi in self.ansatz:
-            print(fermi.ind,fermi.c)
+            print(fermi.ind,fermi.qCo)
 
 
     def build_trial_ansatz(self,testS):
@@ -167,6 +167,219 @@ class ModStorageACSE(Storage):
             print('------------------------------------------')
             self.qubOp = qubOp.paulis
         elif self.qubitH=='local':
+            alp = self.alpha_mo['active']
+            bet = self.beta_mo['active']
+            blocks = [
+                    [alp,bet],
+                    [alp,bet]
+                    ]
+            spins = [['a','b'],['a','b']]
+            operators = {
+                    'no':[],
+                    'se':[],
+                    'nn':[],
+                    'ne':[],
+                    'de':[]}
+            for ze in range(len(blocks[0])):
+                for p in blocks[0][ze]:
+                    for q in blocks[1][ze]:
+                        if p>q:
+                            continue
+                        if abs(self.ints_1e[p,q])<1e-10:
+                            continue
+                        spin = ''.join([spins[0][ze],spins[1][ze]])
+                        newOp = Fermi(
+                                coeff=self.ints_1e[p,q],
+                                indices=[p,q],
+                                sqOp='+-',
+                                spin=spin
+                                )
+                        if p==q:
+                            operators['no'].append(newOp)
+                        else:
+                            operators['se'].append(newOp)
+            for p in alp+bet:
+                for q in alp+bet:
+                    if p>=q:
+                        continue
+                    term = self.ints_2e[p,q,p,q]
+                    term-= self.ints_2e[p,q,q,p]
+                    if abs(term)>1e-10:
+                        c1 =  (p in self.alpha_mo['active'])
+                        c2 =  (q in self.alpha_mo['active'])
+                        spin = '{}{}{}{}'.format(
+                                c1*'a'+(1-c1)*'b',
+                                c2*'a'+(1-c2)*'b',
+                                c2*'a'+(1-c2)*'b',
+                                c1*'a'+(1-c1)*'b',
+                                )
+                        newOp = Fermi(
+                                coeff=term,
+                                indices=[p,q,q,p],
+                                sqOp='++--',
+                                spin=spin)
+                        operators['nn'].append(newOp)
+            for p in alp+bet:
+                for q in alp+bet:
+                    for r in alp+bet:
+                        if p>=q:
+                            continue
+                        if r==p or r==q:
+                            continue
+                        ops = '++--'
+                        term = self.ints_2e[p,r,q,r]
+                        c1 =  (p in alp)
+                        c2 =  (r in alp)
+                        spin = '{}{}{}{}'.format(
+                                c1*'a'+(1-c1)*'b',c2*'a'+(1-c2)*'b',
+                                c2*'a'+(1-c2)*'b',c1*'a'+(1-c1)*'b')
+                        if abs(term)>1e-10:
+                            newOp = Fermi(
+                                    coeff=term,
+                                    indices=[p,r,r,q],
+                                    sqOp='++--',
+                                    spin=spin
+                                    )
+                            operators['ne'].append(newOp)
+            for p in alp+bet:
+                for q in alp+bet:
+                    if p>=q:
+                        continue
+                    for r in alp+bet:
+                        if p>=r:
+                            continue
+                        for s in alp+bet:
+                            if r>=s:
+                                continue
+                            elif q==r or q==s:
+                                continue
+                            c1 =  (p in alp)
+                            c2 =  (r in alp)
+                            c3 =  (s in alp)
+                            c4 =  (q in alp)
+                            spin = '{}{}{}{}'.format(
+                                    c1*'a'+(1-c1)*'b',c2*'a'+(1-c2)*'b',
+                                    c3*'a'+(1-c3)*'b',c4*'a'+(1-c4)*'b')
+                            term1 = self.ints_2e[p,r,q,s]
+                            term2 = self.ints_2e[p,s,q,r]
+                            if abs(term1)>1e-10:
+                                newOp = Fermi(
+                                        coeff=term1,
+                                        indices=[p,r,s,q],
+                                        sqOp='++--',
+                                        spin=spin
+                                        )
+                                operators['de'].append(newOp)
+                            if abs(term2)>1e-10:
+                                newOp = Fermi(
+                                        coeff=term2,
+                                        indices=[p,s,r,q],
+                                        sqOp='++--',
+                                        spin=spin
+                                        )
+                                operators['de'].append(newOp)
+            for k,v in operators.items():
+                print('k: {}'.format(k))
+                for item in v:
+                    print(item.qInd,item.qOp,item.qSp,item.ind,item.qCo)
+            for key, item in operators.items():
+                for op in item:
+                    op.generateHermitianExcitationOperators(Nq=2*self.No_as)
+
+            def simplify(tp,tc):
+                done = False
+                def check_duplicate(paulis):
+                    for n in range(len(paulis)):
+                        for m in range(n):
+                            if paulis[n]==paulis[m]:
+                                return m,n
+                    return False,False
+                while not done:
+                    n,m = check_duplicate(tp)
+                    if n==False and m==False:
+                        done=True
+                    else:
+                        tc[n]+= tc.pop(m)
+                        tp.pop(m)
+                for i in reversed(range(len(tp))):
+                    if abs(tc[i])<1e-10:
+                        tp.pop(i)
+                        tc.pop(i)
+                return tp,tc
+            # 
+            # now, start simplification in subgroups
+            #
+            pauli = []
+            coeff = []
+            tp,tc = [],[]
+            for op in operators['no']:
+                for p,c in zip(op.pauliExp,op.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            for op in operators['nn']:
+                for p,c in zip(op.pauliExp,op.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            tp,tc = simplify(tp,tc)
+            pauli += tp[:]
+            coeff += tc[:]
+            added = []
+            op_list = []
+            for item1 in operators['se']:
+                op_list.append(item1)
+                for n,item2 in enumerate(operators['ne']):
+                    inds = [item2.qInd[0]==item2.qInd[1],
+                            item2.qInd[1]==item2.qInd[2],
+                            item2.qInd[2]==item2.qInd[3]]
+                    c1 = item1.qInd[0]==item2.qInd[0]
+                    c2 = item1.qInd[1]==item2.qInd[3]
+                    if inds[0] and item1.qInd==item2.qInd[2:]:
+                        op_list.append(item2)
+                        added.append(n)
+                    elif inds[2] and item1.qInd==item2.qInd[0:2]:
+                        op_list.append(item2)
+                        added.append(n)
+                    elif inds[1] and c1 and c2:
+                        op_list.append(item2)
+                        added.append(n)
+
+            tp ,tc = [],[]
+            for item in op_list:
+                for p,c in zip(item.pauliExp,item.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            tp,tc = simplify(tp,tc)
+            pauli += tp[:]
+            coeff += tc[:]
+
+
+
+            tp ,tc = [],[]
+            for op in operators['ne']:
+                for p,c in zip(op.pauliExp,op.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            tp,tc = simplify(tp,tc)
+            pauli += tp[:]
+            coeff += tc[:]
+            
+
+
+            # simplification procedure for double excitations
+            tp,tc = [],[]
+            for item in operators['de']:
+                for p,c in zip(item.pauliExp,item.pauliCoeff):
+                    tp.append(p)
+                    tc.append(c)
+            tp,tc = simplify(tp,tc)
+            pauli += tp[:]
+            coeff += tc[:]
+
+            #  # # # done
+            self.qubOp = [pauli,coeff]
+            for p,c in zip(self.qubOp[0],self.qubOp[1]):
+                print(p,c)
+        elif self.qubitH=='split':
             alp = self.alpha_mo['active']
             bet = self.beta_mo['active']
             blocks = [

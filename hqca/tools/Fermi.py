@@ -340,6 +340,9 @@ class FermiOperator:
             self._antiHermitianDoubleExcOperator(**kw)
         elif self.opType=='se':
             self._antiHermitianSingleExcOperator(**kw)
+        else:
+            self.pauliExp=[]
+            self.pauliCoeff=[]
 
     def _antiHermitianSingleExcOperator(self,Nq='default',**kw):
         self.pauliExp = []
@@ -383,9 +386,9 @@ class FermiOperator:
             c=1/4
             qubSq+= ['XIY','XZY','YIX','YZX']
             if self.qOp in ['++--','-+-+']:
-                qubCo+= [+c,-c,-c,+c]
+                qubCo+= [-c,+c,+c,-c]
             elif self.qOp in ['+-+-','--++']:
-                qubCo+= [-c,-c,+c,+c]
+                qubCo+= [+c,+c,+c,+c]
             for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],

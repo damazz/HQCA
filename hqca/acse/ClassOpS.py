@@ -21,52 +21,71 @@ def evaluate2S(i,k,l,j,Store):
     0.5 coefficient is for double counting
     ... though we dont double counts some stuff : ( huh. 
     '''
-    Kt,Vt=0,0
+    k1,v2,v3 = 0,0,0
     orb = Store.alpha_mo['active']+Store.beta_mo['active']
     N = len(orb)
     for p in orb:
+        c1 = int(p==i)
+        c2 = int(p==k)
+        c3 = int(p==l)
+        c4 = int(p==j)
+        if c1+c2+c3+c4>0:
+            temp = +c1*Store.rdm2.rdm[p,k,j,l]
+            temp+= -c2*Store.rdm2.rdm[p,i,j,l]
+            temp+= +c3*Store.rdm2.rdm[i,k,p,j]
+            temp+= -c4*Store.rdm2.rdm[i,k,p,l]
+            k1+= temp*Store.ints_1e[p,p]
+    for p in orb:
         for q in orb:
-            c1,c2 = int(i==q),int(k==q)
-            c3,c4 = int(j==p),int(l==p)
-            if c1+c2+c3+c4==0:
-                pass
-            else:
-                t2 = -c1*Store.rdm2.rdm[k,p,j,l]
-                t2+=  c2*Store.rdm2.rdm[i,p,j,l]
-                t2+=  c3*Store.rdm2.rdm[i,k,l,q]
-                t2+= -c4*Store.rdm2.rdm[i,k,j,q]
-                if p==q:
-                    t2*=2 
-                Kt = Kt + Store.ints_1e[p,q]*t2
-            for r in orb:
-                for s in orb:
-                    #if [i,k,j,l]==[0,1,1,2]:
-                    #    print(p,r,s,q)
-                    c1,c2 = int(i==q),int(i==s)
-                    c3,c4 = int(k==q),int(k==s)
-                    c5,c6 = int(j==p),int(l==p)
-                    c7,c8 = int(j==r),int(l==r)
-                    if c1+c2+c3+c4+c5+c6+c7+c8==0:
-                        continue
-                    t1 = -c1*Store.rdm3.rdm[k,p,r,j,l,s]
-                    t1+= +c2*Store.rdm3.rdm[k,p,r,j,l,q]
-                    t1+= +c3*Store.rdm3.rdm[i,p,r,j,l,s]
-                    t1+= -c4*Store.rdm3.rdm[i,p,r,j,l,q]
-                    t1+= +c5*Store.rdm3.rdm[i,k,r,l,q,s]
-                    t1+= -c6*Store.rdm3.rdm[i,k,r,j,q,s]
-                    t1+= -c7*Store.rdm3.rdm[i,k,p,l,q,s]
-                    t1+= +c8*Store.rdm3.rdm[i,k,p,j,q,s]
-                    t1+= (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
-                    t1+=-(c5*c8-c7*c6)*Store.rdm2.rdm[i,k,q,s]
-                    if p*N+r==q*N+s:
-                        t1*=2
-                    #if abs(t1)>1e-7 and [i,k,j,l]==[0,1,1,2]:
-                    #    print('2V: ',t1*Store.ints_2e[p,r,q,s],p,r,s,q)
-                    Vt = Vt + Store.ints_2e[p,r,q,s]*t1
-    #if [i,k,j,l]==[0,1,1,2]:
-    #    print('K: ',Kt,p,q)
-    #    print('V: ',Vt,p,q)
-    return 0.5*Kt,0.5*Vt
+            if p==q:
+                continue
+            c1 = int(q==i)
+            c2 = int(q==k)
+            c3 = int(p==l)
+            c4 = int(p==j)
+            if c1+c2+c3+c4>0:
+                temp = +c1*Store.rdm2.rdm[p,k,j,l]
+                temp+= -c2*Store.rdm2.rdm[p,i,j,l]
+                temp+= +c3*Store.rdm2.rdm[i,k,q,j]
+                temp+= -c4*Store.rdm2.rdm[i,k,q,l]
+                k1+= temp*Store.ints_1e[p,q]
+    for p in orb:
+        for r in orb:
+            for s in orb:
+                for q in orb:
+                    c1 = int(i==q)
+                    c2 = int(i==s)
+                    c3 = int(k==q)
+                    c4 = int(k==s)
+                    c5 = int(l==r)
+                    c6 = int(l==p)
+                    c7 = int(j==r)
+                    c8 = int(j==p)
+                    if c1+c2+c3+c4+c5+c6+c7+c8>0:
+                        temp1 = -c1*Store.rdm3.rdm[p,r,k,j,l,s] #s,l,j
+                        temp1+= +c2*Store.rdm3.rdm[p,r,k,j,l,k] #q ,l,j
+                        temp1+= +c3*Store.rdm3.rdm[p,r,i,j,l,s] #slj
+                        temp1+= -c4*Store.rdm3.rdm[p,r,i,j,l,q] #qlj
+                        temp1+= +c5*Store.rdm3.rdm[i,k,p,q,s,j] #jsq
+                        temp1+= -c6*Store.rdm3.rdm[i,k,r,q,s,j] #jsq 
+                        temp1+= -c7*Store.rdm3.rdm[i,k,p,q,s,l] #lsq
+                        temp1+= +c8*Store.rdm3.rdm[i,k,r,q,s,l] #lsq
+                        temp1*= Store.ints_2e[p,r,q,s]
+                        v3 += 0.5*temp
+                        # 
+                        temp = (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
+                        temp+= (c6*c7-c5*c8)*Store.rdm2.rdm[i,k,q,s]
+                        temp*= Store.ints_2e[p,r,q,s]
+                        v2 += 0.5*temp
+    return k1,v2+v3
+
+
+
+
+
+
+
+
 
 
 def findSPairs(Store): 
@@ -142,97 +161,20 @@ def findSPairs(Store):
         if abs(i.c)>largest:
             largest = abs(i.c)
     for i in tS:
-        if abs(i.c)>largest*0.01:
+        if abs(i.c)>largest*0.25 and abs(i.c)>1e-1:
             S.append(i)
+    hold_type = [(op.opType=='de') for op in S]
+    S_ord = []
+    for i in range(len(hold_type)):
+        if not hold_type[i]:
+            S_ord.append(S[i])
+    for i in range(len(hold_type)):
+        if hold_type[i]:
+            S_ord.append(S[i])
+    S = S_ord[:]
+
     for item in S:
         print('S: {:.6f},{},{}'.format(np.real(item.c),item.qInd,item.qOp))
-    return S
-
-
-def findS0Pairs(Store):
-    '''
-    pass
-    '''
-    alpha = Store.alpha_mo['active']
-    beta = Store.beta_mo['active']
-    S = []
-    blocks = [
-            [alpha,alpha,beta],
-            [alpha,beta,beta],
-            [alpha,beta,beta],
-            [alpha,alpha,beta]
-            ]
-    block = ['aa','ab','bb']
-    h0 = Store.t
-    h1 = 1-h0
-    for ze in range(len(blocks[0])):
-        for i in blocks[0][ze]:
-            for k in blocks[1][ze]:
-                for l in blocks[2][ze]:
-                    for j in blocks[3][ze]:
-                        if block[ze]=='ab':
-                            if i>j or k>l:
-                                continue
-                            spin = 'abba'
-                        else:
-                            if i>=k or j>=l:
-                                continue
-                            if block[ze]=='aa':
-                                spin = 'aaaa'
-                            else:
-                                spin='bbbb'
-                        term = 0
-                        for p,r,q,s in Store.zipH2:
-                            # creation annihilation:
-                            # iklj, prsq
-                            # ei is, 1c2c,1a2a
-                            # so, pr qs
-                            c1,c2 = int(i==q),int(i==s)
-                            c3,c4 = int(k==q),int(k==s)
-                            c5,c6 = int(j==p),int(l==p)
-                            c7,c8 = int(j==r),int(l==r)
-                            if c1+c2+c3+c4+c5+c6+c7+c8==0:
-                                continue
-                            t1 = c1*Store.rdm3.rdm[k,r,p,j,l,s]
-                            t1+= c3*Store.rdm3.rdm[i,p,r,j,l,s]
-                            t1+= c5*Store.rdm3.rdm[i,k,r,l,q,s]
-                            t1+= c6*Store.rdm3.rdm[i,k,r,j,s,q]
-                            t2 = (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
-                            t2+= -(c5*c8-c7*c6)*Store.rdm2.rdm[i,k,q,s]
-                            temp2v = 1*(t1)+1*(t2)
-                            temp2v*= Store.ints_2e[p,r,q,s]
-                            term+= temp2v*h0
-                        for p,q in Store.zipH1:
-                            c1,c2 = int(i==q),int(k==q)
-                            c3,c4 = int(j==p),int(l==p)
-                            if c1+c2+c3+c4==0:
-                                continue
-                            t1 = -c1*Store.rdm2.rdm[k,p,j,l]
-                            t2 =  c2*Store.rdm2.rdm[i,p,j,l]
-                            t3 =  c3*Store.rdm2.rdm[i,k,l,q]
-                            t4 = -c4*Store.rdm2.rdm[i,k,j,q]
-                            temp1h = t1+t2+t3+t4
-                            temp1h*= Store.ints_1e[p,q]
-                            term+= temp1h*h0
-                        for p,q in Store.zipF:
-                            c1,c2 = int(i==q),int(k==q)
-                            c3,c4 = int(j==p),int(l==p)
-                            if c1+c2+c3+c4==0:
-                                continue
-                            t1 = -c1*Store.rdm2.rdm[k,p,j,l]
-                            t2 =  c2*Store.rdm2.rdm[i,p,j,l]
-                            t3 =  c3*Store.rdm2.rdm[i,k,l,q]
-                            t4 = -c4*Store.rdm2.rdm[i,k,j,q]
-                            temp1f = t1+t2+t3+t4
-                            temp1f*= Store.F[p,q]
-                            term+= temp1f*h1
-                        if abs(term)>1e-10:
-                            newFermi = FermiOperator(
-                                    coeff=-term,
-                                    indices=[i,k,l,j],
-                                    sqOp='++--',
-                                    spin=spin)
-                            S.append(newFermi)
     return S
 
 

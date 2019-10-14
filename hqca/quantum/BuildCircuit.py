@@ -52,11 +52,16 @@ class GenerateGenericCircuit:
             try:
                 g.pauliExp
             except AttributeError as Exception:
-                g.generateExcitationOperators()
+                g.generateAntiHermitianExcitationOperators()
             for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,1.0*c*g.qCo,p)
-                #print(p,c)
+                _generic_Pauli_term(self,c*g.qCo,p)
         '''
+        for g in Gates:
+            for p,c in zip(g.pauliExp,g.pauliCoeff):
+                _generic_Pauli_term(self,(1/3)*c*g.qCo,p)
+        for g in Gates:
+            for p,c in zip(g.pauliExp,g.pauliCoeff):
+                _generic_Pauli_term(self,(1/3)*c*g.qCo,p)
         for g in reversed(Gates):
             try:
                 g.pauliExp

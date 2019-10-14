@@ -68,6 +68,7 @@ class RunACSE(QuantumRun):
         self.kw = pre.qACSE()
         self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
+        self.damp = 0.5
         self.total=Cache()
 
     def build(self):
@@ -137,6 +138,7 @@ class RunACSE(QuantumRun):
         # test procedure
         for s in testS:
             s.qCo*=self.delta
+            s.c*=self.delta
         self.Store.update_ansatz(testS)
         Psi = Ansatz(self.Store,self.QuantStore)
         Psi.build_tomography()
@@ -176,12 +178,11 @@ class RunACSE(QuantumRun):
         d1D = e1-self.delta*d2D
         # now, update for the Newton step
         print('Energies: {},{}'.format(e1,e2))
-        print('Derivatives: {},{},{}'.format(d2D,d1D,d1D/d2D))
+        print('Derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
         print('Current S: ')
         for s in hold:
-            print(s.c,s.ind)
-            s.qCo*= -d1D/d2D
-            s.c *= -d1D/d2D
+            s.qCo*= -(self.damp)*d1D/d2D
+            s.c*= -(self.damp)*d1D/d2D
         self.dx = abs(d1D/d2D)
         self.Store.update_ansatz(hold)
         Psi = Ansatz(self.Store,self.QuantStore)
