@@ -30,11 +30,11 @@ def evaluate2S(i,k,l,j,Store):
         c3 = int(p==l)
         c4 = int(p==j)
         if c1+c2+c3+c4>0:
-            temp = +c1*Store.rdm2.rdm[p,k,j,l]
-            temp+= -c2*Store.rdm2.rdm[p,i,j,l]
-            temp+= +c3*Store.rdm2.rdm[i,k,p,j]
-            temp+= -c4*Store.rdm2.rdm[i,k,p,l]
-            k1+= temp*Store.ints_1e[p,p]
+            temp0a = +c1*Store.rdm2.rdm[p,k,j,l]
+            temp0a+= -c2*Store.rdm2.rdm[p,i,j,l]
+            temp0a+= +c3*Store.rdm2.rdm[i,k,p,j]
+            temp0a+= -c4*Store.rdm2.rdm[i,k,p,l]
+            k1+= temp0a*Store.ints_1e[p,p]
     for p in orb:
         for q in orb:
             if p==q:
@@ -44,11 +44,11 @@ def evaluate2S(i,k,l,j,Store):
             c3 = int(p==l)
             c4 = int(p==j)
             if c1+c2+c3+c4>0:
-                temp = +c1*Store.rdm2.rdm[p,k,j,l]
-                temp+= -c2*Store.rdm2.rdm[p,i,j,l]
-                temp+= +c3*Store.rdm2.rdm[i,k,q,j]
-                temp+= -c4*Store.rdm2.rdm[i,k,q,l]
-                k1+= temp*Store.ints_1e[p,q]
+                temp0b = +c1*Store.rdm2.rdm[p,k,j,l]
+                temp0b+= -c2*Store.rdm2.rdm[p,i,j,l]
+                temp0b+= +c3*Store.rdm2.rdm[i,k,q,j]
+                temp0b+= -c4*Store.rdm2.rdm[i,k,q,l]
+                k1+= temp0b*Store.ints_1e[p,q]
     for p in orb:
         for r in orb:
             for s in orb:
@@ -71,12 +71,12 @@ def evaluate2S(i,k,l,j,Store):
                         temp1+= -c7*Store.rdm3.rdm[i,k,p,q,s,l] #lsq
                         temp1+= +c8*Store.rdm3.rdm[i,k,r,q,s,l] #lsq
                         temp1*= Store.ints_2e[p,r,q,s]
-                        v3 += 0.5*temp
+                        v3 += 0.5*temp1
                         # 
-                        temp = (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
-                        temp+= (c6*c7-c5*c8)*Store.rdm2.rdm[i,k,q,s]
-                        temp*= Store.ints_2e[p,r,q,s]
-                        v2 += 0.5*temp
+                        temp2 = (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
+                        temp2+= (c6*c7-c5*c8)*Store.rdm2.rdm[i,k,q,s]
+                        temp2*= Store.ints_2e[p,r,q,s]
+                        v2 += 0.5*temp2
     return k1,v2+v3
 
 
@@ -114,7 +114,7 @@ def findSPairs(Store):
                     term = Kt+Vt
                     if abs(term)>1e-7:
                         newFermi = FermiOperator(
-                                coeff=term,
+                                coeff=-term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
                                 spin='aaaa')
@@ -161,7 +161,7 @@ def findSPairs(Store):
         if abs(i.c)>largest:
             largest = abs(i.c)
     for i in tS:
-        if abs(i.c)>largest*0.25 and abs(i.c)>1e-1:
+        if abs(i.c)>largest*0.1 and abs(i.c)>1e-3:
             S.append(i)
     hold_type = [(op.opType=='de') for op in S]
     S_ord = []
