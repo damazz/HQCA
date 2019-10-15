@@ -80,14 +80,6 @@ def evaluate2S(i,k,l,j,Store):
     return k1,v2+v3
 
 
-
-
-
-
-
-
-
-
 def findSPairs(Store): 
     '''
     '''
@@ -114,7 +106,7 @@ def findSPairs(Store):
                     term = Kt+Vt
                     if abs(term)>1e-7:
                         newFermi = FermiOperator(
-                                coeff=-term,
+                                coeff=term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
                                 spin='aaaa')

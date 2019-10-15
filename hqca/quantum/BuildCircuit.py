@@ -48,13 +48,11 @@ class GenerateGenericCircuit:
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
         self._initialize()
-        for g in Gates:
-            try:
-                g.pauliExp
-            except AttributeError as Exception:
-                g.generateAntiHermitianExcitationOperators()
-            for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,c*g.qCo,p)
+        self.order = 3
+        for r in range(self.order):
+            for g in Gates:
+                for p,c in zip(g.pauliExp,g.pauliCoeff):
+                    _generic_Pauli_term(self,(1/self.order)*c*g.qCo,p)
         '''
         for g in Gates:
             for p,c in zip(g.pauliExp,g.pauliCoeff):

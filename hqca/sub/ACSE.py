@@ -99,7 +99,7 @@ class RunACSE(QuantumRun):
             self.delta=0.1
             self.__euler_qc_acse(testS) 
         elif self.method=='qc-acse2': #newtons methods
-            self.delta = 0.5
+            self.delta = 0.25
             self.__newton_qc_acse(testS)
 
 
@@ -116,8 +116,7 @@ class RunACSE(QuantumRun):
             self.delta = 0.40
             self.__euler_qc_acse(testS)
         elif self.method=='qq-acse2':
-            #self.delta = 0.5
-            self.delta = 1.0
+            self.delta = 0.25
             self.__newton_qc_acse(testS)
 
     def _check_norm(self,testS):
@@ -173,12 +172,20 @@ class RunACSE(QuantumRun):
         if d==1:
             sys.exit('b cannot be 1!')
         for s in testS:
-            s.qCo*=(1/d)
-            s.c*=(1/d)
+            s.qCo*=(1/(self.delta*d))
+            s.c*=(1/(self.delta*d))
         e1 = self.Store.evaluate_temp_energy(Psi1e.rdm2)
         e2 = self.Store.evaluate_temp_energy(Psi2e.rdm2)
-        d2D = (e2-d*e1)/(d*(d-1))
-        d1D = (d**2-e2)/(d*(d-1))
+        try:
+            self.e0
+        except AttributeError:
+            self.e0 = self.Store.evaluate_energy()
+        g1,g2= e1-self.e0,e2-self.e0
+
+        #d2D = (e2-d*e1)/(d*(d-1))
+        d2D = (2*g2-2*d*g1)/(d*self.delta*self.delta*(d-1))
+        #d1D = (d**2-e2)/(d*(d-1))
+        d1D = (g1*d**2-g2)/(d*self.delta*(d-1))
         # now, update for the Newton step
         print('Energies: {},{}'.format(e1,e2))
         print('Derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
@@ -227,6 +234,7 @@ class RunACSE(QuantumRun):
             self.old = en
         if en<self.old:
             self.old = en
+        self.e0 = en
     
     def execute(self):
         self.run()
@@ -286,6 +294,7 @@ class RunACSE(QuantumRun):
             self.old = en
         self.log_E.append(en)
         self.log_S.append(self.norm)
+        self.e0 = en
 
 
 
