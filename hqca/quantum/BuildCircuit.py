@@ -48,7 +48,7 @@ class GenerateGenericCircuit:
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
         self._initialize()
-        self.order = 2
+        self.order = 1
 
         for r in range(self.order):
             for g in Gates:

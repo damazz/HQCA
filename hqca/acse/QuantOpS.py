@@ -148,7 +148,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False,separate=False):
                         c4*'a'+(1-c4)*'b',
                         )
                 newEl = FermiOperator(
-                        -val,
+                        val,
                         indices=[i,k,l,j],
                         sqOp='++--',
                         spin=spin

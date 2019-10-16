@@ -86,19 +86,19 @@ class ModStorageACSE(Storage):
 
     def evaluate_energy(self):
         self.rdm1 = self.rdm2.reduce_order()
-        print(self.rdm1.rdm)
+        #print(self.rdm1.rdm)
         eig,eiv = np.linalg.eig(self.rdm1.rdm)
-        print(eig)
+        #print(eig)
         e_h1 = reduce(np.dot, (self.K1,self.rdm1.rdm)).trace()
         self.rdm2.switch()
         e_h2 = reduce(np.dot, (self.K2,self.rdm2.rdm)).trace()
         self.rdm2.switch()
-        test  = fx.contract(rdmf.spin_rdm_to_spatial_rdm(
-                self.rdm2.rdm,
-                self.alpha_mo,
-                self.beta_mo,
-                self.s2s))
-        print(np.real(test))
+        #test  = fx.contract(rdmf.spin_rdm_to_spatial_rdm(
+        #        self.rdm2.rdm,
+        #        self.alpha_mo,
+        #        self.beta_mo,
+        #        self.s2s))
+        #print(np.real(test))
         #test = np.nonzero(self.rdm2.rdm)
         #for i,j,k,l in zip(test[0],test[1],test[2],test[3]):
         #    if abs(self.rdm2.rdm[i,j,k,l])>1e-6:
@@ -126,9 +126,14 @@ class ModStorageACSE(Storage):
         for fermi in newS:
             new = True
             for old in self.ansatz:
-                if fermi.isSame(old) or fermi.isHermitian(old):
+                if fermi.isSame(old):
                     old.qCo = fermi.qCo+old.qCo
                     old.c  = fermi.c+old.c
+                    new = False
+                    break
+                elif fermi.isHermitian(old):
+                    old.qCo = fermi.qCo-old.qCo
+                    old.c  = fermi.c-old.c
                     new = False
                     break
             if new:
@@ -151,9 +156,14 @@ class ModStorageACSE(Storage):
         for fermi in testS:
             new = True
             for old in self.tempAnsatz:
-                if fermi.isSame(old) or fermi.isHermitian(old):
+                if fermi.isSame(old):
                     old.qCo = fermi.qCo+old.qCo
                     old.c  = fermi.c+old.c
+                    new = False
+                    break
+                elif fermi.isHermitian(old):
+                    old.qCo = fermi.qCo-old.qCo
+                    old.c  = fermi.c-old.c
                     new = False
                     break
             if new:
