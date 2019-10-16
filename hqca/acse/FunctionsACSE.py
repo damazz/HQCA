@@ -338,7 +338,7 @@ class ModStorageACSE(Storage):
                         tc[n]+= tc.pop(m)
                         tp.pop(m)
                 for i in reversed(range(len(tp))):
-                    if abs(tc[i])<1e-10:
+                    if abs(tc[i])<1e-6:
                         tp.pop(i)
                         tc.pop(i)
                 return tp,tc
