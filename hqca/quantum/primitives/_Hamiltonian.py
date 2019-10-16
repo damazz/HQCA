@@ -20,7 +20,7 @@ def __pauliOp(Q,loc,sigma='x',inv=False):
 
 def _generic_Pauli_term(Q,val,pauli,scaling=1.0):
     pauliTerms=0
-    ind = [] 
+    ind = []
     terms = []
     for n,i in enumerate(pauli):
         if not i in ['I','i']:

@@ -48,26 +48,16 @@ class GenerateGenericCircuit:
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
         self._initialize()
-        self.order = 3
+        self.order = 2
+
         for r in range(self.order):
             for g in Gates:
                 for p,c in zip(g.pauliExp,g.pauliCoeff):
-                    _generic_Pauli_term(self,(1/self.order)*c*g.qCo,p)
-        '''
-        for g in Gates:
-            for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,(1/3)*c*g.qCo,p)
-        for g in Gates:
-            for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,(1/3)*c*g.qCo,p)
-        for g in reversed(Gates):
-            try:
-                g.pauliExp
-            except AttributeError as Exception:
-                g.generateExcitationOperators()
-            for p,c in zip(g.pauliExp,g.pauliCoeff):
-                _generic_Pauli_term(self,0.5*c*g.qCo,p)
-        '''
+                    _generic_Pauli_term(
+                            Q=self,
+                            val=(1/self.order)*c,
+                            pauli=p
+                            )
 
     def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp

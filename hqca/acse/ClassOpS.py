@@ -63,7 +63,7 @@ def evaluate2S(i,k,l,j,Store):
                     c8 = int(j==p)
                     if c1+c2+c3+c4+c5+c6+c7+c8>0:
                         temp1 = -c1*Store.rdm3.rdm[p,r,k,j,l,s] #s,l,j
-                        temp1+= +c2*Store.rdm3.rdm[p,r,k,j,l,k] #q ,l,j
+                        temp1+= +c2*Store.rdm3.rdm[p,r,k,j,l,q] #q ,l,j
                         temp1+= +c3*Store.rdm3.rdm[p,r,i,j,l,s] #slj
                         temp1+= -c4*Store.rdm3.rdm[p,r,i,j,l,q] #qlj
                         temp1+= +c5*Store.rdm3.rdm[i,k,p,q,s,j] #jsq
@@ -100,13 +100,13 @@ def findSPairs(Store):
                 for j in alp:
                     if j>=l:
                         continue
-                    if i*Na+k>j*Na+l:
+                    if i*Na+k>=j*Na+l:
                         continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
                     if abs(term)>1e-7:
                         newFermi = FermiOperator(
-                                coeff=term,
+                                coeff=-term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
                                 spin='aaaa')
@@ -119,13 +119,13 @@ def findSPairs(Store):
                 for j in bet:
                     if j>=l:
                         continue
-                    if i*Na+k>j*Na+l:
+                    if i*Na+k>=j*Na+l:
                         continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
                     if abs(term)>1e-7:
                         newFermi = FermiOperator(
-                                coeff=term,
+                                coeff=-term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
                                 spin='bbbb')
@@ -137,13 +137,13 @@ def findSPairs(Store):
                     if i>j:
                         continue
                     elif i==j:
-                        if k>l:
+                        if k>=l:
                             continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
                     if abs(term)>1e-7:
                         newFermi = FermiOperator(
-                                coeff=term,
+                                coeff=-term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
                                 spin='abba')
@@ -158,15 +158,15 @@ def findSPairs(Store):
     hold_type = [(op.opType=='de') for op in S]
     S_ord = []
     for i in range(len(hold_type)):
-        if not hold_type[i]:
-            S_ord.append(S[i])
-    for i in range(len(hold_type)):
         if hold_type[i]:
             S_ord.append(S[i])
+    for i in range(len(hold_type)):
+        if not hold_type[i]:
+            S_ord.append(S[i])
     S = S_ord[:]
-
     for item in S:
-        print('S: {:.6f},{},{}'.format(np.real(item.c),item.qInd,item.qOp))
+        print('S: {:.5f},{:.5f},{},{}'.format(
+            np.real(item.c),np.real(item.qCo),item.qInd,item.qOp))
     return S
 
 

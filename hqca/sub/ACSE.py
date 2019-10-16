@@ -96,7 +96,7 @@ class RunACSE(QuantumRun):
         testS = classS.findSPairs(self.Store)
         self._check_norm(testS)
         if self.method=='qc-acse': #eulers methods
-            self.delta=0.1
+            self.delta=0.5
             self.__euler_qc_acse(testS) 
         elif self.method=='qc-acse2': #newtons methods
             self.delta = 0.25
@@ -187,12 +187,11 @@ class RunACSE(QuantumRun):
         #d1D = (d**2-e2)/(d*(d-1))
         d1D = (g1*d**2-g2)/(d*self.delta*(d-1))
         # now, update for the Newton step
-        print('Energies: {},{}'.format(e1,e2))
+        print('Energies: {},{}'.format(g1,g2))
         print('Derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
-        print('Current S: ')
-        for s in hold:
-            s.qCo*= -(self.damp)*d1D/(d2D)
-            s.c*= -(self.damp)*d1D/(d2D)
+        for f in hold:
+            f.qCo*= -(self.damp)*d1D/(d2D)
+            f.c*= -(self.damp)*d1D/(d2D)
         self.dx = abs(d1D/d2D)
         self.Store.update_ansatz(hold)
         Psi = Ansatz(self.Store,self.QuantStore)
@@ -290,6 +289,10 @@ class RunACSE(QuantumRun):
                     #    self.total.done=True
                 except Exception:
                     self.old = en
+        try:
+            self.old
+        except AttributeError:
+            self.old = en
         if en<self.old:
             self.old = en
         self.log_E.append(en)

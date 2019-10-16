@@ -339,7 +339,7 @@ def gen_spin_2ei(
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
                 for l in beta:
-                    new_ei[i,k,j,l]=0
+                    #new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
@@ -361,7 +361,7 @@ def gen_spin_2ei(
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
                 for l in alpha:
-                    new_ei[i,k,j,l]=0
+                    #new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_a[S,d]*temp3[P,Q,R,d]
@@ -387,239 +387,6 @@ def gen_spin_2ei(
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
                         new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,Q,R,d]
     return new_ei #, temp0
-
-def gen_spin_2ei_lr(
-        ei2,
-        Ua_l1,Ua_l2,Ua_r1,Ua_r2,
-        Ub_l1,Ub_l2,Ub_r1,Ub_r2,
-        alpha,
-        beta,
-        region='full',
-        spin2spac=mss
-        ):
-    '''
-    Essentially, a rotation tool. BUT, allows for different rotations from the
-    left right matrices. 
-
-    Input is the standard electron integral matrices, ik format where i,k are
-    spatial orbitals. 
-
-    Output is a matrix with indices, i,k,l,j
-
-    '''
-    N = len(Ua_l1)
-    new_ei = np.zeros((N*2,N*2,N*2,N*2))
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    #temp0 = np.zeros((N,N,N,N))
-    if region=='full':
-        alpha = alpha['inactive']+alpha['active']
-        beta = beta['inactive']+beta['active']
-        new_ei = np.zeros((N*2,N*2,N*2,N*2))
-    elif region in ['active','active_space','as']:
-        alpha=alpha['active']
-        beta =beta['active']
-    ## alpha alpha portion
-    for i in alpha: #e1
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += Ua_l1[P,a]*ei2[a,:,:,:]
-        for j in alpha: #e1
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += Ua_r1.T[b,Q]*temp1[P,b,:,:]
-            for k in alpha: #e2
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += Ua_l2[R,c]*temp2[P,Q,c,:]
-                for l in alpha:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        new_ei[i,k,j,l]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
-    # now, alpha beta block 
-
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in alpha:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += Ua_l1[P,a]*ei2[a,:,:,:]
-        for j in alpha:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += Ua_r1.T[b,Q]*temp1[P,b,:,:]
-            for k in beta:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += Ub_l2[R,c]*temp2[P,Q,c,:]
-                for l in beta:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,j,l]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
-    # beta alpha block
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in beta:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += Ub_l1[P,a]*ei2[a,:,:,:]
-        for j in beta:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += Ub_r1.T[b,Q]*temp1[P,b,:,:]
-            for k in alpha:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += Ua_l2[R,c]*temp2[P,Q,c,:]
-                for l in alpha:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_a[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,j,l]+= Ua_r2.T[d,S]*temp3[P,Q,R,d]
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in beta:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += Ub_l1[P,a]*ei2[a,:,:,:]
-        for j in beta:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += Ub_r1.T[b,Q]*temp1[P,b,:,:]
-            for k in beta:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += Ub_l2[R,c]*temp2[P,Q,c,:]
-                for l in beta:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        new_ei[i,k,j,l]+= Ub_r2.T[d,S]*temp3[P,Q,R,d]
-    return new_ei #, temp0
-
-def rotate_2rdm(aa,ab,bb,U_a,U_b,alpha=[0,1,2],beta=[3,4,5],spin2spac=mss):
-    '''
-    Perform rotations on the 2rdm. 
-
-    Note....input is more like i,j,k,l, but output is most definitely, 
-    [i,k,l,j], which then can be reordered appropriately....so should be okay. 
-    '''
-    # should still be output as i j k l, which is also the input
-    N = len(aa)
-    rdm2 = np.zeros((N*2,N*2,N*2,N*2))
-    ba = np.zeros((N,N,N,N))
-    '''
-    for i in range(0,N):
-        for j in range(0,N):
-            for k in range(0,N):
-                for l in range(0,N):
-                    rdm2[i,j,k,l]+= aa[i,j,k,l]
-                    rdm2[i,j,k+3,l+3]+= ab[i,j,k,l]
-                    rdm2[i+3,j+3,k,l]+= ab[i,j,k,l]
-                    rdm2[i+3,j+3,k+3,l+3]+= bb[i,j,k,l]
-    '''
-
-    n2rdm = np.zeros((N*2,N*2,N*2,N*2))
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    #temp0 = np.zeros((N,N,N,N))
-    ## alpha alpha portion
-    for i in alpha:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += U_a[P,a]*aa[a,:,:,:]
-        for j in alpha:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += U_a[Q,b]*temp1[P,b,:,:]
-            for k in alpha:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
-                for l in alpha:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        n2rdm[i,k,l,j]+= U_a[S,d]*temp3[P,Q,R,d]
-    # now, alpha beta block 
-
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in alpha:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += U_a[P,a]*ab[a,:,:,:]
-        for j in alpha:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += U_a[Q,b]*temp1[P,b,:,:]
-            for k in beta:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
-                for l in beta:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        n2rdm[i,k,l,j]+= U_b[S,d]*temp3[P,Q,R,d]
-    for i in alpha:
-        for j in alpha:
-            for k in beta:
-                for l in beta:
-                    n2rdm[k,i,j,l] = n2rdm[i,k,l,j]
-    '''
-    # beta alpha block
-
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in beta:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += U_b[P,a]*rdm2[a,:,:,:]
-        for j in beta:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += U_b[Q,b]*temp1[P,b,:,:]
-            for k in alpha:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
-                for l in alpha:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_a[S,d]*temp3[P,Q,R,d]
-                        n2rdm[i,k,l,j]+= U_a[S,d]*temp3[P,Q,R,d]
-    '''
-
-    temp1 = np.zeros((N,N,N,N))
-    temp2 = np.zeros((N,N,N,N))
-    temp3 = np.zeros((N,N,N,N))
-    for i in beta:
-        P = spin2spac[i]
-        for a in range(0,N):
-            temp1[P,:,:,:] += U_b[P,a]*bb[a,:,:,:]
-        for j in beta:
-            Q = spin2spac[j]
-            for b in range(0,N):
-                temp2[P,Q,:,:] += U_b[Q,b]*temp1[P,b,:,:]
-            for k in beta:
-                R = spin2spac[k]
-                for c in range(0,N):
-                    temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
-                for l in beta:
-                    S = spin2spac[l]
-                    for d in range(0,N):
-                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
-                        n2rdm[i,k,l,j]+= U_b[S,d]*temp3[P,Q,R,d]
-    return n2rdm
-
 
 def gen_spin_2ei_QISKit(
         ei2,
@@ -693,7 +460,6 @@ def gen_spin_2ei_QISKit(
                     S = spin2spac[l]
                     for d in range(0,N):
                         new_ei[i,k,l,j]+= U_b[S,d]*temp3[P,Q,R,d]
-                        #new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,Q,R,d]
     # beta alpha block
     temp1 = np.zeros((N,N,N,N))
     temp2 = np.zeros((N,N,N,N))
@@ -736,21 +502,6 @@ def gen_spin_2ei_QISKit(
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
                         new_ei[i,k,l,j]+= U_b.T[d,S]*temp3[P,Q,R,d]
-    return new_ei #, temp0
+    return new_ei
 
 
-
-
-
-
-'''
-loc1 = '../test/li1.ei'
-loc2 = '../test/li2.ei'
-rdm2 = rdmf.gen_2rdm(1,0,0)
-rdm1 = rdmf.build_1rdm(1,0,0)
-e1 = hamiltonian_1e(parse_1ei(loc1,NO=False),rdm1)
-print('One-electron energy: {:.6f}'.format(e1))
-e2 = hamiltonian_2e(parse_2ei(loc2),rdm2,6)
-print('Two-electron energy: {:.6f}'.format(float(np.real(e2))))
-print('Total Energy: {:.6f}'.format(e1+float(np.real(e2))))
-'''

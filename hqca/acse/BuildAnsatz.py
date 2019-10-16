@@ -23,7 +23,8 @@ class Ansatz(Tomography):
             QuantStore,
             trialAnsatz=False,
             propagateTime=False,
-            scalingHam=1.0
+            scalingHam=1.0,
+            Hamiltonian='standard',
             ):
         Tomography.__init__(self,QuantStore)
         if trialAnsatz:
@@ -33,16 +34,17 @@ class Ansatz(Tomography):
         self.scaleH = scalingHam
         self.propagate=propagateTime
         if propagateTime:
-            self.qubOp = Store.qubOp[:]
+            if Hamiltonian=='standard':
+                self.qubOp = Store.qubOp[:]
+            elif Hamiltonian=='split-K':
+                pass
+            elif Hamiltonian=='split-V':
+                pass
         self.qubitH = Store.qubitH
 
     def build_tomography(self,**kw):
-        self._adapt_S()
         Tomography.generate_2rdme(self,**kw)
         self._gen_full_tomography()
-
-    def applyS(self,Q):
-        pass
 
     def _applyH(self,Q):
         if self.qubitH=='qiskit':
@@ -50,8 +52,10 @@ class Ansatz(Tomography):
             for i in range(iters):
                 _add_Hamiltonian(Q,self.qubOp,scaling=self.scaleH/iters)
         elif self.qubitH=='local':
-            for pauli,coeff in zip(self.qubOp[0],self.qubOp[1]):
-                _generic_Pauli_term(Q,coeff,pauli,scaling=self.scaleH)
+            n = 1
+            for i in range(n):
+                for pauli,coeff in zip(self.qubOp[0],self.qubOp[1]):
+                    _generic_Pauli_term(Q,(1/n)*coeff,pauli,scaling=self.scaleH)
 
     def _gen_full_tomography(self):
         for circ in self.op:
@@ -77,11 +81,3 @@ class Ansatz(Tomography):
                 tomo._apply_pauli_op(Q,n,q)
             Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
-
-    def _adapt_S(self):
-        '''
-        put S into qubit language
-        '''
-        for item in self.S:
-            item.generateAntiHermitianExcitationOperators(Nq=self.qs.Nq_tot)
-

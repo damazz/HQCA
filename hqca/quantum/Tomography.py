@@ -45,6 +45,7 @@ class Tomography:
     def _build_2RDM(self):
         nRDM = np.zeros((self.Nq,self.Nq,self.Nq,self.Nq),dtype=np.complex_)
         for r in self.rdme:
+            print(r.ind)
             temp = 0
             for get,Pauli,coeff in zip(r.pauliGet,r.pauliGates,r.pauliCoeff):
                 zMeas = self.__measure_z_string(
@@ -62,9 +63,8 @@ class Tomography:
                     ind1 = tuple(j[:2]+i[:2])
                     ind2 = tuple(i[:2]+j[:2])
                     s = i[2]*j[2]
-                    nRDM[ind1]+=temp*s
-                    if set(opAnn).difference(set(opCre)):
-                        nRDM[ind2]+=np.conj(temp)*s
+                    nRDM[ind1]+=temp*s/2
+                    nRDM[ind2]+=np.conj(temp)*s/2
         self.rdm2 = RDMs(
                 order=2,
                 alpha=self.qs.alpha['active'],
@@ -75,43 +75,58 @@ class Tomography:
 
 
     def generate_2rdme(self,real=True,imag=False):
-        alpha = self.qs.alpha['active']
+        alp = self.qs.alpha['active']
+        Na = len(alp)
         rdme = []
-        beta = self.qs.beta['active']
+        bet = self.qs.beta['active']
         S = []
-        blocks = [
-                [alpha,alpha,beta],
-                [alpha,beta,beta],
-                [alpha,beta,beta],
-                [alpha,alpha,beta]
-                ]
-        block = ['aa','ab','bb']
-        for ze in range(len(blocks[0])):
-            for i in blocks[0][ze]:
-                for k in blocks[1][ze]:
-                    for l in blocks[2][ze]:
-                        for j in blocks[3][ze]:
-                            if block[ze]=='ab':
-                                if i>j or k>l:
-                                    continue
-                                spin = ['abba']
-                            else:
-                                if i>=k or j>=l:
-                                    continue
-                                if block[ze]=='aa':
-                                    spin = ['aaaa']
-                                else:
-                                    spin = ['bbbb']
-                            test = Fermi(
-                                coeff=1,
-                                indices=[i,k,l,j],
-                                sqOp='++--',
-                                spin=spin[0])
-                            test.generateTomoBasis(
-                                    real=real,
-                                    imag=imag,
-                                    Nq=self.qs.Nq)
-                            rdme.append(test)
+
+        def sub_rdme(i,k,l,j,spin):
+            test = Fermi(
+                coeff=1,
+                indices=[i,k,l,j],
+                sqOp='++--',
+                spin=spin)
+            test.generateTomoBasis(
+                    real=real,
+                    imag=imag,
+                    Nq=self.qs.Nq)
+            return test
+        for i in alp:
+            for k in alp:
+                if i>=k:
+                    continue
+                for l in alp:
+                    for j in alp:
+                        if j>=l or i*Na+k>j*Na+l:
+                            continue
+                        if imag and i*Na+k==j*Na+l:
+                            continue
+                        new = sub_rdme(i,k,l,j,'aaaa')
+                        rdme.append(new)
+        for i in bet:
+            for k in bet:
+                if i>=k:
+                    continue
+                for l in bet:
+                    for j in bet:
+                        if j>=l or i*Na+k>j*Na+l:
+                            continue
+                        if imag and i*Na+k==j*Na+l:
+                            continue
+                        new = sub_rdme(i,k,l,j,'bbbb')
+                        rdme.append(new)
+    
+        for i in alp:
+            for k in bet:
+                for l in bet:
+                    for j in alp:
+                        if i*Na+k>j*Na+l:
+                            continue
+                        if imag and i*Na+k==j*Na+l:
+                            continue
+                        new = sub_rdme(i,k,l,j,'abba')
+                        rdme.append(new)
         self.rdme = rdme
         self._generate_pauli_measurements()
 

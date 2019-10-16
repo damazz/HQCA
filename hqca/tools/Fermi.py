@@ -32,6 +32,12 @@ class FermiOperator:
         else:
             return False
 
+    def clear(self):
+        self.pauliExp = []
+        self.pauliGet = []
+        self.pauliCoeff = []
+        self.pauliGates = []
+
     def hasSameOp(self,b):
         return self.qOp==b.qOp
 
@@ -240,9 +246,13 @@ class FermiOperator:
             c=1/4
             qubSq+= ['XIX','YIY','XZX','YZY']
             if self.qOp in ['++--','-+-+']:
-                qubCo+= [c,c,-c,-c]
+                if self.qOp=='-+-+':
+                    c*=-1 
+                qubCo+= [-c,-c,+c,+c]
             elif self.qOp in ['+-+-','--++']:
-                qubCo+= [c,c,c,c]
+                if self.qOp=='--++':
+                    c*=-1 
+                qubCo+= [-c,-c,-c,-c]
             for item,co in zip(qubSq,qubCo):
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
@@ -267,7 +277,7 @@ class FermiOperator:
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
                         item[0],
-                        'Z'*n1,
+                        'I'*n1,
                         item[1],
                         'Z'*n2,
                         item[2],
@@ -289,7 +299,7 @@ class FermiOperator:
                         item[0],
                         'Z'*n1,
                         item[1],
-                        'Z'*n2,
+                        'I'*n2,
                         item[2],
                         'I'*(Nq-1-self.qInd[3]))
                 self.pauliExp.append(temp)
@@ -414,7 +424,7 @@ class FermiOperator:
                 temp = '{}{}{}{}{}{}{}'.format(
                         'I'*self.qInd[0],
                         item[0],
-                        'Z'*n1,
+                        'I'*n1,
                         item[1],
                         'Z'*n2,
                         item[2],
@@ -437,7 +447,7 @@ class FermiOperator:
                         item[0],
                         'Z'*n1,
                         item[1],
-                        'Z'*n2,
+                        'I'*n2,
                         item[2],
                         'I'*(Nq-1-self.qInd[3]))
                 self.pauliExp.append(temp)
@@ -577,7 +587,7 @@ class FermiOperator:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
             if real:
-                r = 1/2
+                r = 1
                 if self.qOp =='++--':
                     qubSq+= ['XIX','XZX']
                     qubGet+=['XZX','XZX']
@@ -595,7 +605,7 @@ class FermiOperator:
                     qubGet+=['XZX','XZX']
                     qubCo+= [-r/2,-r/2]
             if imag:
-                c=1j/2
+                c=1j
                 if self.qOp=='++--':
                     qubGet+=['XZY','XZY']
                     qubSq+= ['XIY','XZY']
@@ -636,7 +646,7 @@ class FermiOperator:
             n1= self.qInd[2]-(self.qInd[1]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
             if real:
-                r = 1/2
+                r = 1
                 if self.qOp=='+-+-':
                     qubGet+=['ZXX','ZXX']
                     qubSq+= ['IXX','ZXX']
@@ -654,7 +664,7 @@ class FermiOperator:
                     qubSq+= ['IXX','ZXX']
                     qubCo+= [-r/2,-r/2]
             if imag:
-                c = 1j/2
+                c = 1j
                 if self.qOp=='+-+-':
                     qubGet+=['ZXY','ZXY']
                     qubSq+= ['IXY','ZXY']
@@ -695,7 +705,7 @@ class FermiOperator:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[2]-(self.qInd[1]+1)
             if real:
-                r = 1/2
+                r = 1
                 if self.qOp=='+-+-':
                     qubGet+=['XXZ','XXZ']
                     qubSq+= ['XXI','XXZ']
@@ -713,7 +723,7 @@ class FermiOperator:
                     qubSq+= ['XXI','XXZ']
                     qubCo+= [-r/2,-r/2]
             if imag:
-                c = 1j/2
+                c = 1j
                 if self.qOp=='+-+-':
                     qubGet+=['XYZ','XYZ']
                     qubSq+= ['XYI','XYZ']
@@ -761,22 +771,29 @@ class FermiOperator:
         n2 = self.qInd[2]-(self.qInd[1]+1)
         qubSq,qubCo=[],[]
         if real:
+            c = 1/2
             if self.qOp in ['++--','--++']:
+                if self.qOp=='--++':
+                    c*=1
                 qubSq+= ['XYXY','XYYX']
-                qubCo+= [-1/4,-1/4]
+                qubCo+= [-c,-c]
                 # -xyxy-xyyx
             elif self.qOp in ['+-+-','-+-+']:
+                if self.qOp=='-+-+':
+                    c*=1
                 qubSq+= ['XXYY','XYYX']
-                qubCo+= [1/4,1/4]
+                qubCo+= [c,c]
                 # xxyy+xyyx
                 pass
             elif self.qOp in ['+--+','-++-']:
+                if self.qOp=='-++-':
+                    c*=1
                 qubSq+= ['XXYY','XYXY']
-                qubCo+= [-1/4,-1/4]
+                qubCo+= [-c,-c]
                 pass
         if imag:
             #c= (-1)**(int(self.qOp[0]=='-'))
-            c = 1j/4
+            c = 1j/2
             if self.qOp in ['++--']:
                 qubSq+= ['XYXX','YXXX']
                 qubCo+= [c,c]

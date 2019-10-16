@@ -382,10 +382,13 @@ def spin_rdm_to_spatial_rdm(
                     p,q,r,s = a2b[i],a2b[j],a2b[k],a2b[l]
                     #P,Q,R,S = s2s[p],s2s[q],s2s[r],s2s[s]
                     I,J,K,L = s2s[i],s2s[j],s2s[k],s2s[l]
-                    nrdm2[I,K,J,L] =rdm2[i,k,j,l]
-                    nrdm2[I,K,J,L]+=rdm2[p,r,q,s]
-                    nrdm2[I,K,J,L]+=rdm2[i,r,j,s]
-                    nrdm2[I,K,J,L]+=rdm2[p,k,q,l]
+                    temp = rdm2[i,k,j,l]
+                    temp+= rdm2[p,r,q,s]
+                    temp+= rdm2[i,r,j,s]
+                    temp+= rdm2[p,k,q,l]
+                    nrdm2[i,k,j,l]=temp
+                    #if abs(temp)>1e-4:
+                    #    print(temp,i,k,l,j)
     return nrdm2
 
 
