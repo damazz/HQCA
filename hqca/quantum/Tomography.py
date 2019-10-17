@@ -145,6 +145,7 @@ class Tomography:
                     self.paulis.append(j)
         self.op = self.paulis
 
+
     def _transform_q2r(self,rdme):
         nrdme = []
         for i in rdme:
