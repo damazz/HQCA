@@ -25,8 +25,9 @@ class Ansatz(Tomography):
             propagateTime=False,
             scalingHam=1.0,
             Hamiltonian='standard',
+            **kw
             ):
-        Tomography.__init__(self,QuantStore)
+        Tomography.__init__(self,QuantStore,**kw)
         if trialAnsatz:
             self.S = Store.tempAnsatz
         else:

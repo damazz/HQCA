@@ -16,6 +16,7 @@ from hqca.acse.BuildAnsatz import Ansatz
 from hqca.quantum import ErrorCorrection as ec
 from hqca.quantum import QuantumFunctions as qf
 from hqca.quantum import NoiseSimulator as ns
+from hqca.quantum import Tomography as tomo
 from hqca.tools.util import Errors
 from functools import reduce
 import datetime
@@ -81,6 +82,26 @@ class RunACSE(QuantumRun):
         self.built=True
         self.log_S = []
         self.log_E = []
+        reTomo = tomo.Tomography(
+                self.QuantStore)
+        reTomo.generate_2rdme(real=True,imag=False)
+        self.QuantStore.reTomo_kw = {
+                'mapping':reTomo.mapping,
+                'preset_grouping':True,
+                'rdm_elements':reTomo.rdme,
+                'tomography_terms':reTomo.op
+                }
+        if 'qq' in self.method:
+            imTomo = tomo.Tomography(self.QuantStore)
+            imTomo.generate_2rdme(real=False,imag=True)
+            self.QuantStore.imTomo_kw = {
+                    'mapping':imTomo.mapping,
+                    'preset_grouping':True,
+                    'rdm_elements':imTomo.rdme,
+                    'tomography_terms':imTomo.op
+                    }
+        print('Done initializing. Beginning run...')
+        print('---------------------------------------------')
 
     def update_var(self,**kw):
         QuantumRun.update_var(self,**kw)
@@ -139,7 +160,7 @@ class RunACSE(QuantumRun):
             s.qCo*=self.delta
             s.c*=self.delta
         self.Store.update_ansatz(testS)
-        Psi = Ansatz(self.Store,self.QuantStore)
+        Psi = Ansatz(self.Store,self.QuantStore,**self.QuantStore.reTomo_kw)
         Psi.build_tomography()
         Psi.run_circuit()
         Psi.construct_rdm()
@@ -154,7 +175,9 @@ class RunACSE(QuantumRun):
             s.qCo*=self.delta
             s.c*=self.delta
         self.Store.build_trial_ansatz(testS)
-        Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
+        #Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
+        Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
+                **self.QuantStore.reTomo_kw)
         Psi1e.build_tomography()
         Psi1e.run_circuit()
         Psi1e.construct_rdm()
@@ -164,7 +187,9 @@ class RunACSE(QuantumRun):
             s.qCo*=d
             s.c*=d
         self.Store.build_trial_ansatz(testS)
-        Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
+        #Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
+        Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
+                **self.QuantStore.reTomo_kw)
         Psi2e.build_tomography()
         Psi2e.run_circuit()
         Psi2e.construct_rdm()
@@ -182,30 +207,27 @@ class RunACSE(QuantumRun):
             self.e0 = self.Store.evaluate_energy()
         g1,g2= e1-self.e0,e2-self.e0
 
-        #d2D = (e2-d*e1)/(d*(d-1))
         d2D = (2*g2-2*d*g1)/(d*self.delta*self.delta*(d-1))
-        #d1D = (d**2-e2)/(d*(d-1))
         d1D = (g1*d**2-g2)/(d*self.delta*(d-1))
         # now, update for the Newton step
-        print('Energies: {},{}'.format(g1,g2))
-        print('Derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
+        print('')
+        print('--- Newton Step --- ')
+        print('dE at step size d1,d2: {},{}'.format(g1,g2))
+        print('1st and 2nd derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
         for f in hold:
             f.qCo*= -(self.damp)*d1D/(d2D)
             f.c*= -(self.damp)*d1D/(d2D)
         self.dx = abs(d1D/d2D)
         self.Store.update_ansatz(hold)
-        Psi = Ansatz(self.Store,self.QuantStore)
+        Psi = Ansatz(self.Store,self.QuantStore,
+                **self.QuantStore.reTomo_kw)
         Psi.build_tomography()
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
+        print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+        print('')
 
-        #test = np.nonzero(Psi.rdm2.rdm)
-        #for i,j,k,l in zip(test[0],test[1],test[2],test[3]):
-        #    print(i,j,k,l,Psi.rdm2.rdm[i,j,k,l])
-        print('Trace : {}'.format(Psi.rdm2.trace()))
-        print('1-RDM')
-        #sys.exit()
 
 
     def _run_adiabatic_acse(self):
@@ -272,6 +294,7 @@ class RunACSE(QuantumRun):
         # need to find energy
         en = self.Store.evaluate_energy()
         self.total.iter+=1
+        print('---------------------------------------------')
         print('Step {:02}, Energy: {:.6f}, S: {:.6f}'.format(
             self.total.iter,
             np.real(en),
@@ -282,13 +305,6 @@ class RunACSE(QuantumRun):
         else:
             if self.total.iter==self.Store.max_iter:
                 self.total.done=True
-            else:
-                try:
-                    self.old
-                    #if self.old<en-0.005:
-                    #    self.total.done=True
-                except Exception:
-                    self.old = en
         try:
             self.old
         except AttributeError:
@@ -297,6 +313,30 @@ class RunACSE(QuantumRun):
             self.old = en
         self.log_E.append(en)
         self.log_S.append(self.norm)
+        i = 1
+        temp_std_En = []
+        temp_std_S = []
+        std_En = 1
+        std_S = 1
+        while i<=5 and self.total.iter>5:
+            temp_std_En.append(self.log_E[-i])
+            temp_std_S.append(self.log_S[-i])
+            i+=1 
+        if self.total.iter>5:
+            avg_En = np.average(np.asarray(temp_std_En))
+            avg_S =  np.average(np.asarray(temp_std_S))
+            std_En = np.std(np.asarray(temp_std_En))
+            std_S  = np.std(np.asarray(temp_std_S))
+            print('Standard deviation in energy: {}'.format(std_En))
+            print('Average energy: {}'.format(avg_En))
+            print('Standard deviation in S: {}'.format(std_S))
+            print('Average S: {}'.format(avg_S))
+        print('---------------------------------------------')
+        if std_En<0.002:
+            self.total.done=True
+        elif std_S<0.005:
+            self.total.done=True
+
         self.e0 = en
 
 

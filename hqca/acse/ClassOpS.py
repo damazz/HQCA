@@ -164,6 +164,7 @@ def findSPairs(Store):
         if not hold_type[i]:
             S_ord.append(S[i])
     S = S_ord[:]
+    print('Elements of S from classical ACSE: ')
     for item in S:
         print('S: {:.5f},{:.5f},{},{}'.format(
             np.real(item.c),np.real(item.qCo),item.qInd,item.qOp))

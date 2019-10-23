@@ -13,22 +13,24 @@ from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.RDM import Recursive,RDMs
 import sys
 
-#
-#class SetTomography(Tomography):
-#    def __init__(self,**kwargs):
-#        Tomography.__init__(self,**kwargs)
-#        pass
-
 
 class Tomography:
     def __init__(self,
-            QuantStore):
+            QuantStore,
+            preset_grouping=False,
+            mapping=None,
+            tomography_terms=None,
+            rdm_elements=None,
+            **kw):
         self.qs = QuantStore
         self.circuits = []
         self.run = False
         self.Nq = QuantStore.Nq
         self.circuit_list = []
-        self.imTomo = False
+        self.grouping = preset_grouping
+        self.mapping = mapping
+        self.op = tomography_terms
+        self.rdme = rdm_elements
         pass
     
     def construct_rdm(self):
@@ -47,7 +49,8 @@ class Tomography:
         for r in self.rdme:
             #print(r.ind)
             temp = 0
-            for get,Pauli,coeff in zip(r.pauliGet,r.pauliGates,r.pauliCoeff):
+            for Pauli,coeff in zip(r.pauliGates,r.pauliCoeff):
+                get = self.mapping[Pauli]
                 zMeas = self.__measure_z_string(
                         self.counts[get],
                         Pauli)
@@ -75,75 +78,71 @@ class Tomography:
 
 
     def generate_2rdme(self,real=True,imag=False):
-        alp = self.qs.alpha['active']
-        Na = len(alp)
-        rdme = []
-        bet = self.qs.beta['active']
-        S = []
+        if not self.grouping:
+            alp = self.qs.alpha['active']
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.beta['active']
+            S = []
 
-        def sub_rdme(i,k,l,j,spin):
-            test = Fermi(
-                coeff=1,
-                indices=[i,k,l,j],
-                sqOp='++--',
-                spin=spin)
-            test.generateTomoBasis(
-                    real=real,
-                    imag=imag,
-                    Nq=self.qs.Nq)
-            return test
-        for i in alp:
-            for k in alp:
-                if i>=k:
-                    continue
-                for l in alp:
-                    for j in alp:
-                        if j>=l or i*Na+k>j*Na+l:
-                            continue
-                        if imag and i*Na+k==j*Na+l:
-                            continue
-                        new = sub_rdme(i,k,l,j,'aaaa')
-                        rdme.append(new)
-        for i in bet:
-            for k in bet:
-                if i>=k:
-                    continue
-                for l in bet:
-                    for j in bet:
-                        if j>=l or i*Na+k>j*Na+l:
-                            continue
-                        if imag and i*Na+k==j*Na+l:
-                            continue
-                        new = sub_rdme(i,k,l,j,'bbbb')
-                        rdme.append(new)
-    
-        for i in alp:
-            for k in bet:
-                for l in bet:
-                    for j in alp:
-                        if i*Na+k>j*Na+l:
-                            continue
-                        if imag and i*Na+k==j*Na+l:
-                            continue
-                        new = sub_rdme(i,k,l,j,'abba')
-                        rdme.append(new)
-        self.rdme = rdme
-        self._generate_pauli_measurements()
+            def sub_rdme(i,k,l,j,spin):
+                test = Fermi(
+                    coeff=1,
+                    indices=[i,k,l,j],
+                    sqOp='++--',
+                    spin=spin)
+                test.generateTomoBasis(
+                        real=real,
+                        imag=imag,
+                        Nq=self.qs.Nq)
+                return test
+            for i in alp:
+                for k in alp:
+                    if i>=k:
+                        continue
+                    for l in alp:
+                        for j in alp:
+                            if j>=l or i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            new = sub_rdme(i,k,l,j,'aaaa')
+                            rdme.append(new)
+            for i in bet:
+                for k in bet:
+                    if i>=k:
+                        continue
+                    for l in bet:
+                        for j in bet:
+                            if j>=l or i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            new = sub_rdme(i,k,l,j,'bbbb')
+                            rdme.append(new)
 
-    def _use_reduced_setting(self):
-        self.rdme = simplify_tomography(self.rdme)
-        pass
+            for i in alp:
+                for k in bet:
+                    for l in bet:
+                        for j in alp:
+                            if i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            new = sub_rdme(i,k,l,j,'abba')
+                            rdme.append(new)
+            self.rdme = rdme
+            self._generate_pauli_measurements()
 
     def _generate_pauli_measurements(self):
-        self.paulis = []
-        #self._use_reduced_setting()
+        paulis = []
         for fermi in self.rdme:
-            for j in fermi.pauliGet:
-                if j in self.paulis:
+            for j in fermi.pauliGates:
+                if j in paulis:
                     pass
                 else:
-                    self.paulis.append(j)
-        self.op = self.paulis
+                    paulis.append(j)
+        self.op,self.mapping = simplify_tomography(paulis)
 
 
     def _transform_q2r(self,rdme):

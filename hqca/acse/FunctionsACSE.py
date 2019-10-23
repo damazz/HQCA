@@ -86,24 +86,11 @@ class ModStorageACSE(Storage):
 
     def evaluate_energy(self):
         self.rdm1 = self.rdm2.reduce_order()
-        #print(self.rdm1.rdm)
         eig,eiv = np.linalg.eig(self.rdm1.rdm)
-        #print(eig)
         e_h1 = reduce(np.dot, (self.K1,self.rdm1.rdm)).trace()
         self.rdm2.switch()
         e_h2 = reduce(np.dot, (self.K2,self.rdm2.rdm)).trace()
         self.rdm2.switch()
-        #test  = fx.contract(rdmf.spin_rdm_to_spatial_rdm(
-        #        self.rdm2.rdm,
-        #        self.alpha_mo,
-        #        self.beta_mo,
-        #        self.s2s))
-        #print(np.real(test))
-        #test = np.nonzero(self.rdm2.rdm)
-        #for i,j,k,l in zip(test[0],test[1],test[2],test[3]):
-        #    if abs(self.rdm2.rdm[i,j,k,l])>1e-6:
-        #        print(i,j,k,l,self.rdm2.rdm[i,j,k,l])
-        print('Energies: ',e_h1,0.5*e_h2)
         return e_h1 + 0.5*e_h2 + self.E_ne
 
     def evaluate_temp_energy(self,rdm2):
