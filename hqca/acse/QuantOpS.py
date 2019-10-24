@@ -21,10 +21,10 @@ def findSPairsQuantum(Store,QuantStore,verbose=False,separate=False):
     if verbose:
         print('Generating new S pairs with Hamiltonian step.')
     newS = []
-    newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=2.0,
+    newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=1.0,
             **QuantStore.imTomo_kw
             )
-    newPsi.build_tomography() 
+    newPsi.build_tomography()
     if verbose:
         print('Running circuits...')
     newPsi.run_circuit(verbose=verbose)

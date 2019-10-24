@@ -25,9 +25,6 @@ from qiskit.ignis.mitigation.measurement import(
         CompleteMeasFitter,
         MeasurementFilter)
 
-
-
-
 def get_measurement_filter(
         QuantStore
         ):

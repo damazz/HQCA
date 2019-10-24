@@ -438,4 +438,4 @@ class ModStorageACSE(Storage):
             #  # # # done
             self.qubOp = [pauli,coeff]
             for p,c in zip(self.qubOp[0],self.qubOp[1]):
-                print(p,c)
+                print('P: {}, Value: {:.6f}'.format(p,c))

@@ -69,7 +69,7 @@ class RunACSE(QuantumRun):
         self.kw = pre.qACSE()
         self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
-        self.damp = 1.0
+        self.damp_sigma = np.pi/2
         self.total=Cache()
 
     def build(self):
@@ -134,10 +134,10 @@ class RunACSE(QuantumRun):
                 verbose=True)
         self._check_norm(testS)
         if self.method=='qq-acse':
-            self.delta = 0.25
+            self.delta = 0.5
             self.__euler_qc_acse(testS)
         elif self.method=='qq-acse2':
-            self.delta = 0.10
+            self.delta = 0.25
             self.__newton_qc_acse(testS)
 
     def _check_norm(self,testS):
@@ -212,12 +212,17 @@ class RunACSE(QuantumRun):
         # now, update for the Newton step
         print('')
         print('--- Newton Step --- ')
-        print('dE at step size d1,d2: {},{}'.format(g1,g2))
-        print('1st and 2nd derivatives: {},{},{}'.format(d2D,d1D,-d1D/d2D))
+        print('dE(d1): {:.6f},  dE(d2): {:.6f}'.format(
+            np.real(g1),np.real(g2)))
+        def damping(x):
+            return np.exp(-(x**2)/((self.damp_sigma)**2))
+        print('dE\'(0): {:.6f}, dE\'\'(0): {:.6f}'.format(
+            np.real(d1D),np.real(d2D)))
+        print('Step: {:.6f}, Damp: {:.6f}'.format(
+            np.real(d1D/d2D),np.real(damping(d1D/d2D))))
         for f in hold:
-            f.qCo*= -(self.damp)*d1D/(d2D)
-            f.c*= -(self.damp)*d1D/(d2D)
-        self.dx = abs(d1D/d2D)
+            f.qCo*= -(d1D/d2D)*damping(d1D/(d2D))
+            f.c*= -(d1D/d2D)*damping(d1D/(d2D))
         self.Store.update_ansatz(hold)
         Psi = Ansatz(self.Store,self.QuantStore,
                 **self.QuantStore.reTomo_kw)
@@ -225,10 +230,9 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
-        print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+        if abs(Psi.rdm2.trace()-2)>1e-3:
+            print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
         print('')
-
-
 
     def _run_adiabatic_acse(self):
         self.delta = 0.25
@@ -323,18 +327,18 @@ class RunACSE(QuantumRun):
             temp_std_S.append(self.log_S[-i])
             i+=1 
         if self.total.iter>5:
-            avg_En = np.average(np.asarray(temp_std_En))
-            avg_S =  np.average(np.asarray(temp_std_S))
-            std_En = np.std(np.asarray(temp_std_En))
-            std_S  = np.std(np.asarray(temp_std_S))
-            print('Standard deviation in energy: {}'.format(std_En))
-            print('Average energy: {}'.format(avg_En))
-            print('Standard deviation in S: {}'.format(std_S))
-            print('Average S: {}'.format(avg_S))
+            avg_En = np.real(np.average(np.asarray(temp_std_En)))
+            avg_S =  np.real(np.average(np.asarray(temp_std_S)))
+            std_En = np.real(np.std(np.asarray(temp_std_En)))
+            std_S  = np.real(np.std(np.asarray(temp_std_S)))
+            print('Standard deviation in energy: {:+.8f}'.format(std_En))
+            print('Average energy: {:+.8f}'.format(avg_En))
+            print('Standard deviation in S: {:.8f}'.format(std_S))
+            print('Average S: {:.8f}'.format(avg_S))
         print('---------------------------------------------')
-        if std_En<0.002:
+        if std_En<0.002 and self.norm<0.1:
             self.total.done=True
-        elif std_S<0.005:
+        elif std_S<0.004 and self.norm<0.1:
             self.total.done=True
 
         self.e0 = en
