@@ -69,7 +69,6 @@ def build_2e_2rdm_spin(
             Store.beta_mo)
     return wf,rdm2
 
-
 def energy_eval_rdm(
         para,
         Store,

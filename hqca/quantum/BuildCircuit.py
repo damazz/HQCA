@@ -69,7 +69,6 @@ class GenerateGenericCircuit:
             targ = self.qs.beta_qb[i]
             self.qc.x(self.q[targ])
 
-
 class GenerateDirectCircuit:
     def __init__(
             self,

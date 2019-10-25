@@ -79,7 +79,6 @@ def evaluate2S(i,k,l,j,Store):
                         v2 += 0.5*temp2
     return k1,v2+v3
 
-
 def findSPairs(Store): 
     '''
     '''

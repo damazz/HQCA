@@ -22,6 +22,7 @@ from functools import reduce
 import datetime
 import sys
 from hqca.tools import Preset as pre
+from scipy import stats
 np.set_printoptions(precision=3,suppress=True,linewidth=200)
 
 class RunACSE(QuantumRun):
@@ -40,13 +41,13 @@ class RunACSE(QuantumRun):
             also a quantum-classical acse approach, where the acse equations are
             solved according to Newton's method, where the optimial parameter
             delta is calcualted at each step. requires 3-RDM reconstruction.
-        - qq-acse: 
+        - qq-acse:
             similar to euler approach, but both the calculation of S and D is
             done on the quantum computer. S is found as the real remainder of
-            the time evolution operator. 
+            the time evolution operator.
         - qq-acse2:
             same as above, but with a different optimization approach, and the
-            quantum S calculation. 
+            quantum S calculation.
         - a-acse:
             adiabatic ACSE, where the solution is allowed to evolve and responed
             to the S operator; utilizes the Newton-Raphson method, experimental
@@ -228,11 +229,25 @@ class RunACSE(QuantumRun):
                 **self.QuantStore.reTomo_kw)
         Psi.build_tomography()
         Psi.run_circuit()
-        Psi.construct_rdm()
+        Psi.construct_rdm(variance=True)
         self.Store.rdm2=Psi.rdm2
         if abs(Psi.rdm2.trace()-2)>1e-3:
             print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+        self._calc_variance(Psi.rdm2_var,Psi)
+        print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
+        print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
         print('')
+
+    def _calc_variance(self,vrdm2,psi,ci=0.90):
+        en = self.Store.evaluate_temp_energy(vrdm2)-self.Store.E_ne
+        alp = 1-(1-ci)/2
+        z = stats.norm.ppf(alp)
+        nci = z*np.sqrt(en)/np.sqrt(self.QuantStore.Ns)
+        self.ci2 = nci
+        self.ci = psi.evaluate_error(
+                f=self.Store.evaluate_temp_energy)
+
+
 
     def _run_adiabatic_acse(self):
         self.delta = 0.25
@@ -336,14 +351,11 @@ class RunACSE(QuantumRun):
             print('Standard deviation in S: {:.8f}'.format(std_S))
             print('Average S: {:.8f}'.format(avg_S))
         print('---------------------------------------------')
-        if std_En<0.002 and self.norm<0.1:
-            self.total.done=True
-        elif std_S<0.004 and self.norm<0.1:
-            self.total.done=True
-
+        # implementing dynamic stopping criteria 
+        if 'qq' in self.method or 'qc' in self.method:
+            if std_En<self.ci and std_En<0.001 and self.norm<0.05:
+                self.total.done=True
         self.e0 = en
-
-
 
     def save(self,
             name
