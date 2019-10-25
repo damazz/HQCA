@@ -354,7 +354,7 @@ class RunACSE(QuantumRun):
         print('---------------------------------------------')
         # implementing dynamic stopping criteria 
         if 'qq' in self.method or 'qc' in self.method:
-            if std_En<self.ci and std_En<0.001 and self.norm<0.05:
+            if std_En<self.ci and self.norm<0.05:
                 self.total.done=True
         self.e0 = en
 
