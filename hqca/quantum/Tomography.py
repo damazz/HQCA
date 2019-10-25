@@ -157,6 +157,8 @@ class Tomography:
             ):
         count_list = []
         N = self.qs.Ns
+        if sample_size>=N:
+            sample_size=int(N*0.5)
         samplesSD = []
         sample_means = []
         for t in range(numberOfSamples):
