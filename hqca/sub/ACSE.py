@@ -233,7 +233,8 @@ class RunACSE(QuantumRun):
         self.Store.rdm2=Psi.rdm2
         if abs(Psi.rdm2.trace()-2)>1e-3:
             print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
-        self._calc_variance(Psi.rdm2_var,Psi)
+        if self.total.iter%3==0:
+            self._calc_variance(Psi.rdm2_var,Psi)
         print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
         print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
         print('')
