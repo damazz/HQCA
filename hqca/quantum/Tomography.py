@@ -149,16 +149,18 @@ class Tomography:
     def evaluate_error(
             self,
             numberOfSamples=256, # of times to repeat
-            sample_size=4096, # number of counts in sample
+            sample_size=1024, # number of counts in sample
             ci=0.90, #target CI#,
             f=None,
             replace=False,
             spin_alt=False
             ):
+        print('Samples: {}'.format(numberOfSamples))
+        print('Sample size: {}'.format(sample_size))
         count_list = []
         N = self.qs.Ns
-        if sample_size>=N:
-            sample_size=int(N*0.5)
+        if sample_size>=N*8:
+            sample_size=int(N/8)
         samplesSD = []
         sample_means = []
         for t in range(numberOfSamples):
