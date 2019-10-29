@@ -132,7 +132,7 @@ class RunACSE(QuantumRun):
         self.ansatz_depth=1
         self.d = newton_step
         self.damp_sigma = damping
-        self.S_depth = ansatz_depth
+        self.QuantStore.depth_S = ansatz_depth
         self.N_trotter = 1
         self.max_iter = max_iter
         self.crit = opt_thresh
@@ -394,7 +394,7 @@ class RunACSE(QuantumRun):
         while i<=5 and self.total.iter>5:
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_S[-i])
-            i+=1 
+            i+=1
         if self.total.iter>5:
             avg_En = np.real(np.average(np.asarray(temp_std_En)))
             avg_S =  np.real(np.average(np.asarray(temp_std_S)))

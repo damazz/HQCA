@@ -48,8 +48,10 @@ class GenerateGenericCircuit:
         else:
             self.qc = QuantumCircuit(self.q,self.c,name=_name)
         self._initialize()
-        self.order = 1
-
+        if 'acse' in self.qs.method:
+            self.order = int(self.qs.depth_S)
+        else:
+            self.order = int(self.qs.depth)
         for r in range(self.order):
             for g in Gates:
                 for p,c in zip(g.pauliExp,g.pauliCoeff):
@@ -58,7 +60,6 @@ class GenerateGenericCircuit:
                             val=(1/self.order)*c,
                             pauli=p
                             )
-
     def _initialize(self):
         self.Ne_alp = self.qs.Ne_alp
         self.Ne_bet = self.qs.Ne_bet
