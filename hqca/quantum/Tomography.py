@@ -35,7 +35,7 @@ class Tomography:
         self.op = tomography_terms
         self.rdme = rdm_elements
         pass
-    
+
     def construct_rdm(self,**kwargs):
         try:
             self.rdme[0]
@@ -60,8 +60,6 @@ class Tomography:
                         self.counts[get],
                         Pauli)
                 if variance:
-                    #p = self._variance_z_string_binomial(
-                    #        self.counts[get],Pauli)
                     p = (zMeas+1)/2
                     tempv+= coeff*p*(1-p)
                 temp+= zMeas*coeff

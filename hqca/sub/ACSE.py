@@ -246,6 +246,8 @@ class RunACSE(QuantumRun):
 
         d2D = (2*g2-2*d*g1)/(d*self.delta*self.delta*(d-1))
         d1D = (g1*d**2-g2)/(d*self.delta*(d-1))
+        if abs(d2D)<1e-16:
+            d2D=1e-16
         # now, update for the Newton step
         print('')
         print('--- Newton Step --- ')
