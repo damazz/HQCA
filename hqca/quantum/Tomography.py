@@ -171,7 +171,7 @@ class Tomography:
         #print('Build 2rdm: {}'.format(t4-t3))
         return new
 
-    def generate_2rdme(self,real=True,imag=False):
+    def generate_2rdme(self,real=True,imag=False,**kw):
         if not self.grouping:
             alp = self.qs.alpha['active']
             Na = len(alp)

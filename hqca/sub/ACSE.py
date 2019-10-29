@@ -133,7 +133,7 @@ class RunACSE(QuantumRun):
         self.d = newton_step
         self.damp_sigma = damping
         self.QuantStore.depth_S = ansatz_depth
-        self.N_trotter = 1
+        self.N_trotter = trotter
         self.max_iter = max_iter
         self.crit = opt_thresh
         self.qS_thresh_max_rel = quantS_thresh_max_rel

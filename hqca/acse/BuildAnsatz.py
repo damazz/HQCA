@@ -43,7 +43,7 @@ class Ansatz(Tomography):
                 pass
         self.qubitH = Store.qubitH
 
-    def build_tomography(self,trotter=1,**kw):
+    def build_tomography(self,**kw):
         Tomography.generate_2rdme(self,**kw)
         self._gen_full_tomography(**kw)
 
