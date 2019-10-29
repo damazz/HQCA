@@ -9,11 +9,9 @@ from math import pi
  
 def qACSE():
     var = {
-        'max_iter':25,
         'pr_m':0,
         'pr_g':2,
         'pr_s':1,
-        'opt_thresh':0.00001,
         'qc':{
             'backend':'qasm_simulator',
             'num_shots':2048,
@@ -31,12 +29,18 @@ def qACSE():
             'tomo_basis':'no',
             'tomo_rdm':'acse',
             'spin_mapping':'default',
-            'entangled_pairs':'d', #
-            'entangler_p':'Ry_cN', #Ry with a constant N
-            'entangler_q':'UCC2c', #Ry with a constant N
             'pr_e':0, # error correction
             'pr_q':0,
             'depth':1
+            },
+        'acse':{
+            'opt_thresh':0.00001,
+            'opt_criteria':'default',
+            'max_iter':100,
+            'trotter':1,
+            'ansatz_depth':1,
+            'pr_a':1,
+            'reconstruct':'default',
             }
         }
     return var

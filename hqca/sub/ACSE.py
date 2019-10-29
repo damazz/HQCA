@@ -70,7 +70,7 @@ class RunACSE(QuantumRun):
         self.kw = pre.qACSE()
         self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
-        self.damp_sigma = np.pi/2
+        self.kw_acse = self.kw['acse']
         self.total=Cache()
 
     def build(self):
@@ -78,6 +78,7 @@ class RunACSE(QuantumRun):
         Build the quantum object, QuantStore
         '''
         QuantumRun._build_quantum(self)
+        self._update_acse_kw(**self.kw['acse'])
         self.method = self.QuantStore.method # set method
         self.Store.method = self.method
         self.built=True
@@ -104,9 +105,42 @@ class RunACSE(QuantumRun):
         print('Done initializing. Beginning run...')
         print('---------------------------------------------')
 
-    def update_var(self,**kw):
-        QuantumRun.update_var(self,**kw)
+    def update_var(self,target='acse',**kw):
+        kw['target']=target
+        if target=='acse':
+            try:
+                self.kw['acse']
+            except KeyError:
+                self.kw['acse']={}
+            for k,v in kw.items():
+                self.kw['acse'][k]=v
+        else:
+            QuantumRun.update_var(self,**kw)
         self.Store.pr_m = self.kw['pr_m']
+    
+    def _update_acse_kw(self,
+            opt_thresh=1e-3,
+            max_iter=100,
+            trotter=1,
+            pr_a=1,
+            ansatz_depth=1,
+            damping=np.pi/2,
+            newton_step=2,
+            quantS_thresh_max_rel=0.1,
+            classS_thresh_max_rel=0.1,
+            **kw):
+        self.ansatz_depth=1
+        self.d = newton_step
+        self.damp_sigma = damping
+        self.S_depth = ansatz_depth
+        self.N_trotter = 1
+        self.max_iter = max_iter
+        self.crit = opt_thresh
+        self.qS_thresh_max_rel = quantS_thresh_max_rel
+        self.cS_thresh_max_rel = classS_thresh_max_rel
+        if self.QuantStore.backend=='statevector_simulator':
+            self.damp_sigma*=2
+
 
     def _run_qc_acse(self):
         '''
@@ -132,6 +166,8 @@ class RunACSE(QuantumRun):
         # 3. run the ansatz, give best guess
         '''
         testS = quantS.findSPairsQuantum(self.Store,self.QuantStore,
+                qS_thresh_max_rel=self.qS_thresh_max_rel,
+                trotter_steps=self.N_trotter,
                 verbose=True)
         self._check_norm(testS)
         if self.method=='qq-acse':
@@ -213,11 +249,11 @@ class RunACSE(QuantumRun):
         # now, update for the Newton step
         print('')
         print('--- Newton Step --- ')
-        print('dE(d1): {:.6f},  dE(d2): {:.6f}'.format(
+        print('dE(d1): {:.10f},  dE(d2): {:.10f}'.format(
             np.real(g1),np.real(g2)))
         def damping(x):
             return np.exp(-(x**2)/((self.damp_sigma)**2))
-        print('dE\'(0): {:.6f}, dE\'\'(0): {:.6f}'.format(
+        print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
             np.real(d1D),np.real(d2D)))
         print('Step: {:.6f}, Damp: {:.6f}'.format(
             np.real(d1D/d2D),np.real(damping(d1D/d2D))))
@@ -235,18 +271,23 @@ class RunACSE(QuantumRun):
             print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
         if self.total.iter%3==0:
             self._calc_variance(Psi.rdm2_var,Psi)
-        print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
-        print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
-        print('')
 
     def _calc_variance(self,vrdm2,psi,ci=0.90):
-        en = self.Store.evaluate_temp_energy(vrdm2)-self.Store.E_ne
-        alp = 1-(1-ci)/2
-        z = stats.norm.ppf(alp)
-        nci = z*np.sqrt(en)/np.sqrt(self.QuantStore.Ns)
-        self.ci2 = nci
-        self.ci = psi.evaluate_error(
-                f=self.Store.evaluate_temp_energy)
+        if self.QuantStore.backend=='unitary_simulator':
+            self.ci=1e-8
+        elif self.QuantStore.backend=='statevector_simulator':
+            self.ci=1e-8
+        else:
+            en = self.Store.evaluate_temp_energy(vrdm2)-self.Store.E_ne
+            alp = 1-(1-ci)/2
+            z = stats.norm.ppf(alp)
+            nci = z*np.sqrt(en)/np.sqrt(self.QuantStore.Ns)
+            self.ci2 = nci
+            self.ci = psi.evaluate_error(
+                    f=self.Store.evaluate_temp_energy)
+            print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
+            print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
+            print('')
 
 
 
@@ -306,6 +347,17 @@ class RunACSE(QuantumRun):
                     print('Time step: {}'.format(self.Store.t))
                     self._run_adiabatic_acse()
                     self._check()
+            print('E, scf: {:.9f} H'.format(self.Store.hf.e_tot))
+            print('E, run: {:.9f} H'.format(self.best))
+            try:
+                diff = 1000*(self.best-self.Store.e_casci)
+                print('E, fci: {:.9f} H'.format(self.Store.e_casci))
+                print('Energy difference from FCI: {:.8f} mH'.format(diff))
+            except KeyError:
+                pass
+            rdm1 = self.Store.rdm2.reduce_order()
+            print('Occupations of the 1-RDM:')
+            print(np.real(np.diag(rdm1.rdm)))
 
     def _check(self):
         '''
@@ -315,7 +367,7 @@ class RunACSE(QuantumRun):
         en = self.Store.evaluate_energy()
         self.total.iter+=1
         print('---------------------------------------------')
-        print('Step {:02}, Energy: {:.6f}, S: {:.6f}'.format(
+        print('Step {:02}, Energy: {:.10f}, S: {:.10f}'.format(
             self.total.iter,
             np.real(en),
             np.real(self.norm)))
@@ -323,7 +375,7 @@ class RunACSE(QuantumRun):
             if self.Store.t==float(1):
                 self.total.done=True
         else:
-            if self.total.iter==self.Store.max_iter:
+            if self.total.iter==self.max_iter:
                 self.total.done=True
         try:
             self.old
@@ -338,6 +390,7 @@ class RunACSE(QuantumRun):
         temp_std_S = []
         std_En = 1
         std_S = 1
+        avg_S = 1
         while i<=5 and self.total.iter>5:
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_S[-i])
@@ -351,10 +404,17 @@ class RunACSE(QuantumRun):
             print('Average energy: {:+.8f}'.format(avg_En))
             print('Standard deviation in S: {:.8f}'.format(std_S))
             print('Average S: {:.8f}'.format(avg_S))
+            if self.QuantStore.backend=='statevector_simulator':
+                self.best=np.real(en)
+            else:
+                self.best = avg_En
+        else:
+            self.best=0
         print('---------------------------------------------')
         # implementing dynamic stopping criteria 
         if 'qq' in self.method or 'qc' in self.method:
-            if std_En<self.ci and self.norm<0.05:
+            if std_En<self.crit and self.norm<0.05:
+            #if avg_S<1e-5:
                 self.total.done=True
         self.e0 = en
 

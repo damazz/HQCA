@@ -11,7 +11,14 @@ Contains functions for performing ACSE calculations, with a focus on generating
 the S matrix through time evolution of the Hamiltonian. 
 '''
 
-def findSPairsQuantum(Store,QuantStore,verbose=False,separate=False):
+def findSPairsQuantum(
+        Store,
+        QuantStore,
+        verbose=False,
+        separate=False,
+        trotter_steps=1,
+        qS_thresh_max_rel=0.1,
+        ):
     '''
     need to do following:
         1. prepare the appropriate Hailtonian circuit
@@ -22,6 +29,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False,separate=False):
         print('Generating new S pairs with Hamiltonian step.')
     newS = []
     newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=1.0,
+            trotter_steps=1,
             **QuantStore.imTomo_kw
             )
     newPsi.build_tomography()
@@ -41,7 +49,7 @@ def findSPairsQuantum(Store,QuantStore,verbose=False,separate=False):
     print('Elements of S from quantum generation: ')
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]
-        if abs(val)>0.1*max_val: #and abs(val)>0.01:
+        if abs(val)>qS_thresh_max_rel*max_val:
             #print('Si: {:.6f}:{}{}{}{}'.format(val,i,k,j,l))
             c1 =  (i in QuantStore.alpha['active'])
             c2 =  (k in QuantStore.alpha['active'])

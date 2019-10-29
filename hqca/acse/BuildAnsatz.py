@@ -43,22 +43,22 @@ class Ansatz(Tomography):
                 pass
         self.qubitH = Store.qubitH
 
-    def build_tomography(self,**kw):
+    def build_tomography(self,trotter=1,**kw):
         Tomography.generate_2rdme(self,**kw)
-        self._gen_full_tomography()
+        self._gen_full_tomography(**kw)
 
-    def _applyH(self,Q):
+    def _applyH(self,Q,trotter_steps):
         if self.qubitH=='qiskit':
             iters = 1
             for i in range(iters):
                 _add_Hamiltonian(Q,self.qubOp,scaling=self.scaleH/iters)
         elif self.qubitH=='local':
-            n = 1
-            for i in range(n):
+            for i in range(trotter_steps):
                 for pauli,coeff in zip(self.qubOp[0],self.qubOp[1]):
-                    _generic_Pauli_term(Q,(1/n)*coeff,pauli,scaling=self.scaleH)
+                    _generic_Pauli_term(
+                            Q,(1/trotter_steps)*coeff,pauli,scaling=self.scaleH)
 
-    def _gen_full_tomography(self):
+    def _gen_full_tomography(self,trotter_steps=1,**kw):
         for circ in self.op:
             self.circuit_list.append(circ)
             Q = GenerateGenericCircuit(
@@ -66,10 +66,13 @@ class Ansatz(Tomography):
                     self.S,
                     _name=circ)
             if self.propagate:
-                self._applyH(Q)
+                self._applyH(Q,trotter_steps)
             for n,q in enumerate(circ):
                 tomo._apply_pauli_op(Q,n,q)
-            Q.qc.measure(Q.q,Q.c)
+            if self.qs.backend in ['unitary_simulator','statevector_simulator']:
+                pass
+            else:
+                Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
 
     def _gen_quantum_S(self):
@@ -80,5 +83,8 @@ class Ansatz(Tomography):
                 self._applyH(Q)
             for n,q in enumerate(circ):
                 tomo._apply_pauli_op(Q,n,q)
-            Q.qc.measure(Q.q,Q.c)
+            if self.qs.backend in ['unitary_simulator','statevector_simulator']:
+                pass
+            else:
+                Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)

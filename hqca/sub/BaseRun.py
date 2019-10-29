@@ -45,6 +45,9 @@ class QuantumRun:
         elif target=='orb_opt':
             for k,v in args.items():
                 self.kw_orb_opt[k]=v
+        elif target=='store':
+            for k,v in args.items():
+                self.kw_store[k]=v
 
     def _build_energy(self,mol,**kw):
         self.Store = enf.Storage(mol,**kw)

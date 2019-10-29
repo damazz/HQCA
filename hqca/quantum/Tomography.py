@@ -13,6 +13,8 @@ from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
 from hqca.tools.RDM import Recursive,RDMs
 import sys
+import traceback
+from timeit import default_timer as dt
 
 
 class Tomography:
@@ -79,7 +81,6 @@ class Tomography:
                     if variance:
                         vRDM[ind1]+=tempv*s/2
                         vRDM[ind2]+=np.conj(tempv)*s/2
-
         self.rdm2 = RDMs(
                 order=2,
                 alpha=self.qs.alpha['active'],
@@ -96,38 +97,6 @@ class Tomography:
                     Ne=self.qs.Ne,
                     rdm=vRDM)
 
-    def _build_mod_2RDM(self,counts):
-        nRDM = np.zeros((self.Nq,self.Nq,self.Nq,self.Nq),dtype=np.complex_)
-        for r in self.rdme:
-            temp = 0
-            tempv = 0
-            for Pauli,coeff in zip(r.pauliGates,r.pauliCoeff):
-                get = self.mapping[Pauli]
-                zMeas = self.__measure_z_string(
-                        counts[get],
-                        Pauli)
-                temp+= zMeas*coeff
-            opAnn = r.ind[2:][::-1]
-            opCre = r.ind[0:2]
-            reAnn = Recursive(choices=opAnn)
-            reCre = Recursive(choices=opCre)
-            reAnn.unordered_permute()
-            reCre.unordered_permute()
-            for i in reAnn.total:
-                for j in reCre.total:
-                    ind1 = tuple(j[:2]+i[:2])
-                    ind2 = tuple(i[:2]+j[:2])
-                    s = i[2]*j[2]
-                    nRDM[ind1]+=temp*s/2 #factor of 2 is for double counting
-                    nRDM[ind2]+=np.conj(temp)*s/2
-        rdm =  RDMs(
-                order=2,
-                alpha=self.qs.alpha['active'],
-                beta=self.qs.beta['active'],
-                state='given',
-                Ne=self.qs.Ne,
-                rdm=nRDM)
-        return rdm
 
     def _variance_z_string_binomial(self,counts,zstr):
         val,total= 0,0
@@ -163,26 +132,30 @@ class Tomography:
             sample_size=int(N/8)
         samplesSD = []
         sample_means = []
+        counts_list = {}
+        for pauli,counts in self.counts.items():
+            count_list = []
+            for k,v in counts.items():
+                count_list = count_list+[k]*v
+            counts_list[pauli]=count_list
         for t in range(numberOfSamples):
+            t1 = dt()
             sample_mean  = f(
                     self.getRandomRDMFromCounts(
-                        self.counts,sample_size
+                        counts_list,sample_size
                         )
                     )
             sample_means.append(sample_mean)
+            t2 = dt()
+            #print('Time: {}'.format(t2-t1))
         t = stats.t.ppf(ci,N)
         std_err = np.std(np.asarray(sample_means),axis=0) #standard error of mean
         ci = std_err*np.sqrt(sample_size/N)*t
         return ci
 
-    def getRandomRDMFromCounts(self,all_counts,length):
-        counts_list = {}
-        for pauli,counts in all_counts.items():
-            count_list = []
-            for k,v in counts.items():
-                count_list = count_list+[k]*v
-            counts_list[pauli]=count_list
+    def getRandomRDMFromCounts(self,counts_list,length):
         random_counts = {}
+        t5 = dt()
         for pauli,clist in counts_list.items():
             random_counts[pauli]={}
             sample_list = np.random.choice(clist,length,replace=False)
@@ -191,7 +164,12 @@ class Tomography:
                     random_counts[pauli][j]+=1
                 except KeyError:
                     random_counts[pauli][j]=1
-        return self._build_mod_2RDM(random_counts)
+        t3 = dt()
+        #print('Build random list: {}'.format(t3-t5))
+        new = self._build_mod_2RDM(random_counts)
+        t4 = dt()
+        #print('Build 2rdm: {}'.format(t4-t3))
+        return new
 
     def generate_2rdme(self,real=True,imag=False):
         if not self.grouping:
@@ -267,18 +245,40 @@ class Tomography:
             nrdme.append(self.qs.qubit_to_rdm[i])
         return nrdme
 
+
     def __measure_z_string(self,counts,zstr):
-        val,total= 0,0
-        for det,n in counts.items():
-            ph=1
-            for i,z in enumerate(zstr):
-                if z in ['I','i']:
+        if self.qs.backend in ['statevector_simulator']:
+            val = 0
+            N = 2**self.qs.Nq_tot
+            test = ['{:0{}b}'.format(
+                i,self.qs.Nq_tot)[::1] for i in range(0,N)]
+            #print(test,counts)
+            for n,b in enumerate(test):
+                if abs(counts[n])<1e-10:
                     continue
-                if det[self.Nq-i-1]=='1':
-                    ph*=-1
-            val+= n*ph
-            total+=n
-        return val/total
+                sgn = 1
+                for i in range(len(b)):
+                    if zstr[i]=='I':
+                        pass
+                    else:
+                        if b[self.Nq-i-1]=='1':
+                            sgn*=-1
+                val+= np.real(counts[n]*np.conj(counts[n])*sgn)
+                #print(b,val,zstr,sgn)
+        else:
+            val,total= 0,0
+            for det,n in counts.items():
+                ph=1
+                for i,z in enumerate(zstr):
+                    if z in ['I','i']:
+                        continue
+                    if det[self.Nq-i-1]=='1':
+                        ph*=-1
+                val+= n*ph
+                total+=n
+            val = val/total
+            #print(zstr,val,counts)
+        return val
 
 
     def run_circuit(self,verbose=False):
@@ -289,15 +289,15 @@ class Tomography:
             if provider=='Aer':
                 prov=Aer
             elif provider=='IBMQ':
-                prov=IBMQ
-                #prov.load_accounts()
+                prov=IBMQ.load_account()
             try:
                 return prov.get_backend(backend)
             except Exception:
                 traceback.print_exc()
-        beo = _tomo_get_backend(
-                self.qs.provider,
-                self.qs.backend)
+        #beo = _tomo_get_backend(
+        #        self.qs.provider,
+        #        self.qs.backend)
+        beo = self.qs.beo
         backend_options = {}
         counts = []
         if self.qs.use_noise:
@@ -311,7 +311,6 @@ class Tomography:
                     if self.qs.backend=='qasm_simulator':
                         coupling=None
                     else:
-                        beo = IBMQ.get_backend(self.qs.backend)
                         coupling = beo.configuration().coupling_map
                 else:
                     coupling = self.qs.be_coupling
@@ -338,17 +337,26 @@ class Tomography:
                 circuits,
                 shots=self.qs.Ns
                 )
-        if self.qs.use_noise:
+        if self.qs.backend=='unitary_simulator':
+            job = beo.run(qo)
+            for circuit in self.circuit_list:
+                print(job.result().get_unitary(circuit))
+                #counts.append(job.result().get_counts(name))
+        elif self.qs.backend=='statevector_simulator':
+            job = beo.run(qo)
+            for circuit in self.circuit_list:
+                counts.append(job.result().get_statevector(circuit))
+        elif self.qs.use_noise:
             try:
                 job = beo.run(
                         qo,
                         backend_options=backend_options,
-                        noise_model=noise_model
+                        noise_model=noise_model,
                         )
             except Exception as e:
                 traceback.print_exc()
             for circuit in self.circuit_list:
-                name = circuit[0]
+                name = circuit
                 counts.append(job.result().get_counts(name))
         else:
             try:

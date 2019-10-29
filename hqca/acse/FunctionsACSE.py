@@ -28,9 +28,6 @@ class ModStorageACSE(Storage):
         Storage.gsm(self)
         self.modified='ACSE'
         self.r = self.No_tot*2 # spin orbitals
-        self.max_iter = self.kw['max_iter']
-        self.dt = 0.1
-        self.t = 0
         self.rdm2 = RDMs(
                 order=2,
                 alpha = self.alpha_mo['active'],

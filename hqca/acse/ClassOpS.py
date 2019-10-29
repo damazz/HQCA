@@ -79,11 +79,13 @@ def evaluate2S(i,k,l,j,Store):
                         v2 += 0.5*temp2
     return k1,v2+v3
 
-def findSPairs(Store): 
+def findSPairs(Store,
+        recon_approx='V',
+        ):
     '''
     '''
     if Store.Ne_tot>2:
-        Store.rdm3 = Store.rdm2.reconstruct()
+        Store.rdm3 = Store.rdm2.reconstruct(approx=recon_approx)
         print('3-RDM Trace: {}'.format(Store.rdm3.trace()))
     alp = Store.alpha_mo['active']
     bet = Store.beta_mo['active']
@@ -103,7 +105,7 @@ def findSPairs(Store):
                         continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
-                    if abs(term)>1e-7:
+                    if abs(term)>1e-10:
                         newFermi = FermiOperator(
                                 coeff=-term,
                                 indices=[i,k,l,j],
@@ -122,7 +124,7 @@ def findSPairs(Store):
                         continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
-                    if abs(term)>1e-7:
+                    if abs(term)>1e-10:
                         newFermi = FermiOperator(
                                 coeff=-term,
                                 indices=[i,k,l,j],
@@ -140,7 +142,7 @@ def findSPairs(Store):
                             continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
-                    if abs(term)>1e-7:
+                    if abs(term)>1e-10:
                         newFermi = FermiOperator(
                                 coeff=-term,
                                 indices=[i,k,l,j],
@@ -152,7 +154,7 @@ def findSPairs(Store):
         if abs(i.c)>largest:
             largest = abs(i.c)
     for i in tS:
-        if abs(i.c)>largest*0.1 and abs(i.c)>1e-3:
+        if abs(i.c)>largest*0.1 and abs(i.c)>1e-10:
             S.append(i)
     hold_type = [(op.opType=='de') for op in S]
     S_ord = []

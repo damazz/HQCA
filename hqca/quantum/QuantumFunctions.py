@@ -153,11 +153,14 @@ class QuantumStorage:
         self.Nq_anc = Nq_ancilla
 
         self.Nq_tot = self.Nq_anc+self.Nq
-        self.backend = backend
         self.Ns = num_shots
         self.provider = provider
         if self.provider=='IBMQ':
-            IBMQ.load_accounts()
+            prov = IBMQ.load_account()
+        else:
+            prov = Aer
+        self.backend=backend
+        self.beo = prov.get_backend(backend)
         self.use_noise = noise
         self.noise_gate_times=noise_gate_times
         if self.use_noise:
@@ -675,7 +678,7 @@ def get_direct_stats(QuantStore):
                 if QuantStore.backend=='qasm_simulator':
                     coupling=None
                 else:
-                    IBMQ.load_accounts()
+                    IBMQ.load_account()
                     backend_overview()
                     beo = IBMQ.get_backend(QuantStore.backend)
                     coupling = beo.configuration().coupling_map

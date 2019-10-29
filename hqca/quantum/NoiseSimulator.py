@@ -85,7 +85,7 @@ def get_measurement_filter(
 
 def get_noise_model(device,times=None,saved=False):
     if (not saved) or (saved is None):
-        IBMQ.load_accounts()
+        IBMQ.load_account()
         backend = IBMQ.get_backend(device)
         properties = backend.properties()
     else:
