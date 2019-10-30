@@ -255,7 +255,10 @@ class RunACSE(QuantumRun):
             np.real(g1),np.real(g2)))
 
         def damping(x):
-            return np.exp(-(x**2)/((self.damp_sigma)**2))
+            if self.damp_sigma==0:
+                return 1
+            else:
+                return np.exp(-(x**2)/((self.damp_sigma)**2))
         damp = damping(d1D/d2D)
         print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
             np.real(d1D),np.real(d2D)))
