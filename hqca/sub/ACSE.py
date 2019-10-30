@@ -246,20 +246,26 @@ class RunACSE(QuantumRun):
         d1D = (g1*self.d**2-g2)/(self.d*self.delta*(self.d-1))
         if abs(d2D)<1e-16:
             d2D=1e-16
+        #
         # now, update for the Newton step
+        #
         print('')
         print('--- Newton Step --- ')
         print('dE(d1): {:.10f},  dE(d2): {:.10f}'.format(
             np.real(g1),np.real(g2)))
+
         def damping(x):
             return np.exp(-(x**2)/((self.damp_sigma)**2))
+        damp = damping(d1D/d2D)
         print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
             np.real(d1D),np.real(d2D)))
         print('Step: {:.6f}, Damp: {:.6f}'.format(
-            np.real(d1D/d2D),np.real(damping(d1D/d2D))))
+            np.real(d1D/d2D),np.real(damp)))
+        if abs(np.real(damp))<0.01:
+            damp = 0.01
         for f in testS:
-            f.qCo*= -(d1D/d2D)*damping(d1D/(d2D))
-            f.c*= -(d1D/d2D)*damping(d1D/(d2D))
+            f.qCo*= -(d1D/d2D)*damp
+            f.c*= -(d1D/d2D)*damp
         self.Store.update_ansatz(testS)
         Psi = Ansatz(self.Store,self.QuantStore,
                 **self.QuantStore.reTomo_kw)
