@@ -1,4 +1,5 @@
 import pickle
+from copy import deepcopy as copy
 import threading
 import os, sys
 from importlib import reload
@@ -207,35 +208,32 @@ class RunACSE(QuantumRun):
     def __newton_qc_acse(self,testS):
         # So, we make different Euler steps 
         # 1. Evaluate x
-        hold = testS[:]
         for s in testS:
             s.qCo*=self.delta
             s.c*=self.delta
         self.Store.build_trial_ansatz(testS)
-        #Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
         Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
                 **self.QuantStore.reTomo_kw)
         Psi1e.build_tomography()
         Psi1e.run_circuit()
         Psi1e.construct_rdm()
         # 2. Evaluate 2x
-        d = 2
+        print('test')
         for s in testS:
-            s.qCo*=d
-            s.c*=d
+            s.qCo*=self.d
+            s.c*=self.d
         self.Store.build_trial_ansatz(testS)
-        #Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True)
         Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
                 **self.QuantStore.reTomo_kw)
         Psi2e.build_tomography()
         Psi2e.run_circuit()
         Psi2e.construct_rdm()
         # evaluate energies
-        if d==1:
+        if self.d==1:
             sys.exit('b cannot be 1!')
         for s in testS:
-            s.qCo*=(1/(self.delta*d))
-            s.c*=(1/(self.delta*d))
+            s.qCo*=(1/(self.delta*self.d))
+            s.c*=(1/(self.delta*self.d))
         e1 = self.Store.evaluate_temp_energy(Psi1e.rdm2)
         e2 = self.Store.evaluate_temp_energy(Psi2e.rdm2)
         try:
@@ -244,8 +242,8 @@ class RunACSE(QuantumRun):
             self.e0 = self.Store.evaluate_energy()
         g1,g2= e1-self.e0,e2-self.e0
 
-        d2D = (2*g2-2*d*g1)/(d*self.delta*self.delta*(d-1))
-        d1D = (g1*d**2-g2)/(d*self.delta*(d-1))
+        d2D = (2*g2-2*self.d*g1)/(self.d*self.delta*self.delta*(self.d-1))
+        d1D = (g1*self.d**2-g2)/(self.d*self.delta*(self.d-1))
         if abs(d2D)<1e-16:
             d2D=1e-16
         # now, update for the Newton step
@@ -259,10 +257,10 @@ class RunACSE(QuantumRun):
             np.real(d1D),np.real(d2D)))
         print('Step: {:.6f}, Damp: {:.6f}'.format(
             np.real(d1D/d2D),np.real(damping(d1D/d2D))))
-        for f in hold:
+        for f in testS:
             f.qCo*= -(d1D/d2D)*damping(d1D/(d2D))
             f.c*= -(d1D/d2D)*damping(d1D/(d2D))
-        self.Store.update_ansatz(hold)
+        self.Store.update_ansatz(testS)
         Psi = Ansatz(self.Store,self.QuantStore,
                 **self.QuantStore.reTomo_kw)
         Psi.build_tomography()

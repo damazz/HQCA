@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy as copy
 from collections import Counter
 import sys
 np.set_printoptions(linewidth=200)
@@ -132,7 +133,7 @@ class ModStorageACSE(Storage):
         '''
         takes terms from newS and adds them to ansatz as a trial
         '''
-        self.tempAnsatz = self.ansatz[:]
+        self.tempAnsatz = copy(self.ansatz)
         #for fermi in testS:
         #    self.tempAnsatz.append(fermi)
         for fermi in self.tempAnsatz:
