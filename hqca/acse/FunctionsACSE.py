@@ -96,6 +96,7 @@ class ModStorageACSE(Storage):
         e_h1 = reduce(np.dot, (self.K1,rdm1.rdm)).trace()
         rdm2.switch()
         e_h2 = reduce(np.dot, (self.K2,rdm2.rdm)).trace()
+        rdm2.switch()
         return e_h1 + 0.5*e_h2 + self.E_ne
 
     def update_ansatz(self,newS):

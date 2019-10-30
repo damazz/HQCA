@@ -208,9 +208,13 @@ class RunACSE(QuantumRun):
     def __newton_qc_acse(self,testS):
         # So, we make different Euler steps 
         # 1. Evaluate x
+        max_val = 0
         for s in testS:
+            if abs(s.c)>max_val:
+                max_val = copy(s.c)
             s.qCo*=self.delta
             s.c*=self.delta
+        print('Maximum value: {}'.format(max_val))
         self.Store.build_trial_ansatz(testS)
         Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
                 **self.QuantStore.reTomo_kw)
@@ -218,7 +222,6 @@ class RunACSE(QuantumRun):
         Psi1e.run_circuit()
         Psi1e.construct_rdm()
         # 2. Evaluate 2x
-        print('test')
         for s in testS:
             s.qCo*=self.d
             s.c*=self.d
@@ -259,27 +262,49 @@ class RunACSE(QuantumRun):
                 return 1
             else:
                 return np.exp(-(x**2)/((self.damp_sigma)**2))
-        damp = damping(d1D/d2D)
+
+        damp = damping(max_val*(d1D/d2D))
         print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
             np.real(d1D),np.real(d2D)))
-        print('Step: {:.6f}, Damp: {:.6f}'.format(
-            np.real(d1D/d2D),np.real(damp)))
-        if abs(np.real(damp))<0.01:
-            damp = 0.01
-        for f in testS:
-            f.qCo*= -(d1D/d2D)*damp
-            f.c*= -(d1D/d2D)*damp
-        self.Store.update_ansatz(testS)
-        Psi = Ansatz(self.Store,self.QuantStore,
-                **self.QuantStore.reTomo_kw)
-        Psi.build_tomography()
-        Psi.run_circuit()
-        Psi.construct_rdm(variance=True)
-        self.Store.rdm2=Psi.rdm2
-        if abs(Psi.rdm2.trace()-2)>1e-3:
-            print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
-        if self.total.iter%3==0:
-            self._calc_variance(Psi.rdm2_var,Psi)
+        print('Step: {:.6f}, Largest: {:.6f}, Damping Factor: {:.6f}'.format(
+            np.real(d1D/d2D),
+            np.real(max_val*d1D/d2D),
+            np.real(damp)))
+        if d2D>0:
+            if abs((d1D/d2D)*damp)<(self.delta*self.d):
+                for f in testS:
+                    f.qCo*= self.delta*self.d
+                    f.c*= self.delta*self.d
+            else:
+                for f in testS:
+                    f.qCo*= -(d1D/d2D)*damp
+                    f.c*= -(d1D/d2D)*damp
+            self.Store.update_ansatz(testS)
+            Psi = Ansatz(self.Store,self.QuantStore,
+                    **self.QuantStore.reTomo_kw)
+            Psi.build_tomography()
+            Psi.run_circuit()
+            Psi.construct_rdm(variance=True)
+            self.Store.rdm2=Psi.rdm2
+            if abs(Psi.rdm2.trace()-2)>1e-3:
+                print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+            if self.total.iter%3==0:
+                self._calc_variance(Psi.rdm2_var,Psi)
+        else:
+            print('Hessian non-positive. Taking Euler step.')
+            if g2<g1:
+                for f in testS:
+                    f.qCo*= self.delta*self.d
+                    f.c*= self.delta*self.d
+                self.Store.update_ansatz(testS)
+                self.Store.rdm2 = Psi2e.rdm2
+            else:
+                for f in testS:
+                    f.qCo*= 1/self.d
+                    f.c*= 1/self.d
+                self.Store.update_ansatz(testS)
+                self.Store.rdm2 = Psi1e.rdm2
+
 
     def _calc_variance(self,vrdm2,psi,ci=0.90):
         if self.QuantStore.backend=='unitary_simulator':
