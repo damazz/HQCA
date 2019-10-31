@@ -73,6 +73,7 @@ class RunACSE(QuantumRun):
         self.kw_qc = self.kw['qc']
         self.kw_acse = self.kw['acse']
         self.total=Cache()
+        self.best = 0 
 
     def build(self):
         '''
@@ -203,6 +204,8 @@ class RunACSE(QuantumRun):
         Psi.run_circuit()
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
+
+    
 
 
     def __newton_qc_acse(self,testS):
@@ -415,7 +418,7 @@ class RunACSE(QuantumRun):
             self.old
         except AttributeError:
             self.old = en
-        if en<self.old:
+        if en<=self.old:
             self.old = en
         self.log_E.append(en)
         self.log_S.append(self.norm)
@@ -429,7 +432,7 @@ class RunACSE(QuantumRun):
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_S[-i])
             i+=1
-        if self.total.iter>5:
+        if self.total.iter>=5:
             avg_En = np.real(np.average(np.asarray(temp_std_En)))
             avg_S =  np.real(np.average(np.asarray(temp_std_S)))
             std_En = np.real(np.std(np.asarray(temp_std_En)))
@@ -439,16 +442,22 @@ class RunACSE(QuantumRun):
             print('Standard deviation in S: {:.8f}'.format(std_S))
             print('Average S: {:.8f}'.format(avg_S))
             if self.QuantStore.backend=='statevector_simulator':
-                self.best=np.real(en)
+                if en>self.best:
+                    self.total.done=True
+                else:
+                    self.best=np.real(en)
             else:
                 self.best = avg_En
         else:
-            self.best=0
+            if en<self.best:
+                self.best = np.real(copy(en))
+            else:
+                self.total.done=True
+
         print('---------------------------------------------')
         # implementing dynamic stopping criteria 
         if 'qq' in self.method or 'qc' in self.method:
             if std_En<self.crit and self.norm<0.05:
-            #if avg_S<1e-5:
                 self.total.done=True
         self.e0 = en
 
