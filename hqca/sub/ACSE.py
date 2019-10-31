@@ -432,7 +432,7 @@ class RunACSE(QuantumRun):
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_S[-i])
             i+=1
-        if self.total.iter>=5:
+        if self.total.iter>5:
             avg_En = np.real(np.average(np.asarray(temp_std_En)))
             avg_S =  np.real(np.average(np.asarray(temp_std_S)))
             std_En = np.real(np.std(np.asarray(temp_std_En)))
