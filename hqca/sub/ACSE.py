@@ -323,12 +323,12 @@ class RunACSE(QuantumRun):
         if d2D>0:
             if abs((d1D/d2D)*damp)<(self.delta*self.d):
                 for f in testS:
-                    f.qCo*= self.delta*self.d*0.5
-                    f.c*= self.delta*self.d*0.5
+                    f.qCo*= self.delta*self.d
+                    f.c*= self.delta*self.d
             else:
                 for f in testS:
-                    f.qCo*= -(d1D/d2D)*damp*0.5
-                    f.c*= -(d1D/d2D)*damp*0.5
+                    f.qCo*= -(d1D/d2D)*damp
+                    f.c*= -(d1D/d2D)*damp
             self.Store.update_ansatz(testS)
             Psi = Ansatz(self.Store,self.QuantStore,
                     **self.QuantStore.reTomo_kw)
