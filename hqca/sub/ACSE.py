@@ -163,8 +163,8 @@ class RunACSE(QuantumRun):
             self.delta = 0.25
             self.__newton_qc_acse(testS)
         elif self.method=='qc-acse-opt':
-            self.__opt_acse(testS)
             self.delta=1.0
+            self.__opt_acse(testS)
 
     def _run_qq_acse(self):
         '''
@@ -475,7 +475,7 @@ class RunACSE(QuantumRun):
             else:
                 print('Difference in energy: {:+.8f}'.format(self.old-en))
             self.old = copy(en)
-            self.best = copy(en)
+            self.best = copy(e  n)
         else:
             if en<=self.old:
                 self.old = en
