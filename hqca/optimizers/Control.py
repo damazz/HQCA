@@ -1,13 +1,16 @@
 from hqca.optimizers.Simplex import GeneralNelderMead,nelder_mead_lagarias
 from hqca.optimizers.Simplex import adaptive_nelder_mead,nelder_mead_ng
-from hqca.optimizers.GradientMethods import bfgs,gradient_descent
-from hqca.optimizers.NevergradOpt import nevergrad_opt
+from hqca.optimizers.GradientMethods import bfgs,gradient_descent,line_search
+import traceback
+try:
+    from hqca.optimizers.NevergradOpt import nevergrad_opt
+except ImportError:
+    traceback.print_exc()
 from hqca.optimizers.Stochastic import gradient_particle_swarm_optimizer
 from hqca.optimizers.Stochastic import stochastic_gradient_descent 
 from subprocess import CalledProcessError, check_output
 from functools import partial
 from numpy import copy
-import traceback
 import timeit
 import time
 import sys
@@ -37,6 +40,7 @@ class Optimizer:
         self.method = optimizer
         methods = {
                 'NM':GeneralNelderMead,
+                'ls':line_search,
                 'GD':gradient_descent,
                 'sGD':stochastic_gradient_descent,
                 'bfgs':bfgs,

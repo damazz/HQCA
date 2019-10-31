@@ -37,6 +37,10 @@ def qACSE():
             'opt_thresh':0.00001,
             'opt_criteria':'default',
             'max_iter':100,
+            'opt':{
+                'optimizer':'line_search',
+                'conv_threshold':0.1,
+                },
             'trotter':1,
             'ansatz_depth':1,
             'pr_a':1,

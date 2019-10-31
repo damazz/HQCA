@@ -15,11 +15,12 @@ from hqca.acse import QuantOpS as quantS
 from hqca.acse import FunctionsACSE as acse
 from hqca.acse.BuildAnsatz import Ansatz
 from hqca.quantum import ErrorCorrection as ec
+from hqca.optimizers.Control import Optimizer
 from hqca.quantum import QuantumFunctions as qf
 from hqca.quantum import NoiseSimulator as ns
 from hqca.quantum import Tomography as tomo
 from hqca.tools.util import Errors
-from functools import reduce
+from functools import reduce,partial 
 import datetime
 import sys
 from hqca.tools import Preset as pre
@@ -71,6 +72,7 @@ class RunACSE(QuantumRun):
         self.kw = pre.qACSE()
         self.pr_g = self.kw['pr_g']
         self.kw_qc = self.kw['qc']
+        self.kw_opt = self.kw['acse']['opt']
         self.kw_acse = self.kw['acse']
         self.total=Cache()
         self.best = 0 
@@ -119,6 +121,7 @@ class RunACSE(QuantumRun):
         else:
             QuantumRun.update_var(self,**kw)
         self.Store.pr_m = self.kw['pr_m']
+
     
     def _update_acse_kw(self,
             opt_thresh=1e-3,
@@ -159,7 +162,9 @@ class RunACSE(QuantumRun):
         elif self.method=='qc-acse2': #newtons methods
             self.delta = 0.25
             self.__newton_qc_acse(testS)
-
+        elif self.method=='qc-acse-opt':
+            self.__opt_acse(testS)
+            self.delta=1.0
 
     def _run_qq_acse(self):
         '''
@@ -178,6 +183,9 @@ class RunACSE(QuantumRun):
         elif self.method=='qq-acse2':
             self.delta = 0.25
             self.__newton_qc_acse(testS)
+        elif self.method=='qq-acse-opt':
+            self.delta=1.0
+            self.__opt_acse(testS)
 
     def _check_norm(self,testS):
         '''
@@ -206,7 +214,45 @@ class RunACSE(QuantumRun):
         self.Store.rdm2=Psi.rdm2
 
     
+    def __opt_acse(self,testS):
+        max_S_val = 0
+        if self.total.iter==0:
+            self.kw_opt['initial_left_bound']=copy(self.Store.hf.e_tot)
+        for s in testS:
+            if abs(s.c)>max_S_val:
+                max_S_val = copy(s.c)
+        para = [self.delta]
+        self.kw_opt['unity']=np.pi
+        f = partial(self.__optimization_function,testS=testS)
+        self.Run = Optimizer(
+                function=f,
+                **self.kw_opt)
+        self.Run.initialize(para)
+        sub = Cache()
+        while not sub.done:
+            self.Run.next_step()
+            self.Run.check(sub)
+            sub.iter+=1 
+        self.Store.rdm2
+        for s in testS:
+            s.c*=self.Run.opt.best_x*self.delta
+            s.qCo*=self.Run.opt.best_x*self.delta
+        self.Store.update_ansatz(testS)
+        self.kw_opt['initial_left_bound']=copy(self.Run.opt.best_f)
 
+    def __optimization_function(self,parameter,testS=None):
+        testAnsatz = copy(testS)
+        for f in testAnsatz:
+            f.c*= parameter[0]
+            f.qCo*= parameter[0]
+        self.Store.build_trial_ansatz(testAnsatz)
+        tempPsi = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
+                **self.QuantStore.reTomo_kw)
+        tempPsi.build_tomography()
+        tempPsi.run_circuit()
+        tempPsi.construct_rdm()
+        en =  np.real(self.Store.evaluate_temp_energy(tempPsi.rdm2))
+        return en
 
     def __newton_qc_acse(self,testS):
         # So, we make different Euler steps 
@@ -366,20 +412,20 @@ class RunACSE(QuantumRun):
             - evaluate the ansatz, or D, evaluate energy
         '''
         if self.built:
-            if self.method in ['qc-acse','qc-acse2']:
+            if 'qc' in self.method:
                 while not self.total.done:
                     self._run_qc_acse()
                     self._check()
-            elif self.method in ['qq-acse','qq-acse2']:
+            elif 'qq' in self.method:
                 self.Store._get_HamiltonianOperators(full=True)
                 while not self.total.done:
                     self._run_qq_acse()
                     self._check()
-            elif self.method in ['acse','cc-acse']:
+            elif 'cc' in self.method:
                 while not self.total.done:
                     self._run_cc_ACSE()
                     self._check()
-            elif self.method in ['ac-acse','aq-acse','ac-acse2','aq-acse2']:
+            elif 'aq' in self.method or 'ad' in self.method:
                 while not self.total.done:
                     print('Time step: {}'.format(self.Store.t))
                     self._run_adiabatic_acse()
@@ -401,7 +447,12 @@ class RunACSE(QuantumRun):
         Internal check on the energy as well as norm of the S matrix
         '''
         # need to find energy
-        en = self.Store.evaluate_energy()
+        if 'opt' in self.method:
+            en = copy(self.Run.opt.best_f)
+        else:
+            en = self.Store.evaluate_energy()
+        if self.total.iter==0:
+            self.old = self.Store.hf.e_tot
         self.total.iter+=1
         print('---------------------------------------------')
         print('Step {:02}, Energy: {:.10f}, S: {:.10f}'.format(
@@ -418,48 +469,56 @@ class RunACSE(QuantumRun):
             self.old
         except AttributeError:
             self.old = en
-        if en<=self.old:
-            self.old = en
-        self.log_E.append(en)
-        self.log_S.append(self.norm)
-        i = 1
-        temp_std_En = []
-        temp_std_S = []
-        std_En = 1
-        std_S = 1
-        avg_S = 1
-        while i<=5 and self.total.iter>5:
-            temp_std_En.append(self.log_E[-i])
-            temp_std_S.append(self.log_S[-i])
-            i+=1
-        if self.total.iter>5:
-            avg_En = np.real(np.average(np.asarray(temp_std_En)))
-            avg_S =  np.real(np.average(np.asarray(temp_std_S)))
-            std_En = np.real(np.std(np.asarray(temp_std_En)))
-            std_S  = np.real(np.std(np.asarray(temp_std_S)))
-            print('Standard deviation in energy: {:+.8f}'.format(std_En))
-            print('Average energy: {:+.8f}'.format(avg_En))
-            print('Standard deviation in S: {:.8f}'.format(std_S))
-            print('Average S: {:.8f}'.format(avg_S))
-            if self.QuantStore.backend=='statevector_simulator':
-                if en>self.best:
-                    self.total.done=True
-                else:
-                    self.best=np.real(en)
+        if 'opt' in self.method:
+            if self.old-en<self.crit:
+                self.total.done=True
             else:
-                self.best = avg_En
+                print('Difference in energy: {:+.8f}'.format(self.old-en))
+            self.old = copy(en)
+            self.best = copy(en)
         else:
-            if en<self.best:
-                self.best = np.real(copy(en))
+            if en<=self.old:
+                self.old = en
+            self.log_E.append(en)
+            self.log_S.append(self.norm)
+            i = 1
+            temp_std_En = []
+            temp_std_S = []
+            std_En = 1
+            std_S = 1
+            avg_S = 1
+            while i<=5 and self.total.iter>5:
+                temp_std_En.append(self.log_E[-i])
+                temp_std_S.append(self.log_S[-i])
+                i+=1
+            if self.total.iter>5:
+                avg_En = np.real(np.average(np.asarray(temp_std_En)))
+                avg_S =  np.real(np.average(np.asarray(temp_std_S)))
+                std_En = np.real(np.std(np.asarray(temp_std_En)))
+                std_S  = np.real(np.std(np.asarray(temp_std_S)))
+                print('Standard deviation in energy: {:+.8f}'.format(std_En))
+                print('Average energy: {:+.8f}'.format(avg_En))
+                print('Standard deviation in S: {:.8f}'.format(std_S))
+                print('Average S: {:.8f}'.format(avg_S))
+                if self.QuantStore.backend=='statevector_simulator':
+                    if en>self.best:
+                        self.total.done=True
+                    else:
+                        self.best=np.real(en)
+                else:
+                    self.best = avg_En
             else:
-                self.total.done=True
+                if en<self.best:
+                    self.best = np.real(copy(en))
+                else:
+                    self.total.done=True
 
-        print('---------------------------------------------')
-        # implementing dynamic stopping criteria 
-        if 'qq' in self.method or 'qc' in self.method:
-            if std_En<self.crit and self.norm<0.05:
-                self.total.done=True
-        self.e0 = en
+            print('---------------------------------------------')
+            # implementing dynamic stopping criteria 
+            if 'qq' in self.method or 'qc' in self.method:
+                if std_En<self.crit and self.norm<0.05:
+                    self.total.done=True
+            self.e0 = en
 
     def save(self,
             name
