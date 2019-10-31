@@ -475,7 +475,7 @@ class RunACSE(QuantumRun):
             else:
                 print('Difference in energy: {:+.8f}'.format(self.old-en))
             self.old = copy(en)
-            self.best = copy(e  n)
+            self.best = copy(en)
         else:
             if en<=self.old:
                 self.old = en
