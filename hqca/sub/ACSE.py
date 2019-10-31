@@ -76,6 +76,7 @@ class RunACSE(QuantumRun):
         self.kw_acse = self.kw['acse']
         self.total=Cache()
         self.best = 0 
+        self.best_avg = 0
 
     def build(self):
         '''
@@ -322,12 +323,12 @@ class RunACSE(QuantumRun):
         if d2D>0:
             if abs((d1D/d2D)*damp)<(self.delta*self.d):
                 for f in testS:
-                    f.qCo*= self.delta*self.d
-                    f.c*= self.delta*self.d
+                    f.qCo*= self.delta*self.d*0.5
+                    f.c*= self.delta*self.d*0.5
             else:
                 for f in testS:
-                    f.qCo*= -(d1D/d2D)*damp
-                    f.c*= -(d1D/d2D)*damp
+                    f.qCo*= -(d1D/d2D)*damp*0.5
+                    f.c*= -(d1D/d2D)*damp*0.5
             self.Store.update_ansatz(testS)
             Psi = Ansatz(self.Store,self.QuantStore,
                     **self.QuantStore.reTomo_kw)
@@ -347,10 +348,16 @@ class RunACSE(QuantumRun):
                     f.c*= self.delta*self.d
                 self.Store.update_ansatz(testS)
                 self.Store.rdm2 = Psi2e.rdm2
+            elif g1<0:
+                for f in testS:
+                    f.qCo*= self.delta
+                    f.c*= self.delta
+                self.Store.update_ansatz(testS)
+                self.Store.rdm2 = Psi1e.rdm2
             else:
                 for f in testS:
-                    f.qCo*= 1/self.d
-                    f.c*= 1/self.d
+                    f.qCo*= self.delta*0.5
+                    f.c*= self.delta*0.5
                 self.Store.update_ansatz(testS)
                 self.Store.rdm2 = Psi1e.rdm2
 
@@ -484,35 +491,27 @@ class RunACSE(QuantumRun):
             i = 1
             temp_std_En = []
             temp_std_S = []
-            std_En = 1
-            std_S = 1
-            avg_S = 1
-            while i<=5 and self.total.iter>5:
+            while i<= min(3,self.total.iter):
                 temp_std_En.append(self.log_E[-i])
                 temp_std_S.append(self.log_S[-i])
                 i+=1
-            if self.total.iter>5:
-                avg_En = np.real(np.average(np.asarray(temp_std_En)))
-                avg_S =  np.real(np.average(np.asarray(temp_std_S)))
-                std_En = np.real(np.std(np.asarray(temp_std_En)))
-                std_S  = np.real(np.std(np.asarray(temp_std_S)))
-                print('Standard deviation in energy: {:+.8f}'.format(std_En))
-                print('Average energy: {:+.8f}'.format(avg_En))
-                print('Standard deviation in S: {:.8f}'.format(std_S))
-                print('Average S: {:.8f}'.format(avg_S))
-                if self.QuantStore.backend=='statevector_simulator':
-                    if en>self.best:
-                        self.total.done=True
-                    else:
-                        self.best=np.real(en)
-                else:
-                    self.best = avg_En
-            else:
+            avg_En = np.real(np.average(np.asarray(temp_std_En)))
+            avg_S =  np.real(np.average(np.asarray(temp_std_S)))
+            std_En = np.real(np.std(np.asarray(temp_std_En)))
+            std_S  = np.real(np.std(np.asarray(temp_std_S)))
+            print('Standard deviation in energy: {:+.8f}'.format(std_En))
+            print('Average energy: {:+.8f}'.format(avg_En))
+            print('Standard deviation in S: {:.8f}'.format(std_S))
+            print('Average S: {:.8f}'.format(avg_S))
+            if self.QuantStore.backend=='statevector_simulator':
                 if en<self.best:
-                    self.best = np.real(copy(en))
-                else:
+                    self.best=np.real(en)
+                if avg_En>self.best_avg:
                     self.total.done=True
-
+                else:
+                    self.best_avg = copy(avg_En)
+            else:
+                self.best = avg_En
             print('---------------------------------------------')
             # implementing dynamic stopping criteria 
             if 'qq' in self.method or 'qc' in self.method:
