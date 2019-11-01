@@ -471,6 +471,7 @@ class RunACSE(QuantumRun):
                 self.total.done=True
         else:
             if self.total.iter==self.max_iter:
+                print('Max number of iterations met. Ending optimization.')
                 self.total.done=True
         try:
             self.old
@@ -507,6 +508,8 @@ class RunACSE(QuantumRun):
                 if en<self.best:
                     self.best=np.real(en)
                 if avg_En>self.best_avg:
+                    print('Average energy is increasing!')
+                    print('Ending optimization.')
                     self.total.done=True
                 else:
                     self.best_avg = copy(avg_En)
@@ -516,6 +519,7 @@ class RunACSE(QuantumRun):
             # implementing dynamic stopping criteria 
             if 'qq' in self.method or 'qc' in self.method:
                 if std_En<self.crit and self.norm<0.05:
+                    print('Criteria met. ENding optimization.')
                     self.total.done=True
             self.e0 = en
 
