@@ -123,7 +123,6 @@ class RunACSE(QuantumRun):
             QuantumRun.update_var(self,**kw)
         self.Store.pr_m = self.kw['pr_m']
 
-    
     def _update_acse_kw(self,
             opt_thresh=1e-3,
             max_iter=100,
@@ -134,6 +133,7 @@ class RunACSE(QuantumRun):
             newton_step=2,
             quantS_thresh_max_rel=0.1,
             classS_thresh_max_rel=0.1,
+            newton_conv_type='default',
             **kw):
         self.ansatz_depth=1
         self.d = newton_step
@@ -144,9 +144,9 @@ class RunACSE(QuantumRun):
         self.crit = opt_thresh
         self.qS_thresh_max_rel = quantS_thresh_max_rel
         self.cS_thresh_max_rel = classS_thresh_max_rel
+        self._conv_type = newton_conv_type
         if self.QuantStore.backend=='statevector_simulator':
             self.damp_sigma*=2
-
 
     def _run_qc_acse(self):
         '''
@@ -196,7 +196,6 @@ class RunACSE(QuantumRun):
         for item in testS:
             self.norm+= item.norm
         self.norm = self.norm**(0.5)
-
 
     def __euler_qc_acse(self,testS):
         '''
@@ -312,7 +311,8 @@ class RunACSE(QuantumRun):
                 return 1
             else:
                 return np.exp(-(x**2)/((self.damp_sigma)**2))
-
+        self.grad = d1D
+        self.hess = d2D
         damp = damping(max_val*(d1D/d2D))
         print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
             np.real(d1D),np.real(d2D)))
@@ -321,7 +321,7 @@ class RunACSE(QuantumRun):
             np.real(max_val*d1D/d2D),
             np.real(damp)))
         if d2D>0:
-            if abs((d1D/d2D)*damp)<(self.delta*self.d):
+            if abs(damp)<(self.delta*self.d):
                 for f in testS:
                     f.qCo*= self.delta*self.d
                     f.c*= self.delta*self.d
@@ -507,10 +507,11 @@ class RunACSE(QuantumRun):
             if self.QuantStore.backend=='statevector_simulator':
                 if en<self.best:
                     self.best=np.real(en)
-                if avg_En>self.best_avg:
-                    print('Average energy is increasing!')
-                    print('Ending optimization.')
-                    self.total.done=True
+                if self._conv_type=='default':
+                    if avg_En>self.best_avg:
+                        print('Average energy is increasing!')
+                        print('Ending optimization.')
+                        self.total.done=True
                 else:
                     self.best_avg = copy(avg_En)
             else:
@@ -518,9 +519,14 @@ class RunACSE(QuantumRun):
             print('---------------------------------------------')
             # implementing dynamic stopping criteria 
             if 'qq' in self.method or 'qc' in self.method:
-                if std_En<self.crit and self.norm<0.05:
-                    print('Criteria met. ENding optimization.')
-                    self.total.done=True
+                if self._conv_type=='default':
+                    if std_En<self.crit and self.norm<0.05:
+                        print('Criteria met. Ending optimization.')
+                        self.total.done=True
+                elif self._conv_type=='gradient':
+                    if abs(self.grad)<self.crit:
+                        self.total.done=True
+                        print('Criteria met. Ending optimization.')
             self.e0 = en
 
     def save(self,
