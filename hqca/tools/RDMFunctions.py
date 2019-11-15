@@ -301,6 +301,15 @@ def S2(
         beta,
         s2s
         ):
+    try: 
+        alpha['active']
+    except Exception:
+        alpha = {'active':alpha,
+                'inactive':[],
+                'virtual':[]}
+        beta = {'active':beta,
+                'inactive':[],
+                'virtual':[]}
     rdm2 = contract(rdm2)
     spm_1,spm_2  = get_SpSm_mat(
             alpha,
@@ -324,6 +333,15 @@ def S2(
     return s2pm_2+s2pm_1+s2z2_2+s2z2_1-s2z1
 
 def Sz(rdm1,alpha,beta,s2s):
+    try: 
+        alpha['active']
+    except Exception:
+        alpha = {'active':alpha,
+                'inactive':[],
+                'virtual':[]}
+        beta = {'active':beta,
+                'inactive':[],
+                'virtual':[]}
     sz = reduce(np.dot,
             (
                 get_Sz_mat(
@@ -345,8 +363,12 @@ def spin_rdm_to_spatial_rdm(
         beta,
         s2s
         ):
-    alpha = alpha['inactive']+alpha['active']+alpha['virtual']
-    beta  =  beta['inactive']+ beta['active']+ beta['virtual']
+    try:
+        alpha = alpha['inactive']+alpha['active']+alpha['virtual']
+        beta  =  beta['inactive']+ beta['active']+ beta['virtual']
+    except: 
+        alpha = alpha
+        beta = beta
     Nso = rdm2.shape[0]
     No = Nso//2
     nrdm2 = np.zeros((No,No,No,No),dtype=complex_)

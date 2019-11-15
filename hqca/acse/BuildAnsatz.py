@@ -16,7 +16,7 @@ import sys
 
 class Ansatz(Tomography):
     '''
-    genearte a tomography for the ACSE ansatz
+    generate a tomography for the ACSE ansatz
     '''
     def __init__(self,
             Store,

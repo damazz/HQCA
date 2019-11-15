@@ -75,7 +75,7 @@ class RunACSE(QuantumRun):
         self.kw_opt = self.kw['acse']['opt']
         self.kw_acse = self.kw['acse']
         self.total=Cache()
-        self.best = 0 
+        self.best = 0
         self.best_avg = 0
 
     def build(self):
@@ -84,8 +84,6 @@ class RunACSE(QuantumRun):
         '''
         QuantumRun._build_quantum(self)
         self._update_acse_kw(**self.kw['acse'])
-        self.method = self.QuantStore.method # set method
-        self.Store.method = self.method
         self.built=True
         self.log_S = []
         self.log_E = []
@@ -98,7 +96,8 @@ class RunACSE(QuantumRun):
                 'rdm_elements':reTomo.rdme,
                 'tomography_terms':reTomo.op
                 }
-        if 'qq' in self.method:
+        if 'q' in self.acse_update:
+            self.Store._get_HamiltonianOperators(full=True)
             imTomo = tomo.Tomography(self.QuantStore)
             imTomo.generate_2rdme(real=False,imag=True)
             self.QuantStore.imTomo_kw = {
@@ -124,20 +123,37 @@ class RunACSE(QuantumRun):
         self.Store.pr_m = self.kw['pr_m']
 
     def _update_acse_kw(self,
+            method='newton',
+            update='quantum',
             opt_thresh=1e-3,
             max_iter=100,
             trotter=1,
             pr_a=1,
             ansatz_depth=1,
-            damping=np.pi/2,
+            use_damping=False,
+            use_trust_region=False,
+            damping_amplitude=np.pi/2,
+            newton_damping=False,
             newton_step=2,
+            newton_trust=False,
             quantS_thresh_max_rel=0.1,
             classS_thresh_max_rel=0.1,
             newton_conv_type='default',
             **kw):
+        if update in ['quantum','Q','q']:
+            self.acse_update = 'q'
+        elif update in ['class','classical','c','C']:
+            self.acse_update ='c'
+        if not method in ['NR','EM','opt','trust','newton']:
+            print('Specified method not valid. Update acse_kw: \'method\'')
+            sys.exit()
+        self.acse_method = method
         self.ansatz_depth=1
-        self.d = newton_step
-        self.damp_sigma = damping
+        self.tr_Del  = np.pi/2 # trust region
+        self.d = newton_step #for estimating derivative
+        self.use_damping = use_damping
+        self.use_trust_region = use_trust_region
+        self.damp_sigma = damping_amplitude
         self.QuantStore.depth_S = ansatz_depth
         self.N_trotter = trotter
         self.max_iter = max_iter
@@ -145,48 +161,30 @@ class RunACSE(QuantumRun):
         self.qS_thresh_max_rel = quantS_thresh_max_rel
         self.cS_thresh_max_rel = classS_thresh_max_rel
         self._conv_type = newton_conv_type
+        self.newton_step = newton_step
+        self.newton_damping = newton_damping
+        self.newton_trust = newton_trust
         if self.QuantStore.backend=='statevector_simulator':
             self.damp_sigma*=2
 
-    def _run_qc_acse(self):
-        '''
-        Quantum Psi, Classical S
-         1. find S classically,
-         2. prepare ansatz for euler or newton
-         3. run the ansatz, give best guess
-        '''
-        testS = classS.findSPairs(self.Store)
+    def _run_acse(self):
+        if self.acse_update=='q':
+            testS = quantS.findSPairsQuantum(self.Store,self.QuantStore,
+                    qS_thresh_max_rel=self.qS_thresh_max_rel,
+                    trotter_steps=self.N_trotter,
+                    verbose=True)
+        elif self.acse_update=='c':
+            testS = classS.findSPairs(self.Store)
         self._check_norm(testS)
-        if self.method=='qc-acse': #eulers methods
-            self.delta=0.5
-            self.__euler_qc_acse(testS) 
-        elif self.method=='qc-acse2': #newtons methods
-            self.delta = 0.25
-            self.__newton_qc_acse(testS)
-        elif self.method=='qc-acse-opt':
-            self.delta=0.5
-            self.__opt_acse(testS)
-
-    def _run_qq_acse(self):
-        '''
-        # 1. find S quantumly,
-        # 2. prepare ansatz for euler or newton
-        # 3. run the ansatz, give best guess
-        '''
-        testS = quantS.findSPairsQuantum(self.Store,self.QuantStore,
-                qS_thresh_max_rel=self.qS_thresh_max_rel,
-                trotter_steps=self.N_trotter,
-                verbose=True)
-        self._check_norm(testS)
-        if self.method=='qq-acse':
-            self.delta = 0.5
-            self.__euler_qc_acse(testS)
-        elif self.method=='qq-acse2':
-            self.delta = 0.25
-            self.__newton_qc_acse(testS)
-        elif self.method=='qq-acse-opt':
-            self.delta=0.5
-            self.__opt_acse(testS)
+        self.delta = 0.5
+        if self.acse_method in ['NR','newton']:
+            self.__newton_acse(testS)
+        elif self.acse_method in ['default','em','EM','euler']:
+            self.__euler_acse(testS)
+        elif self.acse_method in ['trust','TR']:
+            pass
+        elif self.acse_method in ['opt']:
+            pass
 
     def _check_norm(self,testS):
         '''
@@ -197,7 +195,7 @@ class RunACSE(QuantumRun):
             self.norm+= item.norm
         self.norm = self.norm**(0.5)
 
-    def __euler_qc_acse(self,testS):
+    def __euler_acse(self,testS):
         '''
         function of Store.build_trial_ansatz
         '''
@@ -213,7 +211,6 @@ class RunACSE(QuantumRun):
         Psi.construct_rdm()
         self.Store.rdm2=Psi.rdm2
 
-    
     def __opt_acse(self,testS):
         max_S_val = 0
         if self.total.iter==0:
@@ -223,7 +220,7 @@ class RunACSE(QuantumRun):
                 max_S_val = copy(s.c)
         para = [self.delta]
         self.kw_opt['unity']=np.pi
-        f = partial(self.__optimization_function,testS=testS)
+        f = partial(self.__test_acse_function,testS=testS)
         self.Run = Optimizer(
                 function=f,
                 **self.kw_opt)
@@ -232,7 +229,7 @@ class RunACSE(QuantumRun):
         while not sub.done:
             self.Run.next_step()
             self.Run.check(sub)
-            sub.iter+=1 
+            sub.iter+=1
         self.Store.rdm2
         for s in testS:
             s.c*=self.Run.opt.best_x*self.delta
@@ -240,7 +237,7 @@ class RunACSE(QuantumRun):
         self.Store.update_ansatz(testS)
         self.kw_opt['initial_left_bound']=copy(self.Run.opt.best_f)
 
-    def __optimization_function(self,parameter,testS=None):
+    def __test_acse_function(self,parameter,testS=None):
         testAnsatz = copy(testS)
         for f in testAnsatz:
             f.c*= parameter[0]
@@ -251,61 +248,40 @@ class RunACSE(QuantumRun):
         tempPsi.build_tomography()
         tempPsi.run_circuit()
         tempPsi.construct_rdm()
-        en =  np.real(self.Store.evaluate_temp_energy(tempPsi.rdm2))
+        en = np.real(self.Store.evaluate_temp_energy(tempPsi.rdm2))
         return en
-
-    def __newton_qc_acse(self,testS):
-        # So, we make different Euler steps 
-        # 1. Evaluate x
+    
+    def __newton_acse(self,testS):
         max_val = 0
         for s in testS:
             if abs(s.c)>max_val:
                 max_val = copy(s.c)
             s.qCo*=self.delta
-            s.c*=self.delta
+            s.c  *=self.delta
         print('Maximum value: {}'.format(max_val))
-        self.Store.build_trial_ansatz(testS)
-        Psi1e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
-                **self.QuantStore.reTomo_kw)
-        Psi1e.build_tomography()
-        Psi1e.run_circuit()
-        Psi1e.construct_rdm()
-        # 2. Evaluate 2x
-        for s in testS:
-            s.qCo*=self.d
-            s.c*=self.d
-        self.Store.build_trial_ansatz(testS)
-        Psi2e = Ansatz(self.Store,self.QuantStore,trialAnsatz=True,
-                **self.QuantStore.reTomo_kw)
-        Psi2e.build_tomography()
-        Psi2e.run_circuit()
-        Psi2e.construct_rdm()
-        # evaluate energies
-        if self.d==1:
-            sys.exit('b cannot be 1!')
-        for s in testS:
-            s.qCo*=(1/(self.delta*self.d))
-            s.c*=(1/(self.delta*self.d))
-        e1 = self.Store.evaluate_temp_energy(Psi1e.rdm2)
-        e2 = self.Store.evaluate_temp_energy(Psi2e.rdm2)
+        e1 = self.__test_acse_function([self.delta],testS)
+        e2 = self.__test_acse_function([self.d*self.delta],testS)
         try:
             self.e0
         except AttributeError:
             self.e0 = self.Store.evaluate_energy()
         g1,g2= e1-self.e0,e2-self.e0
-
         d2D = (2*g2-2*self.d*g1)/(self.d*self.delta*self.delta*(self.d-1))
         d1D = (g1*self.d**2-g2)/(self.d*self.delta*(self.d-1))
         if abs(d2D)<1e-16:
             d2D=1e-16
-        #
-        # now, update for the Newton step
-        #
+        elif abs(d1D)<1e-16:
+            d1D = 1e-16
         print('')
         print('--- Newton Step --- ')
         print('dE(d1): {:.10f},  dE(d2): {:.10f}'.format(
             np.real(g1),np.real(g2)))
-
+        print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
+            np.real(d1D),np.real(d2D)))
+        print('Step: {:.6f}, Largest: {:.6f}'.format(
+            np.real(d1D/d2D),
+            np.real(max_val*d1D/d2D))
+            )
         def damping(x):
             if self.damp_sigma==0:
                 return 1
@@ -313,53 +289,107 @@ class RunACSE(QuantumRun):
                 return np.exp(-(x**2)/((self.damp_sigma)**2))
         self.grad = d1D
         self.hess = d2D
-        damp = damping(max_val*(d1D/d2D))
-        print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
-            np.real(d1D),np.real(d2D)))
-        print('Step: {:.6f}, Largest: {:.6f}, Damping Factor: {:.6f}'.format(
-            np.real(d1D/d2D),
-            np.real(max_val*d1D/d2D),
-            np.real(damp)))
-        if d2D>0:
-            if abs(damp)<(self.delta*self.d):
-                for f in testS:
-                    f.qCo*= self.delta*self.d
-                    f.c*= self.delta*self.d
+        if self.use_trust_region:
+            print('Trust region step.')
+            if self.hess<0:
+                print('Hessian non-positive. Taking Euler step.')
+                if g2<g1:
+                    coeff = self.delta*self.d
+                elif g1<0:
+                    coeff = self.delta
+                else:
+                    self.delta*=0.5
+                    coeff = self.delta
             else:
-                for f in testS:
-                    f.qCo*= -(d1D/d2D)*damp
-                    f.c*= -(d1D/d2D)*damp
-            self.Store.update_ansatz(testS)
-            Psi = Ansatz(self.Store,self.QuantStore,
-                    **self.QuantStore.reTomo_kw)
-            Psi.build_tomography()
-            Psi.run_circuit()
-            Psi.construct_rdm(variance=True)
-            self.Store.rdm2=Psi.rdm2
-            if abs(Psi.rdm2.trace()-2)>1e-3:
-                print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
-            if self.total.iter%3==0:
-                self._calc_variance(Psi.rdm2_var,Psi)
-        else:
-            print('Hessian non-positive. Taking Euler step.')
-            if g2<g1:
-                for f in testS:
-                    f.qCo*= self.delta*self.d
-                    f.c*= self.delta*self.d
-                self.Store.update_ansatz(testS)
-                self.Store.rdm2 = Psi2e.rdm2
-            elif g1<0:
-                for f in testS:
-                    f.qCo*= self.delta
-                    f.c*= self.delta
-                self.Store.update_ansatz(testS)
-                self.Store.rdm2 = Psi1e.rdm2
+                trust = False
+                nv = 0.9
+                ns = 0.1
+                gi = 1.5
+                gd = 0.5
+                while not trust: # perform sub routine
+                    if abs(d1D/d2D)<self.tr_Del:
+                        # found ok answer! 
+                        coeff = -d1D/d2D
+                    else:
+                        lamb = -d1D/self.tr_Del-d2D
+                        coeff = -d1D/(d2D+lamb)
+                    ef = self.__test_acse_function([coeff],testS)
+                    def m_qk(s):
+                        return self.e0 + s*self.grad+0.5*s*self.hess*s
+                    rho = (self.e0 - ef)/(self.e0-m_qk(coeff))
+                    if rho>=nv:
+                        print('Result in trust region. Increasing TR.')
+                        trust = True
+                        self.tr_Del*=gi
+                    elif rho>=ns:
+                        print('Trust region held. Continuing.')
+                        trust = True
+                    else:
+                        self.tr_Del*=gd
+                        print('Trust region did not hold. Shrinking.')
+                        print('Also taking euler step.')
+                        if g2<g1:
+                            coeff = self.delta*self.d
+                        elif g1<0:
+                            coeff = self.delta
+                        else:
+                            coeff = self.delta
+                        trust = True
+                    print('Current trust region: {:.6f}'.format(
+                        np.real(self.tr_Del)))
+                    print('Rho: {:.6f},Num: {:.6f}, Den: {:.6f}'.format(
+                        np.real(rho),
+                        np.real(self.e0-ef),
+                        np.real(self.e0-m_qk(coeff))))
+
+            for f in testS:
+                f.qCo*= coeff
+                f.c*= coeff
+        if self.use_damping:
+            damp = damping(max_val*(d1D/d2D))
+            print('Step: {:.6f}, Largest: {:.6f}, Damping Factor: {:.6f}'.format(
+                np.real(d1D/d2D),
+                np.real(max_val*d1D/d2D),
+                np.real(damp)))
+            if d2D>0:
+                if abs(damp)<(self.delta*self.d): #damping factor kills the run
+                    print('Damping factor too large - taking Euler step.')
+                    for f in testS:
+                        f.qCo*= self.delta*self.d
+                        f.c*= self.delta*self.d
+                else:
+                    print('Applying damped step.')
+                    for f in testS:
+                        f.qCo*= -(d1D/d2D)*damp
+                        f.c*= -(d1D/d2D)*damp
             else:
+                print('Hessian non-positive. Taking Euler step.')
+                if g2<g1:
+                    c = self.delta*self.d
+                elif g1<0:
+                    c = self.delta
+                else:
+                    self.delta*=0.5
+                    c = self.delta
                 for f in testS:
-                    f.qCo*= self.delta*0.5
-                    f.c*= self.delta*0.5
-                self.Store.update_ansatz(testS)
-                self.Store.rdm2 = Psi1e.rdm2
+                    f.qCo*= c
+                    f.c*= c
+        self.Store.update_ansatz(testS)
+        Psi = Ansatz(self.Store,self.QuantStore,
+                **self.QuantStore.reTomo_kw)
+        Psi.build_tomography()
+        Psi.run_circuit()
+        Psi.construct_rdm(variance=True)
+        self.Store.rdm2=Psi.rdm2
+        # eval energy is in check step
+        if abs(Psi.rdm2.trace()-2)>1e-3:
+            print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+        if self.total.iter%3==0:
+            self._calc_variance(Psi.rdm2_var,Psi)
+
+
+
+
 
 
     def _calc_variance(self,vrdm2,psi,ci=0.90):
@@ -378,8 +408,6 @@ class RunACSE(QuantumRun):
             print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
             print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
             print('')
-
-
 
     def _run_adiabatic_acse(self):
         self.delta = 0.25
@@ -407,7 +435,7 @@ class RunACSE(QuantumRun):
         if en<self.old:
             self.old = en
         self.e0 = en
-    
+
     def execute(self):
         self.run()
 
@@ -419,24 +447,9 @@ class RunACSE(QuantumRun):
             - evaluate the ansatz, or D, evaluate energy
         '''
         if self.built:
-            if 'qc' in self.method:
-                while not self.total.done:
-                    self._run_qc_acse()
-                    self._check()
-            elif 'qq' in self.method:
-                self.Store._get_HamiltonianOperators(full=True)
-                while not self.total.done:
-                    self._run_qq_acse()
-                    self._check()
-            elif 'cc' in self.method:
-                while not self.total.done:
-                    self._run_cc_ACSE()
-                    self._check()
-            elif 'aq' in self.method or 'ad' in self.method:
-                while not self.total.done:
-                    print('Time step: {}'.format(self.Store.t))
-                    self._run_adiabatic_acse()
-                    self._check()
+            while not self.total.done:
+                self._run_acse()
+                self._check()
             print('E, scf: {:.9f} H'.format(self.Store.hf.e_tot))
             print('E, run: {:.9f} H'.format(self.best))
             try:
@@ -445,89 +458,76 @@ class RunACSE(QuantumRun):
                 print('Energy difference from FCI: {:.8f} mH'.format(diff))
             except KeyError:
                 pass
-            rdm1 = self.Store.rdm2.reduce_order()
-            print('Occupations of the 1-RDM:')
-            print(np.real(np.diag(rdm1.rdm)))
 
-    def _check(self):
+    def _check(self,full=True):
         '''
         Internal check on the energy as well as norm of the S matrix
         '''
         # need to find energy
-        if 'opt' in self.method:
+        if 'opt' in self.acse_method:
             en = copy(self.Run.opt.best_f)
         else:
             en = self.Store.evaluate_energy()
+
         if self.total.iter==0:
             self.old = self.Store.hf.e_tot
         self.total.iter+=1
+        if self.total.iter==self.max_iter:
+            print('Max number of iterations met. Ending optimization.')
+            self.total.done=True
+        try:
+            self.old
+        except AttributeError:
+            self.old = en
+        if en<=self.old:
+            self.old = en
+        self.log_E.append(en)
+        self.log_S.append(self.norm)
+        i = 1
+        temp_std_En = []
+        temp_std_S = []
+        while i<= min(3,self.total.iter):
+            temp_std_En.append(self.log_E[-i])
+            temp_std_S.append(self.log_S[-i])
+            i+=1
+        avg_En = np.real(np.average(np.asarray(temp_std_En)))
+        avg_S =  np.real(np.average(np.asarray(temp_std_S)))
+        std_En = np.real(np.std(np.asarray(temp_std_En)))
+        std_S  = np.real(np.std(np.asarray(temp_std_S)))
+        self.Store.acse_analysis()
         print('---------------------------------------------')
         print('Step {:02}, Energy: {:.10f}, S: {:.10f}'.format(
             self.total.iter,
             np.real(en),
             np.real(self.norm)))
-        if self.method in ['ac-acse','aq-acse']:
-            if self.Store.t==float(1):
-                self.total.done=True
-        else:
-            if self.total.iter==self.max_iter:
-                print('Max number of iterations met. Ending optimization.')
-                self.total.done=True
-        try:
-            self.old
-        except AttributeError:
-            self.old = en
-        if 'opt' in self.method:
-            if self.old-en<self.crit:
-                self.total.done=True
+        print('Standard deviation in energy: {:+.8f}'.format(std_En))
+        print('Average energy: {:+.8f}'.format(avg_En))
+        print('Standard deviation in S: {:.8f}'.format(std_S))
+        print('Average S: {:.8f}'.format(avg_S))
+        if self.QuantStore.backend=='statevector_simulator':
+            if en<self.best:
+                self.best=np.real(en)
+            if self._conv_type=='default':
+                if avg_En>self.best_avg:
+                    print('Average energy is increasing!')
+                    print('Ending optimization.')
+                    self.total.done=True
             else:
-                print('Difference in energy: {:+.8f}'.format(self.old-en))
-            self.old = copy(en)
-            self.best = copy(en)
+                self.best_avg = copy(avg_En)
         else:
-            if en<=self.old:
-                self.old = en
-            self.log_E.append(en)
-            self.log_S.append(self.norm)
-            i = 1
-            temp_std_En = []
-            temp_std_S = []
-            while i<= min(3,self.total.iter):
-                temp_std_En.append(self.log_E[-i])
-                temp_std_S.append(self.log_S[-i])
-                i+=1
-            avg_En = np.real(np.average(np.asarray(temp_std_En)))
-            avg_S =  np.real(np.average(np.asarray(temp_std_S)))
-            std_En = np.real(np.std(np.asarray(temp_std_En)))
-            std_S  = np.real(np.std(np.asarray(temp_std_S)))
-            print('Standard deviation in energy: {:+.8f}'.format(std_En))
-            print('Average energy: {:+.8f}'.format(avg_En))
-            print('Standard deviation in S: {:.8f}'.format(std_S))
-            print('Average S: {:.8f}'.format(avg_S))
-            if self.QuantStore.backend=='statevector_simulator':
-                if en<self.best:
-                    self.best=np.real(en)
-                if self._conv_type=='default':
-                    if avg_En>self.best_avg:
-                        print('Average energy is increasing!')
-                        print('Ending optimization.')
-                        self.total.done=True
-                else:
-                    self.best_avg = copy(avg_En)
-            else:
-                self.best = avg_En
-            print('---------------------------------------------')
-            # implementing dynamic stopping criteria 
-            if 'qq' in self.method or 'qc' in self.method:
-                if self._conv_type=='default':
-                    if std_En<self.crit and self.norm<0.05:
-                        print('Criteria met. Ending optimization.')
-                        self.total.done=True
-                elif self._conv_type=='gradient':
-                    if abs(self.grad)<self.crit:
-                        self.total.done=True
-                        print('Criteria met. Ending optimization.')
-            self.e0 = en
+            self.best = avg_En
+        print('---------------------------------------------')
+        # implementing dynamic stopping criteria 
+        if 'q' in self.acse_update or 'c' in self.acse_update:
+            if self._conv_type=='default':
+                if std_En<self.crit and self.norm<0.05:
+                    print('Criteria met. Ending optimization.')
+                    self.total.done=True
+            elif self._conv_type=='gradient':
+                if abs(self.grad)<self.crit:
+                    self.total.done=True
+                    print('Criteria met. Ending optimization.')
+        self.e0 = en
 
     def save(self,
             name

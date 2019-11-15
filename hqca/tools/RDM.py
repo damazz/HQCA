@@ -4,6 +4,7 @@ import numpy.linalg as LA
 from numpy import conj as con
 from numpy import complex_
 from functools import reduce
+from hqca.tools import RDMFunctions as rdmf
 
 
 class RDMs:
@@ -24,12 +25,18 @@ class RDMs:
             ):
         self.p = order
         self.r = len(alpha)+len(beta) # spin
+        self.R = int(self.r/2)
         self.v = verbose
         self.alp = alpha
         self.bet = beta
         self.S=S
         self.S2=S2
         self.Ne=Ne
+        self.s2s = {}
+        for n,a in enumerate(alpha):
+            self.s2s[a]=n
+        for n,b in enumerate(beta):
+            self.s2s[b]=n
         self.N_alp = int(Ne+S)//2
         self.N_bet = Ne-self.N_alp
         if state in ['hartree','hf','scf']:
@@ -138,7 +145,9 @@ class RDMs:
         c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
         if c1+c2+c3+c4+c5+c6<6:
             print('Checks: ')
-            print(c1,c2,c3,c4,c5,c6)
+            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
+            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
+            print(self.S,RDM.S)
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDMs(
                 order=self.p,
@@ -246,12 +255,50 @@ class RDMs:
         return nRDM
         # wedge product
 
-    def build_rdm(self):
-        temp = build_2rdm()
-        pass
+    def get_spin_properties(self):
+        if self.p==3:
+            pass
+        elif self.p==2:
+            rdm1 = self.reduce_order()
+            self.sz = rdmf.Sz(
+                    rdm1.rdm,
+                    self.alp,
+                    self.bet,
+                    self.s2s)
+            self.s2 = rdmf.S2(
+                    self.rdm,
+                    rdm1.rdm,
+                    self.alp,
+                    self.bet,
+                    self.s2s)
 
-    def _build_HF(self):
-        pass
+    def get_overlap(self,RDM):
+
+        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
+        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
+        if not (c1 and c2 and c3 and c4):
+            print('Hrm.')
+
+        t = self.Ne*(self.Ne-1)
+        if self.Ne%2==0:
+            coeff = 2*t*(1-self.Ne/(t*self.r**2))
+        else:
+            coeff = 2*t*(1-(self.Ne-1)/(t*self.r**2))
+        self.contract()
+        test = self.rdm-RDM.rdm
+
+        eigs = np.sqrt(
+                np.sum(
+                np.abs(
+                    np.linalg.eigvalsh(
+                        np.dot(
+                            test,test.T
+                            )
+                    )
+                    )/coeff
+                )
+                )
+        return np.real(eigs)
 
     def _build_hf_singlet(self):
         '''

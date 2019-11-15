@@ -119,7 +119,8 @@ class Storage:
                     self.No_as,
                     self.Ne_as)
             self.mc.kernel()
-            self.e_casci = self.mc.e_tot
+            self.e_casci  = self.mc.e_tot
+            self.mc_coeff = self.mc.mo_coeff
         else:
             self.mc = None
         print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
@@ -208,7 +209,7 @@ class Storage:
             raise(SpinError)
         if self.Ne_ia>0:
             self.active_space_calc='CASSCF'
-        ind=0 
+        ind=0
         for i in range(0,self.No_ia):
             self.alpha_mo['inactive'].append(ind)
             ind+=1

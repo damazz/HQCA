@@ -69,6 +69,66 @@ class ModStorageACSE(Storage):
         self.nonF = np.nonzero(self.F)
         self.zipF = list(zip(self.nonF[0],self.nonF[1]))
         self.ansatz = []
+        self.get_HF_rdm()
+        self.get_FCI_rdm()
+        self._set_overlap()
+
+    def _set_overlap(self):
+        self.d_hf_fci =  self.hf_rdm2.get_overlap(self.fci_rdm2)
+        print('Distance between HF, FCI: {:.8f}'.format(
+            np.real(self.d_hf_fci)))
+
+    def get_HF_rdm(self):
+        self.hf_rdm2 = RDMs(
+                order=2,
+                alpha = self.alpha_mo['active'],
+                beta  = self.beta_mo['active'],
+                state='hf',
+                Ne=self.Ne_as,
+                )
+
+
+    def get_FCI_rdm(self):
+        d1,d2 = self.mc.fcisolver.make_rdm12s(
+                self.mc.ci,self.No_as,self.Ne_as)
+        fci_rdm2 = np.zeros((
+            self.No_as*2,self.No_as*2,self.No_as*2,self.No_as*2))
+        for i in self.alpha_mo['active']:
+            for k in self.alpha_mo['active']:
+                for l in self.alpha_mo['active']:
+                    for j in self.alpha_mo['active']:
+                        p,q = self.s2s[i],self.s2s[j]
+                        r,s = self.s2s[k],self.s2s[l]
+                        fci_rdm2[i,k,j,l] = d2[0][p,q,r,s]
+        for i in self.alpha_mo['active']:
+            for k in self.beta_mo['active']:
+                for l in self.beta_mo['active']:
+                    for j in self.alpha_mo['active']:
+                        #if i>=j and k>=l:
+                        #    continue
+                        p,q = self.s2s[i],self.s2s[j]
+                        r,s = self.s2s[k],self.s2s[l]
+                        fci_rdm2[i,k,j,l]+= d2[1][p,q,r,s]
+                        fci_rdm2[k,i,j,l]+= -d2[1][p,q,r,s]
+                        fci_rdm2[i,k,l,j]+= -d2[1][p,q,r,s]
+                        fci_rdm2[k,i,l,j]+= d2[1][p,q,r,s]
+
+        for i in self.beta_mo['active']:
+            for k in self.beta_mo['active']:
+                for l in self.beta_mo['active']:
+                    for j in self.beta_mo['active']:
+                        p,q = self.s2s[i],self.s2s[j]
+                        r,s = self.s2s[k],self.s2s[l]
+                        fci_rdm2[i,k,j,l] = d2[2][p,q,r,s]
+        self.fci_rdm2 = RDMs(
+                order=2,
+                alpha = self.alpha_mo['active'],
+                beta  = self.beta_mo['active'],
+                state='given',
+                rdm = fci_rdm2,
+                Ne=self.Ne_as,
+                )
+        self.fci_rdm2.contract()
 
     def get_qiskit_ints2e(self):
         self.ints_2e_qiskit = chem.gen_spin_2ei_QISKit(
@@ -128,6 +188,17 @@ class ModStorageACSE(Storage):
             print(fermi.ind,fermi.c,fermi.qCo)
             fermi.generateAntiHermitianExcitationOperators()
 
+    def acse_analysis(self):
+        print('  --  --  --  --  --  --  -- ')
+        print('--  --  --  --  --  --  --  --')
+        self.rdm2.get_spin_properties()
+        print('Sz: {:.8f}'.format(np.real(self.rdm2.sz)))
+        print('S2: {:.8f}'.format(np.real(self.rdm2.s2)))
+        ovlp = self.rdm2.get_overlap(self.fci_rdm2)
+        print('Distance from FCI RDM: {:.8f}'.format(
+            ovlp))
+        print('Normalized distance: {:.8f}'.format(
+            ovlp/self.d_hf_fci))
 
     def build_trial_ansatz(self,testS):
         '''
