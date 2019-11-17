@@ -249,7 +249,7 @@ class RunACSE(QuantumRun):
         tempPsi.run_circuit()
         tempPsi.construct_rdm()
         en = np.real(self.Store.evaluate_temp_energy(tempPsi.rdm2))
-        return en
+        return en,tempPsi.rdm2
     
     def __newton_acse(self,testS):
         max_val = 0
@@ -259,8 +259,8 @@ class RunACSE(QuantumRun):
             s.qCo*=self.delta
             s.c  *=self.delta
         print('Maximum value: {}'.format(max_val))
-        e1 = self.__test_acse_function([self.delta],testS)
-        e2 = self.__test_acse_function([self.d*self.delta],testS)
+        e1,tdm1 = self.__test_acse_function([self.delta],testS)
+        e2,rdm2 = self.__test_acse_function([self.d*self.delta],testS)
         try:
             self.e0
         except AttributeError:
@@ -313,7 +313,7 @@ class RunACSE(QuantumRun):
                     else:
                         lamb = -d1D/self.tr_Del-d2D
                         coeff = -d1D/(d2D+lamb)
-                    ef = self.__test_acse_function([coeff],testS)
+                    ef,df = self.__test_acse_function([coeff],testS)
                     def m_qk(s):
                         return self.e0 + s*self.grad+0.5*s*self.hess*s
                     rho = (self.e0 - ef)/(self.e0-m_qk(coeff))
@@ -341,11 +341,12 @@ class RunACSE(QuantumRun):
                         np.real(rho),
                         np.real(self.e0-ef),
                         np.real(self.e0-m_qk(coeff))))
-
+                    self.Store.rdm2=df
             for f in testS:
                 f.qCo*= coeff
                 f.c*= coeff
-        if self.use_damping:
+            self.Store.update_ansatz(testS)
+        elif self.use_damping:
             damp = damping(max_val*(d1D/d2D))
             print('Step: {:.6f}, Largest: {:.6f}, Damping Factor: {:.6f}'.format(
                 np.real(d1D/d2D),
@@ -374,18 +375,23 @@ class RunACSE(QuantumRun):
                 for f in testS:
                     f.qCo*= c
                     f.c*= c
-        self.Store.update_ansatz(testS)
-        Psi = Ansatz(self.Store,self.QuantStore,
-                **self.QuantStore.reTomo_kw)
-        Psi.build_tomography()
-        Psi.run_circuit()
-        Psi.construct_rdm(variance=True)
-        self.Store.rdm2=Psi.rdm2
-        # eval energy is in check step
-        if abs(Psi.rdm2.trace()-2)>1e-3:
-            print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
-        if self.total.iter%3==0:
-            self._calc_variance(Psi.rdm2_var,Psi)
+        else:
+            for f in testS:
+                f.qCo*= -(d1D/d2D)
+                f.c*= -(d1D/d2D)
+        if not self.use_trust_region:
+            self.Store.update_ansatz(testS)
+            Psi = Ansatz(self.Store,self.QuantStore,
+                    **self.QuantStore.reTomo_kw)
+            Psi.build_tomography()
+            Psi.run_circuit()
+            Psi.construct_rdm(variance=True)
+            self.Store.rdm2=Psi.rdm2
+            # eval energy is in check step
+            if abs(Psi.rdm2.trace()-2)>1e-3:
+                print('Trace of 2-RDM: {}'.format(Psi.rdm2.trace()))
+            if self.total.iter%3==0:
+                self._calc_variance(Psi.rdm2_var,Psi)
 
 
 
