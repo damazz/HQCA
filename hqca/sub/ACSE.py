@@ -506,17 +506,21 @@ class RunACSE(QuantumRun):
             self.old = en
         self.log_E.append(en)
         self.log_S.append(self.norm)
+        self.log_G.append(self.grad)
         i = 1
         temp_std_En = []
         temp_std_S = []
+        temp_std_G = []
         while i<= min(3,self.total.iter):
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_S[-i])
+            temp_std_G.append(self.log_G[-i])
             i+=1
         avg_En = np.real(np.average(np.asarray(temp_std_En)))
         avg_S =  np.real(np.average(np.asarray(temp_std_S)))
         std_En = np.real(np.std(np.asarray(temp_std_En)))
         std_S  = np.real(np.std(np.asarray(temp_std_S)))
+        std_G =  np.real(np.average(np.asarray(temp_std_G)))
         self.Store.acse_analysis()
         print('---------------------------------------------')
         print('Step {:02}, Energy: {:.12f}, S: {:.12f}'.format(
@@ -546,13 +550,14 @@ class RunACSE(QuantumRun):
                     print('Criteria met. Ending optimization.')
                     self.total.done=True
             elif self._conv_type=='gradient':
+
                 print('Gradient size: {:.14f}'.format(np.real(self.grad)))
                 if abs(self.grad)<self.crit:
                     self.total.done=True
                     print('Criteria met in gradient. Ending optimization.')
-                if std_En<1e-14:
-                    print('Alternative criteria met.') 
-                    print('Energy variation smaller than gradient measurement')
+                if std_G<self.crit*0.1:
+                    print('Alternative criteria met.')
+                    print('Gradient variation smaller than gradient measurement')
                     self.total.done=True
 
         self.e0 = en
