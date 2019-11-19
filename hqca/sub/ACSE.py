@@ -141,6 +141,7 @@ class RunACSE(QuantumRun):
             convergence_type='default',
             hamiltonian_step_size=1.0,
             restrict_S_size=0.5,
+            initial_trust_region=np.pi/2,
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -151,7 +152,7 @@ class RunACSE(QuantumRun):
             sys.exit()
         self.acse_method = method
         self.ansatz_depth=1
-        self.tr_Del  = np.pi/2 # trust region
+        self.tr_Del  = initial_trust_region # trust region
         self.d = newton_step #for estimating derivative
         self.delta = restrict_S_size
         self.use_damping = use_damping
