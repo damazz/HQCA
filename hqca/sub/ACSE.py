@@ -551,15 +551,15 @@ class RunACSE(QuantumRun):
                     print('Criteria met. Ending optimization.')
                     self.total.done=True
             elif self._conv_type=='gradient':
-
                 print('Gradient size: {:.14f}'.format(np.real(self.grad)))
                 if abs(self.grad)<self.crit:
                     self.total.done=True
                     print('Criteria met in gradient. Ending optimization.')
-                if std_G<self.crit*0.1 and self.total.iter>3:
-                    print('Alternative criteria met.')
-                    print('Gradient variation smaller than gradient measurement')
-                    self.total.done=True
+                if self.acse_method=='newton' and self.use_trust_region:
+                    if self.tr_Del<crit:
+                        print(self.total.done)
+                    print('Trust region met criteria!')
+                    print('Ending optimization')
 
         self.e0 = en
         print('---------------------------------------------')
