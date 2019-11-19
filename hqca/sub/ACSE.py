@@ -351,14 +351,7 @@ class RunACSE(QuantumRun):
                     else:
                         self.tr_Del*=gd
                         print('Trust region did not hold. Shrinking.')
-                        print('Also taking euler step.')
-                        if g2<g1:
-                            coeff = self.delta*self.d
-                        elif g1<0:
-                            coeff = self.delta
-                        else:
-                            coeff = self.delta
-                        trust = True
+                        trust = False
                     print('Current trust region: {:.6f}'.format(
                         np.real(self.tr_Del)))
                     print('Rho: {:.6f},Num: {:.6f}, Den: {:.6f}'.format(
