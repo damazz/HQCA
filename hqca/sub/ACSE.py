@@ -135,7 +135,6 @@ class RunACSE(QuantumRun):
             damping_amplitude=np.pi/2,
             newton_damping=False,
             newton_step=2,
-            newton_trust=False,
             quantS_thresh_max_rel=0.1,
             quantS_max=1e-10,
             classS_thresh_max_rel=0.1,
@@ -169,9 +168,27 @@ class RunACSE(QuantumRun):
         self.cS_thresh_max_rel = classS_thresh_max_rel
         self._conv_type = convergence_type
         self.newton_damping = newton_damping
-        self.newton_trust = newton_trust
-        if self.QuantStore.backend=='statevector_simulator':
-            self.damp_sigma*=2
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('      --  ACSE KEYWORDS --      ')
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('ACSE Method: {}'.format(method))
+        print('ACSE Update: {}'.format(update))
+        print('Max iterations: {}'.format(max_iter))
+        print('Convergence type: {}'.format(convergence_type))
+        print('Convergence threshold: {}'.format(self.crit))
+        print('Hamiltonian epsilon: {}'.format(hamiltonian_step_size))
+        print('Trotter-H: {}'.format(trotter))
+        print('Trotter-S: {}'.format(ansatz_depth))
+        print('Quant-S max threshold: {}'.format(quantS_max))
+        print('Quant-S rel threshold: {}'.format(quantS_thresh_max_rel))
+        print('Class-S rel threshold: {}'.format(classS_thresh_max_rel))
+        print('Newton step: {}'.format(newton_step))
+        print('Newton trust region: {}'.format(use_trust_region))
+        print('Trust region: {}'.format(initial_trust_region))
+        print('Newton damping: {}'.format(use_damping))
+        print('S damping: {}'.format(restrict_S_size))
+        print('Damping amplitude: {}'.format(damping_amplitude))
+        print('-- -- -- -- -- -- -- -- -- -- --')
 
     def _run_acse(self):
         if self.acse_update=='q':
