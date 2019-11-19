@@ -87,6 +87,7 @@ class RunACSE(QuantumRun):
         self.built=True
         self.log_S = []
         self.log_E = []
+        self.log_G = []
         reTomo = tomo.Tomography(
                 self.QuantStore)
         reTomo.generate_2rdme(real=True,imag=False)
