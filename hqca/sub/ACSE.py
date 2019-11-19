@@ -550,6 +550,11 @@ class RunACSE(QuantumRun):
                 if abs(self.grad)<self.crit:
                     self.total.done=True
                     print('Criteria met in gradient. Ending optimization.')
+                if std_En<1e-14:
+                    print('Alternative criteria met.') 
+                    print('Energy variation smaller than gradient measurement')
+                    self.total.done=True
+
         self.e0 = en
         print('---------------------------------------------')
 
