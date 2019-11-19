@@ -560,6 +560,10 @@ class RunACSE(QuantumRun):
                         print(self.total.done)
                     print('Trust region met criteria!')
                     print('Ending optimization')
+                if avg_En>self.best_avg:
+                    print('Average energy is increasing!')
+                    print('Ending optimization.')
+                    self.total.done=True
 
         self.e0 = en
         print('---------------------------------------------')
