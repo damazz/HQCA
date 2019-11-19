@@ -18,6 +18,7 @@ def findSPairsQuantum(
         separate=False,
         trotter_steps=1,
         qS_thresh_max_rel=0.1,
+        qS_max=1e-10,
         hamiltonian_step_size=1.0,
         ):
     '''
@@ -45,15 +46,16 @@ def findSPairsQuantum(
     newPsi.construct_rdm()
     new = np.nonzero(np.imag(newPsi.rdm2.rdm))
     newS = []
+    hss = (1/hamiltonian_step_size)
     max_val = 0
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])>max_val:
-            max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])
+            max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])*hss
     #print('Max S val: {}'.format(max_val))
     print('Elements of S from quantum generation: ')
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
-        val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]
-        if abs(val)>qS_thresh_max_rel*max_val:
+        val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]*hss
+        if abs(val)>qS_thresh_max_rel*max_val and abs(val)>qS_max:
             #print('Si: {:.6f}:{}{}{}{}'.format(val,i,k,j,l))
             c1 =  (i in QuantStore.alpha['active'])
             c2 =  (k in QuantStore.alpha['active'])
@@ -74,7 +76,8 @@ def findSPairsQuantum(
             if len(newS)==0:
                 newS.append(newEl)
                 if verbose:
-                    print('S: {},{},{},{}: {}'.format(i,k,l,j,val))
+                    print('S: [{},{},{},{}]: {:+.10f}'.format(
+                        i,k,l,j,np.real(val)))
                     print(newEl.qOp,newEl.qInd,newEl.qSp)
             else:
                 add = True
@@ -85,7 +88,8 @@ def findSPairsQuantum(
                 if add:
                     newS.append(newEl)
                     if verbose:
-                        print('S: {},{},{},{}: {}'.format(i,k,l,j,val))
+                        print('S: [{},{},{},{}]: {:+.10f}'.format(
+                            i,k,l,j,np.real(val)))
                         print(newEl.qOp,newEl.qInd,newEl.qSp)
     hold_type = [(op.opType=='de') for op in newS]
     new_S_ord = []

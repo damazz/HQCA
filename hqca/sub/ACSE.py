@@ -137,6 +137,7 @@ class RunACSE(QuantumRun):
             newton_step=2,
             newton_trust=False,
             quantS_thresh_max_rel=0.1,
+            quantS_max=1e-10,
             classS_thresh_max_rel=0.1,
             convergence_type='default',
             hamiltonian_step_size=1.0,
@@ -164,9 +165,9 @@ class RunACSE(QuantumRun):
         self.crit = opt_thresh
         self.hamiltonian_step_size = hamiltonian_step_size
         self.qS_thresh_max_rel = quantS_thresh_max_rel
+        self.qS_max = quantS_max
         self.cS_thresh_max_rel = classS_thresh_max_rel
         self._conv_type = convergence_type
-        self.newton_step = newton_step
         self.newton_damping = newton_damping
         self.newton_trust = newton_trust
         if self.QuantStore.backend=='statevector_simulator':
@@ -178,6 +179,7 @@ class RunACSE(QuantumRun):
                     self.Store,
                     self.QuantStore,
                     qS_thresh_max_rel=self.qS_thresh_max_rel,
+                    qS_max=self.qS_max,
                     trotter_steps=self.N_trotter,
                     hamiltonian_step_size=self.hamiltonian_step_size,
                     verbose=True)
@@ -261,11 +263,9 @@ class RunACSE(QuantumRun):
     def __newton_acse(self,testS):
         max_val = 0
         for s in testS:
-            if abs(s.c)>max_val:
+            if abs(s.c)>abs(max_val):
                 max_val = copy(s.c)
-            s.qCo*=self.delta
-            s.c  *=self.delta
-        print('Maximum value: {}'.format(max_val))
+        print('Maximum value: {:+.10f}'.format(np.real(max_val)))
         e1,tdm1 = self.__test_acse_function([self.delta],testS)
         e2,rdm2 = self.__test_acse_function([self.d*self.delta],testS)
         try:
@@ -463,12 +463,12 @@ class RunACSE(QuantumRun):
             while not self.total.done:
                 self._run_acse()
                 self._check()
-            print('E, scf: {:.9f} H'.format(self.Store.hf.e_tot))
-            print('E, run: {:.9f} H'.format(self.best))
+            print('E, scf: {:.12f} H'.format(self.Store.hf.e_tot))
+            print('E, run: {:.12f} H'.format(self.best))
             try:
                 diff = 1000*(self.best-self.Store.e_casci)
-                print('E, fci: {:.9f} H'.format(self.Store.e_casci))
-                print('Energy difference from FCI: {:.8f} mH'.format(diff))
+                print('E, fci: {:.12f} H'.format(self.Store.e_casci))
+                print('Energy difference from FCI: {:.12f} mH'.format(diff))
             except KeyError:
                 pass
 
@@ -509,14 +509,14 @@ class RunACSE(QuantumRun):
         std_S  = np.real(np.std(np.asarray(temp_std_S)))
         self.Store.acse_analysis()
         print('---------------------------------------------')
-        print('Step {:02}, Energy: {:.10f}, S: {:.10f}'.format(
+        print('Step {:02}, Energy: {:.12f}, S: {:.12f}'.format(
             self.total.iter,
             np.real(en),
             np.real(self.norm)))
-        print('Standard deviation in energy: {:+.8f}'.format(std_En))
-        print('Average energy: {:+.8f}'.format(avg_En))
-        print('Standard deviation in S: {:.8f}'.format(std_S))
-        print('Average S: {:.8f}'.format(avg_S))
+        print('Standard deviation in energy: {:+.12f}'.format(std_En))
+        print('Average energy: {:+.12f}'.format(avg_En))
+        print('Standard deviation in S: {:.12f}'.format(std_S))
+        print('Average S: {:.12f}'.format(avg_S))
         if self.QuantStore.backend=='statevector_simulator':
             if en<self.best:
                 self.best=np.real(en)
@@ -529,7 +529,6 @@ class RunACSE(QuantumRun):
                 self.best_avg = copy(avg_En)
         else:
             self.best = avg_En
-        print('---------------------------------------------')
         # implementing dynamic stopping criteria 
         if 'q' in self.acse_update or 'c' in self.acse_update:
             if self._conv_type=='default':
@@ -537,11 +536,12 @@ class RunACSE(QuantumRun):
                     print('Criteria met. Ending optimization.')
                     self.total.done=True
             elif self._conv_type=='gradient':
-                print('Gradient size: {:.10f}'.format(self.grad))
+                print('Gradient size: {:.14f}'.format(np.real(self.grad)))
                 if abs(self.grad)<self.crit:
                     self.total.done=True
                     print('Criteria met in gradient. Ending optimization.')
         self.e0 = en
+        print('---------------------------------------------')
 
     def save(self,
             name
