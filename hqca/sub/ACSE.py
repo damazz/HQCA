@@ -557,9 +557,9 @@ class RunACSE(QuantumRun):
                     print('Criteria met in gradient. Ending optimization.')
                 if self.acse_method=='newton' and self.use_trust_region:
                     if self.tr_Del<self.crit:
-                        print(self.total.done)
-                    print('Trust region met criteria!')
-                    print('Ending optimization')
+                        self.total.done=True
+                        print('Trust region met criteria!')
+                        print('Ending optimization')
                 if avg_En>self.best_avg:
                     print('Average energy is increasing!')
                     print('Ending optimization.')
