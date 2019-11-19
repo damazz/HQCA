@@ -521,7 +521,7 @@ class RunACSE(QuantumRun):
         avg_S =  np.real(np.average(np.asarray(temp_std_S)))
         std_En = np.real(np.std(np.asarray(temp_std_En)))
         std_S  = np.real(np.std(np.asarray(temp_std_S)))
-        std_G =  np.real(np.average(np.asarray(temp_std_G)))
+        std_G =  np.abs(np.real(np.average(np.asarray(temp_std_G))))
         self.Store.acse_analysis()
         print('---------------------------------------------')
         print('Step {:02}, Energy: {:.12f}, S: {:.12f}'.format(
