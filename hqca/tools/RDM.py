@@ -367,6 +367,7 @@ class RDMs:
         if self.p==2:
             rdm1 = self.reduce_order()
         if approx in ['v','V','valdemoro','Valdemoro']:
+            self.expand()
             rdm3a = rdm1*rdm1*rdm1
             rdm2w = self-rdm1*rdm1
             rdm3b = (rdm2w*rdm1)*3

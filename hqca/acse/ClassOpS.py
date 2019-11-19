@@ -124,7 +124,7 @@ def findSPairs(Store,
                         continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
-                    if abs(term)>1e-10:
+                    if abs(term)>1e-12:
                         newFermi = FermiOperator(
                                 coeff=-term,
                                 indices=[i,k,l,j],
@@ -142,7 +142,7 @@ def findSPairs(Store,
                             continue
                     Kt,Vt = evaluate2S(i,k,l,j,Store)
                     term = Kt+Vt
-                    if abs(term)>1e-10:
+                    if abs(term)>1e-12:
                         newFermi = FermiOperator(
                                 coeff=-term,
                                 indices=[i,k,l,j],
