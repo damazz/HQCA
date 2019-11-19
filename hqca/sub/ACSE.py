@@ -329,19 +329,27 @@ class RunACSE(QuantumRun):
                 trust = False
                 nv = 0.9
                 ns = 0.1
-                gi = 1.5
-                gd = 0.5
+                gi = 1.414 #1.5
+                gd = 0.1
                 while not trust: # perform sub routine
                     if abs(d1D/d2D)<self.tr_Del:
                         # found ok answer! 
                         coeff = -d1D/d2D
+                        lamb=1
                     else:
                         lamb = -d1D/self.tr_Del-d2D
                         coeff = -d1D/(d2D+lamb)
+                    if abs(coeff)<=self.crit:
+                        trust=True 
                     ef,df = self.__test_acse_function([coeff],testS)
                     def m_qk(s):
                         return self.e0 + s*self.grad+0.5*s*self.hess*s
-                    rho = (self.e0 - ef)/(self.e0-m_qk(coeff))
+                    if abs(self.e0-m_qk(coeff))<1e-16:
+                        rho = (self.e0-ef)/1e-16
+                    elif abs(self.e0-ef)<1e-16:
+                        rho = 0 
+                    else:
+                        rho = (self.e0 - ef)/(self.e0-m_qk(coeff))
                     if rho>=nv:
                         print('Result in trust region. Increasing TR.')
                         trust = True
@@ -352,13 +360,16 @@ class RunACSE(QuantumRun):
                     else:
                         self.tr_Del*=gd
                         print('Trust region did not hold. Shrinking.')
-                        trust = False
-                    print('Current trust region: {:.6f}'.format(
+
+                    print('Current trust region: {:.14f}'.format(
                         np.real(self.tr_Del)))
                     print('Rho: {:.6f},Num: {:.6f}, Den: {:.6f}'.format(
                         np.real(rho),
                         np.real(self.e0-ef),
                         np.real(self.e0-m_qk(coeff))))
+                    print('Lamb: {:.10f}, Coeff: {:.10f}'.format(
+                        np.real(lamb),
+                        np.real(coeff)))
                     self.Store.rdm2=df
             for f in testS:
                 f.qCo*= coeff
