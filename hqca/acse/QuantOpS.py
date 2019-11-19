@@ -18,6 +18,7 @@ def findSPairsQuantum(
         separate=False,
         trotter_steps=1,
         qS_thresh_max_rel=0.1,
+        hamiltonian_step_size=1.0,
         ):
     '''
     need to do following:
@@ -28,7 +29,11 @@ def findSPairsQuantum(
     if verbose:
         print('Generating new S pairs with Hamiltonian step.')
     newS = []
-    newPsi = Ansatz(Store,QuantStore,propagateTime=True,scalingHam=1.0,
+    newPsi = Ansatz(
+            Store,
+            QuantStore,
+            propagateTime=True,
+            scalingHam=hamiltonian_step_size,
             **QuantStore.imTomo_kw
             )
     newPsi.build_tomography(trotter_steps=trotter_steps)

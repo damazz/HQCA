@@ -138,7 +138,9 @@ class RunACSE(QuantumRun):
             newton_trust=False,
             quantS_thresh_max_rel=0.1,
             classS_thresh_max_rel=0.1,
-            newton_conv_type='default',
+            convergence_type='default',
+            hamiltonian_step_size=1.0,
+            restrict_S_size=0.5,
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -151,6 +153,7 @@ class RunACSE(QuantumRun):
         self.ansatz_depth=1
         self.tr_Del  = np.pi/2 # trust region
         self.d = newton_step #for estimating derivative
+        self.delta = restrict_S_size
         self.use_damping = use_damping
         self.use_trust_region = use_trust_region
         self.damp_sigma = damping_amplitude
@@ -158,9 +161,10 @@ class RunACSE(QuantumRun):
         self.N_trotter = trotter
         self.max_iter = max_iter
         self.crit = opt_thresh
+        self.hamiltonian_step_size = hamiltonian_step_size
         self.qS_thresh_max_rel = quantS_thresh_max_rel
         self.cS_thresh_max_rel = classS_thresh_max_rel
-        self._conv_type = newton_conv_type
+        self._conv_type = convergence_type
         self.newton_step = newton_step
         self.newton_damping = newton_damping
         self.newton_trust = newton_trust
@@ -169,14 +173,16 @@ class RunACSE(QuantumRun):
 
     def _run_acse(self):
         if self.acse_update=='q':
-            testS = quantS.findSPairsQuantum(self.Store,self.QuantStore,
+            testS = quantS.findSPairsQuantum(
+                    self.Store,
+                    self.QuantStore,
                     qS_thresh_max_rel=self.qS_thresh_max_rel,
                     trotter_steps=self.N_trotter,
+                    hamiltonian_step_size=self.hamiltonian_step_size,
                     verbose=True)
         elif self.acse_update=='c':
             testS = classS.findSPairs(self.Store)
         self._check_norm(testS)
-        self.delta = 0.5
         if self.acse_method in ['NR','newton']:
             self.__newton_acse(testS)
         elif self.acse_method in ['default','em','EM','euler']:
@@ -530,9 +536,10 @@ class RunACSE(QuantumRun):
                     print('Criteria met. Ending optimization.')
                     self.total.done=True
             elif self._conv_type=='gradient':
+                print('Gradient size: {:.10f}'.format(self.grad))
                 if abs(self.grad)<self.crit:
                     self.total.done=True
-                    print('Criteria met. Ending optimization.')
+                    print('Criteria met in gradient. Ending optimization.')
         self.e0 = en
 
     def save(self,

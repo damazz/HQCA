@@ -252,7 +252,7 @@ class Tomography:
                 i,self.qs.Nq_tot)[::1] for i in range(0,N)]
             #print(test,counts)
             for n,b in enumerate(test):
-                if abs(counts[n])<1e-10:
+                if abs(counts[n])<1e-14:
                     continue
                 sgn = 1
                 for i in range(len(b)):
