@@ -245,7 +245,7 @@ class ModStorageACSE(Storage):
         pass
 
 
-    def _get_HamiltonianOperators(self,full=True):
+    def _get_HamiltonianOperators(self,full=True,int_thresh=1e-14):
         if self.qubitH=='qiskit':
             if full:
                 ferOp=FermionicOperator(h1=1.0*self.ints_1e,
@@ -281,7 +281,7 @@ class ModStorageACSE(Storage):
                     for q in blocks[1][ze]:
                         if p>q:
                             continue
-                        if abs(self.ints_1e[p,q])<1e-12:
+                        if abs(self.ints_1e[p,q])<int_thresh:
                             continue
                         spin = ''.join([spins[0][ze],spins[1][ze]])
                         newOp = Fermi(
@@ -300,7 +300,7 @@ class ModStorageACSE(Storage):
                         continue
                     term_pqqp = self.ints_2e[p,q,p,q]
                     term_pqqp-= self.ints_2e[p,q,q,p]
-                    if abs(term_pqqp)>1e-12:
+                    if abs(term_pqqp)>int_thresh:
                         c1 =  (p in self.alpha_mo['active'])
                         c2 =  (q in self.alpha_mo['active'])
                         spin = '{}{}{}{}'.format(
@@ -333,7 +333,7 @@ class ModStorageACSE(Storage):
                         spin = '{}{}{}{}'.format(
                                 c1*'a'+(1-c1)*'b',c2*'a'+(1-c2)*'b',
                                 c2*'a'+(1-c2)*'b',c1*'a'+(1-c1)*'b')
-                        if abs(term_pqrr)>1e-12:
+                        if abs(term_pqrr)>int_thresh:
                             newOp = Fermi(
                                     coeff=term_pqrr,
                                     indices=[p,r,r,q],
@@ -355,7 +355,7 @@ class ModStorageACSE(Storage):
                             term1 = self.ints_2e[p,r,q,s]-self.ints_2e[p,r,s,q]
                             term2 = self.ints_2e[p,s,q,r]-self.ints_2e[p,s,r,q]
                             term3 = self.ints_2e[p,q,r,s]-self.ints_2e[p,q,s,r]
-                            if abs(term1)>1e-12:
+                            if abs(term1)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term1,
                                         indices=[p,r,s,q],
@@ -363,7 +363,7 @@ class ModStorageACSE(Storage):
                                         spin='aaaa'
                                         )
                                 operators['de'].append(newOp)
-                            if abs(term2)>1e-12:
+                            if abs(term2)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term2,
                                         indices=[p,s,r,q],
@@ -371,7 +371,7 @@ class ModStorageACSE(Storage):
                                         spin='aaaa'
                                         )
                                 operators['de'].append(newOp)
-                            if abs(term3)>1e-12:
+                            if abs(term3)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term3,
                                         indices=[p,q,s,r],
@@ -392,7 +392,7 @@ class ModStorageACSE(Storage):
                             term1 = self.ints_2e[p,r,q,s]-self.ints_2e[p,r,s,q]
                             term2 = self.ints_2e[p,s,q,r]-self.ints_2e[p,s,r,q]
                             term3 = self.ints_2e[p,q,r,s]-self.ints_2e[p,q,s,r]
-                            if abs(term1)>1e-12:
+                            if abs(term1)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term1,
                                         indices=[p,r,s,q],
@@ -400,7 +400,7 @@ class ModStorageACSE(Storage):
                                         spin='bbbb'
                                         )
                                 operators['de'].append(newOp)
-                            if abs(term2)>1e-12:
+                            if abs(term2)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term2,
                                         indices=[p,s,r,q],
@@ -408,7 +408,7 @@ class ModStorageACSE(Storage):
                                         spin='bbbb',
                                         )
                                 operators['de'].append(newOp)
-                            if abs(term3)>1e-12:
+                            if abs(term3)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term3,
                                         indices=[p,q,s,r],
@@ -427,7 +427,7 @@ class ModStorageACSE(Storage):
                             print(p,r,s,q)
                             term1 = self.ints_2e[p,r,q,s]
                             term2 = self.ints_2e[p,s,q,r]
-                            if abs(term1)>1e-12:
+                            if abs(term1)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term1,
                                         indices=[p,r,s,q],
@@ -435,7 +435,7 @@ class ModStorageACSE(Storage):
                                         spin='abba'
                                         )
                                 operators['de'].append(newOp)
-                            if abs(term2)>1e-12:
+                            if abs(term2)>int_thresh:
                                 newOp = Fermi(
                                         coeff=term2,
                                         indices=[p,s,r,q],
@@ -467,7 +467,7 @@ class ModStorageACSE(Storage):
                         tc[n]+= tc.pop(m)
                         tp.pop(m)
                 for i in reversed(range(len(tp))):
-                    if abs(tc[i])<1e-6:
+                    if abs(tc[i])<int_thresh:
                         tp.pop(i)
                         tc.pop(i)
                 return tp,tc

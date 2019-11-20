@@ -134,6 +134,7 @@ class RunACSE(QuantumRun):
             use_trust_region=False,
             newton_step=2,
             quantS_thresh_rel=0.1,
+            quantS_ordering='default',
             quantS_max=1e-10,
             classS_thresh_rel=0.1,
             classS_max=1e-10,
@@ -170,6 +171,7 @@ class RunACSE(QuantumRun):
         self.hamiltonian_step_size = hamiltonian_step_size
         self.qS_thresh_rel = quantS_thresh_rel
         self.qS_max = quantS_max
+        self.qS_ordering = quantS_ordering
         self.cS_thresh_rel = classS_thresh_rel
         self.cS_max = classS_max
         self.tr_gi = tr_gamma_inc
@@ -204,6 +206,7 @@ class RunACSE(QuantumRun):
                     self.QuantStore,
                     qS_thresh_rel=self.qS_thresh_rel,
                     qS_max=self.qS_max,
+                    ordering=self.qS_ordering,
                     trotter_steps=self.N_trotter,
                     hamiltonian_step_size=self.hamiltonian_step_size,
                     verbose=True)
@@ -321,10 +324,7 @@ class RunACSE(QuantumRun):
                 print('Hessian non-positive. Taking Euler step.')
                 if g2<g1:
                     coeff = self.delta*self.d
-                elif g1<0:
-                    coeff = self.delta
                 else:
-                    self.delta*=0.5
                     coeff = self.delta
             else:
                 trust = False
@@ -333,20 +333,19 @@ class RunACSE(QuantumRun):
                 gi = self.tr_gi
                 gd = self.tr_gd
                 while not trust: # perform sub routine
-                    if abs(d1D/d2D)<self.tr_Del:
+                    if abs(self.grad/self.hess)<self.tr_Del:
                         # found ok answer! 
-                        coeff = -d1D/d2D
+                        coeff = -self.grad/self.hess
                         lamb=1
                     else:
-                        lamb = -d1D/self.tr_Del-d2D
-                        coeff = -d1D/(d2D+lamb)
-                    #if abs(coeff)<=self.crit:
-                    #    trust=True 
+                        lamb = -self.grad/self.tr_Del-self.hess
+                        coeff = -self.grad/(self.hess+lamb)
                     ef,df = self.__test_acse_function([coeff],testS)
                     def m_qk(s):
                         return self.e0 + s*self.grad+0.5*s*self.hess*s
                     self.tr_taylor =  self.e0-m_qk(coeff)
                     self.tr_object = self.e0-ef
+                    print('Coefficient: {}'.format(coeff))
                     print('Taylor series step: {:.14f}'.format(
                         np.real(self.tr_taylor)))
                     print('Objective fxn step: {:.14f}'.format(
@@ -558,7 +557,7 @@ class RunACSE(QuantumRun):
                     print('Average energy is increasing!')
                     print('Ending optimization.')
                     self.total.done=True
-            elif self._conv_type=='trust':
+            elif self._conv_type in ['trust']:
                 if abs(self.tr_taylor)<=self.tr_ts_crit:
                     self.total.done=True
                     print('Criteria met in taylor series model.')
@@ -567,6 +566,25 @@ class RunACSE(QuantumRun):
                     self.total.done=True
                     print('Criteria met in objective function.')
                     print('Ending optimization.')
+            else:
+                print('Convergence type not specified.')
+                sys.exit('Goodbye.')
+            #elif self._conv_type=='trust-normed':
+            #    print('Normed gradient: {:.14f}'.format(
+            #        abs(np.real(self.grad/self.norm))))
+            #    if abs(self.tr_taylor)<=self.tr_ts_crit:
+            #        self.total.done=True
+            #        print('Criteria met in taylor series model.')
+            #        print('Ending optimization.')
+            #    elif abs(self.tr_object)<= self.tr_obj_crit:
+            #        self.total.done=True
+            #        print('Criteria met in objective function.')
+            #        print('Ending optimization.')
+            #    elif abs(self.grad/self.norm)<=self.crit:
+            #        self.total.done=True
+            #        print('Criteria met in gradient.')
+            #        print('Ending optimization.')
+                
 
         self.e0 = en
         print('---------------------------------------------')

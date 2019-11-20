@@ -19,7 +19,9 @@ def findSPairsQuantum(
         trotter_steps=1,
         qS_thresh_rel=0.1,
         qS_max=1e-10,
+        qS_screen=0.1,
         hamiltonian_step_size=1.0,
+        ordering='default',
         ):
     '''
     need to do following:
@@ -92,13 +94,40 @@ def findSPairsQuantum(
                             i,k,l,j,np.real(val)))
                         print(newEl.qOp,newEl.qInd,newEl.qSp)
     hold_type = [(op.opType=='de') for op in newS]
-    new_S_ord = []
-    for i in range(len(hold_type)):
-        if hold_type[i]:
-            new_S_ord.append(newS[i])
-    for i in range(len(hold_type)):
-        if not hold_type[i]:
-            new_S_ord.append(newS[i])
-    newS = new_S_ord[:]
+    if ordering=='default':
+        new_S_ord_de = []
+        new_S_ord_ne = []
+        for i in range(len(hold_type)):
+            if hold_type[i]:
+                if abs(newS[i].qCo)>qS_screen*max_val:
+                    new_S_ord_de_a.append(newS[i])
+                else:
+                    new_S_ord_de_b.append(newS[i])
+        new_S_ord_de = new_S_ord_de_a+new_S_ord_de_b
+        for i in range(len(hold_type)):
+            if not hold_type[i]:
+                new_S_ord_ne.append(newS[i])
+        newS = new_S_ord_de[:]+new_S_ord_ne[:]
+    elif ordering=='magnitude':
+        done = False
+        new_S_ord = []
+        n_iter = np.log10(qS_thresh_rel)
+        limit = np.copy(max_val)
+        while not done:
+            for i in range(len(hold_type)):
+                if hold_type[i]:
+                    if abs(newS[i].qCo)<=limit:
+                        if abs(newS[i].qCo)>limit*0.1:
+                            new_S_ord.append(newS[i])
+
+            for i in range(len(hold_type)):
+                if not hold_type[i]:
+                    if abs(newS[i].qCo)<=limit:
+                        if abs(newS[i].qCo)>limit*0.1:
+                            new_S_ord.append(newS[i])
+            if limit<max_val*qS_thresh_rel:
+                done=True
+            limit*=0.1
+        newS = new_S_ord[:]
     return newS
 

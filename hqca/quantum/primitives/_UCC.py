@@ -139,10 +139,10 @@ def _UCC2_full(qgdc,phi1,phi2,phi3,i,j,k,l,operator='++--',**kw):
 
 
 def _UCC2_1s(Q,phi,i,j,k,l,skip=False,seq='default',**kw):
-    if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
-        phi= -0.01+2*pi*(phi//(2*pi))
-    elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
-        phi= 0.01 +2*pi*(pi//(2*pi))
+    #if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+    #    phi= -0.01+2*pi*(phi//(2*pi))
+    #elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+    #    phi= 0.01 +2*pi*(pi//(2*pi))
     if seq=='default':
         sequence='xxxy'
     else:
@@ -173,10 +173,10 @@ def _UCC2_1s(Q,phi,i,j,k,l,skip=False,seq='default',**kw):
         ind+=1
 
 def _UCC2_1s_custom(Q,phi,i,j,k,l,skip=False,seq='default',**kw):
-    if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
-        phi= -0.01+2*pi*(phi//(2*pi))
-    elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
-        phi= 0.01 +2*pi*(pi//(2*pi))
+    #if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+    #    phi= -0.01+2*pi*(phi//(2*pi))
+    #elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+    #    phi= 0.01 +2*pi*(pi//(2*pi))
     if seq=='default':
         sequence='xxxy'
     else:
@@ -290,10 +290,10 @@ def _UCC2_2s_custom(Q,phi,i,j,k,l,operator='-+-+',spin='abab',start='xxxy',**kw)
 
 def _UCC2_2s(qgdc,phi,i,j,k,l,skip=False,operator='-+-+',spin='aabb'):
     # set phi
-    if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
-        phi= -0.01+2*pi*(phi//(2*pi))
-    elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
-        phi= 0.01 +2*pi*(pi//(2*pi))
+    #if phi%(2*pi)>-0.01 and phi%(2*pi)<=0:
+    #    phi= -0.01+2*pi*(phi//(2*pi))
+    #elif phi%(2*pi)>0 and phi%(2*pi)<0.01:
+    #    phi= 0.01 +2*pi*(pi//(2*pi))
     # set operator
     var =  [[+1],[+1]]
     if spin in ['aabb','bbaa']:
