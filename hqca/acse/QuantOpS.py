@@ -17,7 +17,7 @@ def findSPairsQuantum(
         verbose=False,
         separate=False,
         trotter_steps=1,
-        qS_thresh_max_rel=0.1,
+        qS_thresh_rel=0.1,
         qS_max=1e-10,
         hamiltonian_step_size=1.0,
         ):
@@ -55,7 +55,7 @@ def findSPairsQuantum(
     print('Elements of S from quantum generation: ')
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
         val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]*hss
-        if abs(val)>qS_thresh_max_rel*max_val and abs(val)>qS_max:
+        if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
             #print('Si: {:.6f}:{}{}{}{}'.format(val,i,k,j,l))
             c1 =  (i in QuantStore.alpha['active'])
             c2 =  (k in QuantStore.alpha['active'])

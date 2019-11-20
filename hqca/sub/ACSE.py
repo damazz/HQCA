@@ -202,7 +202,7 @@ class RunACSE(QuantumRun):
             testS = quantS.findSPairsQuantum(
                     self.Store,
                     self.QuantStore,
-                    qS_thresh_max_rel=self.qS_thresh_max_rel,
+                    qS_thresh_rel=self.qS_thresh_rel,
                     qS_max=self.qS_max,
                     trotter_steps=self.N_trotter,
                     hamiltonian_step_size=self.hamiltonian_step_size,
