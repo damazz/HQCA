@@ -131,18 +131,22 @@ class RunACSE(QuantumRun):
             trotter=1,
             pr_a=1,
             ansatz_depth=1,
-            use_damping=False,
             use_trust_region=False,
-            damping_amplitude=np.pi/2,
-            newton_damping=False,
             newton_step=2,
-            quantS_thresh_max_rel=0.1,
+            quantS_thresh_rel=0.1,
             quantS_max=1e-10,
-            classS_thresh_max_rel=0.1,
+            classS_thresh_rel=0.1,
+            classS_max=1e-10,
             convergence_type='default',
             hamiltonian_step_size=1.0,
             restrict_S_size=0.5,
             initial_trust_region=np.pi/2,
+            tr_taylor_criteria=1e-10,
+            tr_objective_criteria=1e-10,
+            tr_gamma_inc=2,
+            tr_gamma_dec=0.5,
+            tr_nu_accept=0.9,
+            tr_nu_reject=0.1,
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -153,22 +157,26 @@ class RunACSE(QuantumRun):
             sys.exit()
         self.acse_method = method
         self.ansatz_depth=1
-        self.tr_Del  = initial_trust_region # trust region
         self.d = newton_step #for estimating derivative
         self.delta = restrict_S_size
-        self.use_damping = use_damping
         self.use_trust_region = use_trust_region
-        self.damp_sigma = damping_amplitude
         self.QuantStore.depth_S = ansatz_depth
         self.N_trotter = trotter
         self.max_iter = max_iter
         self.crit = opt_thresh
+        self.tr_ts_crit = tr_taylor_criteria
+        self.tr_obj_crit = tr_objective_criteria
+        self.tr_Del  = initial_trust_region # trust region
         self.hamiltonian_step_size = hamiltonian_step_size
-        self.qS_thresh_max_rel = quantS_thresh_max_rel
+        self.qS_thresh_rel = quantS_thresh_rel
         self.qS_max = quantS_max
-        self.cS_thresh_max_rel = classS_thresh_max_rel
+        self.cS_thresh_rel = classS_thresh_rel
+        self.cS_max = classS_max
+        self.tr_gi = tr_gamma_inc
+        self.tr_gd = tr_gamma_dec
+        self.tr_nv = tr_nu_accept # very good?
+        self.tr_ns = tr_nu_reject #shrink
         self._conv_type = convergence_type
-        self.newton_damping = newton_damping
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      --  ACSE KEYWORDS --      ')
         print('-- -- -- -- -- -- -- -- -- -- --')
@@ -180,15 +188,13 @@ class RunACSE(QuantumRun):
         print('Hamiltonian epsilon: {}'.format(hamiltonian_step_size))
         print('Trotter-H: {}'.format(trotter))
         print('Trotter-S: {}'.format(ansatz_depth))
+        print('Quant-S rel threshold: {}'.format(quantS_thresh_rel))
         print('Quant-S max threshold: {}'.format(quantS_max))
-        print('Quant-S rel threshold: {}'.format(quantS_thresh_max_rel))
-        print('Class-S rel threshold: {}'.format(classS_thresh_max_rel))
+        print('Class-S rel threshold: {}'.format(classS_thresh_rel))
+        print('Class-S max threshold: {}'.format(classS_max))
         print('Newton step: {}'.format(newton_step))
         print('Newton trust region: {}'.format(use_trust_region))
         print('Trust region: {}'.format(initial_trust_region))
-        print('Newton damping: {}'.format(use_damping))
-        print('S damping: {}'.format(restrict_S_size))
-        print('Damping amplitude: {}'.format(damping_amplitude))
         print('-- -- -- -- -- -- -- -- -- -- --')
 
     def _run_acse(self):
@@ -307,11 +313,6 @@ class RunACSE(QuantumRun):
             np.real(d1D/d2D),
             np.real(max_val*d1D/d2D))
             )
-        def damping(x):
-            if self.damp_sigma==0:
-                return 1
-            else:
-                return np.exp(-(x**2)/((self.damp_sigma)**2))
         self.grad = d1D
         self.hess = d2D
         if self.use_trust_region:
@@ -327,10 +328,10 @@ class RunACSE(QuantumRun):
                     coeff = self.delta
             else:
                 trust = False
-                nv = 0.9
-                ns = 0.1
-                gi = 1.414 #1.5
-                gd = 0.1
+                nv = self.tr_nv
+                ns = self.tr_ns
+                gi = self.tr_gi
+                gd = self.tr_gd
                 while not trust: # perform sub routine
                     if abs(d1D/d2D)<self.tr_Del:
                         # found ok answer! 
@@ -339,71 +340,50 @@ class RunACSE(QuantumRun):
                     else:
                         lamb = -d1D/self.tr_Del-d2D
                         coeff = -d1D/(d2D+lamb)
-                    if abs(coeff)<=self.crit:
-                        trust=True 
+                    #if abs(coeff)<=self.crit:
+                    #    trust=True 
                     ef,df = self.__test_acse_function([coeff],testS)
                     def m_qk(s):
                         return self.e0 + s*self.grad+0.5*s*self.hess*s
-                    if abs(self.e0-m_qk(coeff))<1e-16:
-                        rho = (self.e0-ef)/1e-16
-                    elif abs(self.e0-ef)<1e-16:
-                        rho = 0 
+                    self.tr_taylor =  self.e0-m_qk(coeff)
+                    self.tr_object = self.e0-ef
+                    print('Taylor series step: {:.14f}'.format(
+                        np.real(self.tr_taylor)))
+                    print('Objective fxn step: {:.14f}'.format(
+                        np.real(self.tr_object)))
+                    if abs(self.tr_object)<=self.tr_obj_crit:
+                        trust=True
+                        print('Convergence in objective function.')
+                    elif abs(self.tr_taylor)<=self.tr_ts_crit:
+                        trust=True
+                        print('Convergence in Taylor series model.')
                     else:
-                        rho = (self.e0 - ef)/(self.e0-m_qk(coeff))
-                    if rho>=nv:
-                        print('Result in trust region. Increasing TR.')
-                        trust = True
-                        self.tr_Del*=gi
-                    elif rho>=ns:
-                        print('Trust region held. Continuing.')
-                        trust = True
-                    else:
-                        self.tr_Del*=gd
-                        print('Trust region did not hold. Shrinking.')
-
+                        rho = self.tr_object/self.tr_taylor
+                        if rho>=nv:
+                            print('Result in trust region. Increasing TR.')
+                            trust = True
+                            self.tr_Del*=gi
+                        elif rho>=ns:
+                            print('Trust region held. Continuing.')
+                            trust = True
+                        else:
+                            self.tr_Del*=gd
+                            print('Trust region did not hold. Shrinking.')
+                            print('Trial energy: {:.10f}'.format(ef))
                     print('Current trust region: {:.14f}'.format(
                         np.real(self.tr_Del)))
-                    print('Rho: {:.6f},Num: {:.6f}, Den: {:.6f}'.format(
-                        np.real(rho),
-                        np.real(self.e0-ef),
-                        np.real(self.e0-m_qk(coeff))))
-                    print('Lamb: {:.10f}, Coeff: {:.10f}'.format(
-                        np.real(lamb),
-                        np.real(coeff)))
+                    #print('Rho: {:.10f},Num: {:.16f}, Den: {:.16f}'.format(
+                    #    np.real(rho),
+                    #    np.real(self.e0-ef),
+                    #    np.real(self.e0-m_qk(coeff))))
+                    #print('Lamb: {:.12f}, Coeff: {:.12f}'.format(
+                    #    np.real(lamb),
+                    #    np.real(coeff)))
                     self.Store.rdm2=df
             for f in testS:
                 f.qCo*= coeff
                 f.c*= coeff
             self.Store.update_ansatz(testS)
-        elif self.use_damping:
-            damp = damping(max_val*(d1D/d2D))
-            print('Step: {:.6f}, Largest: {:.6f}, Damping Factor: {:.6f}'.format(
-                np.real(d1D/d2D),
-                np.real(max_val*d1D/d2D),
-                np.real(damp)))
-            if d2D>0:
-                if abs(damp)<(self.delta*self.d): #damping factor kills the run
-                    print('Damping factor too large - taking Euler step.')
-                    for f in testS:
-                        f.qCo*= self.delta*self.d
-                        f.c*= self.delta*self.d
-                else:
-                    print('Applying damped step.')
-                    for f in testS:
-                        f.qCo*= -(d1D/d2D)*damp
-                        f.c*= -(d1D/d2D)*damp
-            else:
-                print('Hessian non-positive. Taking Euler step.')
-                if g2<g1:
-                    c = self.delta*self.d
-                elif g1<0:
-                    c = self.delta
-                else:
-                    self.delta*=0.5
-                    c = self.delta
-                for f in testS:
-                    f.qCo*= c
-                    f.c*= c
         else:
             for f in testS:
                 f.qCo*= -(d1D/d2D)
@@ -561,7 +541,10 @@ class RunACSE(QuantumRun):
                 if std_En<self.crit and self.norm<0.05:
                     print('Criteria met. Ending optimization.')
                     self.total.done=True
-            elif self._conv_type=='gradient':
+            elif self._conv_type in ['gradient','gradient_norm']:
+                if self._conv_type=='gradient_norm':
+                    print('Normed gradient: {:.14f}'.format(
+                        np.real(self.grad/self.norm)))
                 print('Gradient size: {:.14f}'.format(np.real(self.grad)))
                 if abs(self.grad)<self.crit:
                     self.total.done=True
@@ -575,6 +558,15 @@ class RunACSE(QuantumRun):
                     print('Average energy is increasing!')
                     print('Ending optimization.')
                     self.total.done=True
+            elif self._conv_type=='trust':
+                if abs(self.tr_taylor)<=self.tr_ts_crit:
+                    self.total.done=True
+                    print('Criteria met in taylor series model.')
+                    print('Ending optimization.')
+                elif abs(self.tr_object)<= self.tr_obj_crit:
+                    self.total.done=True
+                    print('Criteria met in objective function.')
+                    print('Ending optimization.')
 
         self.e0 = en
         print('---------------------------------------------')
