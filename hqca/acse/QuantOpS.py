@@ -95,7 +95,8 @@ def findSPairsQuantum(
                         print(newEl.qOp,newEl.qInd,newEl.qSp)
     hold_type = [(op.opType=='de') for op in newS]
     if ordering=='default':
-        new_S_ord_de = []
+        new_S_ord_de_a = []
+        new_S_ord_de_b = []
         new_S_ord_ne = []
         for i in range(len(hold_type)):
             if hold_type[i]:
