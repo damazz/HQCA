@@ -98,7 +98,10 @@ class RunACSE(QuantumRun):
                 'tomography_terms':reTomo.op
                 }
         if 'q' in self.acse_update:
-            self.Store._get_HamiltonianOperators(full=True)
+            self.Store._get_HamiltonianOperators(
+                    full=True,
+                    int_thresh=self.ham_int_thresh
+                    )
             imTomo = tomo.Tomography(self.QuantStore)
             imTomo.generate_2rdme(real=False,imag=True)
             self.QuantStore.imTomo_kw = {
@@ -140,6 +143,7 @@ class RunACSE(QuantumRun):
             classS_max=1e-10,
             convergence_type='default',
             hamiltonian_step_size=1.0,
+            hamiltonian_int_thresh=1e-10,
             restrict_S_size=0.5,
             initial_trust_region=np.pi/2,
             tr_taylor_criteria=1e-10,
@@ -158,6 +162,7 @@ class RunACSE(QuantumRun):
             sys.exit()
         self.acse_method = method
         self.ansatz_depth=1
+        self.ham_int_thresh = hamiltonian_int_thresh
         self.d = newton_step #for estimating derivative
         self.delta = restrict_S_size
         self.use_trust_region = use_trust_region

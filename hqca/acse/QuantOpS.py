@@ -51,7 +51,7 @@ def findSPairsQuantum(
     hss = (1/hamiltonian_step_size)
     max_val = 0
     for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
-        if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])>max_val:
+        if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])*hss>max_val:
             max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])*hss
     #print('Max S val: {}'.format(max_val))
     print('Elements of S from quantum generation: ')
@@ -112,7 +112,6 @@ def findSPairsQuantum(
     elif ordering=='magnitude':
         done = False
         new_S_ord = []
-        n_iter = np.log10(qS_thresh_rel)
         limit = np.copy(max_val)
         while not done:
             for i in range(len(hold_type)):
@@ -120,7 +119,6 @@ def findSPairsQuantum(
                     if abs(newS[i].qCo)<=limit:
                         if abs(newS[i].qCo)>limit*0.1:
                             new_S_ord.append(newS[i])
-
             for i in range(len(hold_type)):
                 if not hold_type[i]:
                     if abs(newS[i].qCo)<=limit:
