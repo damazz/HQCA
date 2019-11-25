@@ -1,5 +1,28 @@
  TODO/Changelog List
 
+### 11/25/2019
+
+* Adjust hamiltonian qubit operators so it is consistent
+* Update ACSE ansatz
+* Update ACSE method
+* Start checking how things work 
+
+### 11/23/2019 
+
+
+* v 0.2.0
+* ACSE works *whew!* 
+* Implementing qubit ACSE 
+* Implement Ansatz abstractclass
+* Implement Instrutions abstractclass
+* Work on linking everythnig together 
+    * Update old ACSE method
+    * Update VQE? 
+* Clean up code
+* Loose ends: 
+    * Hamiltonian propagation
+
+
 ### 10/3/2019
 
 * Still adjusting ACSE
