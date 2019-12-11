@@ -6,10 +6,6 @@ class QuantumRun(ABC):
         pass
 
     @abstractmethod
-    def update(self,**kw):
-        pass
-
-    @abstractmethod
     def build(self,**kw):
         '''
         Make sure the run is compiled okay. 
@@ -21,3 +17,10 @@ class QuantumRun(ABC):
         pass
 
 
+class Cache:
+    def __init__(self):
+        self.use=True
+        self.err=False
+        self.msg=None
+        self.iter=0
+        self.done=False

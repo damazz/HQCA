@@ -1,27 +1,70 @@
 from copy import deepcopy as copy
+import sys
+import traceback
 
 class Operator:
     def __init__(self,
             ops = [],
-            antihermitian=True):
+            antihermitian=True,
+            ):
         self._op = ops
-        self.ah=True
+        self.ah=antihermitian
+
+    def reordering(self,method='magnitude',**kw):
+        if method=='magnitude':
+            l = []
+            def func(n):
+                s =self._op[n].c
+                return abs(s)
+
+            for n in range(len(self._op)):
+                l.append(n)
+            l = sorted(l,reverse=True,key=func)
+            new = Operator()
+            for n in l:
+                new+= self._op[n]
+            self._op = new.op
+        elif method=='hamiltonian':
+            self._hamiltonian_ordering(**kw)
+        
+    def _hamiltonian_ordering(self,qubOpH=None):
+        keys = {}
+        ind = 1
+        for n,aOp in enumerate(self._op):
+            for m,bOp in enumerate(qubOpH.op):
+                if aOp.isSame(bOp):
+                    keys[aOp.p]=m
+                    break
+            ind+=1
+        def f(op):
+            return keys[op.p]
+        self._op = sorted(self._op,key=f)
+
+    def _switch_ops(i,j):
+        pass
 
     def _update(self):
         pass
+    
+    def __str__(self):
+        z = ''
+        for i in self._op:
+            z += i.__str__()
+            z += '\n'
+        return z[:-1]
 
     def __add__(self,A):
+        Old = copy(self._op)
         '''
         Commutative addition
         '''
-        temp = copy(self)
-        for old_op in temp._op:
+        for old_op in Old:
             old_op.clear()
         try:
             for new in A._op:
-                new_op =True
-                for old in temp._op:
-                    if old==new:
+                new_op = True
+                for old in Old:
+                    if old.isSame(new) and old.add:
                         try:
                             old.qCo = new.qCo+old.qCo
                         except Exception:
@@ -29,27 +72,12 @@ class Operator:
                         old.c  = new.c+old.c
                         new_op = False
                         break
-                    elif old!=new:
-                        if self.ah:
-                            try:
-                                old.qCo = -new.qCo+old.qCo
-                            except Exception:
-                                pass
-                            old.c  = -new.c+old.c
-                        else:
-                            try:
-                                old.qCo = new.qCo+old.qCo
-                            except Exception:
-                                pass
-                            old.c  = new.c+old.c
-                        new_op = False
-                        break
                 if new_op:
-                    temp._op.append(new)
+                    Old.append(new)
         except AttributeError:
             new_op =True
-            for old in self._op:
-                if old==A:
+            for old in Old:
+                if old.isSame(A) and old.add:
                     try:
                         old.qCo = A.qCo+old.qCo
                     except Exception:
@@ -57,29 +85,16 @@ class Operator:
                     old.c  = A.c+old.c
                     new_op = False
                     break
-                elif old_op!=A:
-                    if self.ah:
-                        try:
-                            old.qCo = -A.qCo+old.qCo
-                        except Exception:
-                            pass
-                        old.c  = -A.c+old.c
-                    else:
-                        try:
-                            old.qCo = A.qCo+old.qCo
-                        except Exception:
-                            pass
-                        old.c  = A.c+old.c
-                    new_op = False
-                    break
             if new_op:
-                temp._op.append(A)
-        return temp
-    
-    def __iadd__(self,A):
-        temp = self+A
-        self._op = temp._op
-        return self
+                Old.append(A)
+        except Exception:
+            traceback.print_exc()
+        New = Operator(
+                ops=Old,
+                antihermitian=self.ah)
+        return New
+
+
 
     def generateSkewExpOp(self):
         for items in self._op:

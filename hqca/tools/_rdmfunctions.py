@@ -7,8 +7,34 @@ import numpy.linalg as LA
 from numpy import conj as con
 from numpy import complex_
 from functools import reduce
-from hqca.tools.Functions import contract,expand
 
+def contract(mat):
+    size = len(mat.shape)
+    L = mat.shape[0]
+    if size==4:
+        mat = np.reshape(
+                mat,
+                (
+                    L**2,
+                    L**2
+                    )
+                )
+    return mat
+
+def expand(mat):
+    size = len(mat.shape)
+    L = mat.shape[0]
+    if size==2:
+        mat = np.reshape(
+                mat,
+                (
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L)),
+                    int(np.sqrt(L))
+                    )
+                )
+    return mat
 
 def build_2rdm(
         wavefunction,

@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from hqca.core._circuit import GenerateCircuit
 
 class Tomography(ABC):
     def __init__(self,
             QuantStore,
-            Instructions,
+            Instructions=None,
             verbose=True,
             order=2):
         self.qs = QuantStore

@@ -7,21 +7,29 @@ from pyscf import gto,mcscf,scf
 class MolecularHamiltonian(Hamiltonian):
     def __init__(self,
             mol,
+            mapping='jordan-wigner',
             int_thresh=1e-10,
             Ne_active_space='default',
             No_active_space='default',
             casci=False):
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('      -- HAMILTONIAN --  ')
+        print('-- -- -- -- -- -- -- -- -- -- --')
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
         self.ints_1e_ao = self.V_1e+self.T_1e
         self._model='molecule'
         self.ints_2e_ao = mol.intor('int2e')
+        self.real=True
+        self.imag=False
         self.hf = scf.ROHF(mol)
         self.hf.kernel()
         self.hf.analyze()
+        self.e0 = self.hf.e_tot
         self.C = self.hf.mo_coeff
         self.f = self.hf.get_fock()
+        self._order = 2
         if Ne_active_space=='default':
             self.Ne_as = mol.nelec[0]+mol.nelec[1]
         else:
@@ -43,15 +51,16 @@ class MolecularHamiltonian(Hamiltonian):
                     self.No_as,
                     self.Ne_as)
             self.mc.kernel()
-            self.e_casci  = self.mc.e_tot
+            self.ef  = self.mc.e_tot
+
             self.mc_coeff = self.mc.mo_coeff
-            print('CASCI Energy: {:.8f}'.format(float(self.e_casci)))
+            print('CASCI Energy: {:.8f}'.format(float(self.ef)))
         else:
             self.mc = None
         self.spin = mol.spin
         self.Ci = np.linalg.inv(self.C)
         self._generate_active_space()
-        self._en_c = mol.energy_nuc
+        self._en_c = mol.energy_nuc()
         self.ints_1e = generate_spin_1ei(
                 self.ints_1e_ao.copy(),
                 self.C.T,
@@ -78,19 +87,39 @@ class MolecularHamiltonian(Hamiltonian):
                 for k in range(0,self.r):
                     temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
                 self.K2[i,:,j,:]+= temp[:,:]
-        print('Done!')
+        print('... Done!')
         self._matrix = contract(self.K2)
         self._model = 'molecular'
+        self._mapping = mapping
         self._build_operator(int_thresh)
 
+    @property
+    def order(self):
+        return self._order
 
     @property
-    def qubit_operator(self,**kw):
+    def mapping(self):
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self,a):
+        self._mapping = a
+
+    @property
+    def qubit_operator(self):
         return self._qubOp
 
+    @qubit_operator.setter
+    def qubit_operator(self,b):
+        self._qubOp = b
+
     @property
-    def fermi_operator(self,**kw):
+    def fermi_operator(self):
         return self._ferOp
+
+    @fermi_operator.setter
+    def qubit_operator(self,b):
+        self._ferOp = b
 
     @property
     def matrix(self):
@@ -315,7 +344,6 @@ class MolecularHamiltonian(Hamiltonian):
                     for q in alp:
                         if p>=q:
                             continue
-                        print(p,r,s,q)
                         term1 = self.ints_2e[p,r,q,s]
                         term2 = self.ints_2e[p,s,q,r]
                         if abs(term1)>int_thresh:
@@ -334,14 +362,28 @@ class MolecularHamiltonian(Hamiltonian):
                                     spin='abba',
                                     )
                             hold_op['de'].append(newOp)
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('      --  INTEGRALS --  ')
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        ferOp = Operator()
+        name = {
+                'ne':'Number excitations:',
+                'nn':'Coulomb operators:',
+                'de':'Double excitations:',
+                'se':'Single excitations:',
+                'no':'Number operators:'
+                }
         for k,v in hold_op.items():
-            print('k: {}'.format(k))
+            print('{}'.format(name[k]))
             for item in v:
                 print(item.qInd,item.qOp,item.qSp,item.ind,item.qCo)
         for key, item in hold_op.items():
             for op in item:
-                op.generateHermitianExcitationOperators(Nq=2*self.No_as)
-
+                op.generateExponential(
+                        real=True,
+                        imag=False,
+                        Nq=2*self.No_as)
+                #op.generateHermitianExcitationOperators(Nq=2*self.No_as)
             def simplify(tp,tc):
                 done = False
                 def check_duplicate(paulis):
@@ -369,11 +411,13 @@ class MolecularHamiltonian(Hamiltonian):
         coeff = []
         tp,tc = [],[]
         for op in hold_op['no']:
-            for p,c in zip(op.pauliExp,op.pauliCoeff):
+            ferOp+= op
+            for p,c in zip(op.pPauli,op.pCoeff):
                 tp.append(p)
                 tc.append(c)
         for op in hold_op['nn']:
-            for p,c in zip(op.pauliExp,op.pauliCoeff):
+            ferOp+=op
+            for p,c in zip(op.pPauli,op.pCoeff):
                 tp.append(p)
                 tc.append(c)
         tp,tc = simplify(tp,tc)
@@ -386,7 +430,8 @@ class MolecularHamiltonian(Hamiltonian):
             op_list.append(item2)
         tp ,tc = [],[]
         for item in op_list:
-            for p,c in zip(item.pauliExp,item.pauliCoeff):
+            ferOp+=item
+            for p,c in zip(item.pPauli,item.pCoeff):
                 tp.append(p)
                 tc.append(c)
         tp,tc = simplify(tp,tc)
@@ -396,7 +441,8 @@ class MolecularHamiltonian(Hamiltonian):
         # simplification procedure for double excitations
         tp,tc = [],[]
         for item in hold_op['de']:
-            for p,c in zip(item.pauliExp,item.pauliCoeff):
+            ferOp+= item
+            for p,c in zip(item.pPauli,item.pCoeff):
                 tp.append(p)
                 tc.append(c)
         tp,tc = simplify(tp,tc)
@@ -405,10 +451,13 @@ class MolecularHamiltonian(Hamiltonian):
 
         #  # # # done
         new = Operator()
+        print('-- -- -- -- -- -- -- -- -- -- --')
         for p,c in zip(pauli,coeff):
-            new += QubitOperator(p,c)
-            print('P: {}, Value: {:.8f}'.format(p,c))
+            new += PauliOperator(p,c)
+            print('Term: {}, Value: {:.8f}'.format(p,c))
+        print('-- -- -- -- -- -- -- -- -- -- --')
         self._qubOp = new
+        self._ferOp = ferOp
 
     @property
     def model(self):

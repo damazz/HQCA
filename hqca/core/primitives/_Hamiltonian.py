@@ -4,7 +4,7 @@ takes Pauli strings from qiskit aqua package, and actually adds on Hamiltonian
 circuit
 '''
 
-def _pauliOp(Q,loc,sigma='x',inv=False):
+def pauliOp(Q,loc,sigma='x',inv=False):
     if sigma in ['Z','z']:
         pass
     elif sigma in ['X','x']:
@@ -18,36 +18,49 @@ def _pauliOp(Q,loc,sigma='x',inv=False):
             Q.qc.rx(pi/2,Q.q[loc])
 
 
-def _generic_Pauli_term(Q,val,pauli,scaling=1.0):
-    pauliTerms=0
-    ind = []
-    terms = []
-    for n,i in enumerate(pauli):
-        if not i in ['I','i']:
-            pauliTerms+=1
-            ind.append(n)
-            terms.append(i)
-    if pauliTerms==0:
-        #Q.qc.ph(val*scaling,Q.q[0])
-        Q.qc.u1(val,Q.q[0])
-        Q.qc.x(Q.q[0])
-        Q.qc.u1(val,Q.q[0])
-        Q.qc.x(Q.q[0])
+def generic_Pauli_term(Q,val,pauli,scaling=1.0):
+    if len(pauli)==1:
+        if pauli=='I':
+            pass
+            #Q.qc.u1(val,Q.q[0])
+            #Q.qc.x(Q.q[0])
+            #Q.qc.u1(val,Q.q[0])
+            #Q.qc.x(Q.q[0])
+        elif pauli=='X':
+            Q.qc.rx(val*scaling,Q.q[0])
+        elif pauli=='Y':
+            Q.qc.ry(val*scaling,Q.q[0])
+        elif pauli=='Z':
+            Q.qc.rz(val*scaling,Q.q[0])
     else:
-        # basis
-        for n,p in zip(ind,terms):
-            _pauliOp(Q,n,p)
-        # exp cnot
-        for n in range(0,pauliTerms-1):
-            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
-        # parameter
-        Q.qc.rz(val*scaling,Q.q[ind[-1]])
-        # exp cnot
-        for n in reversed(range(pauliTerms-1)):
-            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
-        # inv. basis
-        for n,p in zip(ind,terms):
-            _pauliOp(Q,n,p,inv=True)
+        pauliTerms=0
+        ind = []
+        terms = []
+        for n,i in enumerate(pauli):
+            if not i in ['I','i']:
+                pauliTerms+=1
+                ind.append(n)
+                terms.append(i)
+        if pauliTerms==0:
+            Q.qc.u1(val,Q.q[0])
+            Q.qc.x(Q.q[0])
+            Q.qc.u1(val,Q.q[0])
+            Q.qc.x(Q.q[0])
+        else:
+            # basis
+            for n,p in zip(ind,terms):
+                pauliOp(Q,n,p)
+            # exp cnot
+            for n in range(0,pauliTerms-1):
+                Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
+            # parameter
+            Q.qc.rz(val*scaling,Q.q[ind[-1]])
+            # exp cnot
+            for n in reversed(range(pauliTerms-1)):
+                Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
+            # inv. basis
+            for n,p in zip(ind,terms):
+                pauliOp(Q,n,p,inv=True)
 
 def _generic_Pauli_term_qiskit(Q,term,scaling=1):
     '''
@@ -74,7 +87,7 @@ def _generic_Pauli_term_qiskit(Q,term,scaling=1):
     else:
         # basis
         for n,p in zip(ind,terms):
-            __pauliOp(Q,n,p)
+            pauliOp(Q,n,p)
         # exp cnot
         for n in range(0,pauliTerms-1):
             Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
@@ -85,9 +98,6 @@ def _generic_Pauli_term_qiskit(Q,term,scaling=1):
             Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
         # inv. basis
         for n,p in zip(ind,terms):
-            __pauliOp(Q,n,p,inv=True)
+            pauliOp(Q,n,p,inv=True)
 
-def _add_Hamiltonian(Q,qubOp,scaling):
-    for term in qubOp:
-        _generic_Pauli_term_qiskit(Q,term,scaling=scaling)
 

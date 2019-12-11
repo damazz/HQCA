@@ -24,6 +24,16 @@ class Hamiltonian(ABC):
 
     @property
     @abstractmethod
+    def order(self):
+        return self._order
+
+    @order.setter
+    @abstractmethod
+    def order(self,a):
+        self._order = a
+
+    @property
+    @abstractmethod
     def matrix(self):
         return self._matrix
 
@@ -69,4 +79,5 @@ class Hamiltonian(ABC):
             ferOp.generateQubitOperators(transformation)
             newOp.append(ferOp.ops)
         self._qubOp = newOp
-        
+
+

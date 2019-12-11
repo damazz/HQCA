@@ -1,4 +1,3 @@
-from hqca.tools.Fermi import FermiOperator as Fermi
 import random
 import sys
 
@@ -127,9 +126,7 @@ def construct_simple_graph(items,related):
     return Graph(items,edges)
 
 
-
-
-def simplify_tomography(operators,method='RLF'):
+def simplify_tomography(operators,method='RLF',verbose=False):
     graph = construct_simple_graph(operators,pauli_relation)
     graph.color(method)
     new = {}
@@ -150,8 +147,12 @@ def simplify_tomography(operators,method='RLF'):
             for term in item:
                 paulis[term]=temp
         ops.append(temp)
-    print('Distinct pauli terms: {}'.format(len(operators)))
-    print('Distinct cliques: {}'.format(len(new)))
+    if verbose:
+        print('-- -- -- -- -- -- -- -- -- -- -- ')
+        print('      --   TOMOGRAPHY   --      ')
+        print('-- -- -- -- -- -- -- -- -- -- -- ')
+        print('Distinct pauli terms: {}'.format(len(operators)))
+        print('Distinct cliques: {}'.format(len(new)))
     return ops,paulis
 
 

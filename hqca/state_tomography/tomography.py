@@ -1,65 +1,61 @@
-from hqca.quantum.BuildCircuit import GenerateDirectCircuit
-from hqca.tools.Fermi import FermiOperator as Fermi
-from hqca.tools import Functions as fx
-from hqca.tools.RDMFunctions import check_2rdm
-from hqca.quantum._ReduceCircuit import simplify_tomography
 import numpy as np
 from scipy import stats
-from hqca.quantum.BuildCircuit import GenerateCircuit
-from hqca.quantum.primitives import _Tomo as tomo
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
-from hqca.tools.RDM import Recursive,RDMs
 import sys
 import traceback
 from timeit import default_timer as dt
-from hqca.core._tomography import Tomography
+from hqca.core import *
+from hqca.tools import *
+from hqca.circuits import *
+from hqca.state_tomography._reduce_circuit import simplify_tomography
+from hqca.core.primitives import *
 
-class Tomography(Tomography):
+class StandardTomography(Tomography):
     def __init__(self,
             QuantStore,
-            rdm_order=2,
-            preset_grouping=False,
-            mapping=None,
+            preset_cliques=False,
+            mapping=None, # pauli to reduced pauli
             tomography_terms=None,
             rdm_elements=None,
             verbose=True,
             **kw):
         self.run = False
-        self.No = QuantStre.No
         self.Nq = QuantStore.Nq
         self.qs = QuantStore
-        self.order = rdm_order
-        self.dim = tuple([self.Nq for i in range(2*rdm_order)])
+        self.p = QuantStore.p
+        self.dim = tuple([self.Nq for i in range(2*self.p)])
         self.circuits = []
         self.circuit_list = []
-        self.grouping = preset_grouping
+        self.grouping = preset_cliques
         self.mapping = mapping
         self.op = tomography_terms
+        self.op_type = QuantStore.op_type
         self.rdme = rdm_elements
         self.verbose=verbose
 
-    def set(self,Instructions):
+    def set(self,Instruct):
         if self.verbose:
             print('Generating circuits to run.')
         for circ in self.op:
             self.circuit_list.append(circ)
-            Q = GenerateGenericCircuit(
-                    self.qs,
-                    Instructions,
-                    _name=circ)
+            Q = GenericCircuit(
+                    QuantStore=self.qs,
+                    _name=circ,
+                    )
+            for item in self.qs.initial:
+                if self.qs.mapping in ['jordan-wigner','jw']:
+                    Q.qc.x(item)
+            Q.apply(Instruct=Instruct)
             for n,q in enumerate(circ):
-                tomo._apply_pauli_op(Q,n,q)
+                pauliOp(Q,n,q)
             if self.qs.backend in ['unitary_simulator','statevector_simulator']:
                 pass
             else:
                 Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
-            
-        for circ in self.op:
-            pass
 
     def construct(self):
         try:
@@ -70,23 +66,21 @@ class Tomography(Tomography):
             self.counts
         except AttributeError:
             sys.exit('Did you forget to run the circuit? No counts available.')
-        self._build_RDM()
+        if self.op_type=='fermionic':
+            self._build_fermionic_RDM()
+        elif self.op_type=='qubit':
+            self._build_qubitRDM()
 
-    def _build_RDM(self,variance=False):
+    def _build_fermionic_RDM(self,variance=False):
         nRDM = np.zeros(self.dim,dtype=np.complex_)
-        if variance:
-            vRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
             temp = 0
-            tempv = 0
-            for Pauli,coeff in zip(r.pauliGates,r.pauliCoeff):
-                get = self.mapping[Pauli]
+            for Pauli,coeff in zip(r.pPauli,r.pCoeff):
+                get = self.mapping[Pauli] #self.mapping has important get
+                # property to get the right pauli
                 zMeas = self.__measure_z_string(
                         self.counts[get],
                         Pauli)
-                if variance:
-                    p = (zMeas+1)/2
-                    tempv+= coeff*p*(1-p)
                 temp+= zMeas*coeff
             opAnn = r.ind[2:][::-1]
             opCre = r.ind[0:2]
@@ -104,30 +98,123 @@ class Tomography(Tomography):
                     if variance:
                         vRDM[ind1]+=tempv*s/2
                         vRDM[ind2]+=np.conj(tempv)*s/2
-        self.rdm = RDMs(
-                order=p,
-                alpha=self.qs.alpha['active'],
-                beta=self.qs.beta['active'],
+        self.rdm = RDM(
+                order=self.p,
+                alpha=self.qs.groups[0],
+                beta=self.qs.groups[1],
                 state='given',
                 Ne=self.qs.Ne,
                 rdm=nRDM)
 
+    def _build_qubitRDM(self):
+        if self.p==1:
+            self._build_qubit1RDM()
+        else:
+            self._build_qubit2RDM()
+
+    def _build_qubit1RDM(self):
+        self.rdm = qRDM(
+                order=self.p,
+                Nq=self.Nq,
+                state='blank',)
+        for r in self.rdme:
+            temp=0
+            for Pauli,coeff in zip(r.pPauli,r.pCoeff):
+                get = self.mapping[Pauli] #self.mapping has important get
+                # property to get the right pauli
+                zMeas = self.__measure_z_string(
+                        self.counts[get],
+                        Pauli)
+                temp+= zMeas*coeff
+            if r.sqOp=='p':
+                self.rdm.rdm[0,1,1]+=temp
+            elif r.sqOp=='h':
+                self.rdm.rdm[0,0,0]+=temp
+            elif r.sqOp=='-':
+                self.rdm.rdm[0,0,1]+=temp
+            elif r.sqOp=='+':
+                self.rdm.rdm[0,1,0]+=temp
+
+    def _build_qubit2RDM(self):
+        self.rdm = qRDM(order=2,
+                Nq=self.Nq,
+                state='blank')
+        for r in self.rdme:
+            temp = 0
+            for Pauli,coeff in zip(r.pPauli,r.pCoeff):
+                get = self.mapping[Pauli] #self.mapping has important get
+                # property to get the right pauli
+                zMeas = self.__measure_z_string(
+                        self.counts[get],
+                        Pauli)
+                temp+= zMeas*coeff
+            ia = self.rdm.rev_map[tuple(r.qInd)]
+            ib = self.rdm.rev_sq[r.sqOp]
+            ind = tuple([ia])+ib
+            self.rdm.rdm[ind]+= temp
+
+
     def generate(self,**kw):
-        if self.order==2:
-            self._generate_2rdme()
-        elif self.order==1:
-            self._generate_1rdme()
+        if self.op_type=='fermionic':
+            if self.p==2:
+                self._generate_2rdme(**kw)
+            elif self.p==1:
+                self._generate_1rdme(**kw)
+        elif self.op_type=='qubit':
+            if self.p==2:
+                self._generate_2qrdme(**kw)
+            elif self.p==1:
+                self._generate_1qrdme(**kw)
         self._generate_pauli_measurements()
-        
-    def _generate_1rdme(self,real=True,imag=False,**kw):
-        pass
+
+    def _generate_1qrdme(self,**kw):
+        '''
+        generates 1-local properties, i.e. local qubit properties
+        this includes the set of 
+        '''
+        rdme = []
+        if not self.grouping:
+            def sub_rdme(i,op):
+                test = QubitOperator(
+                        coeff=1,
+                        indices=[i],
+                        sqOp=op)
+                test.generateTomography(Nq=self.Nq,**kw)
+                return test
+            for i in range(self.Nq):
+                rdme.append(sub_rdme(i,'+'))
+                rdme.append(sub_rdme(i,'-'))
+                rdme.append(sub_rdme(i,'p'))
+                rdme.append(sub_rdme(i,'h'))
+        self.rdme = rdme
+
+    def _generate_2qrdme(self,**kw):
+        '''
+        generates 1-local properties, i.e. local qubit properties
+        this includes the set of 
+        '''
+        rdme = []
+        if not self.grouping:
+            def sub_rdme(i,j,op):
+                test = QubitOperator(
+                        coeff=1,
+                        indices=[i,j],
+                        sqOp=op)
+                test.generateTomography(Nq=self.Nq,**kw)
+                return test
+            for j in range(self.Nq):
+                for i in range(j):
+                    for p in ['+','-','p','h']:
+                        for k in ['+','-','p','h']:
+                            rdme.append(sub_rdme(i,j,p+k))
+        self.rdme = rdme
 
     def _generate_2rdme(self,real=True,imag=False,**kw):
         if not self.grouping:
-            alp = self.qs.alpha['active']
+            alp = self.qs.groups[0]
             Na = len(alp)
             rdme = []
-            bet = self.qs.beta['active']
+            bet = self.qs.groups[1]
             S = []
 
             def sub_rdme(i,k,l,j,spin):
@@ -177,12 +264,11 @@ class Tomography(Tomography):
                             new = sub_rdme(i,k,l,j,'abba')
                             rdme.append(new)
             self.rdme = rdme
-            self._generate_pauli_measurements()
 
     def _generate_pauli_measurements(self):
         paulis = []
         for fermi in self.rdme:
-            for j in fermi.pauliGates:
+            for j in fermi.pPauli:
                 if j in paulis:
                     pass
                 else:
@@ -226,7 +312,6 @@ class Tomography(Tomography):
                 total+=n
             val = val/total
         return val
-
 
     def simulate(self,verbose=False):
         beo = self.qs.beo
@@ -272,12 +357,20 @@ class Tomography(Tomography):
         if self.qs.backend=='unitary_simulator':
             job = beo.run(qo)
             for circuit in self.circuit_list:
-                print(job.result().get_unitary(circuit))
-                #counts.append(job.result().get_counts(name))
+                #print(job.result().get_unitary(circuit))
+                counts.append(job.result().get_counts(name))
         elif self.qs.backend=='statevector_simulator':
             job = beo.run(qo)
             for circuit in self.circuit_list:
+                if verbose:
+                    print('Circuit: {}'.format(circuit))
+                    print(job.result().get_statevector(circuit))
                 counts.append(job.result().get_statevector(circuit))
+            for circ in self.circuits:
+                if circ.name=='Z':
+                    print(circ)
+                elif circ.name=='ZZ':
+                    print(circ)
         elif self.qs.use_noise:
             try:
                 job = beo.run(
@@ -301,6 +394,8 @@ class Tomography(Tomography):
                 print(e)
                 traceback.print_exc()
         self.counts = {i:j for i,j in zip(self.circuit_list,counts)}
+        #for k,v in self.counts.items():
+        #    print(k,v)
 
 
     def evaluate_error(

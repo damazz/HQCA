@@ -4,7 +4,11 @@ from abc import ABC, abstractmethod
 
 class Instructions(ABC):
     '''
-    Should input an ansatz, and then output the proper circuit instructions
+
+    Instructions, or Instruct class.
+
+    Takes an input operator, and then follows a standard set of instructions to
+    process the operator and generate a gates object.
 
     For default, maybe no action? 
     '''
@@ -14,10 +18,6 @@ class Instructions(ABC):
             **kw):
         self._gates = []
 
-
-    @abstractmethod
-    def convert_ansatz(self):
-        pass
 
 
     @property

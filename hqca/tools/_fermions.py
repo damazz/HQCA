@@ -1,4 +1,5 @@
 import numpy as np
+from hqca.tools._operator import *
 
 
 class FermionicOperator:
@@ -26,6 +27,9 @@ class FermionicOperator:
         self._qubit_order()
         self._classify()
 
+    def __str__(self):
+        z = '{},{},{}: {}'.format(self.ind,self.op,self.sp,self.c)
+        return z
 
     def hasSameInd(self,b):
         '''
@@ -37,10 +41,10 @@ class FermionicOperator:
             return False
 
     def clear(self):
-        self.pauliExp = []
-        self.pauliGet = []
-        self.pauliCoeff = []
-        self.pauliGates = []
+        self.pPauli = []
+        self.pGet = []
+        self.pCoeff = []
+        self.pPauli = []
 
     def hasSameOp(self,b):
         return self.qOp==b.qOp
@@ -65,15 +69,13 @@ class FermionicOperator:
                         return False
         return True
 
-    #def isSame(self,b):
-    def __eq__(self,b):
+    def isSame(self,b):
         if self.hasSameInd(b) and self.hasSameOp(b):
             return True
         else:
             return False
 
-    def __neq__(self,b):
-    #def isHermitian(self,b):
+    def isHermitian(self,b):
         if self.hasSameInd(b) and self.hasHermitianOp(b):
             return True
         else:
@@ -146,21 +148,59 @@ class FermionicOperator:
     #
     ##
 
-    def generateHermitianExcitationOperators(self,**kw):
+    def generateExponential(self,real,imag,**kw):
+        if real:
+            if self.opType=='nn':
+                self._HermitianNumNumOperator(**kw)
+            elif self.opType=='ne':
+                self._HermitianNumExcOperator(**kw)
+            elif self.opType=='de':
+                self._HermitianDoubleExcOperator(**kw)
+            elif self.opType=='se':
+                self._HermitianSingleExcOperator(**kw)
+            elif self.opType=='no':
+                self._HermitianNumberOperator(**kw)
+        elif imag:
+            if self.opType=='ne':
+                self._antiHermitianNumExcOperator(**kw)
+            elif self.opType=='de':
+                self._antiHermitianDoubleExcOperator(**kw)
+            elif self.opType=='se':
+                self._antiHermitianSingleExcOperator(**kw)
+            else:
+                self.pPauli=[]
+                self.pCoeff=[]
+
+    def generateTomography(self,**kw):
+        '''
+        Note...provides the tomography elements to give the real and/or
+        imaginary component of the second-quantized term that is the qubit
+        operator. For instance, 
+        q+p-, for p<q, will get reorinted into the qubit basis:
+            -p-q+ (this is no longer the exact RDM element), and we have:
+                self.c = c, self.qCo = -c
+        Now, to do tomography on p-q+, we have:
+            Re: p-q+ = (p-q+ + (p-q+)^\dag)/2
+                     = (p-q+ + q-p+) 
+                     = (p-q+ - p+q-)
+                     = 1/2 (XX+YY)
+                     -> (XX)
+        Note, to get our original tomography, we should multiply our result
+        times q2rdm, which brings qubit ordered to RDM ordered, which should be
+        the original ordering
+        '''
         if self.opType=='nn':
-            self._HermitianNumNumOperator(**kw)
+            self._NumNumTomography(**kw)
         elif self.opType=='ne':
-            self._HermitianNumExcOperator(**kw)
+            self._NumExcTomography(**kw)
         elif self.opType=='de':
-            self._HermitianDoubleExcOperator(**kw)
+            self._ExcExcTomographySimple(**kw)
         elif self.opType=='se':
-            self._HermitianSingleExcOperator(**kw)
-        elif self.opType=='no':
-            self._HermitianNumberOperator(**kw)
+            sys.exit('Not set up for single-excitations!')
 
     def _HermitianNumberOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         c = 1
@@ -176,13 +216,13 @@ class FermionicOperator:
                     'I'*self.qInd[0],
                     item[0],
                     'I'*(Nq-1-self.qInd[0]))
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
 
     def _HermitianSingleExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         c = 1
@@ -201,15 +241,15 @@ class FermionicOperator:
                     'Z'*n1,
                     item[1],
                     'I'*(Nq-1-self.qInd[1]))
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
     def _HermitianNumNumOperator(self,Nq='default',**kw):
         '''
         aka, Coloumb operator
         ''' 
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         c = 1/4
@@ -234,12 +274,12 @@ class FermionicOperator:
                     'I'*n1,
                     item[1],
                     'I'*(Nq-1-self.qInd[2]))
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
     def _HermitianNumExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         inds = [
                 self.qInd[0]==self.qInd[1],
                 self.qInd[1]==self.qInd[2],
@@ -280,8 +320,8 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
         elif inds[0]:
             n1= self.qInd[2]-(self.qInd[1]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
@@ -310,8 +350,8 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
         elif inds[2]:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[2]-(self.qInd[1]+1)
@@ -340,12 +380,12 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
 
     def _HermitianDoubleExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         n1,n3 = self.qInd[1]-(self.qInd[0]+1),self.qInd[3]-(self.qInd[2]+1)
@@ -384,8 +424,8 @@ class FermionicOperator:
                         'I'*n3,
                         item[3],
                         'I'*(Nq-1-self.qInd[3]))
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
     ##
     #
@@ -393,20 +433,10 @@ class FermionicOperator:
     #
     ##
 
-    def generateAntiHermitianExcitationOperators(self,**kw):
-        if self.opType=='ne':
-            self._antiHermitianNumExcOperator(**kw)
-        elif self.opType=='de':
-            self._antiHermitianDoubleExcOperator(**kw)
-        elif self.opType=='se':
-            self._antiHermitianSingleExcOperator(**kw)
-        else:
-            self.pauliExp=[]
-            self.pauliCoeff=[]
 
     def _antiHermitianSingleExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         c = 1
@@ -434,12 +464,12 @@ class FermionicOperator:
                         item[1],
                         'I'*(Nq-1-self.qInd[1]))
 
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
     def _antiHermitianNumExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         inds = [
                 self.qInd[0]==self.qInd[1],
                 self.qInd[1]==self.qInd[2],
@@ -477,8 +507,8 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
         elif inds[0]:
             self.num =self.qInd[0]
             n1= self.qInd[2]-(self.qInd[1]+1)
@@ -508,8 +538,8 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
         elif inds[2]:
             self.num = self.qInd[2]
             n1= self.qInd[1]-(self.qInd[0]+1)
@@ -539,12 +569,12 @@ class FermionicOperator:
                             'I'*n2,
                             item[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliExp.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
 
     def _antiHermitianDoubleExcOperator(self,Nq='default',**kw):
-        self.pauliExp = []
-        self.pauliCoeff = []
+        self.pPauli = []
+        self.pCoeff = []
         if Nq=='default':
             Nq = max(self.qInd)
         n1,n3 = self.qInd[1]-(self.qInd[0]+1),self.qInd[3]-(self.qInd[2]+1)
@@ -589,8 +619,8 @@ class FermionicOperator:
                         'I'*n3,
                         item[3],
                         'I'*(Nq-1-self.qInd[3]))
-            self.pauliExp.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
 
     ##
     #
@@ -598,40 +628,14 @@ class FermionicOperator:
     #
     ##
 
-    def generateTomoBasis(self,**kw):
-        '''
-        Note...provides the tomography elements to give the real and/or
-        imaginary component of the second-quantized term that is the qubit
-        operator. For instance, 
-        q+p-, for p<q, will get reorinted into the qubit basis:
-            -p-q+ (this is no longer the exact RDM element), and we have:
-                self.c = c, self.qCo = -c
-        Now, to do tomography on p-q+, we have:
-            Re: p-q+ = (p-q+ + (p-q+)^\dag)/2
-                     = (p-q+ + q-p+) 
-                     = (p-q+ - p+q-)
-                     = 1/2 (XX+YY)
-                     -> (XX)
-        Note, to get our original tomography, we should multiply our result
-        times q2rdm, which brings qubit ordered to RDM ordered, which should be
-        the original ordering
-        '''
-        if self.opType=='nn':
-            self._NumNumTomography(**kw)
-        elif self.opType=='ne':
-            self._NumExcTomography(**kw)
-        elif self.opType=='de':
-            self._ExcExcTomographySimple(**kw)
-        elif self.opType=='se':
-            sys.exit('Not set up for single-excitations!')
         
     def _ExcTomography(self):
         pass
 
     def _NumNumTomography(self,real=True,imag=False,Nq='default'):
-        self.pauliGates = []
-        self.pauliCoeff = []
-        self.pauliGet = []
+        self.pPauli = []
+        self.pCoeff = []
+        self.pGet = []
         if Nq=='default':
             Nq = max(self.qInd)
         n1= self.qInd[2]-(self.qInd[1]+1)
@@ -675,9 +679,9 @@ class FermionicOperator:
                         'I'*n1,
                         get[1],
                         'I'*(Nq-1-self.qInd[3]))
-            self.pauliGates.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
-            self.pauliGet.append(tempGet)
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
+            self.pGet.append(tempGet)
 
 
     def _NumExcTomography(self,real=True,imag=False,Nq='default'):
@@ -691,9 +695,9 @@ class FermionicOperator:
         Note, we did not swap the q+q- operator, due to the unwanted inclusion
         of the 1-RDM element.
         '''
-        self.pauliGates = []
-        self.pauliCoeff = []
-        self.pauliGet = []
+        self.pPauli = []
+        self.pCoeff = []
+        self.pGet = []
         inds = [
                 self.qInd[0]==self.qInd[1],
                 self.qInd[1]==self.qInd[2],
@@ -777,9 +781,9 @@ class FermionicOperator:
                             'I'*n2,
                             get[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
+                self.pGet.append(tempGet)
         elif inds[0]:
             n1= self.qInd[2]-(self.qInd[1]+1)
             n2= self.qInd[3]-(self.qInd[2]+1)
@@ -854,9 +858,9 @@ class FermionicOperator:
                             'I'*n2,
                             get[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
+                self.pGet.append(tempGet)
         elif inds[2]:
             n1= self.qInd[1]-(self.qInd[0]+1)
             n2= self.qInd[2]-(self.qInd[1]+1)
@@ -931,14 +935,14 @@ class FermionicOperator:
                             'I'*n2,
                             get[2],
                             'I'*(Nq-1-self.qInd[3]))
-                self.pauliGates.append(temp)
-                self.pauliCoeff.append(co*self.qCo)
-                self.pauliGet.append(tempGet)
+                self.pPauli.append(temp)
+                self.pCoeff.append(co*self.qCo)
+                self.pGet.append(tempGet)
 
     def _ExcExcTomographySimple(self,real=True,imag=False,Nq='default'):
-        self.pauliGates = []
-        self.pauliCoeff = []
-        self.pauliGet = []
+        self.pPauli = []
+        self.pCoeff = []
+        self.pGet = []
         if Nq=='default':
             Nq = max(self.qInd)
         n1,n3 = self.qInd[1]-(self.qInd[0]+1),self.qInd[3]-(self.qInd[2]+1)
@@ -1029,8 +1033,13 @@ class FermionicOperator:
                         'I'*n3,
                         item[3],
                         'I'*(Nq-1-self.qInd[3]))
-            self.pauliGates.append(temp)
-            self.pauliCoeff.append(co*self.qCo)
-            self.pauliGet.append(tempGet)
-
+            self.pPauli.append(temp)
+            self.pCoeff.append(co*self.qCo)
+            self.pGet.append(tempGet)
+    
+    def formOperator(self):
+        new = Operator()
+        for p,c in zip(self.pPauli,self.pCoeff):
+            new+=PauliOperator(p,c)
+        return new
 

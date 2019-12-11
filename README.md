@@ -1,4 +1,5 @@
 # Hybrid Quantum Classical Algorithm for Quantum Chemistry Computation
+# v 2.0 
 
 Program is a compilation of different programs and utilites I have developed
 along the course of my doctoral studies under Prof. David A. Mazziotti at the 

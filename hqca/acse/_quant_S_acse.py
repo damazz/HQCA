@@ -1,8 +1,7 @@
-from hqca.quantum.QuantumFunctions import QuantumStorage
-from hqca.tools.Fermi import FermiOperator
 import numpy as np
 import sys
-from hqca.acse.BuildAnsatz import Ansatz
+from hqca.tools import *
+from hqca.state_tomography import *
 
 '''
 /hqca/acse/FunctionsQACSE.py
@@ -12,8 +11,20 @@ the S matrix through time evolution of the Hamiltonian.
 '''
 
 def findSPairsQuantum(
-        Store,
-        QuantStore,
+        op_type,
+        **kw
+        ):
+    if op_type=='fermionic':
+        newS = _findFermionicSQuantum(**kw)
+    elif op_type=='qubit':
+        newS = _findQubitSQuantum(**kw)
+    return newS
+
+def _findFermionicSQuantum(
+        operator=None,
+        instruct=None,
+        store=None,
+        quantstore=None,
         verbose=False,
         separate=False,
         trotter_steps=1,
@@ -22,6 +33,7 @@ def findSPairsQuantum(
         qS_screen=0.1,
         hamiltonian_step_size=1.0,
         ordering='default',
+        depth=1,
         ):
     '''
     need to do following:
@@ -31,56 +43,56 @@ def findSPairsQuantum(
     '''
     if verbose:
         print('Generating new S pairs with Hamiltonian step.')
-    newS = []
-    newPsi = Ansatz(
-            Store,
-            QuantStore,
-            propagateTime=True,
-            scalingHam=hamiltonian_step_size,
-            **QuantStore.imTomo_kw
+    newPsi = instruct(
+            operator=operator,
+            Nq=quantstore.Nq,
+            propagate=True,
+            HamiltonianOperator=store.H.qubit_operator,
+            scaleH=hamiltonian_step_size,
+            depth=depth
             )
-    newPsi.build_tomography(trotter_steps=trotter_steps)
+    newCirc = StandardTomography(
+            quantstore,
+            )
+    newCirc.generate(real=False,imag=True)
+    newCirc.set(newPsi)
     if verbose:
         print('Running circuits...')
-    newPsi.run_circuit(verbose=verbose)
+    newCirc.simulate(verbose=True)
     if verbose:
         print('Constructing the RDMs...')
-    newPsi.construct_rdm()
-    new = np.nonzero(np.imag(newPsi.rdm2.rdm))
-    newS = []
+    newCirc.construct()
+    rdm = np.imag(newCirc.rdm.rdm)
+    new = np.transpose(np.nonzero(rdm))
     hss = (1/hamiltonian_step_size)
     max_val = 0
-    for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
-        if abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])*hss>max_val:
-            max_val = abs(np.imag(newPsi.rdm2.rdm)[i,k,j,l])*hss
-    #print('Max S val: {}'.format(max_val))
+    for inds in new:
+        ind = tuple(inds)
+        v = abs(rdm[ind])*hss
+        if v>max_val:
+            max_val = v
     print('Elements of S from quantum generation: ')
-    for i,k,j,l in zip(new[0],new[1],new[2],new[3]):
-        val = np.imag(newPsi.rdm2.rdm)[i,k,j,l]*hss
+    newS = []
+    for index in new:
+        ind = tuple(index)
+        val = rdm[ind]*hss
         if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
-            #print('Si: {:.6f}:{}{}{}{}'.format(val,i,k,j,l))
-            c1 =  (i in QuantStore.alpha['active'])
-            c2 =  (k in QuantStore.alpha['active'])
-            c3 =  (l in QuantStore.alpha['active'])
-            c4 =  (j in QuantStore.alpha['active'])
-            spin = '{}{}{}{}'.format(
-                    c1*'a'+(1-c1)*'b',
-                    c2*'a'+(1-c2)*'b',
-                    c3*'a'+(1-c3)*'b',
-                    c4*'a'+(1-c4)*'b',
-                    )
-            newEl = FermiOperator(
-                    val,
-                    indices=[i,k,l,j],
-                    sqOp='++--',
-                    spin=spin
-                    )
+            if quantstore.op_type=='fermionic':
+                spin = ''
+                for item in ind:
+                    c = item in quantstore.alpha['active']
+                    spin+= 'a'*c+(1-c)*'b'
+                l = len(ind)
+                sop = l//2*'+'+l//2*'-'
+                newEl = FermionicOperator(
+                        -val,
+                        indices=list(ind),
+                        sqOp=sop,
+                        spin=spin
+                        )
             if len(newS)==0:
                 newS.append(newEl)
-                if verbose:
-                    print('S: [{},{},{},{}]: {:+.10f}'.format(
-                        i,k,l,j,np.real(val)))
-                    print(newEl.qOp,newEl.qInd,newEl.qSp)
+                print(newEl)
             else:
                 add = True
                 for o in newS:
@@ -90,9 +102,8 @@ def findSPairsQuantum(
                 if add:
                     newS.append(newEl)
                     if verbose:
-                        print('S: [{},{},{},{}]: {:+.10f}'.format(
-                            i,k,l,j,np.real(val)))
-                        print(newEl.qOp,newEl.qInd,newEl.qSp)
+                        st = 'S: {}: {}'.format(str(ind),val)
+                        print(st)
     hold_type = [(op.opType=='de') for op in newS]
     if ordering=='default':
         new_S_ord_de_a = []
@@ -116,17 +127,135 @@ def findSPairsQuantum(
         while not done:
             for i in range(len(hold_type)):
                 if hold_type[i]:
-                    if abs(newS[i].qCo)<=limit:
-                        if abs(newS[i].qCo)>limit*0.1:
+                    if abs(newS[i].c)<=limit:
+                        if abs(newS[i].c)>limit*0.1:
                             new_S_ord.append(newS[i])
             for i in range(len(hold_type)):
                 if not hold_type[i]:
-                    if abs(newS[i].qCo)<=limit:
-                        if abs(newS[i].qCo)>limit*0.1:
+                    if abs(newS[i].c)<=limit:
+                        if abs(newS[i].c)>limit*0.1:
                             new_S_ord.append(newS[i])
             if limit<max_val*qS_thresh_rel:
                 done=True
             limit*=0.1
         newS = new_S_ord[:]
+    newS = Operator(ops=newS,antihermitian=True)
     return newS
 
+def _findQubitSQuantum(
+        operator,
+        instruct,
+        store,
+        quantstore,
+        verbose=False,
+        separate=False,
+        trotter_steps=1,
+        qS_thresh_rel=0.1,
+        qS_max=1e-10,
+        qS_screen=0.1,
+        hamiltonian_step_size=1.0,
+        ordering='default',
+        propagate_method='trotter',
+        depth=1,
+        commutative=True,
+        ):
+    '''
+    need to do following:
+        1. prepare the appropriate Hailtonian circuit
+        2. implement it
+        3. find S from resulting matrix
+    '''
+    if verbose:
+        print('Generating new S pairs with Hamiltonian step.')
+    newPsi = instruct(
+            operator=operator,
+            Nq=quantstore.Nq,
+            propagate=True,
+            trotter_steps=trotter_steps,
+            HamiltonianOperator=store.H.qubit_operator,
+            scaleH=hamiltonian_step_size,
+            depth=depth,
+            propagate_method=propagate_method
+            )
+    newCirc = StandardTomography(
+            quantstore,
+            )
+    newCirc.generate(real=True,imag=True)
+    newCirc.set(newPsi)
+    if verbose:
+        print('Running circuits...')
+    newCirc.simulate(verbose=True)
+    if verbose:
+        print('Constructing the RDMs...')
+    newCirc.construct()
+    RDM = newCirc.rdm - store.rdm
+    print(store.rdm.rdm)
+    rdmRe = np.real(RDM.rdm)
+    rdmIm = np.imag(RDM.rdm)
+    print('RDM:')
+    print(newCirc.rdm.rdm)
+    print(RDM.rdm)
+    if quantstore.Nq==1:
+        print('Z1: {}'.format(rdmRe[0,0,0]))
+        print('Z2: {}'.format(rdmRe[0,1,1]))
+        print('X:  {}'.format(rdmRe[0,0,1]))
+        print('Y:  {}'.format(rdmIm[0,0,1]))
+        print('Real rdm...')
+        print(rdmRe)
+        print('Imaginary rdm...')
+        print(rdmIm)
+    newRe = np.transpose(
+            np.nonzero(
+                rdmRe
+                )
+            )
+    newIm = np.transpose(
+            np.nonzero(
+                rdmIm
+                )
+            )
+    newRho = np.transpose(
+            np.nonzero(
+                RDM.rdm
+                )
+            )
+    hss = (1/hamiltonian_step_size)
+    if quantstore.Nq==1:
+        c = 2
+    elif quantstore.Nq==2:
+        c = 4
+    max_val = 0
+    for inds in newRe:
+        ind = tuple(inds)
+        v = abs(rdmRe[ind])*hss
+        if v>max_val:
+            max_val = v
+    for inds in newIm:
+        ind = tuple(inds)
+        v = abs(rdmIm[ind])*hss
+        if v>max_val:
+            max_val = v
+    print('Elements of S from quantum generation: ')
+    newS = Operator()
+    for index in newRho:
+        ind = tuple(index)
+        val = RDM.rdm[ind]*hss*c
+        if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
+            i = RDM.mapping[ind[0]]
+            sq = RDM.sq_map[tuple(ind[1:])]
+            newEl = QubitOperator(
+                    val,
+                    indices=i,
+                    sqOp=sq,
+                    add=True,
+                    )
+            newEl.generateOperators(Nq=quantstore.Nq,real=True,imag=True)
+            newS+= newEl.formOperator()
+    print(newS)
+    if commutative:
+        pass
+    else:
+        for i in newS.op:
+            i.add=False
+    #newS.reordering(method='hamiltonian',qubOpH=store.H.qubOp)
+    return newS

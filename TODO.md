@@ -1,5 +1,20 @@
  TODO/Changelog List
 
+### 12/5/2019
+
+* Implementing 2-qubit case
+* Clean up output, 
+* Allow for different initial states
+    * ~~~Understanding paths, plotting trajectories~~~
+* ~~~Find some model Hamiltonians~~~
+* Clean up Ansatz treatment so that it generates Pauli operators
+* Start to look for simple instructions...
+* Also, error mitigation, look at doing variaitonal methods on IBM devices
+
+### 11/29/2019 
+
+* Where does init functions go? 
+
 ### 11/25/2019
 
 * Adjust hamiltonian qubit operators so it is consistent

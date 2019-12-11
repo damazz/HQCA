@@ -1,43 +1,94 @@
 from hqca.core.primitives import *
+import sys
 from hqca.core import *
 
 
 class PauliSet(Instructions):
     '''
-    Simple object - generate gates
+    Simple object - generate gates from an operator.
+
+    Default interpretation here is to generate the exponential of the operators
+    Pauli strings which are in each gates operator object.
+
+    If no simplification has happened beforehand, then none is applied here.
     '''
-    def __init__(self):
+    def __init__(self,
+            operator,
+            Nq,
+            propagate=False,
+            initial_state=[],
+            **kw
+            ):
         self._gates = []
+        self._applyOp(operator,Nq,**kw)
+        if propagate:
+            self._applyH(**kw)
 
-    def _applyAns(
-            Ansatz,
-            apply_H=True,
-            order=1
+    def clear(self):
+        self._gates = []
+        pass
+
+    @property
+    def gates(self):
+        return self._gates
+
+    @gates.setter
+    def gates(self,a):
+        self._gates = a
+
+    def _set_initial(self):
+        pass
+
+    def _applyOp(self,
+            operator,Nq,depth=1,
             **kw):
-        for item in Ansatz.ansatz:
-            self._gates.append(
-                    [(
-                        item.PauliCoeff,
-                        item.pauliExp,
-                        ),
-                        _generic_Pauli_term
-                        ]
-                    )
-        if apply_H:
-            self._applyH(method,**kw)
-
+        #print('----------------------')
+        #print('Operator')
+        for d in range(depth):
+            for item in operator.op:
+                try:
+                    item.p
+                    if abs(item.c.imag)<1e-10:
+                        c = item.c.real
+                    elif abs(item.c.real)<1e-10:
+                        c =  item.c.imag
+                    if abs(c)>1e-10:
+                        #print(item)
+                        self._gates.append(
+                                [(
+                                    c/depth,
+                                    item.p,
+                                    ),
+                                    generic_Pauli_term
+                                    ]
+                                )
+                except AttributeError:
+                    item.clear()
+                    item.generateOperators(Nq=Nq)
+                    for p,c in zip(item.pPauli,item.pCoeff):
+                        self._gates.append(
+                                [(
+                                    c/depth,
+                                    p,
+                                    ),
+                                    generic_Pauli_term
+                                    ]
+                                )
+                except Exception as e:
+                    print(e)
 
     def _applyH(self,
-            trotter_steps,
-            Hamiltonian,
-            scaleH):
+            HamiltonianOperator,
+            trotter_steps=1,
+            scaleH=0.5,**kw):
         for i in range(trotter_steps):
-            for item in Hamiltonian.operator:
+            for item in HamiltonianOperator.op:
                 self._gates.append(
                         [(
-                            (1/trotter_steps)*scaleH*item.pauliCoeff,
-                            item.pauliExp
+                            (1/trotter_steps)*scaleH*item.c,
+                            item.p
                             ),
-                            _generic_Pauli_term
+                            generic_Pauli_term
                             ]
                         )
+

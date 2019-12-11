@@ -7,73 +7,119 @@ from functools import reduce
 from hqca.tools import _rdmfunctions as rdmf
 
 
-class RDM:
+class qRDM:
     '''
-    RDM class which allows for construction from Hartree-Fock state,
-    reconstruction, multiplication and addition. 
+    qRDM class which allows for general qubit reduced density matrices,
+    which are similar to the general fermionic reduced density matrices, but
+    contain an additional final index depending on the degree k of the operator. 
+    I.e., 1-local, 2-local, etc.
+
+    i.e., for 4 qubits, the 1-qrdm matrix has 2**1 matrices that are each
+    4*4, stored as [4,4,2]
+    11, 12, 13, 14, 21, 22, 23....
+    The distninct 2**k matrices represent the different excitations. I.e., ++,
+    +-, -+, --, in standard order. 
     '''
     def __init__(self,
             order=2,
-            alpha=[],
-            beta=[],
-            state='hf',
-            Ne=None,
-            S=0,
-            S2=0,
-            verbose=0,
+            Nq=1,
+            state='zero',
+            verbose=True,
             rdm=None
             ):
         self.p = order
-        self.r = len(alpha)+len(beta) # spin
+        self.r = Nq # spin
         self.R = int(self.r/2)
-        self.v = verbose
-        self.alp = alpha
-        self.bet = beta
-        self.S=S
-        self.S2=S2
-        self.Ne=Ne
-        self.s2s = {}
-        for n,a in enumerate(alpha):
-            self.s2s[a]=n
-        for n,b in enumerate(beta):
-            self.s2s[b]=n
-        self.N_alp = int(Ne+S)//2
-        self.N_bet = Ne-self.N_alp
-        if state in ['hartree','hf','scf']:
-            if self.v>0:
+        self.verbose = verbose
+        if state in ['zero','initial']:
+            if self.verbose:
                 print('Making Hartree-Fock {}-RDM'.format(self.p))
-            if self.S==0:
-                self._build_hf_singlet()
-            elif self.S==1:
-                self._build_hf_doublet()
+                self._zero_state()
         elif state in ['wf']:
             pass
         elif state in ['given','provided','spec']:
-            try:
-                self.rdm = rdm.copy()
-            except Exception:
-                self.rdm = rdm
+            pass
         else:
-            self.rdm = np.zeros(
-                    tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
+            a = [self.choose(self.r,self.p)]
+            b = [2**self.p,2**self.p]
+            self._qrdm= np.zeros(
+                    tuple(a+b
+                        ),
+                    dtype=np.complex_)
+        Rec = Recursive(depth=self.p,choices=[i for i in range(self.r)])
+        Rec.permute()
+        self.mapping = {}
+        self.rev_map = {}
+        for n,groups in enumerate(Rec.total):
+            self.mapping[n]=groups
+            self.rev_map[tuple(groups)]=n
+        self._second_quantized_matrix()
+
+
+    def _second_quantized_matrix(self):
+        if self.p==1:
+            self.sq_map = {
+                    (0,0):'h',(0,1):'-',
+                    (1,1):'p',(1,0):'+',
+                    }
+        elif self.p==2:
+            self.sq_map = {
+                    (0,0):'hh',(0,1):'h-',(0,2):'-h',(0,3):'--',
+                    (1,0):'h+',(1,1):'hp',(1,2):'-+',(1,3):'-p',
+                    (2,0):'+h',(2,1):'+-',(2,2):'ph',(2,3):'p-',
+                    (3,0):'++',(3,1):'+p',(3,2):'p+',(3,3):'pp',
+                    }
+            self.rev_sq = {v:k for k,v in self.sq_map.items()}
+
+
+    def choose(self,n,k):
+        return int(factorial(n)/(factorial(k)*factorial(n-k)))
+
+    def _num_to_tuple(num):
+        pass
+
+    def _zero_state(self):
+        Rec = Recursive(depth=self.p,choices=[i for i in range(self.r)])
+        Rec.permute()
+        #a = [self.r for i in range(2*self.p)]
+        a = [self.choose(self.r,self.p)]
+        b = [2**self.p,2**self.p]
+        self._qrdm= np.zeros(
+                tuple(a+b
+                    ),
+                dtype=np.complex_)
+        for n,groups in enumerate(Rec.total):
+            self._qrdm[n,0,0]=1
+
+    def observable(self,O):
+        obs = 0
+        for i in range(self.choose(self.r,self.p)):
+            obs+= np.dot(O[i],self._qrdm[i]).trace()
+        return obs
+
+    @property
+    def rdm(self):
+        return self._qrdm
+
+    @rdm.setter
+    def rdm(self,a):
+        self._qrdm = a
+
+    @property
+    def qrdm(self):
+        return self._qrdm
+
+    @qrdm.setter
+    def qrdm(self,a):
+        self._qrdm = a
 
     def copy(self):
-        nRDM = RDM(
+        nRDM = qRDM(
                 order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
                 state=None,
-                S=self.S,
-                Ne=self.Ne,
                 )
         nRDM.rdm = self.rdm.copy()
         return nRDM
-
-    def observable(self,H):
-        self.contract()
-        en = np.dot(H,self.rdm).trace()
-        self.expand()
-        return en
 
     def trace(self):
         try:
@@ -93,20 +139,16 @@ class RDM:
         else:
             sys.exit('Wrong type specified.')
         c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
-        if c1+c2+c3+c4+c5+c6<6:
+        c3  = self.bet==RDM.bet
+        if c1+c2+c3<3:
             print('Checks: ')
             print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDM(
                 order=self.p,
                 alpha=self.alp,
                 beta=self.bet,
-                S=self.S,
                 state=None,
-                Ne=self.Ne,
                 )
         self.expand()
         RDM.expand()
@@ -143,29 +185,11 @@ class RDM:
         return nRDM
 
     def __sub__(self,RDM):
-        if type(RDM)==type(self):
-            pass
-        else:
-            sys.exit('Wrong type specified.')
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
-        if c1+c2+c3+c4+c5+c6<6:
-            print('Checks: ')
-            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
-            print(self.S,RDM.S)
-            sys.exit('You have RDMs for different systems apparently.')
-        nRDM = RDM(
+        nRDM = qRDM(
                 order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
+                Nq=self.r,
                 state=None,
-                S=self.S,
-                Ne=self.Ne,
                 )
-        self.expand()
-        RDM.expand()
         nRDM.rdm = self.rdm-RDM.rdm
         return nRDM
 
@@ -189,8 +213,6 @@ class RDM:
                 alpha=self.alp,
                 beta=self.bet,
                 state=None,
-                Ne=self.Ne,
-                S=self.S,
                 )
         non1 = list((np.nonzero(self.rdm)))
         non2 = list((np.nonzero(RDM.rdm)))
@@ -389,25 +411,29 @@ class RDM:
             self.contract()
     
     def contract(self):
-        size = len(self.rdm.shape)
-        if not self.p==1:
-            self.rdm = np.reshape(
-                    self.rdm,
-                    (
-                        self.r**self.p,
-                        self.r**self.p
-                        )
-                    )
+        pass
+        #size = len(self.rdm.shape)
+        #if not self.p==1:
+        #    self.rdm = np.reshape(
+        #            self.rdm,
+        #            (
+        #                self.r**self.p,
+        #                self.r**self.p
+        #                )
+        #            )
     
     def expand(self):
-        size = len(self.rdm.shape)
-        if not self.p==1:
-            self.rdm = np.reshape(
-                    self.rdm,
-                    (tuple([self.r for i in range(2*self.p)]))
-                    )
+        pass
+        #size = len(self.rdm.shape)
+        #if not self.p==1:
+        #    self.rdm = np.reshape(
+        #            self.rdm,
+        #            (tuple([self.r for i in range(2*self.p)]))
+        #            )
 
 class Recursive:
+    '''
+    '''
     def __init__(self,
             depth='default',
             choices=[]
