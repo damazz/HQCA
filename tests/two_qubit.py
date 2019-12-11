@@ -24,7 +24,8 @@ ham = TwoQubitHamiltonian(sq=True,
         mapQub=qubit,
         )
 
-print(ham.matrix)
+#print(ham.matrix)
+#print(ham.qubit_operator)
 Ins = PauliSet
 st = StorageACSE(ham)
 qs = QuantumStorage()

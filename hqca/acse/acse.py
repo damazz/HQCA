@@ -20,8 +20,8 @@ class RunACSE(QuantumRun):
     '''
     '''
     def __init__(self,
-            Storage, #instances
-            QuantStore, #instances 
+            Storage, #instance
+            QuantStore, #instance
             Instructions, #class?
             **kw
             ):
