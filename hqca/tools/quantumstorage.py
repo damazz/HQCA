@@ -112,7 +112,10 @@ class QuantumStorage:
         self.Ns = num_shots
         self.provider = provider
         if self.provider=='IBMQ':
-            prov = IBMQ.load_account()
+            try: 
+                prov = IBMQ.load_account()
+            except AttributeError:
+                pass
         else:
             prov = Aer
         self.backend=backend
