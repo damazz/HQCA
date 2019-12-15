@@ -6,13 +6,15 @@ class TwoQubitHamiltonian(Hamiltonian):
     def __init__(self,sq=True,
             fermi=False,
             en_c=0,
+            real=True,
+            imag=False,
             **kw
             ):
         self._order=2
         self._model = 'tq'
         self._qubOp = ''
-        self.real = True
-        self.imag = True
+        self.real = real
+        self.imag = imag
         self._en_c = en_c
         if sq:
             if not fermi:
@@ -69,6 +71,7 @@ class TwoQubitHamiltonian(Hamiltonian):
                 elif i.p[n]=='Z':
                     cir.z(n)
             mat+=i.c*cir.m
+        self.ef = np.min(np.linalg.eigvalsh(mat))+self._en_c
         self._matrix = np.array([mat])
 
     def _fermi_to_bosonic(self,ferOp,

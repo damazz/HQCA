@@ -1,5 +1,15 @@
  TODO/Changelog List
 
+### 12/11/2019 
+(note that the 1-qubit cases actually work :) )
+* Clean up code and output
+* Put together some test cases with different documentation
+* Documentation
+    * Start on qasm simulations, noise models, etc.
+* Configure tomorgraphy inputs for different cases
+    * allow for differnt tomography 
+
+
 ### 12/5/2019
 
 * Implementing 2-qubit case

@@ -210,7 +210,6 @@ class Process:
             self.sign=[1]*10
             self.holding = {}
 
-
     def _measure_z_counts(self,counts,i):
         val,total= 0,0
         for det,n in counts.items():
@@ -294,8 +293,8 @@ class Process:
             if self.qs.filter_meas:
                 counts = self.qs.meas_filter.apply(
                     counts,
-                    #method='least_squares'
-                    method='pseudo_inverse'
+                    method='least_squares'
+                    #method='pseudo_inverse'
                     )
                 #counts = mitigated.get_counts(0)
                 print('Filtered counts for measurement:')

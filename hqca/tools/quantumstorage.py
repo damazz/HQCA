@@ -10,6 +10,14 @@ import sys
 from math import pi
 from hqca.core import *
 from qiskit import Aer,IBMQ
+from qiskit import QuantumRegister,QuantumCircuit,ClassicalRegister
+from qiskit import execute
+from qiskit.ignis.mitigation.measurement import(
+        complete_meas_cal,
+        tensored_meas_cal,
+        TensoredMeasFitter,
+        CompleteMeasFitter,
+        MeasurementFilter)
 
 class KeyDict(dict):
     def __missing__(self,key):
@@ -61,6 +69,7 @@ class QuantumStorage:
         elif Storage.H.model in ['sq','tq']:
             self.op_type = 'qubit'
             self.initial = []
+        self.use_meas_filter=False
 
     def set_backend(self,
             Nq=4,
@@ -99,7 +108,6 @@ class QuantumStorage:
         else:
             self.Nq_be = self.Nq
         self.Nq_anc = Nq_ancilla
-
         self.Nq_tot = self.Nq_anc+self.Nq
         self.Ns = num_shots
         self.provider = provider
@@ -120,16 +128,7 @@ class QuantumStorage:
         self.kwargs=kwargs
 
     def set_error_correction(self,
-            pr_e=0,
-            ec_pre=False,
-            ec_pre_kw={},
-            ec_syndrome=False,
-            ec_syndrome_kw={},
-            ec_post=False,
-            ec_post_kw={},
-            ec_comp_ent=False, #composite entangler
-            ec_comp_ent_kw={},
-            ec_custom=False,
+            error_correction=False,
             **kwargs
             ):
         '''
@@ -142,27 +141,9 @@ class QuantumStorage:
                 ec_type = 'syndrome'
         Honestly, probably better to just manually specify them...
         '''
-        self.pr_e = pr_e
-        self.ec_syndrome=ec_syndrome
-        self.ec_post=ec_post
-        self.ec_pre = ec_pre
-        self.ec_comp_ent=ec_comp_ent
-        self.ancilla = [] # used ancilla
-        self.ancilla_list = [i+self.Nq for i in range(self.Nq_anc)] # potential
-        if self.ec_pre:
-            self.__set_ec_pre_filters(**ec_pre_kw)
-        if self.ec_post:
-            self.__set_ec_post_correction(**ec_post_kw)
-        if self.ec_syndrome:
-            self.__set_ec_syndrome(**ec_syndrome_kw)
-        if self.ec_comp_ent:
-            self.__set_ec_composite_entangler(**ec_comp_ent_kw)
-
-    def __set_ec_pre_filters(self,
-            filter_measurements=False,
-            **kw
-            ):
-        self.filter_meas = filter_measurements
+        if error_correction=='measure':
+            self.use_meas_filter = True
+            self._get_measurement_filter(initial=True,**kwargs)
 
     def __set_ec_post_correction(self,
             symm_verify=False,
@@ -292,6 +273,49 @@ class QuantumStorage:
             print('Error in function quantum/QuantumFunctions/_get_hyper_para')
             sys.exit('Unsupported method!')
 
+    def _get_measurement_filter(self,
+            initial=False,
+            frequency=3,
+            **kw
+            ):
+        if initial:
+            self.freq = frequency
+            self.n = 0 
+        if self.n==0:
+            print('Reculating measurement filter')
+            qubit_list= [i for i in range(self.Nq_tot)]
+            cal_circuits,state_labels = complete_meas_cal(
+                    qubit_list,
+                    QuantumRegister(self.Nq_tot),
+                    ClassicalRegister(self.Nq_tot)
+                    )
+            job = execute(cal_circuits,
+                    backend=self.beo,
+                    shots=self.Ns,
+                    initial_layout=self.be_initial)
+            cal_results = job.result()
+            meas_fitter = CompleteMeasFitter(
+                    cal_results,
+                    state_labels)
+            meas_filter = meas_fitter.filter
+            #self.meas_fitter = meas_fitter
+            self._meas_filter = meas_filter
+            self.n = np.copy(self.freq)-1
+            print(meas_filter.cal_matrix)
+        else:
+            self.n-=1
+
+    @property
+    def meas_filter(self):
+        self._get_measurement_filter()
+        return self._meas_filter
+
+    @meas_filter.setter
+    def meas_filter(self,b):
+        self._meas_filter = b
+
+
+
 def print_qasm(circuit):
     filename = input('Save qasm as: ')
     print('Great!')
@@ -299,6 +323,7 @@ def print_qasm(circuit):
     print(circuit.count_ops())
     with open('{}.qasm'.format(filename),'w') as fp:
         fp.write(circuit.qasm())
+
 
 def get_direct_stats(QuantStore):
     '''
@@ -373,7 +398,7 @@ def get_direct_stats(QuantStore):
 
         if QuantStore.transpile=='default':
             qt = transpile(qcirc[0],
-                    backend=be,
+                    backend=self.beo,
                     coupling_map=coupling,
                     initial_layout=QuantStore.be_initial,
                     **QuantStore.transpiler_keywords
@@ -388,106 +413,8 @@ def get_direct_stats(QuantStore):
         elif extra=='stats':
             print('Gates after compilation/transpilation')
             print(qt.count_ops())
-
     QuantStore.parameters=hold_para
 
 
-
-local_qubit_tomo_pairs = {
-        2:[
-            ['01']],
-        3:[
-            ['01'],['02'],['12']],
-        4:[
-            ['01','23'],
-            ['12','03'],
-            ['02','13']],
-        5:[
-            ['01','23'],['04','12'],
-            ['02','34'],['13','24'],
-            ['03','14']],
-        6:[
-            ['01','23','45'],
-            ['02','14','35'],
-            ['13','04','25'],
-            ['03','24','15'],
-            ['12','34','05']],
-        7:[
-            ['01','23','46'],
-            ['02','13','56'],
-            ['03','14','25'],
-            ['04','15','26'],
-            ['05','16','34'],
-            ['06','24','35'],
-            ['12','36','45']],
-        8:[
-            ['01','24','35','67'],
-            ['02','14','36','57'],
-            ['03','15','26','47'],
-            ['04','12','56','37'],
-            ['05','13','27','46'],
-            ['06','17','23','45'],
-            ['07','16','25','34']],
-        12:[
-            ['0-1','2-3','4-5','6-7','8-9','10-11'],
-            ['0-2','1-3','2-5'],
-            ['0-3','1-4','2-6'],
-            ['0-4','1-5','2-7'],
-            ['0-5','1-6','2-4'],
-            ['0-6','1-7','2-8'],
-            ['0-7','1-8','2-9'],
-            ['0-8','1-9','2-10'],
-            ['0-9','1-10','2-11'],
-            ['0-10','1-11'],
-            ['0-11','1-2']]
-        }
-nonlocal_qubit_tomo_pairs_part = {
-        0:[[]],
-        1:[[]],
-        2:[
-            ['01']],
-        3:[
-            ['01'],['02'],['12']],
-        4:[ 
-            ['01','23'],
-            ['02'],
-            ['03'],
-            ['12'],
-            ['13']],
-        5:[
-            ['01','23'],['02','34'],
-            ['24'],['03'],['13'],
-            ['04'],['14'],['12']
-            ],
-        6:[
-            ['05'],['04'],['15'],['14'],['12','34'],
-            ['03','45'],['01','25'],['02','35'],
-            ['13'],['24'],['23']
-            ],
-        8:[
-            ['07'],['06'],['17'],
-            ['05','67'],['16'],
-            ['01','27'],['04','57'],
-            ['02','37'],['15'],['26'],
-            ['03','47'],['12','34','56'],
-            ['23','46'],['13','45'],
-            ['14'],['25'],['36'],['24'],['35']
-            ],
-        }
-
-# in terms of efficiency...
-# 4 has 1 fewer (5 vs 6) but 2 more (5 v 3)
-# 5 has 2 fewer (8 v 10) but 3 more (8 v 5)
-# 6 has 4 fewer (11 v 15) but 6 more (11 v 5)
-# 8 has 9 fewer (19 v 28) but 12 more (19 v 7)
-
-diag = {i:[''] for i in range(2,9)}
-
-nonlocal_qubit_tomo_pairs_full = {
-        i:[
-            ['{}{}'.format(
-                b,a)]
-                for a in range(i) for b in range(a)
-            ] for i in range(2,9)}
 
 

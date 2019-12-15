@@ -6,19 +6,18 @@ from numpy import complex_
 from functools import reduce
 from hqca.tools import _rdmfunctions as rdmf
 
-
 class qRDM:
     '''
     qRDM class which allows for general qubit reduced density matrices,
     which are similar to the general fermionic reduced density matrices, but
-    contain an additional final index depending on the degree k of the operator. 
+    contain an additional final index depending on the degree k of the operator.
     I.e., 1-local, 2-local, etc.
 
     i.e., for 4 qubits, the 1-qrdm matrix has 2**1 matrices that are each
     4*4, stored as [4,4,2]
     11, 12, 13, 14, 21, 22, 23....
-    The distninct 2**k matrices represent the different excitations. I.e., ++,
-    +-, -+, --, in standard order. 
+    The distninct 2**k matrices represent the different excitations. I.e., ++
+    +-, -+, --, in standard order.
     '''
     def __init__(self,
             order=2,

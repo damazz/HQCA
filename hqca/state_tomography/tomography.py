@@ -16,12 +16,12 @@ from hqca.core.primitives import *
 class StandardTomography(Tomography):
     def __init__(self,
             QuantStore,
-            preset_cliques=False,
-            mapping=None, # pauli to reduced pauli
-            tomography_terms=None,
-            rdm_elements=None,
+            preset=False,
             verbose=True,
             **kw):
+        self.grouping = False
+        if preset:
+            self._preset_configuration(**kw)
         self.run = False
         self.Nq = QuantStore.Nq
         self.qs = QuantStore
@@ -29,12 +29,18 @@ class StandardTomography(Tomography):
         self.dim = tuple([self.Nq for i in range(2*self.p)])
         self.circuits = []
         self.circuit_list = []
-        self.grouping = preset_cliques
-        self.mapping = mapping
-        self.op = tomography_terms
-        self.op_type = QuantStore.op_type
-        self.rdme = rdm_elements
         self.verbose=verbose
+        self.op_type = QuantStore.op_type
+
+    def _preset_configuration(self,
+            Tomo=None,
+            ):
+        #self.grouping = Tomo.preset_cliques
+        self.grouping=True
+        self.mapping = Tomo.mapping
+        self.op = Tomo.op
+        self.rdme = Tomo.rdme
+        pass
 
     def set(self,Instruct):
         if self.verbose:
@@ -120,12 +126,16 @@ class StandardTomography(Tomography):
         for r in self.rdme:
             temp=0
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
-                get = self.mapping[Pauli] #self.mapping has important get
-                # property to get the right pauli
-                zMeas = self.__measure_z_string(
-                        self.counts[get],
-                        Pauli)
-                temp+= zMeas*coeff
+                try:
+                    get = self.mapping[Pauli] #self.mapping has important get
+                    # property to get the right pauli
+                    zMeas = self.__measure_z_string(
+                            self.counts[get],
+                            Pauli)
+                    temp+= zMeas*coeff
+                except KeyError as e:
+                    pass
+                    #print('Key not found')
             if r.sqOp=='p':
                 self.rdm.rdm[0,1,1]+=temp
             elif r.sqOp=='h':
@@ -142,15 +152,24 @@ class StandardTomography(Tomography):
         for r in self.rdme:
             temp = 0
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
-                get = self.mapping[Pauli] #self.mapping has important get
-                # property to get the right pauli
-                zMeas = self.__measure_z_string(
-                        self.counts[get],
-                        Pauli)
-                temp+= zMeas*coeff
+                #if r.qOp in ['hh','hp','ph','pp']:
+                #    print(r,Pauli,coeff)
+                try:
+                    get = self.mapping[Pauli] #self.mapping has important get
+                    # property to get the right pauli
+                    zMeas = self.__measure_z_string(
+                            self.counts[get],
+                            Pauli)
+                    temp+= zMeas*coeff
+                except KeyError as e:
+                    pass
+                    #print('No key for {}->{}'.format(get,Pauli))
             ia = self.rdm.rev_map[tuple(r.qInd)]
+
             ib = self.rdm.rev_sq[r.sqOp]
             ind = tuple([ia])+ib
+            #if ib[0]==ib[1]:
+            #    print(ib,temp)
             self.rdm.rdm[ind]+= temp
 
 
@@ -188,10 +207,10 @@ class StandardTomography(Tomography):
                 rdme.append(sub_rdme(i,'h'))
         self.rdme = rdme
 
-    def _generate_2qrdme(self,**kw):
+    def _generate_2qrdme(self,real=True,imag=True,**kw):
         '''
         generates 1-local properties, i.e. local qubit properties
-        this includes the set of 
+        this includes the set of
         '''
         rdme = []
         if not self.grouping:
@@ -200,7 +219,11 @@ class StandardTomography(Tomography):
                         coeff=1,
                         indices=[i,j],
                         sqOp=op)
-                test.generateTomography(Nq=self.Nq,**kw)
+                test.generateTomography(
+                        Nq=self.Nq,
+                        real=real,
+                        imag=imag,
+                        **kw)
                 return test
             for j in range(self.Nq):
                 for i in range(j):
@@ -366,11 +389,11 @@ class StandardTomography(Tomography):
                     print('Circuit: {}'.format(circuit))
                     print(job.result().get_statevector(circuit))
                 counts.append(job.result().get_statevector(circuit))
-            for circ in self.circuits:
-                if circ.name=='Z':
-                    print(circ)
-                elif circ.name=='ZZ':
-                    print(circ)
+            #for circ in self.circuits:
+            #    if circ.name=='Z':
+            #        print(circ)
+            #    elif circ.name=='ZZ':
+            #        print(circ)
         elif self.qs.use_noise:
             try:
                 job = beo.run(
@@ -393,9 +416,19 @@ class StandardTomography(Tomography):
                 print('Error: ')
                 print(e)
                 traceback.print_exc()
-        self.counts = {i:j for i,j in zip(self.circuit_list,counts)}
-        #for k,v in self.counts.items():
-        #    print(k,v)
+        if self.qs.use_meas_filter:
+            self.counts  = {}
+            for i,j in zip(self.circuit_list,counts):
+                c = self.qs.meas_filter.apply(
+                    j,
+                    method='least_squares'
+                    )
+                self.counts[i]=c
+        else:
+            self.counts = {i:j for i,j in zip(self.circuit_list,counts)}
+        if self.verbose:
+            for i,j in self.counts.items():
+                print(i,j)
 
 
     def evaluate_error(
@@ -453,3 +486,4 @@ class StandardTomography(Tomography):
         t4 = dt()
         #print('Build 2rdm: {}'.format(t4-t3))
         return new
+

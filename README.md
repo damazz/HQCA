@@ -1,38 +1,81 @@
 # Hybrid Quantum Classical Algorithm for Quantum Chemistry Computation
 # v 2.0 
+# hqca
 
-Program is a compilation of different programs and utilites I have developed
-along the course of my doctoral studies under Prof. David A. Mazziotti at the 
+In summary, this python module program is a compilation of relatively simple programs 
+developed along the course of my doctoral studies under Prof. David A. Mazziotti at the 
 University of Chicago to run different types of quantum chemistry calculations 
-on a quantum computer. 
+on a quantum computer.
 
 Primarily, the focus is on approaches which incorporate reduced density matrix
 theory, either in the construction or error correction, and which only need to
-measure or utilize the 1-electron RDM for constructing the wavefunction. In
-terms of the quantum computer, the program utilizes the IBM Quantum Experience,
-which provides cloud-based access to quantum devices. 
+measure or utilize reduced system. Additionally, while there is the potential
+for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is
+not well optimized for large calculations, and is instead optimized around
+practical calculations of smaller systems at a high accuracy, and for method
+development. As such, many features which worked at one time, either have not
+been maintained or simply have morphed and changed into newer features.
 
-The project originated with verifying the generalized Pauli-constraints in a
-3-qubit system, and then eventually we used the pinning effect in the 3-electron
-system to perform quantum chemistry calculations in the reduced space.
+The generic program includes the following structures, included in the core
+module:
+- QuantumRun
+- Hamiltonian
+- Instructions
+- Circuit
+- Storage
+- Tomography
 
-Currently, the program is being used to develop more accurate, but generalized
-calculations for quantum computers. For instance, different error mitigation
-schemes have been implemented, and in general the Jordan-Wigner mapping is used
-in a variety of contexts. 
+A typical method might be constructed in this manner, with dependencies
+indicated by ->, and storage indicated by -+->. I.e., y -+-> x implies that the
+information in y is contained in x, an agglomerate variable. 
 
-The focus is still on how the GPC's can be used to improve accuracy of quantum
-chemistry calculations, but there are several different applciations which have
-been developed along the way. A folder of optimizers is also included, taken 
-from different places (gradient-based or gradient-free, and some stochastic 
-methods). 
+-- -- -- -- -- -- -- --
+Hamiltonian -> Storage -+-> x
+Instructions -+-> x
+Tomography -+-> x
 
-Scanning for 
+A necessary tool, though not in core, is the quantum storage.
+QuantumStorage -+-> x
+
+Then, all of x can be used in some run:
+x -> QuantumRun
+-- -- -- -- -- -- -- --
+Note, other tools are included by importing hqca.tools. A summary of the above
+core entities is given below: 
+
+Hamiltonian:
+Contains two or three attributes, chiefly:
+1) ham.matrix - for evaluation, necessary
+2) ham.qubit_operator - for propagation, recommended
+3) ham.fermi_operator - for propagation, recommended
+
+Storage:
+Handles properties of a run, storing variables, and has the important functions:
+1) evaluate
+2) analysis
+
+Instructions:
+Dictates the method used to processes output of a run into quantum gates to be
+used on the quantum computer. GenericPauli provides a simple scheme, but for
+actual runs better compiled circuits with shorter lengths should be used. 
+
+Tomography:
+Handles the tomography, execution, constructions of a quantum system. Has
+important functions:
+1) set - 'sets' the problem, generating elements needed for tomography
+2) generate - generates actual tomography circutis based on set
+3) simulate - executes the circuits
+4) construct - constructs the RDMs 
+
+
+
+Instructions 
+
 
 ## Getting Started:
 
 ### Prerequisites:
-python >= 3.6
+python >= 3.7
 qiskit >= 1.0.0
 (with qiskit-terra and qiskit-aer)
 pyscf (and prerequisite packs) >= 1.5.4
@@ -53,10 +96,6 @@ latter two are optional.
 Tests are located in the test directory, which has some simple examples for a
 variety of different calculations that can be done. 
 
-Two types of runs are included. The 'sp' and 'scan' options. The latter is
-designed to generate a potential surface over the optimizing parameters. Can be
-used for diagnostic purposes. The 'sp' is a single point run and is used for
-evaluating a single point on a general potential energy surface. 
 
 # Authors
 Scott Smart

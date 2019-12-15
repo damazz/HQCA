@@ -8,8 +8,22 @@ from hqca.tools import *
 
 class SingleQubitExponential(Instructions):
     '''
-    Complex instructions: can implement arbitrary 1- and 2- body unitary
-    transformations. 
+    Complex instructions: can implement arbitrary 1- body unitary
+    transformations as exact operators. There are also additional components for
+    compilation of different gates. Indeed, for a generic op, we compile a
+    string into successive rotations. The simple option will compile each step
+    into one rotation.
+
+    Propagation should be specified as well, as either:
+        1) trotter
+        2) rotation
+        3) commute
+
+    'trotter' applies the default gate sequence, as separate rotations. 
+    'rotation' applies a single uniary rotation, i.e. an exact form of the the
+    exponentiated Hamiltonian
+    'commute' applies the rotated single unitary Hamiltonian, but then also
+    adds it into the ansatz, resulting in only one gate application. 
     ''' 
     def __init__(self,
             operator,
@@ -35,8 +49,8 @@ class SingleQubitExponential(Instructions):
 
     def _applyGenericOp(self,operator,Nq,
             **kw):
-        print('Operator')
-        print(operator)
+        #print('Operator')
+        #print(operator)
         if not Nq==1:
             sys.exit('Not correct Instructions!')
         new = Operator()
@@ -110,7 +124,7 @@ class SingleQubitExponential(Instructions):
         '''
         v1 = {'I':0,'X':0,'Y':0,'Z':0}
         v2 = {'I':0,'X':0,'Y':0,'Z':0}
-        print('Combining operators')
+        #print('Combining operators')
         for op in op1.op:
             if abs(op.c.imag)<1e-12:
                 v1[op.p]+=op.c.real
@@ -153,7 +167,7 @@ class SingleQubitExponential(Instructions):
             term+= m*np.sin(b)*np.cos(a)
             term-= np.cross(n,m,axis=0)*np.sin(a)*np.sin(b)
             k = (1/np.sin(c))*term*c
-            print('New k')
+            #print('New k')
             new = Operator()
             new+= PauliOperator('X',k[0,0])
             new+= PauliOperator('Y',k[1,0])
@@ -184,26 +198,25 @@ class SingleQubitExponential(Instructions):
             [val['Z'],(val['X']-1j*val['Y'])],
             [(val['X']+1j*val['Y']),-val['Z']]
             ])
-        print('Pauli rot matrix')
-        print(new)
+        #print('Pauli rot matrix')
+        ##print(new)
         new+= np.identity(2)*c
-        print('Norm: {}, Theta: {}'.format(norm,theta))
-        print(val)
-        print('Rotation matrix: ')
-        print(new)
+        #print('Norm: {}, Theta: {}'.format(norm,theta))
+        #print(val)
+        ##print('Rotation matrix: ')
+        #print(new)
         gam = 2*np.arccos(max(-1,min(np.abs(new[0,0]),1)))
         cg,sg = np.cos(gam/2),np.sin(gam/2)
         da = 1j*(new[1,1]-new[0,0])
         cb = 1*(new[1,0]-new[0,1])
-        print('d minus a: {}'.format(da))
-        print('c minus b: {}'.format(cb))
+        #print('d minus a: {}'.format(da))
+        #print('c minus b: {}'.format(cb))
         m = np.arcsin(max(-1,min(1,-da/(2*cg))))
         n = np.arccos(max(-1,min(1,cb/(2*sg))))
-        print('m: {}'.format(m))
-        print('n: {}'.format(n))
+        #print('m: {}'.format(m))
+        #print('n: {}'.format(n))
         beta = m+n
         delt = m-n
-        print(beta,delt)
         test = Circ(1)
         test.Rz(0,beta)
         test.Ry(0,gam)
@@ -214,21 +227,23 @@ class SingleQubitExponential(Instructions):
             cg,sg = np.cos(gam/2),np.sin(gam/2)
             da = 1j*(new[1,1]-new[0,0])
             cb = 1*(new[1,0]-new[0,1])
-            print('d minus a: {}'.format(da))
-            print('c minus b: {}'.format(cb))
+            #print('d minus a: {}'.format(da))
+            #print('c minus b: {}'.format(cb))
             m = np.arcsin(max(-1,min(1,-da/(2*cg))))
             n = np.arccos(max(-1,min(1,cb/(2*sg))))
-            print('m: {}'.format(m))
-            print('n: {}'.format(n))
+            #print('m: {}'.format(m))
+            #print('n: {}'.format(n))
             beta = m+n
             delt = m-n
-            print(beta,delt)
 
             test = Circ(1)
             test.Rz(0,beta)
             test.Ry(0,gam)
             test.Rz(0,delt)
-        print(test.m)
+        if np.linalg.norm(test.m-new)>1e-10:
+            print('Error in matrix.')
+            print(test.m)
+            sys.exit('')
         if abs(val['I'])>1e-10:
             self._gates.append(
                     [(val['I'],'I'),generic_Pauli_term])

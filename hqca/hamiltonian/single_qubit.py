@@ -43,7 +43,9 @@ class SingleQubitHamiltonian(Hamiltonian):
             elif i.p=='Z':
                 cir.z(0)
             mat+=i.c*cir.m
+        self.ef = np.min(np.linalg.eigvalsh(mat))
         self._matrix = np.array([mat])
+
 
     @property
     def qubOp(self):

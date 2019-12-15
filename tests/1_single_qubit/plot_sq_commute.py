@@ -1,4 +1,5 @@
 from hqca.hamiltonian import *
+from functools import partial
 import matplotlib
 import numpy as np
 from hqca.instructions import *
@@ -10,15 +11,19 @@ import mpl_toolkits.mplot3d.axes3d as axes3d
 mol = gto.Mole()
 
 ham = SingleQubitHamiltonian(sq=True,
-        p=-1.75,a=1,c=1,h=0.25)
-        #p=0.0,a=1,c=1,h=0.0)
-Ins = PauliSet
+        p=-1,a=1-1j,c=1+1j,h=1)
+        #p=0,a=1,c=1,h=0)
+Ins = partial(
+        SingleQubitExponential,
+        **{'simple':True}
+        )
+
 st = StorageACSE(ham,use_initial=True,second_quant=False,
         initial=[
-            ['X',1.0j*np.pi,False],
-            ['Z',0.5*np.pi*1j,False],
-            ['X',2.0j*np.pi,False],
-            ])
+            ['X',0.0j*np.pi,False],
+            #['Y',0.0j,True],
+            ]
+        )
 qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(
@@ -30,18 +35,22 @@ tomoIm = StandardTomography(qs)
 
 acse = RunACSE(
         st,qs,Ins,
-        method='euler',
-        #method='newton',
+        #method='euler',
+        method='newton',
         use_trust_region=True,
-        #convergence_type='trust',
-        hamiltonian_step_size=0.01,
+        convergence_type='trust',
+        #propagation='trotter', #use e^-ih1 e^-ih2
+        #propagation='rotation', #use e^-ic n sigma
+        propagation='commute', # use 
+        hamiltonian_step_size=0.001,
         quantS_thresh_rel=0.01,
+        commutative_ansatz=False,
         trotter=1,
         ansatz_depth=1,
-        max_iter=20,
+        max_iter=4,
         initial_trust_region=0.1,
         newton_step=-1,
-        restrict_S_size=0.5,
+        restrict_S_size=0.1,
         )
 acse.build(log_rdm=True)
 acse.run()
@@ -49,6 +58,7 @@ x,y,z = [],[],[]
 en = []
 test = ham.matrix[0]
 eigval,eigvec = np.linalg.eigh(test)
+print(eigval)
 x1 = eigvec[:,0]
 x2 = eigvec[:,1]
 rho1 = np.outer(x1,np.conj(x1))

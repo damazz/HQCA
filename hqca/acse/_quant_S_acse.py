@@ -34,6 +34,7 @@ def _findFermionicSQuantum(
         hamiltonian_step_size=1.0,
         ordering='default',
         depth=1,
+        tomo=None,
         ):
     '''
     need to do following:
@@ -51,14 +52,23 @@ def _findFermionicSQuantum(
             scaleH=hamiltonian_step_size,
             depth=depth
             )
-    newCirc = StandardTomography(
-            quantstore,
-            )
-    newCirc.generate(real=False,imag=True)
+    if type(tomo)==type(None):
+        newCirc = StandardTomography(
+                quantstore,
+                verbose=verbose,
+                )
+        newCirc.generate(real=False,imag=True)
+    else:
+        newCirc = StandardTomography(
+                quantstore,
+                preset=True,
+                Tomo=tomo,
+                verbose=verbose,
+                )
     newCirc.set(newPsi)
     if verbose:
         print('Running circuits...')
-    newCirc.simulate(verbose=True)
+    newCirc.simulate(verbose=verbose)
     if verbose:
         print('Constructing the RDMs...')
     newCirc.construct()
@@ -158,6 +168,7 @@ def _findQubitSQuantum(
         propagate_method='trotter',
         depth=1,
         commutative=True,
+        tomo=None,
         ):
     '''
     need to do following:
@@ -175,27 +186,44 @@ def _findQubitSQuantum(
             HamiltonianOperator=store.H.qubit_operator,
             scaleH=hamiltonian_step_size,
             depth=depth,
-            propagate_method=propagate_method
+            propagate_method=propagate_method,
             )
-    newCirc = StandardTomography(
-            quantstore,
-            )
-    newCirc.generate(real=True,imag=True)
+    if type(tomo)==type(None):
+        newCirc = StandardTomography(
+                quantstore,
+                verbose=verbose
+                )
+        newCirc.generate(real=True,imag=True)
+    else:
+        newCirc = StandardTomography(
+                quantstore,
+                preset=True,
+                Tomo=tomo,
+                verbose=verbose
+                )
     newCirc.set(newPsi)
     if verbose:
         print('Running circuits...')
-    newCirc.simulate(verbose=True)
+    newCirc.simulate(verbose=verbose)
     if verbose:
         print('Constructing the RDMs...')
     newCirc.construct()
-    RDM = newCirc.rdm - store.rdm
-    print(store.rdm.rdm)
+    if store.H.real and store.H.imag:
+        RDM = newCirc.rdm - store.rdm
+    elif not store.H.imag and store.H.real:
+        RDM = newCirc.rdm
+    else:
+        print(store.H.imag,store.H.real)
+        sys.exit('Problem in H')
+    if verbose:
+        print(store.rdm.rdm)
     rdmRe = np.real(RDM.rdm)
     rdmIm = np.imag(RDM.rdm)
-    print('RDM:')
-    print(newCirc.rdm.rdm)
-    print(RDM.rdm)
-    if quantstore.Nq==1:
+    if verbose:
+        print('RDM:')
+        print(newCirc.rdm.rdm)
+        print(RDM.rdm)
+    if quantstore.Nq==1 and verbose:
         print('Z1: {}'.format(rdmRe[0,0,0]))
         print('Z2: {}'.format(rdmRe[0,1,1]))
         print('X:  {}'.format(rdmRe[0,0,1]))
@@ -232,7 +260,7 @@ def _findQubitSQuantum(
             max_val = v
     for inds in newIm:
         ind = tuple(inds)
-        v = abs(rdmIm[ind])*hss
+        v = abs(rdmIm[ind])*hss*c
         if v>max_val:
             max_val = v
     print('Elements of S from quantum generation: ')

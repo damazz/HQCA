@@ -48,6 +48,9 @@ class RunACSE(QuantumRun):
             hamiltonian_step_size=0.1,
             restrict_S_size=0.5,
             propagation='trotter',
+            verbose=True,
+            tomo_S=None,
+            tomo_Psi=None,
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -56,6 +59,7 @@ class RunACSE(QuantumRun):
         if not method in ['NR','EM','opt','trust','newton','euler']:
             print('Specified method not valid. Update acse_kw: \'method\'')
             sys.exit()
+        self.verbose=verbose
         self.acse_method = method
         self.S_trotter= ansatz_depth
         self.S_commutative = commutative_ansatz
@@ -71,6 +75,12 @@ class RunACSE(QuantumRun):
         self.cS_thresh_rel = classS_thresh_rel
         self.cS_max = classS_max
         self._conv_type = convergence_type
+        self.tomo_S=tomo_S
+        self.tomo_Psi=tomo_Psi
+        if type(self.tomo_Psi)==type(None):
+            self.tomo_preset=False
+        else:
+            self.tomo_preset=True
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      --  ACSE KEYWORDS --      ')
         print('-- -- -- -- -- -- -- -- -- -- --')
@@ -133,13 +143,19 @@ class RunACSE(QuantumRun):
                 s.c*=self.delta
             ins = self.Instruct(self.S,self.QuantStore.Nq,depth=self.S_trotter)
             circ = StandardTomography(
-                    self.QuantStore)
-            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
+                    self.QuantStore,
+                    preset=self.tomo_preset,
+                    Tomo=self.tomo_Psi,
+                    verbose=self.verbose,
+                    )
+            if not self.tomo_preset:
+                circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
             circ.set(ins)
             circ.simulate()
             circ.construct()
             en = np.real(self.Store.evaluate(circ.rdm))
             self.e0 = np.real(en)
+            self.ei = np.real(en)
             print('Initial energy: {:.8f}'.format(self.e0))
             self.Store.rdm = circ.rdm
             print('S: ')
@@ -149,6 +165,7 @@ class RunACSE(QuantumRun):
         else:
             self.S = Operator(ops=[],antihermitian=True)
             self.e0 = self.Store.e0
+            self.ei = self.Store.ei
         self.best = self.e0
         self.best_avg = self.e0
         self.log_S = []
@@ -157,7 +174,7 @@ class RunACSE(QuantumRun):
         self.lrdm=log_rdm
         if self.lrdm:
             self.log_rdm = [self.Store.rdm]
-        self.total = Cache()
+        self.total=Cache()
         self.built=True
 
 
@@ -184,7 +201,9 @@ class RunACSE(QuantumRun):
                     propagate_method=self.propagate_method,
                     depth=self.S_trotter,
                     commutative=self.S_commutative,
-                    verbose=True)
+                    verbose=self.verbose,
+                    tomo=self.tomo_S,
+                    )
         elif self.acse_update=='c':
             testS = findSPairs(self.Store)
         self._check_norm(testS)
@@ -214,8 +233,13 @@ class RunACSE(QuantumRun):
         self.S = self.S+testS
         ins = self.Instruct(self.S,self.QuantStore.Nq,depth=self.S_trotter)
         circ = StandardTomography(
-                self.QuantStore)
-        circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
+                self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo_Psi,
+                verbose=self.verbose,
+                )
+        if not self.tomo_preset:
+            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
         circ.set(ins)
         circ.simulate()
         circ.construct()
@@ -235,8 +259,15 @@ class RunACSE(QuantumRun):
                         depth=self.S_trotter,
                         )
                 circ = StandardTomography(
-                        self.QuantStore)
-                circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
+                        self.QuantStore,
+                        preset=self.tomo_preset,
+                        Tomo=self.tomo_Psi,
+                        verbose=self.verbose,
+                        )
+                if not self.tomo_preset:
+                    circ.generate(
+                            real=self.Store.H.real,
+                            imag=self.Store.H.imag)
                 circ.set(ins)
                 circ.simulate()
                 circ.construct()
@@ -256,8 +287,15 @@ class RunACSE(QuantumRun):
                 depth=self.S_trotter,
                 )
         tCirc= StandardTomography(
-                self.QuantStore)
-        tCirc.generate(real=self.Store.H.real,imag=self.Store.H.imag)
+                self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo_Psi,
+                verbose=self.verbose,
+                )
+        if not self.tomo_preset:
+            tCirc.generate(
+                    real=self.Store.H.real,
+                    imag=self.Store.H.imag)
         tCirc.set(tIns)
         tCirc.simulate()
         tCirc.construct()
@@ -308,6 +346,7 @@ class RunACSE(QuantumRun):
                 ns = self.tr_ns
                 gi = self.tr_gi
                 gd = self.tr_gd
+                trust_iter = 0
                 while not trust: # perform sub routine
                     if abs(self.grad/self.hess)<self.tr_Del:
                         print('Within trust region.')
@@ -316,9 +355,14 @@ class RunACSE(QuantumRun):
                         lamb=1
                     else:
                         print('Outside trust region.')
-                        lamb = self.grad/self.tr_Del-self.hess
-                        print('Lambda: {}'.format(lamb))
-                        coeff = -self.grad/(self.hess+lamb)
+                        #lamb = -self.grad/self.tr_Del-self.hess
+                        #print('Lambda: {}'.format(lamb))
+                        #coeff = -self.grad/(self.hess+lamb)
+                        if -self.grad/self.hess<0:
+                            coeff = self.tr_Del*(-1)
+                        else:
+                            coeff = self.tr_Del
+
                     ef,df = self.__test_acse_function([coeff],testS)
                     print('Current: {:.10f}'.format(np.real(ef)))
                     def m_qk(s):
@@ -359,6 +403,9 @@ class RunACSE(QuantumRun):
                     #    np.real(lamb),
                     #    np.real(coeff)))
                     self.Store.update(df)
+                    trust_iter+=1
+                    if trust_iter>=2:
+                        trust=True
             for f in testS.op:
                 f.qCo*= coeff
                 f.c*= coeff
@@ -375,8 +422,13 @@ class RunACSE(QuantumRun):
                     self.QuantStore.Nq,
                     depth=self.S_trotter)
             Psi= StandardTomography(
-                    self.QuantStore)
-            Psi.generate(real=True,imag=False)
+                    self.QuantStore,
+                    preset=self.tomo_preset,
+                    Tomo=self.tomo_Psi,
+                    verbose=self.verbose,
+                    )
+            if not self.tomo_preset:
+                Psi.generate(real=True,imag=False)
             Psi.set(tIns)
             Psi.simulate()
             Psi.construct()
@@ -384,6 +436,7 @@ class RunACSE(QuantumRun):
             Psi.rdm.switch()
 
     def _calc_variance(self,vrdm2,psi,ci=0.90):
+        sys.exit('no variance')
         if self.QuantStore.backend=='unitary_simulator':
             self.ci=1e-8
         elif self.QuantStore.backend=='statevector_simulator':
@@ -411,12 +464,12 @@ class RunACSE(QuantumRun):
             while not self.total.done:
                 self._run_acse()
                 self._check()
-            print('E, scf: {:.12f} H'.format(self.e0))
-            print('E, run: {:.12f} H'.format(self.best))
+            print('E,init: {:+.12f} U'.format(np.real(self.ei)))
+            print('E, run: {:+.12f} U'.format(np.real(self.best)))
             try:
                 diff = 1000*(self.best-self.Store.H.ef)
-                print('E, final: {:.12f} H'.format(self.Store.H.ef))
-                print('Energy difference from goal: {:.12f} mH'.format(diff))
+                print('E, fin: {:+.12f} U'.format(self.Store.H.ef))
+                print('Energy difference from goal: {:.12f} mU'.format(diff))
             except KeyError:
                 pass
             except AttributeError:
@@ -482,7 +535,10 @@ class RunACSE(QuantumRun):
             else:
                 self.best_avg = copy(avg_En)
         else:
-            self.best = avg_En
+            if en<self.best:
+                self.best = np.real(en)
+            #else:
+            #    self.best = avg_En
         # implementing dynamic stopping criteria 
         if 'q' in self.acse_update or 'c' in self.acse_update:
             if self._conv_type=='default':

@@ -11,7 +11,7 @@ class MolecularHamiltonian(Hamiltonian):
             int_thresh=1e-10,
             Ne_active_space='default',
             No_active_space='default',
-            casci=False):
+            ):
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      -- HAMILTONIAN --  ')
         print('-- -- -- -- -- -- -- -- -- -- --')
@@ -45,18 +45,15 @@ class MolecularHamiltonian(Hamiltonian):
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_tot
         self._generate_spin2spac_mapping()
-        if casci:
-            self.mc = mcscf.CASCI(
-                    self.hf,
-                    self.No_as,
-                    self.Ne_as)
-            self.mc.kernel()
-            self.ef  = self.mc.e_tot
+        self.mc = mcscf.CASCI(
+                self.hf,
+                self.No_as,
+                self.Ne_as)
+        self.mc.kernel()
+        self.ef  = self.mc.e_tot
 
-            self.mc_coeff = self.mc.mo_coeff
-            print('CASCI Energy: {:.8f}'.format(float(self.ef)))
-        else:
-            self.mc = None
+        self.mc_coeff = self.mc.mo_coeff
+        print('CASCI Energy: {:.8f}'.format(float(self.ef)))
         self.spin = mol.spin
         self.Ci = np.linalg.inv(self.C)
         self._generate_active_space()

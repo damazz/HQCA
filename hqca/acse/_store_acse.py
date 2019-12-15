@@ -8,15 +8,16 @@ from hqca.tools import *
 
 class StorageACSE(Storage):
     '''
+    Storage object for use in ACSE calculation. In general, needs only a 
 
     modified Storage object, more well suited for containing the ACSE related
     objets, such as the 2S matrix
     '''
     def __init__(self,
             Hamiltonian=None,
+            casci=False,
             use_initial=False,
             initial='hartree-fock',
-            casci=False,
             second_quant=False,
             **kwargs):
         self.H = Hamiltonian
@@ -65,6 +66,8 @@ class StorageACSE(Storage):
                         Nq=1,
                         )
                 self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
+                self.ei = copy(self.e0)
+
         elif self.H.model in ['tq','two-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
@@ -94,6 +97,7 @@ class StorageACSE(Storage):
                         )
                 self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
                 print('Current energy: {}'.format(self.e0))
+                self.ei = copy(self.e0)
         else:
             print('Model: {}'.format(self.H.model))
             sys.exit('Specify model initialization.')
@@ -114,11 +118,9 @@ class StorageACSE(Storage):
             self.rdm.get_spin_properties()
             print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
             print('S2: {:.8f}'.format(np.real(self.rdm.s2)))
-        #ovlp = self.rdm.get_overlap(self.fci_rdm2)
-        #print('Distance from FCI RDM: {:.8f}'.format(
-        #    ovlp))
-        #print('Normalized distance: {:.8f}'.format(
-        #    ovlp/self.d_hf_fci))
+        else:
+            print('Density matrix')
+            print(self.rdm.rdm)
 
     def _set_overlap(self):
         self.d_hf_fci =  self.hf_rdm2.get_overlap(self.fci_rdm2)

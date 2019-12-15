@@ -1,3 +1,9 @@
+'''
+Molecular test case of H2, and H3, with under the Newton optimization with the
+quantum ACSE method.
+'''
+
+
 from hqca.hamiltonian import *
 from hqca.instructions import *
 from hqca.acse import *
