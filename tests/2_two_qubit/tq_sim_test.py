@@ -28,7 +28,12 @@ ham = TwoQubitHamiltonian(sq=True,
 
 Ins = RestrictiveSet
 #Ins = PauliSet
-st = StorageACSE(ham)
+st = StorageACSE(ham,use_initial=True,sq=False,
+        initial=[
+            ['XY',0.0001,True],
+            ['YX',0.0001,True]
+            ]
+        )
 qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(

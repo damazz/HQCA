@@ -76,10 +76,11 @@ class StorageACSE(Storage):
                 if len(initial)==0:
                     pass
                 elif not second_quant:
-                    for p,c in initial:
+                    for p,c,a in initial:
                         temp = PauliOperator(
                                 pauli=p,
-                                coeff=c)
+                                coeff=c,
+                                add=a)
                         self.S+= temp
                 else:
                     for c,i,sq in initial:
