@@ -77,7 +77,7 @@ class RestrictiveSet(Instructions):
                 self._zz = item.c
             elif item.p=='XX':
                 self._xx = item.c
-
+        self.clear()
         self._gates.append(
                 [(
                     self._xy,
