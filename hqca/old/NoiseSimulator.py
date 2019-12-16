@@ -117,3 +117,4 @@ def get_coupling_map(device,saved=True):
             print('Wrong one :(')
         coupling = data['config'].coupling_map
     return coupling
+

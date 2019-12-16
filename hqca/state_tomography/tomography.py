@@ -341,10 +341,9 @@ class StandardTomography(Tomography):
         backend_options = {}
         counts = []
         if self.qs.use_noise:
-            noise_model=self.qs.noise_model
-            backend_options['noise_model']=noise_model
-            backend_options['basis_gates']=noise_model.basis_gates
-            coupling = noise_model.coupling_map
+            backend_options['noise_model']=self.qs.noise_model
+            backend_options['basis_gates']=self.qs.noise_model.basis_gates
+            coupling = self.qs.noise_model.coupling_map
         else:
             if self.qs.be_file in [None,False]:
                 if self.qs.be_coupling in [None,False]:
@@ -399,7 +398,7 @@ class StandardTomography(Tomography):
                 job = beo.run(
                         qo,
                         backend_options=backend_options,
-                        noise_model=noise_model,
+                        noise_model=self.qs.noise_model,
                         )
             except Exception as e:
                 traceback.print_exc()

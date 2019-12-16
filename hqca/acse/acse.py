@@ -178,6 +178,7 @@ class RunACSE(QuantumRun):
         self.built=True
 
 
+
     def _run_acse(self):
         try:
             self.built
@@ -571,6 +572,8 @@ class RunACSE(QuantumRun):
                     self.total.done=True
                     print('Criteria met in objective function.')
                     print('Ending optimization.')
+            elif self._conv_type=='iterations':
+                pass
             else:
                 print('Convergence type not specified.')
                 sys.exit('Goodbye.')

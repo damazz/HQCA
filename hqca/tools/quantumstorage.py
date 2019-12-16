@@ -6,12 +6,14 @@ Generates important information to that end.
 '''
 import numpy as np
 np.set_printoptions(suppress=True,precision=4)
+import pickle
 import sys
 from math import pi
 from hqca.core import *
 from qiskit import Aer,IBMQ
 from qiskit import QuantumRegister,QuantumCircuit,ClassicalRegister
 from qiskit import execute
+from qiskit.providers.aer import noise
 from qiskit.ignis.mitigation.measurement import(
         complete_meas_cal,
         tensored_meas_cal,
@@ -120,15 +122,14 @@ class QuantumStorage:
             prov = Aer
         self.backend=backend
         self.beo = prov.get_backend(backend)
-        self.use_noise = noise
-        self.noise_gate_times=noise_gate_times
-        if self.use_noise:
-            self.noise_model = NoiseSimulator.get_noise_model(
-                    device=backend,
-                    times=noise_gate_times,
-                    saved=noise_model_location)
-        self.noise_model_loc = noise_model_location
-        self.kwargs=kwargs
+        self.use_noise=False
+
+    def set_noise_model(self,
+            **kw
+            ):
+        self.use_noise = True
+        self._get_noise_model(
+                **kw)
 
     def set_error_correction(self,
             error_correction=False,
@@ -292,10 +293,18 @@ class QuantumStorage:
                     QuantumRegister(self.Nq_tot),
                     ClassicalRegister(self.Nq_tot)
                     )
-            job = execute(cal_circuits,
-                    backend=self.beo,
-                    shots=self.Ns,
-                    initial_layout=self.be_initial)
+            if self.use_noise:
+                job = execute(
+                        cal_circuits,
+                        backend=self.beo,
+                        backend_options=self._noisy_be_options,
+                        noise_model=self.noise_model,
+                        )
+            else:
+                job = execute(cal_circuits,
+                        backend=self.beo,
+                        shots=self.Ns,
+                        initial_layout=self.be_initial)
             cal_results = job.result()
             meas_fitter = CompleteMeasFitter(
                     cal_results,
@@ -316,6 +325,37 @@ class QuantumStorage:
     @meas_filter.setter
     def meas_filter(self,b):
         self._meas_filter = b
+
+
+    def _get_noise_model(self,
+            times=None,
+            saved=False):
+        if (not saved) or (saved is None):
+            backend = self.beo
+            properties = self.beo.properties()
+            self.coupling=backend.configuration
+        else:
+            try:
+                with open(saved,'rb') as fp:
+                    data = pickle.load(fp)
+            except FileNotFoundError:
+                print('Wrong one :(')
+            properties = data['properties']
+            self._be_coupling = data['config'].coupling_map
+        if times is not None:
+            noise_model = noise.device.basic_device_noise_model(
+                properties,times)
+        else:
+            noise_model = noise.device.basic_device_noise_model(
+                properties)
+        noise_model.coupling_map = self._be_coupling
+        self.noise_model = noise_model
+        self._noisy_be_options = {
+                'noise_model':self.noise_model,
+                'basis_gates':self.noise_model.basis_gates
+                }
+
+
 
 
 
