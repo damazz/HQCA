@@ -6,4 +6,6 @@ __all__ = [
         'generic_Pauli_term',
         'xy_yx_gate',
         'h2_hamiltonian',
+        'xy_yx_simple',
+        'xy_yx_ih_simple',
         ]

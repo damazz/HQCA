@@ -20,6 +20,7 @@ class RestrictiveSet(Instructions):
             **kw
             ):
         self._gates = []
+        self._propagate=propagate
         self._applyOp(operator,Nq,**kw)
         if propagate:
             self._applyH(**kw)
@@ -42,20 +43,21 @@ class RestrictiveSet(Instructions):
     def _applyOp(self,
             operator,Nq,depth=1,
             **kw):
-        xy,yx= 0,0
+        self._xy,self._yx= 0.001,0.001
         for item in operator.op:
             if item.p=='XY':
-                xy=item.c
+                self._xy=item.c
             elif item.p=='YX':
-                yx= item.c
-        
-        self._gates.append(
-                [(
-                    xy,yx
-                    ),
-                    xy_yx_gate
-                    ]
-                )
+                self._yx= item.c
+
+        if not self._propagate:
+            self._gates.append(
+                    [(
+                        self._xy,self._yx
+                        ),
+                        xy_yx_simple
+                        ]
+                    )
 
     def _applyH(self,
             HamiltonianOperator,
@@ -68,21 +70,25 @@ class RestrictiveSet(Instructions):
         accepted =['IZ','ZI','ZZ','XX']
         for item in HamiltonianOperator.op:
             if item.p=='ZI':
-                zi = item.c
+                self._zi = item.c
             elif item.p=='IZ':
-                iz = item.c
+                self._iz = item.c
             elif item.p=='ZZ':
-                zz = item.c
+                self._zz = item.c
             elif item.p=='XX':
-                xx = item.c
+                self._xx = item.c
 
         self._gates.append(
                 [(
-                    zi,iz,
-                    zz,xx,
+                    self._xy,
+                    self._yx,
+                    self._zi,
+                    self._iz,
+                    self._zz,
+                    self._xx,
                     scaleH,
                     ),
-                    h2_hamiltonian
+                    xy_yx_ih_simple
                     ]
                 )
 

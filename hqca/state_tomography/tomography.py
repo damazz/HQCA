@@ -412,6 +412,13 @@ class StandardTomography(Tomography):
                 for circuit in self.circuit_list:
                     name = circuit
                     counts.append(job.result().get_counts(name))
+                for circ in self.circuits:
+                    if circ.name=='Z':
+                        print(circ)
+                    elif circ.name=='ZZ':
+                        print(circ)
+                    elif circ.name=='XY':
+                        print(circ)
             except Exception as e:
                 print('Error: ')
                 print(e)
