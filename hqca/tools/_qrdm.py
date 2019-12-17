@@ -137,16 +137,8 @@ class qRDM:
             pass
         else:
             sys.exit('Wrong type specified.')
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3  = self.bet==RDM.bet
-        if c1+c2+c3<3:
-            print('Checks: ')
-            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            sys.exit('You have RDMs for different systems apparently.')
-        nRDM = RDM(
+        nRDM = qRDM(
                 order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
                 state=None,
                 )
         self.expand()
@@ -155,7 +147,7 @@ class qRDM:
         return nRDM
 
     def reduce_order(self):
-        nRDM = RDM(
+        nRDM = qRDM(
                 order=self.p-1,
                 alpha=self.alp,
                 beta=self.bet,

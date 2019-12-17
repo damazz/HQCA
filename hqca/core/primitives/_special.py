@@ -27,7 +27,6 @@ def xy_yx_gate(Q,xy,yx,v2=True):
         Q.qc.cx(Q.q[1],Q.q[0])
         Q.qc.ry(xy,Q.q[0])
         Q.qc.cx(Q.q[1],Q.q[0])
-
     else:
         #Q.qc.cx(Q.q[1],Q.q[0])
         Q.qc.ry(xy,Q.q[1])

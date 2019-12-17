@@ -1,9 +1,11 @@
 import numpy as np
+from functools import reduce
 from scipy import stats
 from qiskit import Aer,IBMQ,execute
 from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.tools.monitor import backend_overview,job_monitor
+from copy import deepcopy as copy
 import sys
 import traceback
 from timeit import default_timer as dt
@@ -40,6 +42,8 @@ class StandardTomography(Tomography):
         self.mapping = Tomo.mapping
         self.op = Tomo.op
         self.rdme = Tomo.rdme
+        self.real = Tomo.real
+        self.imag = Tomo.imag
         pass
 
     def set(self,Instruct):
@@ -63,7 +67,7 @@ class StandardTomography(Tomography):
                 Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
 
-    def construct(self):
+    def construct(self,**kwargs):
         try:
             self.rdme[0]
         except Exception:
@@ -76,6 +80,45 @@ class StandardTomography(Tomography):
             self._build_fermionic_RDM()
         elif self.op_type=='qubit':
             self._build_qubitRDM()
+        if self.qs.post:
+            self._apply_symmetry(self.qs._symm,**kwargs)
+
+    def _apply_symmetry(self,symmetry,rdm=None):
+        rdm = copy(rdm)
+        if not self.Nq==2:
+            sys.exit('No symmetry configured for N=/=2')
+        rho = qRDM(order=2,
+                Nq=self.Nq,
+                state='blank')
+        if not self.real and self.imag:
+            rho.rdm = rdm.rdm + self.rdm.rdm
+        else:
+            rho = self.rdm
+        for s in symmetry:
+            M = self._get_symmetry_matrix(s)
+            norm = rho.observable(np.asarray([M]))
+            print(norm)
+            rho.rdm = np.asarray([
+                    reduce(np.dot, (M,rho.rdm[0],M))*1/norm
+                    ]
+                    )
+            print('Symmetry adjusted rho')
+        if not self.real and self.imag:
+            self.rdm.rdm = 1j*np.imag(rho.rdm)
+        else:
+            self.rdm = rho
+        print(self.rdm.rdm)
+
+    def _get_symmetry_matrix(self,symmetry):
+        mat = Circ(self.Nq)
+        for n,p in enumerate(symmetry):
+            if p=='X':
+                mat.x(n)
+            elif p=='Y':
+                mat.y(n)
+            elif p=='Z':
+                mat.z(n)
+        return mat.m
 
     def _build_fermionic_RDM(self,variance=False):
         nRDM = np.zeros(self.dim,dtype=np.complex_)
@@ -206,6 +249,7 @@ class StandardTomography(Tomography):
                 rdme.append(sub_rdme(i,'p'))
                 rdme.append(sub_rdme(i,'h'))
         self.rdme = rdme
+        self.real,self.imag = True,True
 
     def _generate_2qrdme(self,real=True,imag=True,**kw):
         '''
@@ -213,6 +257,8 @@ class StandardTomography(Tomography):
         this includes the set of
         '''
         rdme = []
+        self.real = real
+        self.imag = imag
         if not self.grouping:
             def sub_rdme(i,j,op):
                 test = QubitOperator(
@@ -233,6 +279,8 @@ class StandardTomography(Tomography):
         self.rdme = rdme
 
     def _generate_2rdme(self,real=True,imag=False,**kw):
+        self.real=real
+        self.imag=imag
         if not self.grouping:
             alp = self.qs.groups[0]
             Na = len(alp)

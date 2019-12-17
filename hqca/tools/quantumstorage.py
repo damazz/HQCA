@@ -72,6 +72,7 @@ class QuantumStorage:
             self.op_type = 'qubit'
             self.initial = []
         self.use_meas_filter=False
+        self.post = False
 
     def set_backend(self,
             Nq=4,
@@ -89,6 +90,7 @@ class QuantumStorage:
             transpiler_keywords={},
             provider='Aer',
             **kwargs):
+
         if self.check==0:
             sys.exit('Have not set up the quantumstorage algorithm yet.')
         self.transpile=transpile
@@ -123,6 +125,13 @@ class QuantumStorage:
         self.backend=backend
         self.beo = prov.get_backend(backend)
         self.use_noise=False
+        print('# Summary of quantum parameters:')
+        print('#  backend   : {}'.format(self.backend))
+        print('#  num shots : {}'.format(self.Ns))
+        print('#  num qubit : {}'.format(self.Nq))
+        print('#  provider  : {}'.format(provider))
+        print('#  transpile  : {}'.format(self.transpile))
+        print('#######')
 
     def set_noise_model(self,
             **kw
@@ -148,6 +157,15 @@ class QuantumStorage:
         if error_correction=='measure':
             self.use_meas_filter = True
             self._get_measurement_filter(initial=True,**kwargs)
+        elif error_correction=='symmetry':
+            self._set_symmetries(**kwargs)
+
+    def _set_symmetries(self,symmetries):
+        self.post=True
+        self._symm = []
+        for s in symmetries:
+            self._symm.append(s)
+
 
     def __set_ec_post_correction(self,
             symm_verify=False,
@@ -160,6 +178,8 @@ class QuantumStorage:
         Used for hyper plane set-up, as well as verifying symmetries in the
         wavefunction.
         '''
+        self.post = True
+
         self.hyperplane=hyperplane
         self.symm_verify = symm_verify
         self.symmetries = symmetries
@@ -172,86 +192,6 @@ class QuantumStorage:
             self._get_hyper_para()
             self.hyper_alp = np.asarray(vertices[0])
             self.hyper_bet = np.asarray(vertices[1])
-
-    def __set_ec_syndrome(self,
-            apply_syndromes={},
-            **kwargs):
-        try:
-            self.ancilla_sign
-        except Exception:
-            self.ancilla_sign=[]
-        '''
-        Included in the circuit, checks for certain types of errors, at
-        different locations in the overall circuit.
-
-        Includes circuits designed to check for symmetries of the system. Most
-        can simply be added at the end. Might use ancilla qubits, maybe not.
-
-        locations, where to check for then
-        '''
-        self.syndromes = apply_syndromes
-        ind = 0
-        for synd,locations in self.syndromes.items():
-            for item in locations:
-                try:
-                    item['ancilla']=self.ancilla_list[ind:ind+item['N_anc']]
-                except Exception as e:
-                    print(e)
-                    sys.exit('Huh.')
-                self.ancilla += self.ancilla_list[ind:ind+item['N_anc']]
-                if item['use']=='sign':
-                    self.ancilla_sign.append(item['ancilla'])
-                ind+= item['N_anc']
-
-    def __set_ec_composite_entangler(self,
-            ec_replace_pair='default',
-            ec_replace_quad='default',
-            **kwargs):
-        '''
-        Sets up entangling gates that some useful error correction in them.
-        Will almost always use ancilla qubits, but also draws from different
-        circuits.
-
-        Specifying the entangling gates will be a little different in
-        most cases.
-        '''
-        try:
-            self.ancilla_sign
-        except Exception:
-            self.ancilla_sign=[]
-        if ec_replace_pair=='default':
-            entry = {
-                    'replace':False,
-                    'N_anc':0,
-                    'circ':None,
-                    'kw':{},
-                    }
-            self.ec_replace_pair=[entry]*len(self.pair_list)
-        elif len(ec_replace_pair)<len(self.pair_list):
-            sys.exit('Wrong number of gates for composite pair entanglers..')
-        else:
-            self.ec_replace_pair = ec_replace_pair
-
-        if ec_replace_quad=='default':
-            entry = {
-                    'replace':False,
-                    'N_an':0,
-                    'circ':None,
-                    'use':'None',
-                    'kw':{},
-                    }
-            self.ec_replace_quad=[entry]*len(self.quad_list)
-        elif len(ec_replace_quad)<len(self.quad_list):
-            sys.exit('Wrong number of gates for composite quad entanglers..')
-        else:
-            self.ec_replace_quad = ec_replace_quad
-        ind = 0
-        for item in self.ec_replace_quad:
-            item['ancilla']=self.ancilla_list[ind:ind+item['N_anc']]
-            self.ancilla += self.ancilla_list[ind:ind+item['N_anc']]
-            if item['use']=='sign':
-                self.ancilla_sign.append(item['ancilla'])
-            ind+= item['N_anc']
 
 
     def _get_hyper_para(self,expand=False):

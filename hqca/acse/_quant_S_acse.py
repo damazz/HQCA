@@ -207,7 +207,7 @@ def _findQubitSQuantum(
     newCirc.simulate(verbose=verbose)
     if verbose:
         print('Constructing the RDMs...')
-    newCirc.construct()
+    newCirc.construct(rdm=store.rdm)
     if store.H.real and store.H.imag:
         RDM = newCirc.rdm - store.rdm
     elif not store.H.imag and store.H.real:
@@ -216,6 +216,7 @@ def _findQubitSQuantum(
         print(store.H.imag,store.H.real)
         sys.exit('Problem in H')
     if verbose:
+        print('Current RDM')
         print(store.rdm.rdm)
     rdmRe = np.real(RDM.rdm)
     rdmIm = np.imag(RDM.rdm)
