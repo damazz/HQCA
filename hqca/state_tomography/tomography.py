@@ -46,6 +46,7 @@ class StandardTomography(Tomography):
         self.imag = Tomo.imag
         pass
 
+
     def set(self,Instruct):
         if self.verbose:
             print('Generating circuits to run.')
@@ -525,7 +526,6 @@ class StandardTomography(Tomography):
 
     def getRandomRDMFromCounts(self,counts_list,length):
         random_counts = {}
-        t5 = dt()
         for pauli,clist in counts_list.items():
             random_counts[pauli]={}
             sample_list = np.random.choice(clist,length,replace=False)
@@ -534,10 +534,11 @@ class StandardTomography(Tomography):
                     random_counts[pauli][j]+=1
                 except KeyError:
                     random_counts[pauli][j]=1
-        t3 = dt()
         #print('Build random list: {}'.format(t3-t5))
-        new = self._build_mod_2RDM(random_counts)
-        t4 = dt()
+        del self.rdm
+        self.counts = random_counts
+        self.construct()
+        #new = self._build_mod_2RDM(random_counts)
         #print('Build 2rdm: {}'.format(t4-t3))
-        return new
+        return self.rdm
 

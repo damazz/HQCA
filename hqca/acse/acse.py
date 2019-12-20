@@ -162,6 +162,7 @@ class RunACSE(QuantumRun):
             print(self.S)
             print('Initial density matrix.')
             print(circ.rdm.rdm)
+            self._calc_variance(circ)
         else:
             self.S = Operator(ops=[],antihermitian=True)
             self.e0 = self.Store.e0
@@ -171,6 +172,7 @@ class RunACSE(QuantumRun):
         self.log_S = []
         self.log_E = [self.e0]
         self.log_G = []
+        self.log_ci = [self.ci]
         self.lrdm=log_rdm
         if self.lrdm:
             self.log_rdm = [self.Store.rdm]
@@ -274,6 +276,7 @@ class RunACSE(QuantumRun):
                 circ.construct()
                 en = np.real(self.Store.evaluate(circ.rdm))
                 self.Store.update(circ.rdm)
+        self._calc_variance(circ)
 
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
@@ -300,6 +303,7 @@ class RunACSE(QuantumRun):
         tCirc.set(tIns)
         tCirc.simulate()
         tCirc.construct()
+        self._calc_variance(tCirc)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         return en,tCirc.rdm
     
@@ -436,23 +440,13 @@ class RunACSE(QuantumRun):
             self.Store.update(Psi.rdm)
             Psi.rdm.switch()
 
-    def _calc_variance(self,vrdm2,psi,ci=0.90):
-        sys.exit('no variance')
-        if self.QuantStore.backend=='unitary_simulator':
-            self.ci=1e-8
-        elif self.QuantStore.backend=='statevector_simulator':
-            self.ci=1e-8
-        else:
-            en = self.Store.evaluate_temp_energy(vrdm2)-self.Store.E_ne
-            alp = 1-(1-ci)/2
-            z = stats.norm.ppf(alp)
-            nci = z*np.sqrt(en)/np.sqrt(self.QuantStore.Ns)
-            self.ci2 = nci
-            self.ci = psi.evaluate_error(
-                    f=self.Store.evaluate_temp_energy)
-            print('Variance 1: {:.6f} (CLT)'.format(np.real(self.ci)))
-            print('Variance 2: {:.6f} (Bernoulli)'.format(np.real(self.ci2)))
-            print('')
+    def _calc_variance(self,psi,ci=0.90):
+        self.ci = psi.evaluate_error(
+                numberOfSamples=256,
+                sample_size=2048,
+                f=self.Store.evaluate)
+        print('Variance: {:.6f} (CLT)'.format(np.real(self.ci)))
+        print('')
 
     def run(self):
         '''
@@ -501,6 +495,7 @@ class RunACSE(QuantumRun):
         self.log_E.append(en)
         self.log_S.append(self.norm)
         self.log_G.append(self.grad)
+        self.log_ci.append(self.ci)
         i = 1
         temp_std_En = []
         temp_std_S = []
