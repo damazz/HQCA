@@ -1,5 +1,6 @@
 import numpy as np
 from hqca.tools._operator import *
+from hqca.tools._qubit_operator import PauliOperator
 
 
 class FermionicOperator:
@@ -15,11 +16,13 @@ class FermionicOperator:
             sqOp='-+-+', #second quantized operators
             spin='abba',  # spin, for help.
             antisymmetric=True,
+            add=True,
             ):
         self.c =coeff
         self.fermi = antisymmetric
         self.ind =indices
         self.op = sqOp
+        self.add = add
         self.sp = spin
         self.norm = self.c*np.conj(self.c)
         self.order = len(sqOp)
@@ -28,7 +31,7 @@ class FermionicOperator:
         self._classify()
 
     def __str__(self):
-        z = '{},{},{}: {}'.format(self.ind,self.op,self.sp,self.c)
+        z = '{}, {}, {}: {}'.format(self.ind,self.op,self.sp,self.qCo)
         return z
 
     def hasSameInd(self,b):
@@ -68,7 +71,7 @@ class FermionicOperator:
                     if b.qOp[l]==self.qOp[l]:
                         return False
         return True
-
+    
     def isSame(self,b):
         if self.hasSameInd(b) and self.hasSameOp(b):
             return True
@@ -147,6 +150,9 @@ class FermionicOperator:
     # Hermitian Excitation Operators, such as in exp(iHt)
     #
     ##
+
+    def generateOperators(self,**kw):
+        self.generateExponential(**kw)
 
     def generateExponential(self,real,imag,**kw):
         if real:

@@ -1,4 +1,6 @@
 from hqca.core import *
+from functools import reduce
+import sys
 from hqca.tools import *
 import numpy as np
 from pyscf import gto,mcscf,scf
@@ -11,10 +13,12 @@ class MolecularHamiltonian(Hamiltonian):
             int_thresh=1e-10,
             Ne_active_space='default',
             No_active_space='default',
+            orbitals='hf',
             ):
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      -- HAMILTONIAN --  ')
         print('-- -- -- -- -- -- -- -- -- -- --')
+        self._mo_basis = orbitals
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
@@ -58,32 +62,121 @@ class MolecularHamiltonian(Hamiltonian):
         self.Ci = np.linalg.inv(self.C)
         self._generate_active_space()
         self._en_c = mol.energy_nuc()
-        self.ints_1e = generate_spin_1ei(
-                self.ints_1e_ao.copy(),
-                self.C.T,
-                self.C.T,
-                self.alpha_mo,
-                self.beta_mo,
-                region='full',
-                spin2spac=self.s2s
-                )
-        self.ints_2e = generate_spin_2ei(
-                self.ints_2e_ao.copy(),
-                self.C.T,
-                self.C.T,
-                self.alpha_mo,
-                self.beta_mo,
-                region='full',
-                spin2spac=self.s2s
-                )
-        self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-        print('Transforming molecular integrals...')
-        for i in range(0,self.r):
-            for j in range(0,self.r):
-                temp = 0.5*self.ints_2e[i,:,j,:]
-                for k in range(0,self.r):
-                    temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                self.K2[i,:,j,:]+= temp[:,:]
+        if self._mo_basis in ['default','hf']:
+            self.ints_1e = generate_spin_1ei(
+                    self.ints_1e_ao.copy(),
+                    self.C.T,
+                    self.C.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+            self.ints_2e = generate_spin_2ei(
+                    self.ints_2e_ao.copy(),
+                    self.C.T,
+                    self.C.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
+            print('Transforming molecular integrals...')
+            for i in range(0,self.r):
+                for j in range(0,self.r):
+                    temp = 0.5*self.ints_2e[i,:,j,:]
+                    for k in range(0,self.r):
+                        temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
+                    self.K2[i,:,j,:]+= temp[:,:]
+        elif self._mo_basis=='no':
+            print('Obtaining natural orbitals.')
+            d1 = self.mc.fcisolver.make_rdm1s(
+                    self.mc.ci,
+                    self.No_as,
+                    self.Ne_as,
+                    )
+            def reorder(rdm1,orbit):
+                '''
+                Finds the transformation to obtain the Aufbau ordering 
+                for spatial orbitals: the spatial orbitals according 
+                to the eigenvalues of the 1-RDM (sometimes, 
+                diagonalization procedure will swap the orbital 
+                ordering). 
+                '''
+                ordered=False
+                T = np.identity(orbit)
+                for i in range(0,orbit):
+                    for j in range(i+1,orbit):
+                        if rdm1[i,i]>=rdm1[j,j]:
+                            continue
+                        else:
+                            temp= np.identity(orbit)
+                            temp[i,i] = 0 
+                            temp[j,j] = 0
+                            temp[i,j] = -1
+                            temp[j,i] = 1
+                            T = np.dot(temp,T)
+                return T
+            nocca, norba = np.linalg.eig(d1[0]) # diagonalize alpha
+            noccb, norbb = np.linalg.eig(d1[1]) # diagonalize beta 
+            # reorder according to eigenvalues for alpha, beta
+            Ta = reorder(reduce(np.dot, (norba.T,d1[0],norba)),self.No_as)
+            Tb = reorder(reduce(np.dot, (norbb.T,d1[1],norbb)),self.No_as)
+            # generate proper 1-RDM in NO basis, alpha bet
+            D1_a = reduce(np.dot, (Ta.T, norba.T, d1[0], norba, Ta))
+            D1_b = reduce(np.dot, (Tb.T, norbb.T, d1[1], norbb, Tb))
+            # transformation from AO to NO for alpha, beta, using the 
+            # provided HF solution as well
+            ao2no_a = reduce(np.dot, (self.mc.mo_coeff, norba, Ta))
+            ao2no_b = reduce(np.dot, (self.mc.mo_coeff, norbb, Tb))
+            # Note, these are in (AO,NO) form, so they are: "ao to no"
+            # important function, generates the full size 1e no (NOT 
+            # in the spatial orbital basis, but in the spin basis) 
+            self.ints_2e = generate_spin_2ei(
+                    self.ints_2e_ao, 
+                    ao2no_a.T, 
+                    ao2no_b.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    spin2spac=self.s2s
+                    )
+            self.ints_1e = generate_spin_1ei(
+                    self.ints_1e_ao,
+                    ao2no_a.T,
+                    ao2no_b.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+        elif self._mo_basis=='pyscf':
+            self.ints_1e = generate_spin_1ei(
+                    self.ints_1e_ao.copy(),
+                    self.C.T,
+                    self.C.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+            self.ints_2e = generate_spin_2ei_pyscf(
+                    self.ints_2e_ao.copy(),
+                    self.C.T,
+                    self.C.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
+            print('Transforming molecular integrals...')
+            for i in range(0,self.r):
+                for j in range(0,self.r):
+                    temp = 0.5*self.ints_2e[i,j,:,:]
+                    for k in range(0,self.r):
+                        temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
+                    self.K2[i,j,:,:]+= temp[:,:]
         print('... Done!')
         self._matrix = contract(self.K2)
         self._model = 'molecular'
@@ -115,7 +208,7 @@ class MolecularHamiltonian(Hamiltonian):
         return self._ferOp
 
     @fermi_operator.setter
-    def qubit_operator(self,b):
+    def fermi_operator(self,b):
         self._ferOp = b
 
     @property

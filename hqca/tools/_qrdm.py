@@ -22,7 +22,7 @@ class qRDM:
     def __init__(self,
             order=2,
             Nq=1,
-            state='zero',
+            state='none',
             verbose=True,
             rdm=None
             ):
@@ -69,7 +69,38 @@ class qRDM:
                     (3,0):'++',(3,1):'+p',(3,2):'p+',(3,3):'pp',
                     }
             self.rev_sq = {v:k for k,v in self.sq_map.items()}
-
+        else:
+            pass
+            b = ['{:0{}b}'.format(i,2**self.p)[::1] for i in range(2**self.p)]
+            m2b = {i:b[i] for i in range(2**self.p)}
+            def populate(i,j):
+                maps = {
+                        '0':{ #ket
+                            '0':'h',
+                            '1':'+'},
+                        '1':{ #bra
+                            '0':'-',
+                            '1':'p'
+                            }}
+                I,J = m2b[i],m2b[j]
+                code = ''
+                for z in range(self.p):
+                    code+= maps[J[z]][I[z]]
+                return code
+            self.sq_map = {}# tuple, code
+            for i in range(8):
+                for j in range(8):
+                    self.sq_map[(i,j)]=populate(i,j)
+            self.rev_sq = {v:k for k,v in self.sq_map.items()}
+    
+    def from_density_matrix(self,rho):
+        for k,v in self.mapping.items():
+            l = [i for i in range(self.r)]
+            for q in v[::-1]:
+                l.pop(q)
+            print('Tracing over: {}'.format(l))
+            self._qrdm[k][:,:] = rho.partial_trace(l).m[:,:]
+        # going to trace!
 
     def choose(self,n,k):
         return int(factorial(n)/(factorial(k)*factorial(n-k)))
@@ -421,6 +452,9 @@ class qRDM:
         #            self.rdm,
         #            (tuple([self.r for i in range(2*self.p)]))
         #            )
+
+
+
 
 class Recursive:
     '''

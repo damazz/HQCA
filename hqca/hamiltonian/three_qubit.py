@@ -2,7 +2,7 @@ from hqca.core import *
 import numpy as np
 from hqca.tools import *
 
-class TwoQubitHamiltonian(Hamiltonian):
+class ThreeQubitHamiltonian(Hamiltonian):
     def __init__(self,sq=True,
             fermi=False,
             en_c=0,
@@ -10,8 +10,8 @@ class TwoQubitHamiltonian(Hamiltonian):
             imag=False,
             **kw
             ):
-        self._order=2
-        self._model = 'tq'
+        self._order=3
+        self._model = '3q'
         self._qubOp = ''
         self.real = real
         self.imag = imag
@@ -27,10 +27,6 @@ class TwoQubitHamiltonian(Hamiltonian):
             else:
                 self._op_from_ints(**kw)
 
-
-
-
-
     def _set_operator(self,p=0,h=0,c=0,a=0):
         op = Operator()
         for i,s in zip([p,h,c,a],['p','h','+','-']):
@@ -41,12 +37,27 @@ class TwoQubitHamiltonian(Hamiltonian):
         self._matrix_from_op()
 
     def _op_from_matrix(self,matrix):
-        self.sq_map = {
-                (0,0):'hh',(0,1):'h-',(0,2):'-h',(0,3):'--',
-                (1,0):'h+',(1,1):'hp',(1,2):'-+',(1,3):'-p',
-                (2,0):'+h',(2,1):'+-',(2,2):'ph',(2,3):'p-',
-                (3,0):'++',(3,1):'+p',(3,2):'p+',(3,3):'pp',
-                }
+        b = ['{:0{}b}'.format(i,3)[::1] for i in range(8)]
+        m2b = {i:b[i] for i in range(8)}
+        def populate(i,j):
+            maps = {
+                    '0':{ #ket
+                        '0':'h',
+                        '1':'+'},
+                    '1':{ #bra
+                        '0':'-',
+                        '1':'p'
+                        }}
+            I,J = m2b[i],m2b[j]
+            code = ''
+            for z in range(3):
+                code+= maps[J[z]][I[z]]
+            return code
+    
+        self.sq_map = {}# tuple, code
+        for i in range(8):
+            for j in range(8):
+                self.sq_map[(i,j)]=populate(i,j)
         ops = np.nonzero(matrix)
         op = Operator()
         for ind in np.transpose(ops):
@@ -58,9 +69,9 @@ class TwoQubitHamiltonian(Hamiltonian):
         self._matrix = np.array([matrix])
 
     def _matrix_from_op(self):
-        mat = np.zeros((4,4),dtype=np.complex_)
+        mat = np.zeros((8,8),dtype=np.complex_)
         for i in self._qubOp.op:
-            cir = Circ(2)
+            cir = Circ(3)
             for n in [0,1]:
                 if i.p[n]=='X':
                     cir.x(n)
@@ -71,12 +82,15 @@ class TwoQubitHamiltonian(Hamiltonian):
             mat+=i.c*cir.m
         self.ef = np.min(np.linalg.eigvalsh(mat))+self._en_c
         self._matrix = np.array([mat])
+        print(self._qubOp)
+        print(self._matrix)
 
     def _fermi_to_bosonic(self,ferOp,
             mapOrb,
             mapQub=None,
             ):
         print('Generating bosonic operators from fermionic operators:')
+        # mapOrb : spin to spatial? 
         Op = Operator()
         for item in ferOp.op:
             if item.opType=='no':
@@ -87,7 +101,7 @@ class TwoQubitHamiltonian(Hamiltonian):
                         coeff=item.c,
                         indices=newInd,
                         sqOp=sq)
-                newOp.generateOperators(Nq=2,real=True,imag=True)
+                newOp.generateOperators(Nq=3,real=True,imag=True)
                 Op+= newOp.formOperator()
             elif item.opType=='nn':
                 c1 = mapQub[item.qInd[0]]==0
@@ -99,7 +113,7 @@ class TwoQubitHamiltonian(Hamiltonian):
                         coeff=item.c,
                         indices=newInd,
                         sqOp=sq1+sq2)
-                newOp.generateOperators(Nq=2,real=True,imag=True)
+                newOp.generateOperators(Nq=3,real=True,imag=True)
                 Op+= newOp.formOperator()
             elif item.opType=='de':
                 conj = {'++':'--','+-':'-+','-+':'+-','--':'++'}
@@ -112,20 +126,32 @@ class TwoQubitHamiltonian(Hamiltonian):
                         if o[j]==i:
                             s+= item.qOp[j]
                     sq+=  int('+-'==s)*'-'+int(1-('+-'==s))*'+'
+                new = []
+                for i in item.qInd:
+                    if mapOrb[i] in new:
+                        pass
+                    else:
+                        new.append(mapOrb[i])
+                if len(new)==2:
+                    pass
+                else:
+                    continue
                 c1 = item.qOp[0:2]=='+-'
                 newOp = QubitOperator(
                         coeff=item.c,
-                        indices=[0,1],
+                        indices=new,
                         sqOp=sq)
-                newOp.generateOperators(Nq=2,real=True,imag=True)
+                newOp.generateOperators(Nq=3,real=True,imag=True)
                 Op+= newOp.formOperator()
                 newOp = QubitOperator(
                         coeff=item.c,
-                        indices=[0,1],
+                        indices=new,
                         sqOp=conj[sq])
-                newOp.generateOperators(Nq=2,real=True,imag=True)
+                newOp.generateOperators(Nq=3,real=True,imag=True)
                 Op+= newOp.formOperator()
             else:
+                print('Unused operator: ')
+                print(item)
                 continue
         self._qubOp = Op
         self._matrix_from_op()

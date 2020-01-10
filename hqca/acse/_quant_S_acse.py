@@ -34,7 +34,9 @@ def _findFermionicSQuantum(
         hamiltonian_step_size=1.0,
         ordering='default',
         depth=1,
+        commutative=True,
         tomo=None,
+        **kw
         ):
     '''
     need to do following:
@@ -82,7 +84,7 @@ def _findFermionicSQuantum(
         if v>max_val:
             max_val = v
     print('Elements of S from quantum generation: ')
-    newS = []
+    newS = Operator()
     for index in new:
         ind = tuple(index)
         val = rdm[ind]*hss
@@ -98,58 +100,33 @@ def _findFermionicSQuantum(
                         -val,
                         indices=list(ind),
                         sqOp=sop,
-                        spin=spin
+                        spin=spin,
+                        add=True,
                         )
-            if len(newS)==0:
-                newS.append(newEl)
-                print(newEl)
+                #newEl.generateOperators(Nq=quantstore.Nq,real=False,imag=True)
+                #newS+= newEl.formOperator()
+                #newS+= newEl
+            #newS+= newEl
+            if len(newS._op)==0:
+                newS+= newEl
+                #print(newEl)
             else:
                 add = True
-                for o in newS:
+                for o in newS._op:
                     if o.isSame(newEl) or o.isHermitian(newEl):
                         add = False
                         break
                 if add:
-                    newS.append(newEl)
-                    if verbose:
-                        st = 'S: {}: {}'.format(str(ind),val)
-                        print(st)
-    hold_type = [(op.opType=='de') for op in newS]
-    if ordering=='default':
-        new_S_ord_de_a = []
-        new_S_ord_de_b = []
-        new_S_ord_ne = []
-        for i in range(len(hold_type)):
-            if hold_type[i]:
-                if abs(newS[i].qCo)>qS_screen*max_val:
-                    new_S_ord_de_a.append(newS[i])
-                else:
-                    new_S_ord_de_b.append(newS[i])
-        new_S_ord_de = new_S_ord_de_a+new_S_ord_de_b
-        for i in range(len(hold_type)):
-            if not hold_type[i]:
-                new_S_ord_ne.append(newS[i])
-        newS = new_S_ord_de[:]+new_S_ord_ne[:]
-    elif ordering=='magnitude':
-        done = False
-        new_S_ord = []
-        limit = np.copy(max_val)
-        while not done:
-            for i in range(len(hold_type)):
-                if hold_type[i]:
-                    if abs(newS[i].c)<=limit:
-                        if abs(newS[i].c)>limit*0.1:
-                            new_S_ord.append(newS[i])
-            for i in range(len(hold_type)):
-                if not hold_type[i]:
-                    if abs(newS[i].c)<=limit:
-                        if abs(newS[i].c)>limit*0.1:
-                            new_S_ord.append(newS[i])
-            if limit<max_val*qS_thresh_rel:
-                done=True
-            limit*=0.1
-        newS = new_S_ord[:]
-    newS = Operator(ops=newS,antihermitian=True)
+                    newS += newEl
+                    #if verbose:
+                    #    st = 'S: {}: {}'.format(str(ind),val)
+                    #    print(st)
+    print(newS)
+    if commutative:
+        pass
+    else:
+        for i in newS.op:
+            i.add=False
     return newS
 
 def _findQubitSQuantum(

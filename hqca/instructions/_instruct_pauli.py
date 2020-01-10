@@ -64,7 +64,7 @@ class PauliSet(Instructions):
                                 )
                 except AttributeError:
                     item.clear()
-                    item.generateOperators(Nq=Nq)
+                    item.generateOperators(Nq=Nq,imag=True,real=False)
                     for p,c in zip(item.pPauli,item.pCoeff):
                         self._gates.append(
                                 [(

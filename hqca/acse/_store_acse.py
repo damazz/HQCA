@@ -30,12 +30,14 @@ class StorageACSE(Storage):
         self.use_initial=use_initial
         if self.H.model in ['mol','molecular','molecule']:
             self.No_as = self.H.No_as
+            self.Ne_as = self.H.Ne_as
             self.alpha_mo = self.H.alpha_mo
             self.beta_mo  = self.H.beta_mo
             self._get_HF_rdm()
             if casci:
                 self.get_FCI_rdm()
                 self._set_overlap()
+            self.ei = self.H.hf.e_tot
         elif self.H.model in ['sq','single-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
@@ -115,12 +117,21 @@ class StorageACSE(Storage):
     def analysis(self):
         #print('  --  --  --  --  --  --  -- ')
         #print('--  --  --  --  --  --  --  --')
-        if self.H.model=='molecule':
+        if self.H.model in ['molecule','mol','molecular']:
             self.rdm.get_spin_properties()
             print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
             print('S2: {:.8f}'.format(np.real(self.rdm.s2)))
+            self.rdm.contract()
+            #print('Molecular Reduced Density Matrix: ')
+            #print(np.real(self.rdm.rdm))
+            print('Eigenvalues of density matrix:')
+            for i in np.linalg.eigvalsh(self.rdm.rdm):
+                if abs(i)>1e-10:
+                    print(i)
+            #print(np.linalg.eigvalsh(self.rdm.rdm))
+            self.rdm.expand()
         else:
-            print('Density matrix')
+            print('Density matrix:')
             print(self.rdm.rdm)
 
     def _set_overlap(self):

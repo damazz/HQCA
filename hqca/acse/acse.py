@@ -172,7 +172,10 @@ class RunACSE(QuantumRun):
         self.log_S = []
         self.log_E = [self.e0]
         self.log_G = []
-        self.log_ci = [self.ci]
+        try:
+            self.log_ci = [self.ci]
+        except Exception: 
+            pass
         self.lrdm=log_rdm
         if self.lrdm:
             self.log_rdm = [self.Store.rdm]
@@ -303,7 +306,7 @@ class RunACSE(QuantumRun):
         tCirc.set(tIns)
         tCirc.simulate()
         tCirc.construct()
-        self._calc_variance(tCirc)
+        #self._calc_variance(tCirc)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         return en,tCirc.rdm
     
@@ -495,7 +498,10 @@ class RunACSE(QuantumRun):
         self.log_E.append(en)
         self.log_S.append(self.norm)
         self.log_G.append(self.grad)
-        self.log_ci.append(self.ci)
+        try:
+            self.log_ci.append(self.ci)
+        except:
+            pass
         i = 1
         temp_std_En = []
         temp_std_S = []

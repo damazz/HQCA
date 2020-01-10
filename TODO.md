@@ -1,5 +1,16 @@
  TODO/Changelog List
 
+### 12/20/2019 
+* Short list of things to due to wrap up work:
+* Finish updating FermionicOperator to make sure it plays nice with quantstore 
+  class
+* Updating and verify the 3-6 case for H3 and make sure ACSE works for low bond
+  lengths
+
+
+
+
+
 ### 12/11/2019 
 (note that the 1-qubit cases actually work :) )
 * Clean up code and output

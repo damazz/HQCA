@@ -98,17 +98,14 @@ class StandardTomography(Tomography):
         for s in symmetry:
             M = self._get_symmetry_matrix(s)
             norm = rho.observable(np.asarray([M]))
-            print(norm)
             rho.rdm = np.asarray([
                     reduce(np.dot, (M,rho.rdm[0],M))*1/norm
                     ]
                     )
-            print('Symmetry adjusted rho')
         if not self.real and self.imag:
             self.rdm.rdm = 1j*np.imag(rho.rdm)
         else:
             self.rdm = rho
-        print(self.rdm.rdm)
 
     def _get_symmetry_matrix(self,symmetry):
         mat = Circ(self.Nq)
@@ -295,7 +292,7 @@ class StandardTomography(Tomography):
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin)
-                test.generateTomoBasis(
+                test.generateTomography(
                         real=real,
                         imag=imag,
                         Nq=self.qs.Nq)

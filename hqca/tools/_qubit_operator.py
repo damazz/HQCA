@@ -1,4 +1,3 @@
-from hqca.tools._fermions import FermionicOperator
 from hqca.tools._operator import Operator
 import numpy as np
 
