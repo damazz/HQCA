@@ -42,6 +42,9 @@ acse = RunACSE(
         newton_step=-1,
         tomo_S = tomoIm,
         tomo_Psi = tomoRe,
+        restrict_S_size=1.0,
+        verbose=False,
+        commutative_ansatz=True,
         )
 acse.build()
 acse.run()

@@ -279,7 +279,7 @@ class RunACSE(QuantumRun):
                 circ.construct()
                 en = np.real(self.Store.evaluate(circ.rdm))
                 self.Store.update(circ.rdm)
-        self._calc_variance(circ)
+        #self._calc_variance(circ)
 
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
@@ -316,7 +316,9 @@ class RunACSE(QuantumRun):
             if abs(s.c)>abs(max_val):
                 max_val = copy(s.c)
         print('Maximum value: {:+.10f}'.format(max_val))
+        print('Running first point...')
         e1,rdm1 = self.__test_acse_function([self.delta],testS)
+        print('Running second point...')
         e2,rdm2 = self.__test_acse_function([self.d*self.delta],testS)
         print('Energies: ',self.e0,e1,e2)
         g1,g2= e1-self.e0,e2-self.e0
@@ -442,6 +444,8 @@ class RunACSE(QuantumRun):
             Psi.construct()
             self.Store.update(Psi.rdm)
             Psi.rdm.switch()
+        print('Current S: ')
+        print(self.S)
 
     def _calc_variance(self,psi,ci=0.90):
         self.ci = psi.evaluate_error(

@@ -74,8 +74,10 @@ def evaluate2S(i,k,l,j,Store):
                         v2 += 0.5*temp2
     return k1,v2+v3
 
-def findSPairs(Store,
+def findSPairs(
+        store,
         recon_approx='V',
+        **kw,
         ):
     '''
     '''
@@ -105,7 +107,8 @@ def findSPairs(Store,
                                 coeff=-term,
                                 indices=[i,k,l,j],
                                 sqOp='++--',
-                                spin='aaaa')
+                                spin='aaaa',
+                                add=True)
                         tS.append(newFermi)
     for i in bet:
         for k in bet:

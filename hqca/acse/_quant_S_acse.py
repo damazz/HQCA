@@ -85,6 +85,7 @@ def _findFermionicSQuantum(
             max_val = v
     print('Elements of S from quantum generation: ')
     newS = Operator()
+    newF = Operator()
     for index in new:
         ind = tuple(index)
         val = rdm[ind]*hss
@@ -103,25 +104,22 @@ def _findFermionicSQuantum(
                         spin=spin,
                         add=True,
                         )
-                #newEl.generateOperators(Nq=quantstore.Nq,real=False,imag=True)
-                #newS+= newEl.formOperator()
-                #newS+= newEl
+                newEl.generateOperators(Nq=quantstore.Nq,real=True,imag=True)
+                newS+= newEl.formOperator()
             #newS+= newEl
-            if len(newS._op)==0:
-                newS+= newEl
-                #print(newEl)
+            if len(newF._op)==0:
+                newF+= newEl
             else:
                 add = True
-                for o in newS._op:
+                for o in newF._op:
                     if o.isSame(newEl) or o.isHermitian(newEl):
                         add = False
                         break
                 if add:
-                    newS += newEl
-                    #if verbose:
-                    #    st = 'S: {}: {}'.format(str(ind),val)
-                    #    print(st)
-    print(newS)
+                    newF += newEl
+    newS.clean()
+    print('Fermionic S operator:')
+    print(newF)
     if commutative:
         pass
     else:

@@ -94,7 +94,15 @@ class Operator:
                 antihermitian=self.ah)
         return New
 
-
+    def clean(self):
+        done = False
+        while not done:
+            done=True
+            for i in range(len(self._op)):
+                if abs(self._op[i].c)<1e-12:
+                    self._op.pop(i)
+                    done=False
+                    break
 
     def generateSkewExpOp(self):
         for items in self._op:

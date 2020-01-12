@@ -41,10 +41,10 @@ class StandardTomography(Tomography):
         self.grouping=True
         self.mapping = Tomo.mapping
         self.op = Tomo.op
+        #print(self.grouping)
         self.rdme = Tomo.rdme
         self.real = Tomo.real
         self.imag = Tomo.imag
-        pass
 
 
     def set(self,Instruct):
@@ -122,7 +122,9 @@ class StandardTomography(Tomography):
         nRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
             temp = 0
+            #print(r)
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
+                #print(Pauli,coeff)
                 get = self.mapping[Pauli] #self.mapping has important get
                 # property to get the right pauli
                 zMeas = self.__measure_z_string(
@@ -137,14 +139,13 @@ class StandardTomography(Tomography):
             reCre.unordered_permute()
             for i in reAnn.total:
                 for j in reCre.total:
+                    #print(i[:2],j[:2])
                     ind1 = tuple(j[:self.p]+i[:self.p])
-                    ind2 = tuple(i[:self.p]+j[:self.p])
                     s = i[self.p]*j[self.p]
-                    nRDM[ind1]+=temp*s/2 #factor of 2 is for double counting
-                    nRDM[ind2]+=np.conj(temp)*s/2
-                    if variance:
-                        vRDM[ind1]+=tempv*s/2
-                        vRDM[ind2]+=np.conj(tempv)*s/2
+                    nRDM[ind1]+=temp*s #factor of 2 is for double counting
+                    if not set(i[:2])==set(j[:2]):
+                        ind2 = tuple(i[:self.p]+j[:self.p])
+                        nRDM[ind2]+=np.conj(temp)*s
         self.rdm = RDM(
                 order=self.p,
                 alpha=self.qs.groups[0],
@@ -209,8 +210,6 @@ class StandardTomography(Tomography):
 
             ib = self.rdm.rev_sq[r.sqOp]
             ind = tuple([ia])+ib
-            #if ib[0]==ib[1]:
-            #    print(ib,temp)
             self.rdm.rdm[ind]+= temp
 
 
@@ -285,17 +284,16 @@ class StandardTomography(Tomography):
             rdme = []
             bet = self.qs.groups[1]
             S = []
-
             def sub_rdme(i,k,l,j,spin):
                 test = FermionicOperator(
                     coeff=1,
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin)
-                test.generateTomography(
+                test.generateTomography(Nq=self.Nq,
                         real=real,
                         imag=imag,
-                        Nq=self.qs.Nq)
+                        **kw)
                 return test
             for i in alp:
                 for k in alp:

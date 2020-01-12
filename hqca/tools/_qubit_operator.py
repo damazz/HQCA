@@ -26,7 +26,7 @@ class PauliOperator:
 
     def isHermitian(self,a):
         return self.p==a.p
-    
+
     def clear(self):
         pass
 
@@ -220,19 +220,19 @@ class QubitOperator:
     def generateTomography(self,**kw):
         self.generateOperators(**kw)
 
-    def generateOperators(self,Nq,real=True,imag=False,mapping='jw'):
+    def generateOperators(self,Nq,real=True,imag=True,mapping='jw'):
         self._jw_op_to_paulis()
         if mapping=='jw':
             self._fill_out_paulis(Nq)
-        for n in reversed(range(len(self.pPauli))):
-            if not real:
-                if abs(self._complex[n])<1e-10:
-                    self.pPauli.pop(n)
-                    self.pCoeff.pop(n)
-            elif not imag:
-                if abs(self._real[n])<1e-10:
-                    self.pPauli.pop(n)
-                    self.pCoeff.pop(n)
+        #for n in reversed(range(len(self.pPauli))):
+        #    if not real:
+        #        if abs(self._complex[n])<1e-10:
+        #            self.pPauli.pop(n)
+        #            self.pCoeff.pop(n)
+        #    elif not imag:
+        #        if abs(self._real[n])<1e-10:
+        #            self.pPauli.pop(n)
+        #            self.pCoeff.pop(n)
 
     def formOperator(self):
         new = Operator()

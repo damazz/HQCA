@@ -122,8 +122,8 @@ class StorageACSE(Storage):
             print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
             print('S2: {:.8f}'.format(np.real(self.rdm.s2)))
             self.rdm.contract()
-            #print('Molecular Reduced Density Matrix: ')
-            #print(np.real(self.rdm.rdm))
+            print('Molecular Reduced Density Matrix: ')
+            print(np.real(self.rdm.rdm))
             print('Eigenvalues of density matrix:')
             for i in np.linalg.eigvalsh(self.rdm.rdm):
                 if abs(i)>1e-10:

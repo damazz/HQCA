@@ -270,6 +270,69 @@ class MolecularHamiltonian(Hamiltonian):
             self.s2s[i]=i-self.No_tot
 
     def _build_operator(self,int_thresh=1e-14):
+        alp = self.alpha_mo['active']
+        bet = self.beta_mo['active']
+        qubOp = Operator()
+        ferOp = Operator()
+        for p in alp+bet:
+            for q in alp+bet:
+                #if p>q:
+                #    continue
+                if abs(self.ints_1e[p,q])<=int_thresh:
+                    continue
+                #print('---',p,q,self.ints_1e[p,q])
+                #print(p,q,self.ints_1e[p,q])
+                newOp = FermionicOperator(
+                        coeff=self.ints_1e[p,q],
+                        indices=[p,q],
+                        sqOp='+-',
+                        antisymmetric=True,
+                        add=True
+                        )
+                newOp.generateOperators(2*self.No_tot)
+                ferOp+= newOp
+                qubOp+= newOp.formOperator()
+        for p in alp+bet:
+            for r in alp+bet:
+                if p==r:
+                    continue
+                i1 = (p==r)
+                for s in alp+bet:
+                    i2,i3 = (s==p),(s==r)
+                    if i1+i2+i3==3:
+                        continue
+                    for q in alp+bet:
+                        i4,i5,i6 = (q==p),(q==r),(q==s)
+                        if i1+i2+i3+i4+i5+i6>=3:
+                            continue
+                        if q==s:
+                            continue
+                        if abs(self.ints_2e[p,r,q,s])<=int_thresh:
+                        #if abs(self.K2[p,r,q,s])<=int_thresh:
+                            continue
+                        #print('--',p,r,s,q,self.K2[p,r,q,s])
+                        #print('--',p,r,s,q,self.ints_2e[p,r,q,s])
+                        newOp = FermionicOperator(
+                                coeff=0.5*self.ints_2e[p,r,q,s],
+                                #coeff=self.K2[p,r,q,s],
+                                indices=[p,r,s,q],
+                                sqOp='++--',
+                                antisymmetric=True,
+                                add=True
+                                )
+                        #print(newOp)
+                        newOp.generateOperators(2*self.No_tot)
+                        #for pa,c in zip(newOp.pPauli,newOp.pCoeff):
+                        #    if pa=='XZYIII':
+                        #        print(pa,c,p,r,s,q,self.ints_2e[p,r,q,s])
+                        ferOp+= newOp
+                        qubOp+= newOp.formOperator()
+        qubOp.clean()
+        self._qubOp = qubOp
+        print(qubOp)
+
+
+    def _old_build_operator(self,int_thresh=1e-14):
         '''
         Based on integrals, builds operator
         '''
@@ -289,7 +352,7 @@ class MolecularHamiltonian(Hamiltonian):
         for ze in range(len(blocks[0])):
             for p in blocks[0][ze]:
                 for q in blocks[1][ze]:
-                    if p>q:
+                    if p<q:
                         continue
                     if abs(self.ints_1e[p,q])<int_thresh:
                         continue
@@ -298,15 +361,16 @@ class MolecularHamiltonian(Hamiltonian):
                             coeff=self.ints_1e[p,q],
                             indices=[p,q],
                             sqOp='+-',
-                            spin=spin
+                            antisymmetric=False,
+                            spin=spin,
                             )
                     if p==q:
                         hold_op['no'].append(newOp)
                     else:
                         hold_op['se'].append(newOp)
         for p in alp+bet:
-            for q in alp+bet:
-                if p>=q:
+            for q in alp+bet: 
+                if p==q:
                     continue
                 term_pqqp = self.ints_2e[p,q,p,q]
                 term_pqqp-= self.ints_2e[p,q,q,p]
@@ -323,139 +387,115 @@ class MolecularHamiltonian(Hamiltonian):
                             coeff=term_pqqp,
                             indices=[p,q,q,p],
                             sqOp='++--',
-                            spin=spin)
+                            antisymmetric=False,
+                            spin=spin,
+                            )
                     hold_op['nn'].append(newOp)
         #
         # prrq operators
         #
-        for p in alp+bet:
-            for q in alp+bet:
+        for p in alp:
+            for q in alp:
                 for r in alp+bet:
-                    if p>=q or ((p in alp) and (q in bet)):
-                        continue
                     if r==p or r==q:
                         continue
-                    ops = '++--'
-                    term_pqrr = self.ints_2e[p,r,q,r] #aaab
-                    term_pqrr-= self.ints_2e[p,r,r,q]
-                    c1 =  (p in alp)
+                    term_pqrr = self.ints_2e[p,r,q,r]
                     c2 =  (r in alp)
                     spin = '{}{}{}{}'.format(
-                            c1*'a'+(1-c1)*'b',c2*'a'+(1-c2)*'b',
-                            c2*'a'+(1-c2)*'b',c1*'a'+(1-c1)*'b')
+                            'a',c2*'a'+(1-c2)*'b',
+                            c2*'a'+(1-c2)*'b','a')
                     if abs(term_pqrr)>int_thresh:
                         newOp = FermionicOperator(
                                 coeff=term_pqrr,
                                 indices=[p,r,r,q],
                                 sqOp='++--',
-                                spin=spin
+                                spin=spin,
+                                antisymmetric=False,
+                                )
+                        hold_op['ne'].append(newOp)
+        for p in bet:
+            for q in bet:
+                for r in alp+bet:
+                    if r==p or r==q:
+                        continue
+                    term_pqrr = self.ints_2e[p,r,q,r]
+                    c2 =  (r in alp)
+                    spin = '{}{}{}{}'.format(
+                            'b',c2*'a'+(1-c2)*'b',
+                            c2*'a'+(1-c2)*'b','b')
+                    if abs(term_pqrr)>int_thresh:
+                        newOp = FermionicOperator(
+                                coeff=term_pqrr,
+                                indices=[p,r,r,q],
+                                sqOp='++--',
+                                spin=spin,
+                                antisymmetric=False,
                                 )
                         hold_op['ne'].append(newOp)
         # prsq operators
         for p in alp:
             for r in alp:
-                if p>=r:
+                if p==r:
                     continue
                 for s in alp:
-                    if r>=s:
+                    if r==s or s==p:
                         continue
                     for q in alp:
-                        if s>=q:
+                        if s==q or q==p or q==r:
                             continue
-                        term1 = self.ints_2e[p,r,q,s]-self.ints_2e[p,r,s,q]
-                        term2 = self.ints_2e[p,s,q,r]-self.ints_2e[p,s,r,q]
-                        term3 = self.ints_2e[p,q,r,s]-self.ints_2e[p,q,s,r]
+                        term1 = self.ints_2e[p,r,q,s]
                         if abs(term1)>int_thresh:
                             newOp = FermionicOperator(
                                     coeff=term1,
                                     indices=[p,r,s,q],
                                     sqOp='++--',
-                                    spin='aaaa'
-                                    )
-                            hold_op['de'].append(newOp)
-                        if abs(term2)>int_thresh:
-                            newOp = FermionicOperator(
-                                    coeff=term2,
-                                    indices=[p,s,r,q],
-                                    sqOp='++--',
-                                    spin='aaaa'
-                                    )
-                            hold_op['de'].append(newOp)
-                        if abs(term3)>int_thresh:
-                            newOp = FermionicOperator(
-                                    coeff=term3,
-                                    indices=[p,q,s,r],
-                                    sqOp='++--',
-                                    spin='aaaa'
+                                    spin='aaaa',
+                                    antisymmetric=False,
                                     )
                             hold_op['de'].append(newOp)
         for p in bet:
             for r in bet:
-                if p>=r:
+                if p==r:
                     continue
                 for s in bet:
-                    if r>=s:
+                    if r==s or p==s:
                         continue
                     for q in bet:
-                        if s>=q:
+                        if s==q or q==r or q==p:
                             continue
-                        term1 = self.ints_2e[p,r,q,s]-self.ints_2e[p,r,s,q]
-                        term2 = self.ints_2e[p,s,q,r]-self.ints_2e[p,s,r,q]
-                        term3 = self.ints_2e[p,q,r,s]-self.ints_2e[p,q,s,r]
+                        term1 = self.ints_2e[p,r,q,s]
                         if abs(term1)>int_thresh:
                             newOp = FermionicOperator(
                                     coeff=term1,
                                     indices=[p,r,s,q],
-                                    sqOp='++--',
-                                    spin='bbbb'
-                                    )
-                            hold_op['de'].append(newOp)
-                        if abs(term2)>int_thresh:
-                            newOp = FermionicOperator(
-                                    coeff=term2,
-                                    indices=[p,s,r,q],
-                                    sqOp='++--',
+                                    sqOp='--++',
+                                    antisymmetric=False,
                                     spin='bbbb',
-                                    )
-                            hold_op['de'].append(newOp)
-                        if abs(term3)>int_thresh:
-                            newOp = FermionicOperator(
-                                    coeff=term3,
-                                    indices=[p,q,s,r],
-                                    sqOp='++--',
-                                    spin='bbbb'
                                     )
                             hold_op['de'].append(newOp)
         for p in alp:
             for r in bet:
                 for s in bet:
-                    if r>=s:
+                    if r==s:
                         continue
                     for q in alp:
-                        if p>=q:
+                        if p==q:
                             continue
                         term1 = self.ints_2e[p,r,q,s]
-                        term2 = self.ints_2e[p,s,q,r]
                         if abs(term1)>int_thresh:
                             newOp = FermionicOperator(
                                     coeff=term1,
                                     indices=[p,r,s,q],
                                     sqOp='++--',
-                                    spin='abba'
-                                    )
-                            hold_op['de'].append(newOp)
-                        if abs(term2)>int_thresh:
-                            newOp = FermionicOperator(
-                                    coeff=term2,
-                                    indices=[p,s,r,q],
-                                    sqOp='++--',
                                     spin='abba',
+                                    antisymmetric=False,
                                     )
                             hold_op['de'].append(newOp)
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      --  INTEGRALS --  ')
         print('-- -- -- -- -- -- -- -- -- -- --')
         ferOp = Operator()
+        qubOp = Operator()
         name = {
                 'ne':'Number excitations:',
                 'nn':'Coulomb operators:',
@@ -469,10 +509,11 @@ class MolecularHamiltonian(Hamiltonian):
                 print(item.qInd,item.qOp,item.qSp,item.ind,item.qCo)
         for key, item in hold_op.items():
             for op in item:
-                op.generateExponential(
-                        real=True,
-                        imag=False,
-                        Nq=2*self.No_as)
+                #op.generateExponential(
+                #        real=True,
+                #        imag=False,
+                #        Nq=2*self.No_as)
+                op.generateOperators(Nq=2*self.No_as)
                 #op.generateHermitianExcitationOperators(Nq=2*self.No_as)
             def simplify(tp,tc):
                 done = False
@@ -500,6 +541,7 @@ class MolecularHamiltonian(Hamiltonian):
         pauli = []
         coeff = []
         tp,tc = [],[]
+        qubOp+= hold_op['no']
         for op in hold_op['no']:
             ferOp+= op
             for p,c in zip(op.pPauli,op.pCoeff):
@@ -543,8 +585,8 @@ class MolecularHamiltonian(Hamiltonian):
         new = Operator()
         print('-- -- -- -- -- -- -- -- -- -- --')
         for p,c in zip(pauli,coeff):
-            new += PauliOperator(p,c)
-            print('Term: {}, Value: {:.8f}'.format(p,c))
+            new += PauliOperator(p,c.real)
+            print('Term: {}, Value: {:.8f}'.format(p,c.real))
         print('-- -- -- -- -- -- -- -- -- -- --')
         self._qubOp = new
         self._ferOp = ferOp

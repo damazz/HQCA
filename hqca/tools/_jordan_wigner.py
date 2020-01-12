@@ -1,5 +1,3 @@
 
-
-
 class JordanWigner(Transformation):
     pass
