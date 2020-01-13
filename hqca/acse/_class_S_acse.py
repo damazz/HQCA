@@ -25,11 +25,11 @@ def evaluate2S(i,k,l,j,Store):
         c3 = int(p==l)
         c4 = int(p==j)
         if c1+c2+c3+c4>0:
-            temp0a = +c1*Store.rdm2.rdm[p,k,j,l]
-            temp0a+= -c2*Store.rdm2.rdm[p,i,j,l]
-            temp0a+= +c3*Store.rdm2.rdm[i,k,p,j]
-            temp0a+= -c4*Store.rdm2.rdm[i,k,p,l]
-            k1+= temp0a*Store.ints_1e[p,p]
+            temp0a = +c1*Store.rdm.rdm[p,k,j,l]
+            temp0a+= -c2*Store.rdm.rdm[p,i,j,l]
+            temp0a+= +c3*Store.rdm.rdm[i,k,p,j]
+            temp0a+= -c4*Store.rdm.rdm[i,k,p,l]
+            k1+= temp0a*Store.H.ints_1e[p,p]
     for p in orb:
         for q in orb:
             if p==q:
@@ -39,11 +39,11 @@ def evaluate2S(i,k,l,j,Store):
             c3 = int(p==l)
             c4 = int(p==j)
             if c1+c2+c3+c4>0:
-                temp0b = +c1*Store.rdm2.rdm[p,k,j,l]
-                temp0b+= -c2*Store.rdm2.rdm[p,i,j,l]
-                temp0b+= +c3*Store.rdm2.rdm[i,k,q,j]
-                temp0b+= -c4*Store.rdm2.rdm[i,k,q,l]
-                k1+= temp0b*Store.ints_1e[p,q]
+                temp0b = +c1*Store.rdm.rdm[p,k,j,l]
+                temp0b+= -c2*Store.rdm.rdm[p,i,j,l]
+                temp0b+= +c3*Store.rdm.rdm[i,k,q,j]
+                temp0b+= -c4*Store.rdm.rdm[i,k,q,l]
+                k1+= temp0b*Store.H.ints_1e[p,q]
     for p in orb:
         for r in orb:
             for s in orb:
@@ -65,108 +65,70 @@ def evaluate2S(i,k,l,j,Store):
                         temp1+= -c6*Store.rdm3.rdm[i,k,r,q,s,j] #jsq 
                         temp1+= -c7*Store.rdm3.rdm[i,k,p,q,s,l] #lsq
                         temp1+= +c8*Store.rdm3.rdm[i,k,r,q,s,l] #lsq
-                        temp1*= Store.ints_2e[p,r,q,s]
+                        temp1*= Store.H.ints_2e[p,r,q,s]
                         v3 += 0.5*temp1
                         # 
-                        temp2 = (c1*c4-c2*c3)*Store.rdm2.rdm[p,r,j,l]
-                        temp2+= (c6*c7-c5*c8)*Store.rdm2.rdm[i,k,q,s]
-                        temp2*= Store.ints_2e[p,r,q,s]
+                        temp2 = (c1*c4-c2*c3)*Store.rdm.rdm[p,r,j,l]
+                        temp2+= (c6*c7-c5*c8)*Store.rdm.rdm[i,k,q,s]
+                        temp2*= Store.H.ints_2e[p,r,q,s]
                         v2 += 0.5*temp2
-    return k1,v2+v3
+    return k1+v2+v3
 
 def findSPairs(
         store,
+        classS_thresh_rel=0.1,
+        classS_max=1e-10,
+        commutative=True,
         recon_approx='V',
         **kw,
         ):
     '''
     '''
-    if Store.Ne_tot>2:
-        Store.rdm3 = Store.rdm2.reconstruct(approx=recon_approx)
-        print('3-RDM Trace: {}'.format(Store.rdm3.trace()))
-    alp = Store.alpha_mo['active']
-    bet = Store.beta_mo['active']
+    store.rdm3 = store.rdm.reconstruct(approx=recon_approx)
+    print('3-RDM Trace: {}'.format(store.rdm3.trace()))
+    alp = store.alpha_mo['active']
+    bet = store.beta_mo['active']
     Na = len(alp)
     No = 2*Na
     S = []
     tS = []
-    for i in alp:
-        for k in alp:
-            if i>=k:
+    newS = Operator()
+    ferOp = Operator()
+    for p in alp+bet:
+        for r in alp+bet:
+            if p==r:
                 continue
-            for l in alp:
-                for j in alp:
-                    if j>=l:
+            i1 = (p==r)
+            for s in alp+bet:
+                i2,i3 = (s==p),(s==r)
+                if i1+i2+i3==3:
+                    continue
+                for q in alp+bet:
+                    i4,i5,i6 = (q==p),(q==r),(q==s)
+                    if i1+i2+i3+i4+i5+i6>=3:
                         continue
-                    if i*Na+k>=j*Na+l:
+                    if q==s:
                         continue
-                    Kt,Vt = evaluate2S(i,k,l,j,Store)
-                    term = Kt+Vt
-                    if abs(term)>1e-10:
-                        newFermi = FermiOperator(
-                                coeff=-term,
-                                indices=[i,k,l,j],
+                    term  = evaluate2S(p,r,s,q,store)
+                    if abs(term)>=classS_max:
+                        newOp = FermionicOperator(
+                                coeff=term,
+                                indices=[p,r,s,q],
                                 sqOp='++--',
-                                spin='aaaa',
-                                add=True)
-                        tS.append(newFermi)
-    for i in bet:
-        for k in bet:
-            if i>=k:
-                continue
-            for l in bet:
-                for j in bet:
-                    if j>=l:
-                        continue
-                    if i*Na+k>=j*Na+l:
-                        continue
-                    Kt,Vt = evaluate2S(i,k,l,j,Store)
-                    term = Kt+Vt
-                    if abs(term)>1e-12:
-                        newFermi = FermiOperator(
-                                coeff=-term,
-                                indices=[i,k,l,j],
-                                sqOp='++--',
-                                spin='bbbb')
-                        tS.append(newFermi)
-    for i in alp:
-        for k in bet:
-            for l in bet:
-                for j in alp:
-                    if i>j:
-                        continue
-                    elif i==j:
-                        if k>=l:
-                            continue
-                    Kt,Vt = evaluate2S(i,k,l,j,Store)
-                    term = Kt+Vt
-                    if abs(term)>1e-12:
-                        newFermi = FermiOperator(
-                                coeff=-term,
-                                indices=[i,k,l,j],
-                                sqOp='++--',
-                                spin='abba')
-                        tS.append(newFermi)
-    largest = 0
-    for i in tS:
-        if abs(i.c)>largest:
-            largest = abs(i.c)
-    for i in tS:
-        if abs(i.c)>largest*0.1 and abs(i.c)>1e-10:
-            S.append(i)
-    hold_type = [(op.opType=='de') for op in S]
-    S_ord = []
-    for i in range(len(hold_type)):
-        if hold_type[i]:
-            S_ord.append(S[i])
-    for i in range(len(hold_type)):
-        if not hold_type[i]:
-            S_ord.append(S[i])
-    S = S_ord[:]
+                                antisymmetric=True,
+                                add=True
+                                )
+                        newOp.generateOperators(2*store.H.No_tot)
+                        ferOp+= newOp
+                        newS+= newOp.formOperator()
     print('Elements of S from classical ACSE: ')
-    for item in S:
-        print('S: {:.5f},{:.5f},{},{}'.format(
-            np.real(item.c),np.real(item.qCo),item.qInd,item.qOp))
-    return S
+    newS.clean()
+    if commutative:
+        pass
+    else:
+        for i in newS.op:
+            i.add=False
+    print(ferOp)
+    return newS
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+import traceback
 import sys
 import numpy.linalg as LA
 from numpy import conj as con
@@ -87,18 +88,18 @@ class RDM:
 
         # get trace of RDM
 
-    def __add__(self,RDM):
-        if type(RDM)==type(self):
+    def __add__(self,rdm):
+        if type(rdm)==type(self):
             pass
         else:
             sys.exit('Wrong type specified.')
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
-        if c1+c2+c3+c4+c5+c6<6:
+        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
+        c3, c4 = self.bet==rdm.bet,self.p==rdm.p
+        if c1+c2+c3+c4<4:
             print('Checks: ')
             print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
+            traceback.print_exc()
+            print('Error in adding.')
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDM(
                 order=self.p,
@@ -109,8 +110,8 @@ class RDM:
                 Ne=self.Ne,
                 )
         self.expand()
-        RDM.expand()
-        nRDM.rdm = self.rdm+RDM.rdm
+        rdm.expand()
+        nRDM.rdm = self.rdm+rdm.rdm
         return nRDM
 
     def reduce_order(self):
@@ -142,50 +143,50 @@ class RDM:
         nRDM.rdm*=(1/(self.Ne-self.p+1))
         return nRDM
 
-    def __sub__(self,RDM):
-        if type(RDM)==type(self):
+    def __sub__(self,rdm):
+        if type(rdm)==type(self):
             pass
         else:
             sys.exit('Wrong type specified.')
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        c5 ,c6 = (self.S2==RDM.S2),self.p==RDM.p
-        if c1+c2+c3+c4+c5+c6<6:
+        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
+        c3, c4 = self.bet==rdm.bet,self.p==rdm.p
+        if c1+c2+c3+c4<4:
             print('Checks: ')
             print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            print('S: {}, S2: {}, ord: {}'.format(c4,c5,c6))
-            print(self.S,RDM.S)
+            print(self.S,rdm.S)
+            print('Error in subtracting.')
+            traceback.print_exc()
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDM(
                 order=self.p,
                 alpha=self.alp,
                 beta=self.bet,
                 state=None,
-                S=self.S,
                 Ne=self.Ne,
                 )
         self.expand()
-        RDM.expand()
-        nRDM.rdm = self.rdm-RDM.rdm
+        nRDM.expand()
+        nRDM.rdm = self.rdm-rdm.rdm
         return nRDM
 
-    def __mul__(self,RDM):
-        if type(RDM)==type(self):
+    def __mul__(self,rdm):
+        if type(rdm)==type(self):
             pass
-        elif type(RDM) in [type(1),type(0),type(0.5)]:
-            self.rdm = self.rdm*RDM
+        elif type(rdm) in [type(1),type(0),type(0.5)]:
+            self.rdm = self.rdm*rdm
             return self
         self.expand()
-        RDM.expand()
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        c5 = (self.S2==RDM.S2)
-        if c1+c2+c3+c4+c5<5:
+        rdm.expand()
+        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
+        c3, c4 = self.bet==rdm.bet,self.Ne==rdm.Ne
+        if c1+c2+c3+c4<4:
             print('Checks: ')
-            print(c1,c2,c3,c4,c5)
+            print(c1,c2,c3,c4)
+            traceback.print_exc()
+            print('Error in multiplication.')
             sys.exit('You have RDMs for different systems apparently.')
         nRDM = RDM(
-                order=self.p+RDM.p,
+                order=self.p+rdm.p,
                 alpha=self.alp,
                 beta=self.bet,
                 state=None,
@@ -193,7 +194,7 @@ class RDM:
                 S=self.S,
                 )
         non1 = list((np.nonzero(self.rdm)))
-        non2 = list((np.nonzero(RDM.rdm)))
+        non2 = list((np.nonzero(rdm.rdm)))
         cr1 = np.asarray(non1[:len(non1)//2])
         cr2 = np.asarray(non2[:len(non2)//2])
         an1 = np.asarray(non1[len(non1)//2:])
@@ -246,13 +247,13 @@ class RDM:
                     for ann in antiSymmAnn.total:
                         ind1 = tuple(cre[:self.p]+ann[:self.p])
                         ind2 = tuple(cre[self.p:-1]+ann[self.p:-1])
-                        Term = (self.rdm[ind1]*RDM.rdm[ind2])
+                        Term = (self.rdm[ind1]*rdm.rdm[ind2])
                         Term*= cre[-1]*ann[-1]
                         sumTerms+= Term
                 #sumTerms*=(len(antiSymmCre.total))**-1
                 sumTerms*=(len(antiSymmCre.total)*len(antiSymmAnn.total))**-(1)
-                sumTerms*=((factorial(self.p+RDM.p))/(
-                    factorial(self.p)*factorial(RDM.p)))
+                sumTerms*=((factorial(self.p+rdm.p))/(
+                    factorial(self.p)*factorial(rdm.p)))
                 for cre in antiSymmCre.total:
                     for ann in antiSymmAnn.total:
                         indN = tuple(cre[:-1]+ann[:-1])
@@ -279,7 +280,7 @@ class RDM:
                     self.bet,
                     self.s2s)
 
-    def get_overlap(self,RDM):
+    def get_overlap(self,rdm):
 
         c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
         c3, c4 = self.bet==RDM.bet,self.S==RDM.S

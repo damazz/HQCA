@@ -38,6 +38,7 @@ class StorageACSE(Storage):
                 self.get_FCI_rdm()
                 self._set_overlap()
             self.ei = self.H.hf.e_tot
+            self.S = Operator()
         elif self.H.model in ['sq','single-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
@@ -144,8 +145,9 @@ class StorageACSE(Storage):
                 order=2,
                 alpha = self.alpha_mo['active'],
                 beta  = self.beta_mo['active'],
-                state='hf',
+                state='scf',
                 Ne=self.Ne_as,
+                S=self.H.Ne_alp-self.H.Ne_bet,
                 )
         self.e0 = np.real(self.evaluate(self.hf_rdm))
         self.rdm = copy(self.hf_rdm)

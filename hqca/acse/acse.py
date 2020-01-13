@@ -211,7 +211,12 @@ class RunACSE(QuantumRun):
                     tomo=self.tomo_S,
                     )
         elif self.acse_update=='c':
-            testS = findSPairs(self.Store)
+            testS = findSPairs(
+                    self.Store,
+                    classS_thresh_rel=self.cS_thresh_rel,
+                    classS_max=self.cS_max,
+                    commutative=self.S_commutative,
+                    )
         self._check_norm(testS)
         if self.acse_method in ['NR','newton']:
             self.__newton_acse(testS)

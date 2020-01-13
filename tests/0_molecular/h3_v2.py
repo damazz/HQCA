@@ -34,7 +34,7 @@ tomoIm.generate(real=False,imag=True)
 acse = RunACSE(
         st,qs,Ins,
         method='newton',
-        update='quantum',
+        update='class',
         opt_thresh=1e-10,
         trotter=1,
         ansatz_depth=1,
