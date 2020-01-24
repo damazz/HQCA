@@ -13,6 +13,7 @@ from hqca.core import *
 from hqca.tools import *
 from hqca.circuits import *
 from hqca.state_tomography._reduce_circuit import simplify_tomography
+from hqca.state_tomography._simplify import *
 from hqca.core.primitives import *
 
 class StandardTomography(Tomography):
@@ -213,7 +214,7 @@ class StandardTomography(Tomography):
             self.rdm.rdm[ind]+= temp
 
 
-    def generate(self,**kw):
+    def generate(self,simplify=True,**kw):
         if self.op_type=='fermionic':
             if self.p==2:
                 self._generate_2rdme(**kw)
@@ -224,7 +225,7 @@ class StandardTomography(Tomography):
                 self._generate_2qrdme(**kw)
             elif self.p==1:
                 self._generate_1qrdme(**kw)
-        self._generate_pauli_measurements()
+        self._generate_pauli_measurements(simplify)
 
     def _generate_1qrdme(self,**kw):
         '''
@@ -332,7 +333,7 @@ class StandardTomography(Tomography):
                             rdme.append(new)
             self.rdme = rdme
 
-    def _generate_pauli_measurements(self):
+    def _generate_pauli_measurements(self,simplify=False):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -340,7 +341,11 @@ class StandardTomography(Tomography):
                     pass
                 else:
                     paulis.append(j)
-        self.op,self.mapping = simplify_tomography(paulis)
+        if simplify:
+            self.op,self.mapping = simplify_tomography(paulis)
+        else:
+            self.op = paulis
+            self.mapping = {p:p for p in paulis}
 
 
     def _transform_q2r(self,rdme):
@@ -536,4 +541,146 @@ class StandardTomography(Tomography):
         #new = self._build_mod_2RDM(random_counts)
         #print('Build 2rdm: {}'.format(t4-t3))
         return self.rdm
+
+
+class PseudoRDMElement:
+    def __init__(self,pauli_list):
+        self.pPauli = []
+        self.pCoeff = []
+        for p,c in pauli_list:
+            self.pPauli.append(p)
+            self.pCoeff.append(c)
+
+
+class ReducedTomography(StandardTomography):
+    def _pre_generate_2rdme(self,real=True,imag=False,**kw):
+        '''
+        focuses more on getting pairs than anything else
+        '''
+        self.real=real
+        self.imag=imag
+        self.qubit_pairing = {}
+        if not self.grouping:
+            alp = self.qs.groups[0]
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.groups[1]
+            S = []
+            # double excitation operators
+            ma = {i:j for i,j in enumerate(alp)}
+            mb = {i:j for i,j in enumerate(bet)}
+            for i in range(2*Na-3):
+                a1 = i in alp
+                for k in range(i+1,2*Na-2):
+                    a2 = k in alp
+                    for l in range(k+1,2*Na-1):
+                        a3 = l in alp
+                        for j in range(l+1,2*Na):
+                            a4 = j in alp
+                            if not (a1+a2+a3+a4)%2==0:
+                                continue
+                            idx = ''.join([str(i),str(k),str(l),str(j)])
+                            self.qubit_pairing[idx] = SimplifyTwoBody(
+                                    indices=[i,k,l,j],
+                                    Nq=self.Nq
+                                    )
+            # number excitation operators
+            for i in range(2*Na-2):
+                for j in range(i+1,2*Na-1):
+                    for k in range(j+1,2*Na):
+                        idx = ''.join([str(i),str(j),str(k)])
+                        self.qubit_pairing[idx] = SimplifyTwoBody(
+                                indices=[i,j,k],
+                                Nq=self.Nq
+                                )
+            # NUMBER NUMBER operator 
+            for i in range(2*Na-1):
+                for j in range(i+1,2*Na):
+                    idx = ''.join([str(i),str(j)])
+                    self.qubit_pairing[idx] = SimplifyTwoBody(
+                            indices=[i,j],
+                            Nq=self.Nq
+                            )
+
+    def _generate_2rdme(self,real=True,imag=False,**kw):
+        self._pre_generate_2rdme(real=real,imag=imag,**kw)
+        self.real=real
+        self.imag=imag
+        if not self.grouping:
+            alp = self.qs.groups[0]
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.groups[1]
+            S = []
+
+            def sub_rdme(i,k,l,j,spin):
+                test = FermionicOperator(
+                    coeff=1,
+                    indices=[i,k,l,j],
+                    sqOp='++--',
+                    spin=spin)
+                idx = ''.join([str(i) for i in test.qInd])
+                if self.real and not self.imag:
+                    tomo = self.qubit_pairing[idx].real[test.qOp]
+                elif not self.real and self.imag:
+                    try:
+                        tomo = self.qubit_pairing[idx].imag[test.qOp]
+                    except Exception:
+                        pass
+                elif self.real and self.imag:
+                    tomo = self.qubit_pairing[idx].real[test.qOp]
+                    tomoI = self.qubit_pairing[idx].imag[test.qOp]
+                    for i in tomoI:
+                        tomo.append(i)
+                return PseudoRDMElement(tomo)
+
+
+
+            for i in alp:
+                for k in alp:
+                    if i>=k:
+                        continue
+                    for l in alp:
+                        for j in alp:
+                            if j>=l or i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            rdme.append(sub_rdme(i,k,l,j,'aaaa'))
+            for i in bet:
+                for k in bet:
+                    if i>=k:
+                        continue
+                    for l in bet:
+                        for j in bet:
+                            if j>=l or i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            rdme.append(sub_rdme(i,k,l,j,'bbbb'))
+
+            for i in alp:
+                for k in bet:
+                    for l in bet:
+                        for j in alp:
+                            if i*Na+k>j*Na+l:
+                                continue
+                            if imag and i*Na+k==j*Na+l:
+                                continue
+                            rdme.append(sub_rdme(i,k,l,j,'abba'))
+            self.rdme = rdme
+
+    def generate_pauli_measurements(self,simplify=True):
+        paulis = []
+        for fermi in self.rdme:
+            for j in fermi.pPauli:
+                if j in paulis:
+                    pass
+                else:
+                    paulis.append(j)
+        if simplify:
+            self.op,self.mapping = simplify_tomography(paulis)
+        else:
+            self.op = paulis
+            self.mapping = {p:p for p in paulis}
 

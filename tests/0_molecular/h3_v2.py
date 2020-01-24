@@ -34,7 +34,7 @@ tomoIm.generate(real=False,imag=True)
 acse = RunACSE(
         st,qs,Ins,
         method='newton',
-        update='class',
+        update='quantum',
         opt_thresh=1e-10,
         trotter=1,
         ansatz_depth=1,
@@ -47,6 +47,7 @@ acse = RunACSE(
         initial_trust_region=1.0,
         newton_step=-1,
         restrict_S_size=1.0,
+        commutative_ansatz=True,
         tomo_S = tomoIm,
         tomo_Psi = tomoRe,
         verbose=False,

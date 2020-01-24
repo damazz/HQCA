@@ -33,9 +33,11 @@ class QuantumStorage:
 
     '''
     def __init__(self,
+            verbose=True,
             **wargs
             ):
         self.check = 0
+        self.verbose = verbose
         pass
 
     def set_algorithm(self,
@@ -125,13 +127,14 @@ class QuantumStorage:
         self.backend=backend
         self.beo = prov.get_backend(backend)
         self.use_noise=False
-        print('# Summary of quantum parameters:')
-        print('#  backend   : {}'.format(self.backend))
-        print('#  num shots : {}'.format(self.Ns))
-        print('#  num qubit : {}'.format(self.Nq))
-        print('#  provider  : {}'.format(provider))
-        print('#  transpile  : {}'.format(self.transpile))
-        print('#######')
+        if self.verbose:
+            print('# Summary of quantum parameters:')
+            print('#  backend   : {}'.format(self.backend))
+            print('#  num shots : {}'.format(self.Ns))
+            print('#  num qubit : {}'.format(self.Nq))
+            print('#  provider  : {}'.format(provider))
+            print('#  transpile  : {}'.format(self.transpile))
+            print('#######')
 
     def set_noise_model(self,
             **kw

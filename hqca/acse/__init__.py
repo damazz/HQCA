@@ -9,4 +9,5 @@ __all__ = [
         'RunACSE',
         'StandardTomography',
         'QuantumStorage',
+        'ReducedTomography',
         ]

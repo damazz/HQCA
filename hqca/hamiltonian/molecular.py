@@ -14,11 +14,14 @@ class MolecularHamiltonian(Hamiltonian):
             Ne_active_space='default',
             No_active_space='default',
             orbitals='hf',
+            verbose=True
             ):
-        print('-- -- -- -- -- -- -- -- -- -- --')
-        print('      -- HAMILTONIAN --  ')
-        print('-- -- -- -- -- -- -- -- -- -- --')
+        if verbose:
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('      -- HAMILTONIAN --  ')
+            print('-- -- -- -- -- -- -- -- -- -- --')
         self._mo_basis = orbitals
+        self.verbose = verbose
         self.S = mol.intor('int1e_ovlp')
         self.T_1e = mol.intor('int1e_kin')
         self.V_1e = mol.intor('int1e_nuc')
@@ -41,7 +44,8 @@ class MolecularHamiltonian(Hamiltonian):
         self.Ne_tot = mol.nelec[0]+mol.nelec[1]
         self.Ne_alp = mol.nelec[0]
         self.Ne_bet = mol.nelec[1]
-        print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
+        if self.verbose:
+            print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
         if No_active_space=='default':
             self.No_as = self.C.shape[0]
         else:
@@ -57,7 +61,8 @@ class MolecularHamiltonian(Hamiltonian):
         self.ef  = self.mc.e_tot
 
         self.mc_coeff = self.mc.mo_coeff
-        print('CASCI Energy: {:.8f}'.format(float(self.ef)))
+        if self.verbose:
+            print('CASCI Energy: {:.8f}'.format(float(self.ef)))
         self.spin = mol.spin
         self.Ci = np.linalg.inv(self.C)
         self._generate_active_space()
@@ -82,7 +87,8 @@ class MolecularHamiltonian(Hamiltonian):
                     spin2spac=self.s2s
                     )
             self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            print('Transforming molecular integrals...')
+            if self.verbose:
+                print('Transforming molecular integrals...')
             for i in range(0,self.r):
                 for j in range(0,self.r):
                     temp = 0.5*self.ints_2e[i,:,j,:]
@@ -90,7 +96,8 @@ class MolecularHamiltonian(Hamiltonian):
                         temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
                     self.K2[i,:,j,:]+= temp[:,:]
         elif self._mo_basis=='no':
-            print('Obtaining natural orbitals.')
+            if self.verbose:
+                print('Obtaining natural orbitals.')
             d1 = self.mc.fcisolver.make_rdm1s(
                     self.mc.ci,
                     self.No_as,
@@ -170,14 +177,16 @@ class MolecularHamiltonian(Hamiltonian):
                     spin2spac=self.s2s
                     )
             self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            print('Transforming molecular integrals...')
+            if self.verbose:
+                print('Transforming molecular integrals...')
             for i in range(0,self.r):
                 for j in range(0,self.r):
                     temp = 0.5*self.ints_2e[i,j,:,:]
                     for k in range(0,self.r):
                         temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
                     self.K2[i,j,:,:]+= temp[:,:]
-        print('... Done!')
+        if self.verbose:
+            print('... Done!')
         self._matrix = contract(self.K2)
         self._model = 'molecular'
         self._mapping = mapping
@@ -329,7 +338,9 @@ class MolecularHamiltonian(Hamiltonian):
                         qubOp+= newOp.formOperator()
         qubOp.clean()
         self._qubOp = qubOp
-        print(qubOp)
+        self._ferOp = ferOp
+        if self.verbose:
+            print(qubOp)
 
 
     def _old_build_operator(self,int_thresh=1e-14):

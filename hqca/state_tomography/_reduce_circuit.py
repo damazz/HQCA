@@ -97,7 +97,6 @@ class Graph:
                     U.remove(ur)
         return Cv,W[:]
 
-
 def combine_strings(A,B):
     def _delta(a,b):
         if a=='I':
