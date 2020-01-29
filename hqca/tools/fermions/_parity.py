@@ -1,7 +1,6 @@
 import sys
 
 
-
 def _commutator_relations(lp,rp):
     if rp=='I':
         return 1,lp
@@ -89,35 +88,31 @@ def ParityTransform(op,Nq):
                     c1[0]*=nc1
                     c2[0]*=nc2
             elif o in ['1','p']:
-                if q==0:
-                    tc1,tp1=1,''
-                else:
+                if q>0:
                     tc1,tp1 = _commutator_relations(
                             'Z',p[q-1])
                 tc2,tp2 = _commutator_relations(
-                        'X',p[q])
+                        'Z',p[q])
                 if q==0:
-                    p1 = p[:q]+tp1+p[q+1:]
+                    p1 = p[:q]+tp2+p[q+1:]
                 else:
-                    p1 = p[:q-1]+tp0+tp1+p[q+1:]
-                p2 = p[:q]+tp2+p[q+1:]
-                c1.append(c*0.5*tc1)
+                    p1 = p[:q-1]+tp1+tp2+p[q+1:]
+                p2 = p[:]
+                c1.append(-c*0.5*tc1)
                 c2.append(c*0.5*tc2)
             elif o in ['0','h']:
-                if q==0:
-                    tc1,tp1=1,''
-                else:
+                if q>0:
                     tc1,tp1 = _commutator_relations(
                             'Z',p[q-1])
                 tc2,tp2 = _commutator_relations(
-                        'X',p[q])
+                        'Z',p[q])
                 if q==0:
-                    p1 = p[:q]+tp1+p[q+1:]
+                    p1 = p[:q]+tp2+p[q+1:]
                 else:
-                    p1 = p[:q-1]+tp0+tp1+p[q+1:]
-                p2 = p[:q]+tp2+p[q+1:]
+                    p1 = p[:q-1]+tp1+tp2+p[q+1:]
+                p2 = p[:]
                 c1.append(c*0.5*tc1)
-                c2.append(-c*0.5*tc2)
+                c2.append(c*0.5*tc2)
             p1s.append(p1)
             p2s.append(p2)
             c1s+= c1

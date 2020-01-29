@@ -140,7 +140,6 @@ class StandardTomography(Tomography):
             reCre.unordered_permute()
             for i in reAnn.total:
                 for j in reCre.total:
-                    #print(i[:2],j[:2])
                     ind1 = tuple(j[:self.p]+i[:self.p])
                     s = i[self.p]*j[self.p]
                     nRDM[ind1]+=temp*s #factor of 2 is for double counting
@@ -437,11 +436,6 @@ class StandardTomography(Tomography):
                     print('Circuit: {}'.format(circuit))
                     print(job.result().get_statevector(circuit))
                 counts.append(job.result().get_statevector(circuit))
-            #for circ in self.circuits:
-            #    if circ.name=='Z':
-            #        print(circ)
-            #    elif circ.name=='ZZ':
-            #        print(circ)
         elif self.qs.use_noise:
             try:
                 job = beo.run(
@@ -582,7 +576,7 @@ class ReducedTomography(StandardTomography):
                             idx = ''.join([str(i),str(k),str(l),str(j)])
                             self.qubit_pairing[idx] = SimplifyTwoBody(
                                     indices=[i,k,l,j],
-                                    Nq=self.Nq
+                                    **kw
                                     )
             # number excitation operators
             for i in range(2*Na-2):
@@ -591,7 +585,7 @@ class ReducedTomography(StandardTomography):
                         idx = ''.join([str(i),str(j),str(k)])
                         self.qubit_pairing[idx] = SimplifyTwoBody(
                                 indices=[i,j,k],
-                                Nq=self.Nq
+                                **kw
                                 )
             # NUMBER NUMBER operator 
             for i in range(2*Na-1):
@@ -599,11 +593,11 @@ class ReducedTomography(StandardTomography):
                     idx = ''.join([str(i),str(j)])
                     self.qubit_pairing[idx] = SimplifyTwoBody(
                             indices=[i,j],
-                            Nq=self.Nq
+                            **kw
                             )
 
     def _generate_2rdme(self,real=True,imag=False,**kw):
-        self._pre_generate_2rdme(real=real,imag=imag,**kw)
+        self._pre_generate_2rdme(real=real,imag=imag,Nq=self.Nq,**kw)
         self.real=real
         self.imag=imag
         if not self.grouping:
@@ -612,7 +606,6 @@ class ReducedTomography(StandardTomography):
             rdme = []
             bet = self.qs.groups[1]
             S = []
-
             def sub_rdme(i,k,l,j,spin):
                 test = FermionicOperator(
                     coeff=1,

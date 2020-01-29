@@ -209,6 +209,9 @@ class FermionicOperator:
         elif mapping=='parity':
             self.pPauli,self.pCoeff = ParityTransform(
                     self,Nq)
+        elif mapping in ['bravyi-kitaev','bk']:
+            self.pPauli,self.pCoeff = BravyiKitaevTransform(
+                    self,Nq,**kw)
         self._complex  = [i.imag for i in self.pCoeff]
         self._real = [i.real for i in self.pCoeff]
         for n in reversed(range(len(self.pPauli))):

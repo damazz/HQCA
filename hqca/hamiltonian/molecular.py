@@ -53,14 +53,17 @@ class MolecularHamiltonian(Hamiltonian):
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_tot
         self._generate_spin2spac_mapping()
-        self.mc = mcscf.CASCI(
-                self.hf,
-                self.No_as,
-                self.Ne_as)
-        self.mc.kernel()
-        self.ef  = self.mc.e_tot
+        if self.No_as<=4:
+            self.mc = mcscf.CASCI(
+                    self.hf,
+                    self.No_as,
+                    self.Ne_as)
+            self.mc.kernel()
+            self.ef  = self.mc.e_tot
+            self.mc_coeff = self.mc.mo_coeff
+        else:
+            self.ef =  0
 
-        self.mc_coeff = self.mc.mo_coeff
         if self.verbose:
             print('CASCI Energy: {:.8f}'.format(float(self.ef)))
         self.spin = mol.spin
