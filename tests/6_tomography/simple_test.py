@@ -11,23 +11,23 @@ import sys
 
 d = 2.0
 molecules = [
-        [['H',(0,0,0)],['H',(d,0,0)]],
+        #[['H',(0,0,0)],['H',(d,0,0)]],
         [['H',(0,0,0)],['H',(d,0,0)],['H',(-d,0,0)]],
-        [['H',(0,0,0)],['H',(0,1,0)],['H',(1,0,0)],['H',(1,1,0)]],
+        #[['H',(0,0,0)],['H',(0,1,0)],['H',(1,0,0)],['H',(1,1,0)]],
         #[['H',(0,0,0)],['H',(0,1,0)],['H',(1,0,0)],['H',(1,1,0)],['H',(0,-1,0)]],
         #[['H',(0,0,0)],['H',(0,1,0)],['H',(1,0,0)],['H',(1,1,0)],['H',(0,-1,0)],['H',(-1,-1,0)]],
         ]
 qubits = [
-        4,
+        #4,
         6,
-        8,
+        #8,
         #10,
         #12
         ]
 spins = [
-        0,
+        #0,
         1,
-        0,
+        #0,
         #1,
         #0
         ]
@@ -49,33 +49,29 @@ for atoms,Q,S in zip(molecules,qubits,spins):
             Nq=Q,
             provider='Aer')
     print('###############')
+    #for maps in ['bk']:
     for maps in ['jw','parity','bk']:
         print('Mapping: {}'.format(maps))
         if maps=='bk':
-            bkSet = BravyiKitaevSet(Q)
+            bkSet = BravyiKitaevSet(qs)
         else:
             bkSet=None
         tomoRe = StandardTomography(qs)
         print('Default Tomography for {} Qubits:'.format(Q))
         tomoRe.generate(real=True,imag=False,simplify=False,mapping=maps,bkSet=bkSet)
         print('Naive: {}'.format(len(tomoRe.op)))
+        #print(tomoRe.op)
 
         tomoRe.generate(real=True,imag=False,simplify=True,mapping=maps,bkSet=bkSet)
         print('Grouped: {}'.format(len(tomoRe.op)))
+        #print(tomoRe.op)
 
         tomoRe = ReducedTomography(qs)
         tomoRe.generate(real=True,imag=False,simplify=False,mapping=maps,bkSet=bkSet)
         print('Reduced Tomography for {} Qubits:'.format(Q))
         print('Naive: {}'.format(len(tomoRe.op)))
-
-        tomoRe.generate(real=True,imag=False,simplify=True,mapping=maps,bkSet=bkSet)
+        #print(tomoRe.op)
+        tomoRe.generate(real=True,imag=False,simplify=True,mapping=maps,bkSet=bkSet,weight=['I'],criteria='mc',rel='mc')
         print('Grouped: {}'.format(len(tomoRe.op)))
-
-        tomoRe = ReducedTomography(qs,match_aa_bb=True)
-        tomoRe.generate(real=True,imag=False,simplify=False,mapping=maps,bkSet=bkSet)
-        print('Reduced Tomography with matching for {} Qubits:'.format(Q))
-        print('Naive: {}'.format(len(tomoRe.op)))
-
-        tomoRe.generate(real=True,imag=False,simplify=True,mapping=maps,bkSet=bkSet)
-        print('Grouped: {}'.format(len(tomoRe.op)))
+        #print(tomoRe.op)
 

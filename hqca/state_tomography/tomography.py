@@ -1,10 +1,6 @@
 import numpy as np
 from functools import reduce
 from scipy import stats
-from qiskit import Aer,IBMQ,execute
-from qiskit.compiler import transpile
-from qiskit.compiler import assemble
-from qiskit.tools.monitor import backend_overview,job_monitor
 from copy import deepcopy as copy
 import sys
 import traceback
@@ -15,21 +11,33 @@ from hqca.circuits import *
 from hqca.state_tomography._reduce_circuit import simplify_tomography
 from hqca.state_tomography._simplify import *
 from hqca.core.primitives import *
+from qiskit import transpile,assemble,execute
 
 class StandardTomography(Tomography):
+    '''
+    Standard Tomography with optional 
+    '''
     def __init__(self,
             QuantStore,
             preset=False,
             verbose=True,
+            match_aa_bb=False,
             **kw):
         self.grouping = False
         if preset:
             self._preset_configuration(**kw)
         self.run = False
         self.Nq = QuantStore.Nq
+        self.match_aa_bb = match_aa_bb
         self.qs = QuantStore
         self.p = QuantStore.p
-        self.dim = tuple([self.Nq for i in range(2*self.p)])
+        if self.qs.mapping in ['bk','bravyi-kitaev']:
+            if self.qs._kw_mapping['bkSet'].reduced:
+                self.dim = tuple([self.Nq+2 for i in range(2*self.p)])
+            else:
+                self.dim = tuple([self.Nq for i in range(2*self.p)])
+        else:
+            self.dim = tuple([self.Nq for i in range(2*self.p)])
         self.circuits = []
         self.circuit_list = []
         self.verbose=verbose
@@ -47,7 +55,6 @@ class StandardTomography(Tomography):
         self.real = Tomo.real
         self.imag = Tomo.imag
 
-
     def set(self,Instruct):
         if self.verbose:
             print('Generating circuits to run.')
@@ -60,6 +67,26 @@ class StandardTomography(Tomography):
             for item in self.qs.initial:
                 if self.qs.mapping in ['jordan-wigner','jw']:
                     Q.qc.x(item)
+                elif self.qs.mapping in ['parity']:
+                    sys.exit('Need initialization for parity')
+                elif self.qs.mapping in ['bk','bravyi-kitaev']:
+                    bkSet = self.qs._kw_mapping['bkSet']
+                    if bkSet.reduced:
+                        if item in bkSet._shifted:
+                            Q.qc.x(item-1)
+                        else:
+                            Q.qc.x(item)
+                        for q in bkSet.update[item]:
+                            if (q in bkSet._shifted):
+                                Q.qc.x(q-1)
+                            elif q in bkSet._reduced_set:
+                                pass
+                            else:
+                                Q.qc.x(q)
+                    else:
+                        Q.qc.x(item)
+                        for q in bkSet.update[item]:
+                            Q.qc.x(q)
             Q.apply(Instruct=Instruct)
             for n,q in enumerate(circ):
                 pauliOp(Q,n,q)
@@ -123,7 +150,6 @@ class StandardTomography(Tomography):
         nRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
             temp = 0
-            #print(r)
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
                 #print(Pauli,coeff)
                 get = self.mapping[Pauli] #self.mapping has important get
@@ -146,6 +172,19 @@ class StandardTomography(Tomography):
                     if not set(i[:2])==set(j[:2]):
                         ind2 = tuple(i[:self.p]+j[:self.p])
                         nRDM[ind2]+=np.conj(temp)*s
+        if self.match_aa_bb:
+            alp = self.qs.groups[0]
+            for i in alp:
+                I = self.qs.a2b[i]
+                for k in alp:
+                    K = self.qs.a2b[k]
+                    for l in alp:
+                        L = self.qs.a2b[l]
+                        for j in alp:
+                            J = self.qs.a2b[j]
+                            Ind = tuple(I,K,L,J)
+                            ind = tuple(i,k,l,j)
+                            nrdm[Ind]=nrdm[ind]
         self.rdm = RDM(
                 order=self.p,
                 alpha=self.qs.groups[0],
@@ -224,7 +263,7 @@ class StandardTomography(Tomography):
                 self._generate_2qrdme(**kw)
             elif self.p==1:
                 self._generate_1qrdme(**kw)
-        self._generate_pauli_measurements(simplify)
+        self._generate_pauli_measurements(simplify,**kw)
 
     def _generate_1qrdme(self,**kw):
         '''
@@ -319,7 +358,6 @@ class StandardTomography(Tomography):
                                 continue
                             new = sub_rdme(i,k,l,j,'bbbb')
                             rdme.append(new)
-
             for i in alp:
                 for k in bet:
                     for l in bet:
@@ -332,7 +370,7 @@ class StandardTomography(Tomography):
                             rdme.append(new)
             self.rdme = rdme
 
-    def _generate_pauli_measurements(self,simplify=False):
+    def _generate_pauli_measurements(self,simplify=False,**kw):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -341,11 +379,12 @@ class StandardTomography(Tomography):
                 else:
                     paulis.append(j)
         if simplify:
-            self.op,self.mapping = simplify_tomography(paulis)
+            self.op,self.mapping = simplify_tomography(
+                    paulis,
+                    **kw)
         else:
             self.op = paulis
             self.mapping = {p:p for p in paulis}
-
 
     def _transform_q2r(self,rdme):
         nrdme = []
@@ -431,7 +470,7 @@ class StandardTomography(Tomography):
                 counts.append(job.result().get_counts(name))
         elif self.qs.backend=='statevector_simulator':
             job = beo.run(qo)
-            for circuit in self.circuit_list:
+            for n,circuit in enumerate(self.circuit_list):
                 if verbose:
                     print('Circuit: {}'.format(circuit))
                     print(job.result().get_statevector(circuit))
@@ -538,7 +577,8 @@ class StandardTomography(Tomography):
 
 
 class PseudoRDMElement:
-    def __init__(self,pauli_list):
+    def __init__(self,pauli_list,ind):
+        self.ind = ind
         self.pPauli = []
         self.pCoeff = []
         for p,c in pauli_list:
@@ -547,13 +587,18 @@ class PseudoRDMElement:
 
 
 class ReducedTomography(StandardTomography):
-    def _pre_generate_2rdme(self,real=True,imag=False,**kw):
+    def _pre_generate_2rdme(self,
+            real=True,
+            imag=False,
+            **kw):
         '''
         focuses more on getting pairs than anything else
         '''
         self.real=real
         self.imag=imag
         self.qubit_pairing = {}
+        self._cp = []
+        kw['key_list']=self._cp
         if not self.grouping:
             alp = self.qs.groups[0]
             Na = len(alp)
@@ -573,30 +618,45 @@ class ReducedTomography(StandardTomography):
                             a4 = j in alp
                             if not (a1+a2+a3+a4)%2==0:
                                 continue
-                            idx = ''.join([str(i),str(k),str(l),str(j)])
+                            idx = '-'.join([str(i),str(k),str(l),str(j)])
                             self.qubit_pairing[idx] = SimplifyTwoBody(
                                     indices=[i,k,l,j],
                                     **kw
                                     )
-            # number excitation operators
+                            for k1,v in self.qubit_pairing[idx].real.items():
+                                self._cp.append(v[0][0])
+                                break
             for i in range(2*Na-2):
                 for j in range(i+1,2*Na-1):
                     for k in range(j+1,2*Na):
-                        idx = ''.join([str(i),str(j),str(k)])
+                        idx = '-'.join([str(i),str(j),str(k)])
                         self.qubit_pairing[idx] = SimplifyTwoBody(
                                 indices=[i,j,k],
                                 **kw
                                 )
+                        for k1,v in self.qubit_pairing[idx].real.items():
+                            self._cp.append(v[0][0])
             # NUMBER NUMBER operator 
             for i in range(2*Na-1):
                 for j in range(i+1,2*Na):
-                    idx = ''.join([str(i),str(j)])
+                    idx = '-'.join([str(i),str(j)])
                     self.qubit_pairing[idx] = SimplifyTwoBody(
                             indices=[i,j],
                             **kw
                             )
+                    for k1,v in self.qubit_pairing[idx].real.items():
+                        self._cp.append(v[0][0])
+                        break
+                        #for p,c in v:
+                        #    if p in self._cp:
+                        #        pass
+                        #    else:
+                        #        self._cp.append(p)
 
-    def _generate_2rdme(self,real=True,imag=False,**kw):
+    def _generate_2rdme(self,
+            real=True,
+            imag=False,
+            **kw):
         self._pre_generate_2rdme(real=real,imag=imag,Nq=self.Nq,**kw)
         self.real=real
         self.imag=imag
@@ -612,9 +672,13 @@ class ReducedTomography(StandardTomography):
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin)
-                idx = ''.join([str(i) for i in test.qInd])
+                idx = '-'.join([str(i) for i in test.qInd])
                 if self.real and not self.imag:
-                    tomo = self.qubit_pairing[idx].real[test.qOp]
+                    try:
+                        tomo = self.qubit_pairing[idx].real[test.qOp]
+                    except Exception as e:
+                        traceback.print_exc()
+                        sys.exit()
                 elif not self.real and self.imag:
                     try:
                         tomo = self.qubit_pairing[idx].imag[test.qOp]
@@ -625,9 +689,10 @@ class ReducedTomography(StandardTomography):
                     tomoI = self.qubit_pairing[idx].imag[test.qOp]
                     for i in tomoI:
                         tomo.append(i)
-                return PseudoRDMElement(tomo)
-
-
+                if test.qCo==-1:
+                    for i in range(len(tomo)):
+                        tomo[i][1] = tomo[i][1]*test.qCo
+                return PseudoRDMElement(tomo,test.ind)
 
             for i in alp:
                 for k in alp:
@@ -651,7 +716,6 @@ class ReducedTomography(StandardTomography):
                             if imag and i*Na+k==j*Na+l:
                                 continue
                             rdme.append(sub_rdme(i,k,l,j,'bbbb'))
-
             for i in alp:
                 for k in bet:
                     for l in bet:
@@ -663,7 +727,7 @@ class ReducedTomography(StandardTomography):
                             rdme.append(sub_rdme(i,k,l,j,'abba'))
             self.rdme = rdme
 
-    def generate_pauli_measurements(self,simplify=True):
+    def generate_pauli_measurements(self,simplify=True,**kw):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -672,8 +736,11 @@ class ReducedTomography(StandardTomography):
                 else:
                     paulis.append(j)
         if simplify:
-            self.op,self.mapping = simplify_tomography(paulis)
+            self.op,self.mapping = simplify_tomography(
+                    paulis,
+                    **kw)
         else:
             self.op = paulis
             self.mapping = {p:p for p in paulis}
+
 

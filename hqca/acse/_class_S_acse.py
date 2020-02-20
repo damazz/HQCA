@@ -80,12 +80,14 @@ def findSPairs(
         classS_max=1e-10,
         commutative=True,
         recon_approx='V',
+        verbose=True,
         **kw,
         ):
     '''
     '''
     store.rdm3 = store.rdm.reconstruct(approx=recon_approx)
-    print('3-RDM Trace: {}'.format(store.rdm3.trace()))
+    if verbose:
+        print('3-RDM Trace: {}'.format(store.rdm3.trace()))
     alp = store.alpha_mo['active']
     bet = store.beta_mo['active']
     Na = len(alp)
@@ -93,7 +95,7 @@ def findSPairs(
     S = []
     tS = []
     newS = Operator()
-    ferOp = Operator()
+    ferOp= Operator()
     for p in alp+bet:
         for r in alp+bet:
             if p==r:
@@ -118,7 +120,12 @@ def findSPairs(
                                 antisymmetric=True,
                                 add=True
                                 )
-                        newOp.generateOperators(2*store.H.No_tot)
+                        newOp.generateOperators(
+                                2*store.H.No_tot,
+                                real=True,imag=True,
+                                mapping=store.H.mapping,
+                                **store.H._kw_mapping,
+                                )
                         ferOp+= newOp
                         newS+= newOp.formOperator()
     print('Elements of S from classical ACSE: ')

@@ -116,8 +116,6 @@ class StorageACSE(Storage):
         return en + self.H._en_c
 
     def analysis(self):
-        #print('  --  --  --  --  --  --  -- ')
-        #print('--  --  --  --  --  --  --  --')
         if self.H.model in ['molecule','mol','molecular']:
             self.rdm.get_spin_properties()
             print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
@@ -129,7 +127,6 @@ class StorageACSE(Storage):
             for i in np.linalg.eigvalsh(self.rdm.rdm):
                 if abs(i)>1e-10:
                     print(i)
-            #print(np.linalg.eigvalsh(self.rdm.rdm))
             self.rdm.expand()
         else:
             print('Density matrix:')

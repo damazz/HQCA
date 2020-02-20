@@ -39,6 +39,10 @@ def _commutator_relations(lp,rp):
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
 
+class ParitySet:
+    def __init__(self,Nq,reduced):
+        pass
+
 
 def ParityTransform(op,Nq):
     coeff = [op.qCo]

@@ -7,7 +7,7 @@ import numpy as np
 import traceback
 import warnings
 warnings.simplefilter(action='ignore',category=FutureWarning)
-from functools import reduce,partial 
+from functools import reduce,partial
 import datetime
 import sys
 from scipy import stats
@@ -109,7 +109,7 @@ class RunACSE(QuantumRun):
             tr_gamma_inc=2,
             tr_gamma_dec=0.5,
             tr_nu_accept=0.9,
-            tr_nu_reject=0.1,
+            tr_nu_reject=0.1
             ):
         self.use_trust_region = use_trust_region
         self.d = newton_step #for estimating derivative

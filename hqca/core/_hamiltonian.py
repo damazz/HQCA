@@ -55,15 +55,15 @@ class Hamiltonian(ABC):
     @property
     def fermi_operator(self,**kw):
         return self._ferOp
-    
+
     @fermi_operator.setter
     def fermi_operator(self,operator):
         self._ferOp = operator
-    
+
     @property
     def qubit_operator(self):
         return self._qubOp
-    
+
     @qubit_operator.setter
     def qubit_operator(self,operator):
         self._qubOp = operator

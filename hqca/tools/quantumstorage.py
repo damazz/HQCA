@@ -34,7 +34,7 @@ class QuantumStorage:
     '''
     def __init__(self,
             verbose=True,
-            **wargs
+            **kwargs
             ):
         self.check = 0
         self.verbose = verbose
@@ -44,7 +44,7 @@ class QuantumStorage:
             Storage,
             depth=1,
             rdm_to_qubit='default',
-            **kwargs
+            **kwargs,
             ):
         self.depth = depth
         self.check+=1
@@ -60,6 +60,11 @@ class QuantumStorage:
             elif rdm_to_qubit=='alternating':
                 alp = [2*i for i in range(Storage.No_as)]
                 bet = [2*i+1 for i in range(Storage.No_as)]
+            self.a2b = {
+                    i:j for i,j in zip(self.alpha['active'],self.beta['active'])
+                        }
+            self.mapping = Storage.H.mapping
+            self._kw_mapping = Storage.H._kw_mapping
             self.groups = [
                     alp,
                     bet
@@ -69,7 +74,6 @@ class QuantumStorage:
                 self.initial.append(alp[i])
             for i in range(Storage.H.Ne_bet):
                 self.initial.append(bet[i])
-            self.mapping = Storage.H.mapping
         elif Storage.H.model in ['sq','tq']:
             self.op_type = 'qubit'
             self.initial = []
@@ -118,7 +122,7 @@ class QuantumStorage:
         self.Ns = num_shots
         self.provider = provider
         if self.provider=='IBMQ':
-            try: 
+            try:
                 prov = IBMQ.load_account()
             except AttributeError:
                 pass

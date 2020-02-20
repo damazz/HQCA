@@ -35,12 +35,47 @@ class SimplifyTwoBody:
             ):
         self.ind = indices
         self.w = weight
+        self._sorting_procedure(**kw)
         if len(set(self.ind))==4:
             self._simplify_double_excitation(**kw)
         elif len(set(self.ind))==3:
             self._simplify_number_excitation(**kw)
         elif len(set(self.ind))==2:
             self._simplify_number_operator(**kw)
+
+    def _sorting_procedure(self,
+            criteria='pauli-weighting',
+            key_list=[],
+            **kw,
+            ):
+        self.crit = criteria
+        if self.crit=='pauli-weighting':
+            pass
+        elif self.crit=='mc':
+            # maximally commutative sets
+            self.sort_crit = key_list
+
+    def _commutative_paulis(self,A,B):
+        k=0
+        for i in range(len(A)):
+            if not ((A[i]=='I' or B[i]=='I') or A[i]==B[i]):
+                k+=1
+        return k%2
+
+    def _get_keys(self,x):
+        if self.crit=='pauli-weighting':
+            if type(self.w)==type('A'):
+                return self.fermi_map[x]['weight'][self.w]
+            elif type(self.w)==type((1,2)) or type(self.w)==type([1,2]):
+                new = []
+                for i in self.w:
+                    new.append(self.fermi_map[x]['weight'][i])
+                return new
+        elif self.crit=='mc':
+            n=0
+            for pauli in self.sort_crit:
+                n+=self._commutative_paulis(x,pauli)
+            return (n,self.fermi_map[x]['weight']['I'])
 
     def _simplify_number_operator(self,
             spin='aabb',
@@ -54,7 +89,7 @@ class SimplifyTwoBody:
         '''
         ops = ['ph','hp','pp','hh']
         self.key_ops = {j:i for i,j in zip(range(len(ops)),ops)}
-        self.ops = []
+        self.ops = ops
         pauli_map = {}
         for op in ops:
             new = FermionicOperator(
@@ -62,7 +97,6 @@ class SimplifyTwoBody:
                     indices=self.ind,
                     sqOp=op,
                     spin=spin)
-            #print(new)
             new.generateOperators(Nq,mapping=mapping,**kw)
             newop = new.formOperator()
             pauli_map[op]={}
@@ -85,68 +119,71 @@ class SimplifyTwoBody:
                     'imag':np.iscomplex(v[0]),
                     'weight':self._weights(k)
                     }
-        #for k,v in fermi_map.items():
-        #    print(k,v)
         key_list = [k for k,v in fermi_map.items()]
         self.fermi_map = fermi_map
-        def get_keys(x):
-            if type(self.w)==type('A'):
-                return fermi_map[x]['weight'][self.w]
-            elif type(self.w)==type((1,2)) or type(self.w)==type([1,2]):
-                new = []
-                for i in self.w:
-                    new.append(fermi_map[x]['weight'][i])
-                return new
         if self.w=='default':
             self.w = []
             self.w = ['Z','X']
         self.kl = sorted(
                 key_list,
-                key=lambda x:get_keys(x),
+                key=lambda x:self._get_keys(x),
                 reverse=True)
         n = len(self.kl)
-        done = False
-        for l in range(0,n-3):
-            if done:
-                continue
-            for i in range(l+1,n-2):
+        try:
+            done = False
+            for l in range(0,n-3):
                 if done:
                     continue
-                for j in range(i+1,n-1):
+                for i in range(l+1,n-2):
                     if done:
                         continue
-                    for k in range(j+1,n):
-                        v1 = self.fermi_map[self.kl[l]]['coeff']
-                        v2 = self.fermi_map[self.kl[i]]['coeff']
-                        v3 = self.fermi_map[self.kl[j]]['coeff']
-                        v4 = self.fermi_map[self.kl[k]]['coeff']
-                        mat = np.matrix([v1,v2,v3,v4])
-                        d = np.linalg.det(mat)
-                        if abs(d)>1e-10:
-                            c1,c2,c3,c4 = copy(l),copy(i),copy(j),copy(k)
-                            done = True
-                            break
-        v1 = self.fermi_map[self.kl[c1]]['coeff']
-        v2 = self.fermi_map[self.kl[c2]]['coeff']
-        v3 = self.fermi_map[self.kl[c3]]['coeff']
-        v4 = self.fermi_map[self.kl[c4]]['coeff']
-        mat = np.matrix([v1,v2,v3,v4]).T
-        r1 = np.array([1,0,0,0])
-        r2 = np.array([0,1,0,0])
-        r3 = np.array([0,0,1,0])
-        r4 = np.array([0,0,0,1])
-        a1 = np.linalg.solve(mat,r1)
-        a2 = np.linalg.solve(mat,r2)
-        a3 = np.linalg.solve(mat,r3)
-        a4 = np.linalg.solve(mat,r4)
-        inds = [c1,c2,c3,c4]
-        self.real = {
-                'ph':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
-                'hp':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
-                'pp':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
-                'hh':[[self.kl[inds[i]],a4[i]] for i in trim(a4)],
-                }
-        self.imag = {}
+                    for j in range(i+1,n-1):
+                        if done:
+                            continue
+                        for k in range(j+1,n):
+                            v1 = self.fermi_map[self.kl[l]]['coeff']
+                            v2 = self.fermi_map[self.kl[i]]['coeff']
+                            v3 = self.fermi_map[self.kl[j]]['coeff']
+                            v4 = self.fermi_map[self.kl[k]]['coeff']
+                            mat = np.matrix([v1,v2,v3,v4])
+                            d = np.linalg.det(mat)
+                            if abs(d)>1e-10:
+                                c1,c2,c3,c4 = copy(l),copy(i),copy(j),copy(k)
+                                done = True
+                                break
+            v1 = self.fermi_map[self.kl[c1]]['coeff']
+            v2 = self.fermi_map[self.kl[c2]]['coeff']
+            v3 = self.fermi_map[self.kl[c3]]['coeff']
+            v4 = self.fermi_map[self.kl[c4]]['coeff']
+            mat = np.matrix([v1,v2,v3,v4]).T
+            r1 = np.array([1,0,0,0])
+            r2 = np.array([0,1,0,0])
+            r3 = np.array([0,0,1,0])
+            r4 = np.array([0,0,0,1])
+            a1 = np.linalg.solve(mat,r1)
+            a2 = np.linalg.solve(mat,r2)
+            a3 = np.linalg.solve(mat,r3)
+            a4 = np.linalg.solve(mat,r4)
+            inds = [c1,c2,c3,c4]
+            self.real = {
+                    'ph':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
+                    'hp':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
+                    'pp':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
+                    'hh':[[self.kl[inds[i]],a4[i]] for i in trim(a4)],
+                    }
+            self.imag = {}
+        except Exception as e:
+            self.real = {}
+            self.imag = {}
+            for op in ops:
+                new = FermionicOperator(
+                        coeff=1,
+                        indices=self.ind,
+                        sqOp=op,
+                        spin=spin)
+                new.generateOperators(Nq,mapping=mapping,**kw)
+                newop = new.formOperator()
+                self.real[op]=[[o.p,o.c] for o in newop.op]
 
     def _simplify_number_excitation(self,
             spin='aabb',
@@ -165,7 +202,7 @@ class SimplifyTwoBody:
                 ['+h-','+p-','-h+','-p+',],
                 ['h+-','p+-','h-+','p-+',],
                 ]
-        self.ops = []
+        self.ops =ops
         for place in ops:
             pauli_map = {}
             self.key_ops = {j:i for i,j in zip(range(len(place)),place)}
@@ -199,83 +236,114 @@ class SimplifyTwoBody:
                         }
             #for k,v in fermi_map.items():
             #    print(k,v)
+
             key_list = [k for k,v in fermi_map.items()]
             self.fermi_map = fermi_map
             # sorting
-            def get_keys(x):
-                if type(self.w)==type('A'):
-                    return fermi_map[x]['weight'][self.w]
-                elif type(self.w)==type((1,2)) or type(self.w)==type([1,2]):
-                    new = []
-                    for i in self.w:
-                        new.append(fermi_map[x]['weight'][i])
-                    return new
             if self.w=='default':
                 self.w = []
                 self.w = ['Z','X']
             self.kl = sorted(
                     key_list,
-                    key=lambda x:get_keys(x),
+                    key=lambda x:self._get_keys(x),
                     reverse=True)
             ####### 
-            done=False
-            n = len(self.kl)
-            for i in range(0,n-1):
-                if done or self.fermi_map[self.kl[i]]['imag']:
-                    continue
-                for j in range(i+1,n):
-                    if done or self.fermi_map[self.kl[j]]['imag']:
+            try:
+                done=False
+                n = len(self.kl)
+                for i in range(0,n-1):
+                    if done or self.fermi_map[self.kl[i]]['imag']:
                         continue
-                    for k in range(0,n-1):
-                        if done or self.fermi_map[self.kl[k]]['real']:
+                    for j in range(i+1,n):
+                        if done or self.fermi_map[self.kl[j]]['imag']:
                             continue
-                        for l in range(k+1,n):
-                            if done or self.fermi_map[self.kl[l]]['real']:
+                        for k in range(0,n-1):
+                            if done or self.fermi_map[self.kl[k]]['real']:
                                 continue
-                            v1 = self.fermi_map[self.kl[i]]['coeff']
-                            v2 = self.fermi_map[self.kl[j]]['coeff']
-                            v3 = self.fermi_map[self.kl[k]]['coeff']
-                            v4 = self.fermi_map[self.kl[l]]['coeff']
-                            mat = np.matrix([v1,v2,v3,v4])
-                            d = np.linalg.det(mat)
-                            if abs(d)>1e-10:
-                                c1,c2,c3,c4 = copy(i),copy(j),copy(k),copy(l)
-                                done = True
-                                break
-            v1 = self.fermi_map[self.kl[c1]]['coeff']
-            v2 = self.fermi_map[self.kl[c2]]['coeff']
-            v3 = self.fermi_map[self.kl[c3]]['coeff']
-            v4 = self.fermi_map[self.kl[c4]]['coeff']
-            #print(self.kl)
-            #print(c1,c2,c3,c4)
-            #print('-------------')
-            #print(v1)
-            #print(v2)
-            #print(v3)
-            #print(v4)
-            #print(self.kl[c1],self.kl[c2],self.kl[c3],self.kl[c4])
-            mat = np.matrix([v1,v2,v3,v4]).T
-            r1 = np.array([1,0,-1,0])
-            r2 = np.array([0,1,0,-1])
-            i1 = np.array([1,0,1,0])
-            i2 = np.array([0,1,0,1])
-            a1 = np.linalg.solve(mat,r1)
-            a2 = np.linalg.solve(mat,r2)
-            b1 = np.linalg.solve(mat,i1)
-            b2 = np.linalg.solve(mat,i2)
-            inds = [c1,c2,c3,c4]  # # c1 is....
-            vRe = [a1,a2,a1,a2]   # #
-            vIm = [b1,b2,-b1,-b2] # # 
-            for n,op in enumerate(place):
-                self.real[op]=[
-                            [self.kl[inds[i]],vRe[n][i]
-                                ] for i in trim(vRe[n])]
-                self.imag[op]=[
-                            [self.kl[inds[i]],vIm[n][i]
-                                ] for i in trim(vIm[n])]
-        #for k,v in self.real.items():
-        #    print(k,v)
-
+                            for l in range(k+1,n):
+                                if done or self.fermi_map[self.kl[l]]['real']:
+                                    continue
+                                v1 = self.fermi_map[self.kl[i]]['coeff']
+                                v2 = self.fermi_map[self.kl[j]]['coeff']
+                                v3 = self.fermi_map[self.kl[k]]['coeff']
+                                v4 = self.fermi_map[self.kl[l]]['coeff']
+                                mat = np.matrix([v1,v2,v3,v4])
+                                d = np.linalg.det(mat)
+                                if abs(d)>1e-10:
+                                    c1,c2,c3,c4 = copy(i),copy(j),copy(k),copy(l)
+                                    done = True
+                                    break
+                v1 = self.fermi_map[self.kl[c1]]['coeff']
+                v2 = self.fermi_map[self.kl[c2]]['coeff']
+                v3 = self.fermi_map[self.kl[c3]]['coeff']
+                v4 = self.fermi_map[self.kl[c4]]['coeff']
+                mat = np.matrix([v1,v2,v3,v4]).T
+                r1 = np.array([0.5,0,-0.5,0])
+                r2 = np.array([0,0.5,0,-0.5])
+                i1 = np.array([0.5,0,0.5,0])
+                i2 = np.array([0,0.5,0,0.5])
+                a1 = np.linalg.solve(mat,r1)
+                a2 = np.linalg.solve(mat,r2)
+                b1 = np.linalg.solve(mat,i1)
+                b2 = np.linalg.solve(mat,i2)
+                inds = [c1,c2,c3,c4]  # # c1 is....
+                vRe = [a1,a2,-a1,-a2]   # #
+                vIm = [b1,b2,b1,b2] # # 
+                for n,op in enumerate(place):
+                    self.real[op]=[
+                                [self.kl[inds[i]],vRe[n][i]
+                                    ] for i in trim(vRe[n])]
+                    self.imag[op]=[
+                                [self.kl[inds[i]],vIm[n][i]
+                                    ] for i in trim(vIm[n])]
+            except Exception as e:
+                conjOp = {
+                        '+-h':'-+h',
+                        '+-p':'-+p',
+                        '-+h':'+-h',
+                        '-+p':'+-p',
+                        '+h-':'-h+',
+                        '+p-':'-p+',
+                        '-h+':'+h-',
+                        '-p+':'+p-',
+                        'h+-':'h-+',
+                        'p+-':'p-+',
+                        'h-+':'h+-',
+                        'p-+':'p+-',}
+                for op in place:
+                    new1 = FermionicOperator(
+                            coeff=0.5,
+                            indices=self.ind,
+                            sqOp=op,
+                            spin=spin)
+                    new1.generateOperators(Nq,mapping=mapping,**kw)
+                    new = new1.formOperator()
+                    new2 = FermionicOperator(
+                            coeff=-0.5,
+                            indices=self.ind,
+                            sqOp=conjOp[op],
+                            spin=spin)
+                    new2.generateOperators(Nq,mapping=mapping,**kw)
+                    new += new2.formOperator()
+                    new.clean()
+                    self.real[op]=[[o.p,o.c] for o in new.op]
+                    # now, imag
+                    new1 = FermionicOperator(
+                            coeff=0.5,
+                            indices=self.ind,
+                            sqOp=op,
+                            spin=spin)
+                    new1.generateOperators(Nq,mapping=mapping,**kw)
+                    new = new1.formOperator()
+                    new2 = FermionicOperator(
+                            coeff=+0.5,
+                            indices=self.ind,
+                            sqOp=conjOp[op],
+                            spin=spin)
+                    new2.generateOperators(Nq,mapping=mapping,**kw)
+                    new += new2.formOperator()
+                    new.clean()
+                    self.imag[op]=[[o.p,o.c] for o in new.op]
 
     def _simplify_double_excitation(self,
             spin='aabb',
@@ -291,8 +359,9 @@ class SimplifyTwoBody:
                 '++--','+-+-','+--+',
                 '--++','-+-+','-++-']
         self.key_ops = {j:i for i,j in zip(range(len(ops)),ops)}
-        self.ops = []
+        self.ops = ops
         pauli_map = {}
+        cont = True
         for op in ops:
             new = FermionicOperator(
                     coeff=1,
@@ -302,6 +371,8 @@ class SimplifyTwoBody:
             new.generateOperators(Nq,mapping=mapping,**kw)
             newop = new.formOperator()
             pauli_map[op]={}
+            if len(newop.op)<=6:
+                cont = False
             for item in newop.op:
                 pauli_map[op][item.p]=sign(item.c)
         fermi_map = {}
@@ -321,29 +392,71 @@ class SimplifyTwoBody:
                     'imag':np.iscomplex(v[0]),
                     'weight':self._weights(k)
                     }
-        #for k,v in fermi_map.items():
-        #    print(k,v)
         key_list = [k for k,v in fermi_map.items()]
         self.fermi_map = fermi_map
-        def get_keys(x):
-            if type(self.w)==type('A'):
-                return fermi_map[x]['weight'][self.w]
-            elif type(self.w)==type((1,2)) or type(self.w)==type([1,2]):
-                new = []
-                for i in self.w:
-                    new.append(fermi_map[x]['weight'][i])
-                return new
         if self.w=='default':
             self.w = []
             self.w = ['Z','X']
         self.kl = sorted(
                 key_list,
-                key=lambda x:get_keys(x),
+                key=lambda x:self._get_keys(x),
                 reverse=True)
+        if cont:
+            self._standard_subproblem()
+        else:
+            self._degenerate_subproblem()
+
+
+
+    def _degenerate_subproblem(self):
+        ops = [
+                '+-+-','+--+',
+                '-+-+','-++-']
+        if not len(self.kl)==4:
+            sys.exit('Error in degenerate subproblem.')
         done=False
         n = len(self.kl)
         use = [self.kl[0]]
+        # get reals
+        done = False
+        self.f = self.fermi_map
+        v1 = self.fermi_map[self.kl[0]]['coeff']
+        v2 = self.fermi_map[self.kl[1]]['coeff']
+        v3 = self.fermi_map[self.kl[2]]['coeff']
+        v4 = self.fermi_map[self.kl[3]]['coeff']
+        #print(v1,v2,v3,v4)
+        v1 = [i for i in v1 if abs(i)>0]
+        v2 = [i for i in v2 if abs(i)>0]
+        v3 = [i for i in v3 if abs(i)>0]
+        v4 = [i for i in v4 if abs(i)>0]
+        mat = np.matrix([v1,v2,v3,v4]).T
+        #print(mat)
+        r1 = np.array([0.5,0,0.5,0])
+        r2 = np.array([0,0.5,0,0.5])
+        i1 = np.array([0.5,0,-0.5,0])
+        i2 = np.array([0,0.5,0,-0.5])
+        a1 = np.linalg.solve(mat,r1)
+        a2 = np.linalg.solve(mat,r2)
+        b1 = np.linalg.solve(mat,i1)
+        b2 = np.linalg.solve(mat,i2)
+        inds = [0,1,2,3]  # # c1 is....
+        vRe = [a1,a2,a1,a2]   # #
+        vIm = [b1,b2,-b1,-b2] # # 
+        self.real = {}
+        self.imag = {}
+        for n,op in enumerate(ops):
+            self.real[op]=[
+                        [self.kl[inds[i]],vRe[n][i]
+                            ] for i in trim(vRe[n])]
+            self.imag[op]=[
+                        [self.kl[inds[i]],vIm[n][i]
+                            ] for i in trim(vIm[n])]
+    
 
+    def _standard_subproblem(self):
+        done=False
+        n = len(self.kl)
+        use = [self.kl[0]]
         # get reals
         done = False
         self.f = self.fermi_map

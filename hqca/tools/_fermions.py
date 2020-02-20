@@ -3,7 +3,6 @@ from hqca.tools._operator import *
 from hqca.tools._qubit_operator import PauliOperator
 from hqca.tools.fermions import *
 
-
 class FermionicOperator:
     '''
     Class of operators, obeys simple fermionic statistics.
@@ -203,7 +202,7 @@ class FermionicOperator:
             imag=True,
             mapping='jw',
             **kw):
-        if mapping=='jw':
+        if mapping in ['jw','jordan-wigner']:
             self.pPauli,self.pCoeff = JordanWignerTransform(
                     self,Nq)
         elif mapping=='parity':
@@ -212,6 +211,8 @@ class FermionicOperator:
         elif mapping in ['bravyi-kitaev','bk']:
             self.pPauli,self.pCoeff = BravyiKitaevTransform(
                     self,Nq,**kw)
+        else:
+            print('Incorrect mapping: {}. Goodbye!'.format(mapping))
         self._complex  = [i.imag for i in self.pCoeff]
         self._real = [i.real for i in self.pCoeff]
         for n in reversed(range(len(self.pPauli))):

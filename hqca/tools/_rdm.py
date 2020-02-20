@@ -314,8 +314,10 @@ class RDM:
         '''
         self.rdm = np.zeros(
                 tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
-        occAlp = self.alp[:self.Ne//2]
-        occBet = self.bet[:self.Ne//2]
+        occAlp = self.alp[:self.N_alp]
+        occAlp = [i for i in occAlp]
+        occBet = self.bet[:self.N_bet]
+        occBet = [i for i in occBet]
         Rec = Recursive(depth=self.p,choices=occAlp+occBet)
         Rec.permute()
         self.total=Rec.total
@@ -330,7 +332,7 @@ class RDM:
                 for a in annPerm.total:
                     s = c[-1]*a[-1]
                     ind = tuple(c[:-1]+a[:-1])
-                    self.rdm[ind]=s#*(1/factorial(self.p))
+                    self.rdm[ind]=s
 
     def _build_hf_doublet(self):
         '''

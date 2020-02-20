@@ -40,8 +40,6 @@ def _findFermionicSQuantum(
         ):
     '''
     need to do following:
-        1. prepare the appropriate Hailtonian circuit
-        2. implement it
         3. find S from resulting matrix
     '''
     if verbose:
@@ -104,9 +102,13 @@ def _findFermionicSQuantum(
                         spin=spin,
                         add=True,
                         )
-                newEl.generateOperators(Nq=quantstore.Nq,real=True,imag=True)
+                newEl.generateOperators(
+                        Nq=quantstore.Nq,
+                        real=True,imag=True,
+                        mapping=quantstore.mapping,
+                        **quantstore._kw_mapping,
+                        )
                 newS+= newEl.formOperator()
-            #newS+= newEl
             if len(newF._op)==0:
                 newF+= newEl
             else:
@@ -253,7 +255,10 @@ def _findQubitSQuantum(
                     sqOp=sq,
                     add=True,
                     )
-            newEl.generateOperators(Nq=quantstore.Nq,real=True,imag=True)
+            newEl.generateOperators(Nq=quantstore.Nq,real=True,imag=True,
+                        mapping=quantstore.mapping,
+                        **quantstore._kw_mapping,
+                        )
             newS+= newEl.formOperator()
     print(newS)
     if commutative:

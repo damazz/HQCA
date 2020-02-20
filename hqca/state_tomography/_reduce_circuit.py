@@ -1,5 +1,10 @@
 import random
+import numpy as np
+from functools import partial
 import sys
+import timeit
+from copy import deepcopy as copy
+import networkx as nx
 
 class PauliString:
     def __init__(self,term):
@@ -11,8 +16,7 @@ class PauliString:
 
     def _qubit_wise_commuting(self,P):
         if not self.n==P.n:
-            return True
-            #return False
+            return False
         for i in range(self.n):
             if self.p[i]=='I' or P.p[i]=='I':
                 pass
@@ -20,23 +24,80 @@ class PauliString:
                 pass
             else:
                 #return False
-                return True
+                return False
         #return True
-        return False
+        return True
 
     def __str__(self):
         return self.p
+
+    def _commuting(self,P):
+        k=0
+        if not self.n==P.n:
+            return False
+        for i in range(self.n):
+            if self.p[i]=='I' or P.p[i]=='I':
+                pass
+            elif self.p[i]==P.p[i]:
+                pass
+            else:
+                k+=1
+        return (k+1)%2
+
+
+from networkx.algorithms.coloring import * 
 
 class Graph:
     def __init__(self,
             vertices,
             edges,
+            verbose=False,
+            **kw):
+        self.g = nx.Graph()
+        for (v,e) in edges:
+            self.g.add_edge(v,e)
+    
+    def color(self,
+            method='greedy',
+            stretegy='largest_first',
+            **kw):
+        if method=='greedy':
+            alg = greedy_color(self.g,strategy='largest_first')
+        self.colors = {}
+        for k,v in alg.items():
+            try:
+                self.colors[v].append(k)
+            except Exception:
+                self.colors[v]=[k]
+    
+class oldGraph:
+    def __init__(self,
+            vertices,
+            edges,
+            verbose=True,
+            **kw
             ):
+        '''
+        self.V is a list of veritices
+        self.edge is a list of lists, where each entry has the vertices which
+        compose the edge
+        '''
         self.V = vertices
         self.edges = edges
+        print(self.edges)
         self._order_vertices()
+        self.Nv = len(self.V)
+        self.Ne = len(self.edges)
+        self.verbose=verbose
+        
+
 
     def _order_vertices(self):
+        '''
+        orders the list of vertices and finds the degree, indicating how many
+        edges it is included in, and paths indicates the possible connections
+        that each vertices can link to.
+        '''
         self.degree = {k:0 for k in self.V}
         self.paths = {k:[] for k in self.V}
         for i,j in self.edges:
@@ -50,29 +111,59 @@ class Graph:
     def color(self,method='RLF'):
         if method=='RLF':
             self._recursive_largest_first()
+        elif method=='fRLF':
+            self._faster_rlf()
 
+    def _faster_rlf(self):
+        pass
+    
     def _recursive_largest_first(self):
+        '''
+        based on "A new efficient RLF-like algorithm for the Vertex Coloring
+        Problem." Adegbindin, Hertz, Bellaiche. 2015
+        
+        note, we need to convert the graph to its complement graph, which then
+        can be mapped to a coloring problem 
+
+        C refers to a color class under construction, with two sets: W and V,
+        which represent uncolored vertices and uncolored vertices with neighbors
+        in C. repectively. First v in U has largest number of neighbors in U. 
+        Then, while U is not empty, find w in U with largest neighbors in W.
+        Then move that to C and also move neigbhors of w to W. When U is empty,
+        proceed to next color class. 
+        '''
         self.coloring = {}
         done = False
         k = -1
         U = self.V[:]
-        iteration = 0 
+        iteration = 0
+        if self.verbose:
+            t0 = timeit.default_timer()
         while len(self.coloring)<len(self.V):
-            iteration+=1 
+            iteration+=1
             # get Au
-            k+=1 
+            k+=1
             Au = {}
             for u in U:
                 Au[u]=0
                 for uu in U:
                     if uu in self.paths[u] and not u==uu:
-                        Au[u]+=1 
+                        Au[u]+=1
             v = sorted(Au.items(),key=lambda k:k[1])[-1][0]
             Cv,U = self._rlf_generate_Cv(v,U)
             for i in Cv:
                 self.coloring[i]=k
-            
+            if iteration%10==0:
+                if self.verbose:
+                    t = timeit.default_timer()
+                    print('Time after 10 iterations: {}'.format(t-t0))
+                    t0 = copy(t)
+
+
     def _rlf_generate_Cv(self,v,U):
+        '''
+        subroutine to geneate Cv: 
+        '''
         W = []
         Cv = [v]
         U.remove(v)
@@ -110,48 +201,87 @@ def combine_strings(A,B):
         hold.append(_delta(A[i],B[i]))
     return ''.join(hold)
 
-
-def pauli_relation(A,B):
-    test = PauliString(A)*PauliString(B)
+def pauli_relation(A,B,rel='qwc'):
+    if rel=='qwc':
+        test = not PauliString(A)*PauliString(B)
+    elif rel=='mc':
+        test = not PauliString(A)._commuting(PauliString(B))
     return test
 
-def construct_simple_graph(items,related):
-    N = len(items)
-    edges = []
-    for j in range(N):
-        for i in range(j):
-            if related(items[i],items[j]):
-                edges.append([items[i],items[j]])
-    return Graph(items,edges)
+def construct_simple_graph(
+        items,related,
+        verbose=False,
+        stochastic=False,
+        threshold=0.1,
+        **kw
+        ):
+    if stochastic:
+        N = len(items)
+        edges = [[i,j] for i in range(N) for j in range(N)]
+        for j in range(N):
+            i = 0
+            while i<threshold*N:
+                rand = random.randint(0,N-1)
+                if related(items[j],items[rand]):
+                    edges.append([i,rand])
+                i+=1 
+    else:
+        N = len(items)
+        edges = []
+        for j in range(N):
+            for i in range(j):
+                if related(items[i],items[j]):
+                    edges.append([i,j])
+    return Graph(items,edges,verbose=verbose)
 
 
-def simplify_tomography(operators,method='RLF',verbose=False):
-    graph = construct_simple_graph(operators,pauli_relation)
-    graph.color(method)
-    new = {}
-    for k,c in graph.coloring.items():
-        try:
-            new[c].append(k)
-        except KeyError:
-            new[c]=[k]
-    paulis = {} #input a pauli, retrns the gate you need 
-    ops = []
-    for color, item in new.items():
-        if len(item)==0:
-            paulis[item[0]]=item[0]
-        else:
-            temp = item[0]
-            for p in range(len(item)-1):
-                temp = combine_strings(temp,item[p+1])
-            for term in item:
-                paulis[term]=temp
-        ops.append(temp)
+def __find_largest_qwc(A):
+    string = 'I'*len(A[0])
+    for j in range(len(string)):
+        done=False
+        while not done:
+            for i in A:
+                if not i[j]=='I':
+                    string = string[:j]+i[j]+string[j+1:]
+                    done=True
+                    break
+            done=True
+    return string
+
+def simplify_tomography(
+        operators,
+        verbose=False,
+        rel='qwc',
+        **kw):
     if verbose:
-        print('-- -- -- -- -- -- -- -- -- -- -- ')
-        print('      --   TOMOGRAPHY   --      ')
-        print('-- -- -- -- -- -- -- -- -- -- -- ')
-        print('Distinct pauli terms: {}'.format(len(operators)))
-        print('Distinct cliques: {}'.format(len(new)))
+        print('Relation: {}'.format(rel))
+        print('Constructing graph...')
+        t1 = timeit.default_timer()
+    relation = partial(pauli_relation,**{'rel':rel})
+    graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
+    if verbose:
+        print('Vertices: {}, Edges: {}'.format(
+            graph.g.number_of_nodes(),
+            graph.g.number_of_edges(),
+            ))
+        t2 = timeit.default_timer()
+        print('Time to make graph: {:.2f}'.format(t2-t1))
+    graph.color(**kw)
+    if verbose:
+        t3 = timeit.default_timer()
+        print('Time to color graph: {:.2f}'.format(t3-t2))
+    c2p = []
+    colors = {}
+    for k,v in graph.colors.items():
+        V = [operators[i] for i in v]
+        colors[k]=V
+    for v in range(len(colors.keys())):
+        c2p.append(__find_largest_qwc(colors[v]))
+    ops= c2p[:]
+    paulis = {}
+    for k,v in graph.colors.items():
+        K = ops[k]
+        for p in v:
+            paulis[p]=K
     return ops,paulis
-
 

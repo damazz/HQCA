@@ -38,22 +38,23 @@ class State:
         N = temp.shape[1]
         real, imag,bas = '','',''
         lb = len(self.b[0])
-        for k in range(0,N//16+1):
-            real, imag,bas = '','',''
-            for i,j in enumerate(np.asarray(temp).tolist()[0][k*16:k*16+16]):
-                #if np.count_nonzero(j)==1:
-                real += '{:6.3f}   '.format(np.real(j))
-                imag += '{:6.3f}   '.format(np.imag(j))
-                bas  += '|{}>{:{}}'.format(self.b[i+k*16],'',7-lb)
-            if real=='':
-                break
-            print(real)
-            print(imag)
-            print(bas)
-            print('')
+        try:
+            for k in range(0,N//16+1):
+                real, imag,bas = '','',''
+                for i,j in enumerate(np.asarray(temp).tolist()[0][k*16:k*16+16]):
+                    #if np.count_nonzero(j)==1:
+                    real += '{:6.3f}   '.format(np.real(j))
+                    imag += '{:6.3f}   '.format(np.imag(j))
+                    bas  += '|{}>{:{}}'.format(self.b[i+k*16],'',7-lb)
+                if real=='':
+                    break
+                print(real)
+                print(imag)
+                print(bas)
+                print('')
+        except Exception:
+            pass
         self.m = temp
-        
- 
 
 class DensityMatrix:
     def __init__(self,
@@ -110,4 +111,7 @@ class DensityMatrix:
                 if use:
                     new.m[rb[n],rb[m]]+= self.m[n,m]
         return new
+
+    def observable(self,circuit):
+        return np.dot(self.m,circuit.m).trace()[0,0]
 

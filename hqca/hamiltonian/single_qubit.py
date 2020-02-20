@@ -21,7 +21,6 @@ class SingleQubitHamiltonian(Hamiltonian):
 
     def _set_operator(self,p=0,h=0,c=0,a=0):
         op = Operator()
-        #for i,s in zip([p,h,c,a],['p','h','+','-']):
         for i,s in zip([c,a,p,h],['+','-','p','h']):
             temp = QubitOperator(i,indices=[0],sqOp=s)
             temp.generateOperators(Nq=1,real=True,imag=True)
@@ -45,7 +44,6 @@ class SingleQubitHamiltonian(Hamiltonian):
             mat+=i.c*cir.m
         self.ef = np.min(np.linalg.eigvalsh(mat))
         self._matrix = np.array([mat])
-
 
     @property
     def qubOp(self):
@@ -76,3 +74,6 @@ class SingleQubitHamiltonian(Hamiltonian):
     @model.setter
     def model(self,mod):
         self._model = mod
+
+
+

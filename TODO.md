@@ -1,4 +1,13 @@
- TODO/Changelog List
+TODO/Changelog List
+
+### 02/19/2020
+* Implementation for maximally commuting groups onto quantum computer
+* Look at timing for hamiltoninan conversion and RLF algorithms
+
+### 02/05/2020
+* Hm...see if I can construct a 2-RDM with different mappings to make sure the
+  recombination things are working
+* Compare Hamiltonians
 
 ### 12/20/2019 
 * Short list of things to due to wrap up work:
@@ -6,10 +15,6 @@
   class
 * Updating and verify the 3-6 case for H3 and make sure ACSE works for low bond
   lengths
-
-
-
-
 
 ### 12/11/2019 
 (note that the 1-qubit cases actually work :) )
@@ -19,7 +24,6 @@
     * Start on qasm simulations, noise models, etc.
 * Configure tomorgraphy inputs for different cases
     * allow for differnt tomography 
-
 
 ### 12/5/2019
 
@@ -44,7 +48,6 @@
 * Start checking how things work 
 
 ### 11/23/2019 
-
 
 * v 0.2.0
 * ACSE works *whew!* 
