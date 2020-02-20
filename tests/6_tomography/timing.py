@@ -76,7 +76,7 @@ for atoms,Q,S in zip(molecules,qubits,spins):
                 real=True,imag=False,simplify=True,
                 mapping=maps,bkSet=bkSet,verbose=True,
                 weight=['I'],rel='qwc',stochastic=True,
-                threshold=0.1,
+                threshold=0.2,
 
                 )
         print('Grouped, QWC: {}'.format(len(tomoRe.op)))

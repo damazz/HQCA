@@ -225,17 +225,20 @@ def construct_simple_graph(
         N = len(items)
         edges = np.ones((N,N))
         #edges = [[i,j for j in xrange(N)] for i in xrange(i)]
+        k = 0
         for j in range(N):
             i = 0
             while i<threshold*N:
                 rand = random.randint(0,N-1)
-                if related(items[j],items[rand]):
+                if not related(items[j],items[rand]):
                     edges[j,rand]=0
                     edges[rand,j]=0
+                    k+=1
                 i+=1
         edges = np.nonzero(np.tril(edges))
         for i,j in zip(edges[0],edges[1]):
             graph.add_edge(i,j)
+        print('{} edges removed '.format(k))
     else:
         N = len(items)
         edges = []
