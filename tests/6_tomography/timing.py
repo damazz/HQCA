@@ -75,7 +75,9 @@ for atoms,Q,S in zip(molecules,qubits,spins):
         tomoRe.generate(
                 real=True,imag=False,simplify=True,
                 mapping=maps,bkSet=bkSet,verbose=True,
-                weight=['I'],rel='qwc',stochastic=True
+                weight=['I'],rel='qwc',stochastic=True,
+                threshold=0.1,
+
                 )
         print('Grouped, QWC: {}'.format(len(tomoRe.op)))
 

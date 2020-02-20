@@ -49,14 +49,19 @@ from networkx.algorithms.coloring import *
 
 class Graph:
     def __init__(self,
-            vertices,
-            edges,
+            generate=True,
+            vertices=None,
+            edges=None,
             verbose=False,
+            graph=None,
             **kw):
-        self.g = nx.Graph()
-        for (v,e) in edges:
-            self.g.add_edge(v,e)
-    
+        if generate:
+            self.g = nx.Graph()
+            for (v,e) in edges:
+                self.g.add_edge(v,e)
+        else:
+            self.g = graph
+   
     def color(self,
             method='greedy',
             stretegy='largest_first',
@@ -215,24 +220,30 @@ def construct_simple_graph(
         threshold=0.1,
         **kw
         ):
+    graph = nx.Graph()
     if stochastic:
         N = len(items)
-        edges = [[i,j] for i in range(N) for j in range(N)]
+        edges = np.ones((N,N))
+        #edges = [[i,j for j in xrange(N)] for i in xrange(i)]
         for j in range(N):
             i = 0
             while i<threshold*N:
                 rand = random.randint(0,N-1)
                 if related(items[j],items[rand]):
-                    edges.append([i,rand])
-                i+=1 
+                    edges[j,rand]=0
+                    edges[rand,j]=0
+                i+=1
+        edges = np.nonzero(np.tril(edges))
+        for i,j in zip(edges[0],edges[1]):
+            graph.add_edge(i,j)
     else:
         N = len(items)
         edges = []
         for j in range(N):
             for i in range(j):
                 if related(items[i],items[j]):
-                    edges.append([i,j])
-    return Graph(items,edges,verbose=verbose)
+                    graph.add_edge(i,j)
+    return Graph(generate=False,graph=graph)
 
 
 def __find_largest_qwc(A):
