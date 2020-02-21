@@ -264,7 +264,7 @@ class StandardTomography(Tomography):
                 self._generate_2qrdme(**kw)
             elif self.p==1:
                 self._generate_1qrdme(**kw)
-        self._generate_pauli_measurements(simplify,**kw)
+        self._generate_pauli_measurements(simplify=simplify,**kw)
 
     def _generate_1qrdme(self,**kw):
         '''
