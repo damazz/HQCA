@@ -306,7 +306,7 @@ def compare_tomography(
         methods=['greedy'],
         strategies=['largest_first'],
         **kw):
-    print(' ---  ---  ---  ---  ---  --- ')
+    print('---  ---  ---  ---  ---  --- ')
     print('Comparison of different sorting algorithms: ')
     print('Relation: {}'.format(rel))
     print('Constructing graph...')
