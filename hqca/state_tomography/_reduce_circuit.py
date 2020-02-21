@@ -64,10 +64,10 @@ class Graph:
    
     def color(self,
             method='greedy',
-            stretegy='largest_first',
+            strategy='largest_first',
             **kwargs):
         if method=='greedy':
-            alg = greedy_color(self.g,strategy='largest_first')
+            alg = greedy_color(self.g,strategy=strategy)
         self.colors = {}
         for k,v in alg.items():
             try:
