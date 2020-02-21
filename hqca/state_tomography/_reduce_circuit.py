@@ -54,7 +54,7 @@ class Graph:
             edges=None,
             verbose=False,
             graph=None,
-            **kw):
+            **kwargs):
         if generate:
             self.g = nx.Graph()
             for (v,e) in edges:
@@ -65,7 +65,7 @@ class Graph:
     def color(self,
             method='greedy',
             stretegy='largest_first',
-            **kw):
+            **kwargs):
         if method=='greedy':
             alg = greedy_color(self.g,strategy='largest_first')
         self.colors = {}
@@ -304,7 +304,7 @@ def compare_tomography(
         verbose=False,
         rel='qwc',
         methods=['greedy'],
-        strategies=['largest_first']
+        strategies=['largest_first'],
         **kw):
     print('Comparison of different sorting algorithms: ')
     print('Relation: {}'.format(rel))
