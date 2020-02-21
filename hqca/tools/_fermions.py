@@ -6,7 +6,7 @@ from hqca.tools.fermions import *
 class FermionicOperator:
     '''
     Class of operators, obeys simple fermionic statistics.
-    
+
     Also used to generate raw lists of Pauli strings and subterms, which can be
     compiled for circuits and tomography.
     '''
@@ -192,7 +192,6 @@ class FermionicOperator:
     # Hermitian Excitation Operators, such as in exp(iHt)
     #
     ##
-
     def generateTomography(self,**kw):
         self.generateOperators(**kw)
 
@@ -207,7 +206,7 @@ class FermionicOperator:
                     self,Nq)
         elif mapping=='parity':
             self.pPauli,self.pCoeff = ParityTransform(
-                    self,Nq)
+                    self,Nq,**kw)
         elif mapping in ['bravyi-kitaev','bk']:
             self.pPauli,self.pCoeff = BravyiKitaevTransform(
                     self,Nq,**kw)
@@ -254,11 +253,9 @@ class FermionicOperator:
         else:
             sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
-
     def formOperator(self):
         new = Operator()
         for p,c in zip(self.pPauli,self.pCoeff):
             new+=PauliOperator(p,c,add=self.add)
         return new
-
 

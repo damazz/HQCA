@@ -1,24 +1,24 @@
 from hqca.tools import *
+from hqca.tools.fermions import *
 import sys
 
-#operators = [
-#        '++++','+++-','++-+','++--',
-#        '+-++','+-+-','+--+','+---',
-#        '-+++','-++-','-+-+','-+--',
-#        '--++','--+-','---+','----',
-#        ]
+mapPar = ParitySet(8,Ne=[0,0],reduced=True)
 operators = [
-        '++','--','+-','-+']
+        '++++','+++-','++-+','++--',
+        '+-++','+-+-','+--+','+---',
+        '-+++','-++-','-+-+','-+--',
+        '--++','--+-','---+','----',
+        ]
 
 for sop in operators:
     op = FermionicOperator(
             coeff=1,
-            indices=[0,2,4,6],
+            indices=[4,5,6,7],
             sqOp=sop,
-            spin='ab',
+            spin='bbbb',
             add=True
             )
-    op.generateOperators(Nq=7,mapping='parity')
+    op.generateOperators(Nq=8,mapping='parity',MapSet=mapPar)
     nop = op.formOperator()
     print('')
     print('Operator, {}'.format(sop))

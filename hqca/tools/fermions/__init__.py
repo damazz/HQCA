@@ -5,6 +5,7 @@ from hqca.tools.fermions._bravyi_kitaev import *
 __all__ = [
         'JordanWignerTransform',
         'ParityTransform',
+        'ParitySet',
         'BravyiKitaevTransform',
         'BravyiKitaevSet',
         ]

@@ -16,7 +16,7 @@ class MolecularHamiltonian(Hamiltonian):
             Ne_active_space='default',
             No_active_space='default',
             orbitals='hf',
-            operators='calc',
+            generate_operators=True,
             verbose=True
             ):
         if verbose:
@@ -219,7 +219,7 @@ class MolecularHamiltonian(Hamiltonian):
         self._model = 'molecular'
         self._mapping = mapping
         self._kw_mapping = kw_mapping
-        if operators=='calc':
+        if generate_operators:
             self._build_operator(int_thresh)
         else:
             self._qubOp = None

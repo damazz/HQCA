@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy as copy
 
 
 def _commutator_relations(lp,rp):
@@ -40,13 +41,32 @@ def _commutator_relations(lp,rp):
 
 
 class ParitySet:
-    def __init__(self,Nq,reduced):
-        pass
+    def __init__(self,Nq,Ne=[],reduced=False):
+        '''
+        contains information for parity mapping
+        '''
+        self.Nq = Nq
+        self.reduced = reduced
+        if self.reduced:
+            self._reduced_set = [int(self.Nq/2)-1,self.Nq-1]
+            self._reduced_coeff={
+                    self._reduced_set[i]:(-1)**Ne[i] for i in range(2)
+                    }
+            self._shifted = [i for i in range(self.Nq//2,self.Nq-1)]
+        else:
+            self._reduced_set = []
+            self._reduced_coeff=[]
 
 
-def ParityTransform(op,Nq):
+def ParityTransform(op,Nq,MapSet=None,**kw):
     coeff = [op.qCo]
-    pauli = ['I'*Nq]
+    if MapSet.reduced and Nq==MapSet.Nq:
+        pauli=['I'*(Nq)]
+    else:
+        pauli = ['I'*MapSet.Nq]
+    if type(MapSet)==type(None):
+        print('Parity transform not initiated with MapSet')
+        sys.exit()
     for q,o in zip(op.qInd[::-1],op.qOp[::-1]):
         p1s,c1s,p2s,c2s = [],[],[],[]
         for p,c in zip(pauli,coeff):
@@ -82,7 +102,7 @@ def ParityTransform(op,Nq):
                 c1.append(c*0.5*tc1)
                 c2.append(1j*c*0.5*tc2)
             if o in ['+','-']:
-                for i in range(q+1,Nq):
+                for i in range(q+1,MapSet.Nq):
                     nc1,np1 = _commutator_relations(
                             'X',p1[i])
                     nc2,np2 = _commutator_relations(
@@ -123,5 +143,19 @@ def ParityTransform(op,Nq):
             c2s+= c2
         pauli = p1s+p2s
         coeff = c1s+c2s
+    if MapSet.reduced:
+        q1,q2 = MapSet._reduced_set[0],MapSet._reduced_set[1]
+        c1,c2 = MapSet._reduced_coeff[q1],MapSet._reduced_coeff[q2]
+        for n,(p,c) in enumerate(zip(pauli,coeff)):
+            c = copy(c)
+            if p[q1]=='Z':
+                c*=c1
+            if p[q2]=='Z':
+                c*=c2
+            pauli[n]=p[:q1]+p[(q1+1):q2]
+            coeff[n]=c
     return pauli,coeff
-        
+
+
+
+

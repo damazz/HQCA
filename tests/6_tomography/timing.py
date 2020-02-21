@@ -57,9 +57,11 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     for maps in ['jw']:
         print('Mapping: {}'.format(maps))
         if maps=='bk':
-            bkSet = BravyiKitaevSet(Q,reduced=False,Ne=[0,0])
+            MapSet = BravyiKitaevSet(Q,reduced=False,Ne=[0,0])
+        elif maps=='parity':
+            MapSet = ParitySet(Q,reduced=False,Ne=[0,0])
         else:
-            bkSet=None
+            MapSet=None
         #tomoRe = StandardTomography(qs)
         #print('Default Tomography for {} Qubits:'.format(Q))
         #tomoRe.generate(
@@ -83,17 +85,13 @@ for atoms,Q,S in zip(molecules,qubits,spins):
 
         tomoRe.generate(
             real=True,imag=False,verbose=True,
-            simplify=False,mapping=maps,bkSet=bkSet)
+            simplify=False,mapping=maps,MapSet=MapSet)
         print('Reduced Tomography for {} Qubits:'.format(Q))
         print('Naive: {}'.format(len(tomoRe.op)))
         tomoRe.generate(
                 real=True,imag=False,simplify=True,
-                mapping=maps,bkSet=bkSet,verbose=True,
+                mapping=maps,MapSet=MapSet,verbose=True,
                 weight=['I'],rel='qwc',
                 )
         print('Grouped, QWC: {}'.format(len(tomoRe.op)))
-
-
-
-
 

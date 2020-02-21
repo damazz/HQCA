@@ -32,7 +32,7 @@ class StandardTomography(Tomography):
         self.qs = QuantStore
         self.p = QuantStore.p
         if self.qs.mapping in ['bk','bravyi-kitaev']:
-            if self.qs._kw_mapping['bkSet'].reduced:
+            if self.qs._kw_mapping['MapSet'].reduced:
                 self.dim = tuple([self.Nq+2 for i in range(2*self.p)])
             else:
                 self.dim = tuple([self.Nq for i in range(2*self.p)])
@@ -70,22 +70,22 @@ class StandardTomography(Tomography):
                 elif self.qs.mapping in ['parity']:
                     sys.exit('Need initialization for parity')
                 elif self.qs.mapping in ['bk','bravyi-kitaev']:
-                    bkSet = self.qs._kw_mapping['bkSet']
-                    if bkSet.reduced:
-                        if item in bkSet._shifted:
+                    MapSet = self.qs._kw_mapping['MapSet']
+                    if MapSet.reduced:
+                        if item in MapSet._shifted:
                             Q.qc.x(item-1)
                         else:
                             Q.qc.x(item)
-                        for q in bkSet.update[item]:
-                            if (q in bkSet._shifted):
+                        for q in MapSet.update[item]:
+                            if (q in MapSet._shifted):
                                 Q.qc.x(q-1)
-                            elif q in bkSet._reduced_set:
+                            elif q in MapSet._reduced_set:
                                 pass
                             else:
                                 Q.qc.x(q)
                     else:
                         Q.qc.x(item)
-                        for q in bkSet.update[item]:
+                        for q in MapSet.update[item]:
                             Q.qc.x(q)
             Q.apply(Instruct=Instruct)
             for n,q in enumerate(circ):

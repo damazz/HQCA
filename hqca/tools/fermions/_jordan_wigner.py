@@ -29,7 +29,7 @@ def _commutator_relations(lp,rp):
     else:
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
-def JordanWignerTransform(op,Nq):
+def JordanWignerTransform(op,Nq,**kw):
     coeff = [op.qCo]
     pauli = ['I'*Nq]
     for q,o in zip(op.qInd[::-1],op.qOp[::-1]):

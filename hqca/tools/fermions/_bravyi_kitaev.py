@@ -87,15 +87,7 @@ class BravyiKitaevSet:
                 self.rho.append(self.remainder[i])
         if alternating:
             self.map_to_spin()
-        
-        #if reduced:
-        #    cur = [self.flip,self.update,self.parity,self.remainder,self.rho]
-        #    for m,s in enumerate(cur):
-        #        #print(s)
-        #        for n,i in enumerate(s): # i is a set
-        #            for k in self._reduced_set:
-        #                if k in i:
-        #                    i.remove(k)
+
 
     def map_to_spin(self):
         Na = int(self.Nq/2)
@@ -177,19 +169,18 @@ class BravyiKitaevSet:
                         done=False
                         break
 
-
-def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
+def BravyiKitaevTransform(op,Nq,MapSet=None,**kw):
     coeff = [op.qCo]
-    if bkSet.reduced and Nq==bkSet.Nq:
+    if MapSet.reduced and Nq==MapSet.Nq:
         pauli=['I'*(Nq)]
     else:
-        pauli = ['I'*bkSet.Nq]
-    if type(bkSet)==type(None):
+        pauli = ['I'*MapSet.Nq]
+    if type(MapSet)==type(None):
         print('Bravyi-Kitaev transform not initiated properly!')
         sys.exit()
     for q,o in zip(op.qInd[::-1],op.qOp[::-1]):
         p1s,c1s,p2s,c2s = [],[],[],[]
-        def create(q,p,c,bkSet):
+        def create(q,p,c,MapSet):
             c1,c2 = [],[]
             tc1,tp1 = _commutator_relations(
                     'X',p[q])
@@ -199,7 +190,7 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
             p2 = p[:q]+tp2+p[q+1:]
             c1.append(c*0.5*tc1)
             c2.append(-1j*c*0.5*tc2)
-            for i in bkSet.update[q]:
+            for i in MapSet.update[q]:
                 nc1,np1 = _commutator_relations(
                         'X',p1[i])
                 nc2,np2 = _commutator_relations(
@@ -208,19 +199,19 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
                 p2 = p2[:i]+np2+p2[i+1:]
                 c1[0]*=nc1
                 c2[0]*=nc2
-            for i in bkSet.parity[q]:
+            for i in MapSet.parity[q]:
                 nc1,np1 = _commutator_relations(
                         'Z',p1[i])
                 p1 = p1[:i]+np1+p1[i+1:]
                 c1[0]*=nc1
-            for i in bkSet.rho[q]:
+            for i in MapSet.rho[q]:
                 nc2,np2 = _commutator_relations(
                         'Z',p2[i])
                 p2 = p2[:i]+np2+p2[i+1:]
                 c2[0]*=nc2
             return p1,p2,c1,c2
 
-        def annihilate(q,p,c,bkSet):
+        def annihilate(q,p,c,MapSet):
             c1,c2 = [],[]
             tc1,tp1 = _commutator_relations(
                     'X',p[q])
@@ -230,7 +221,7 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
             p2 = p[:q]+tp2+p[q+1:]
             c1.append(c*0.5*tc1)
             c2.append(1j*c*0.5*tc2)
-            for i in bkSet.update[q]:
+            for i in MapSet.update[q]:
                 nc1,np1 = _commutator_relations(
                         'X',p1[i])
                 nc2,np2 = _commutator_relations(
@@ -239,19 +230,19 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
                 p2 = p2[:i]+np2+p2[i+1:]
                 c1[0]*=nc1
                 c2[0]*=nc2
-            for i in bkSet.parity[q]:
+            for i in MapSet.parity[q]:
                 nc1,np1 = _commutator_relations(
                         'Z',p1[i])
                 p1 = p1[:i]+np1+p1[i+1:]
                 c1[0]*=nc1
-            for i in bkSet.rho[q]:
+            for i in MapSet.rho[q]:
                 nc2,np2 = _commutator_relations(
                         'Z',p2[i])
                 p2 = p2[:i]+np2+p2[i+1:]
                 c2[0]*=nc2
             return p1,p2,c1,c2
 
-        def particle(q,p,c,bkSet):
+        def particle(q,p,c,MapSet):
             c1,c2 = [],[]
             tc2,tp2 = _commutator_relations(
                     'Z',p[q])
@@ -259,14 +250,14 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
             p2 = p[:q]+tp2+p[q+1:]
             c1.append(c*0.5)
             c2.append(-c*0.5*tc2)
-            for i in bkSet.flip[q]:
+            for i in MapSet.flip[q]:
                 nc2,np2 = _commutator_relations(
                         'Z',p2[i])
                 p2 = p2[:i]+np2+p2[i+1:]
                 c2[0]*=nc2
             return p1,p2,c1,c2
 
-        def hole(q,p,c,bkSet):
+        def hole(q,p,c,MapSet):
             c1,c2 = [],[]
             tc2,tp2 = _commutator_relations(
                     'Z',p[q])
@@ -274,7 +265,7 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
             p2 = p[:q]+tp2+p[q+1:]
             c1.append(c*0.5)
             c2.append(c*0.5*tc2)
-            for i in bkSet.flip[q]:
+            for i in MapSet.flip[q]:
                 nc2,np2 = _commutator_relations(
                         'Z',p2[i])
                 p2 = p2[:i]+np2+p2[i+1:]
@@ -284,13 +275,13 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
         for p,c in zip(pauli,coeff):
             c1,c2 = [],[]
             if o=='+':
-                p1,p2,c1,c2 = create(q,p,c,bkSet)
+                p1,p2,c1,c2 = create(q,p,c,MapSet)
             elif o=='-':
-                p1,p2,c1,c2 = annihilate(q,p,c,bkSet)
+                p1,p2,c1,c2 = annihilate(q,p,c,MapSet)
             elif o=='p':
-                p1,p2,c1,c2 = particle(q,p,c,bkSet)
+                p1,p2,c1,c2 = particle(q,p,c,MapSet)
             elif o=='h':
-                p1,p2,c1,c2 = hole(q,p,c,bkSet)
+                p1,p2,c1,c2 = hole(q,p,c,MapSet)
             p1s.append(p1)
             p2s.append(p2)
             c1s+= c1
@@ -300,9 +291,9 @@ def BravyiKitaevTransform(op,Nq,bkSet=None,**kw):
     #if op.qInd==[0,1,2,3]:
     #    print(pauli,coeff)
     #    print(op.qInd,op.qOp,op.qCo,op.ind)
-    if bkSet.reduced:
-        q1,q2 = bkSet._reduced_set[0],bkSet._reduced_set[1]
-        c1,c2 = bkSet._reduced_coeff[q1],bkSet._reduced_coeff[q2]
+    if MapSet.reduced:
+        q1,q2 = MapSet._reduced_set[0],MapSet._reduced_set[1]
+        c1,c2 = MapSet._reduced_coeff[q1],MapSet._reduced_coeff[q2]
         for n,(p,c) in enumerate(zip(pauli,coeff)):
             c = copy(c)
             if p[q1]=='Z':

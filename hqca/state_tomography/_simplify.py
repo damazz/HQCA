@@ -326,7 +326,10 @@ class SimplifyTwoBody:
                     new2.generateOperators(Nq,mapping=mapping,**kw)
                     new += new2.formOperator()
                     new.clean()
-                    self.real[op]=[[o.p,o.c] for o in new.op]
+                    if len(new.op)==0:
+                        self.real[op]=[[Nq*'I',0]]
+                    else:
+                        self.real[op]=[[o.p,o.c] for o in new.op]
                     # now, imag
                     new1 = FermionicOperator(
                             coeff=0.5,
@@ -343,7 +346,10 @@ class SimplifyTwoBody:
                     new2.generateOperators(Nq,mapping=mapping,**kw)
                     new += new2.formOperator()
                     new.clean()
-                    self.imag[op]=[[o.p,o.c] for o in new.op]
+                    if len(new.op)==0:
+                        self.imag[op]=[[Nq*'I',0]]
+                    else:
+                        self.imag[op]=[[o.p,o.c] for o in new.op]
 
     def _simplify_double_excitation(self,
             spin='aabb',
@@ -367,7 +373,8 @@ class SimplifyTwoBody:
                     coeff=1,
                     indices=self.ind,
                     sqOp=op,
-                    spin=spin)
+                    spin=spin,
+                    )
             new.generateOperators(Nq,mapping=mapping,**kw)
             newop = new.formOperator()
             pauli_map[op]={}
@@ -534,8 +541,6 @@ class SimplifyTwoBody:
                 '+--+':[[self.kl[inds[i]],b3[i]] for i in trim(b3)],
                 '-++-':[[self.kl[inds[i]],-1*b3[i]] for i in trim(b3)],
                 }
-
-
 
 
 
