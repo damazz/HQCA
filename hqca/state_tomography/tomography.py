@@ -383,6 +383,10 @@ class StandardTomography(Tomography):
             self.op,self.mapping = simplify_tomography(
                     paulis,
                     **kw)
+        elif simplify=='comparison':
+            self.op,self.mapping = compare_tomography(
+                    paulis,
+                    **kw)
         else:
             self.op = paulis
             self.mapping = {p:p for p in paulis}
