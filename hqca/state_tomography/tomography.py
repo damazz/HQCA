@@ -253,7 +253,7 @@ class StandardTomography(Tomography):
             self.rdm.rdm[ind]+= temp
 
 
-    def generate(self,simplify=True,**kw):
+    def generate(self,**kw):
         if self.op_type=='fermionic':
             if self.p==2:
                 self._generate_2rdme(**kw)
@@ -264,7 +264,7 @@ class StandardTomography(Tomography):
                 self._generate_2qrdme(**kw)
             elif self.p==1:
                 self._generate_1qrdme(**kw)
-        self._generate_pauli_measurements(simplify=simplify,**kw)
+        self._generate_pauli_measurements(**kw)
 
     def _generate_1qrdme(self,**kw):
         '''
@@ -379,7 +379,7 @@ class StandardTomography(Tomography):
                     pass
                 else:
                     paulis.append(j)
-        if simplify:
+        if simplify==True:
             self.op,self.mapping = simplify_tomography(
                     paulis,
                     **kw)
@@ -732,7 +732,7 @@ class ReducedTomography(StandardTomography):
                             rdme.append(sub_rdme(i,k,l,j,'abba'))
             self.rdme = rdme
 
-    def generate_pauli_measurements(self,simplify=True,**kw):
+    def _generate_pauli_measurements(self,simplify=True,**kw):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -740,7 +740,7 @@ class ReducedTomography(StandardTomography):
                     pass
                 else:
                     paulis.append(j)
-        if simplify:
+        if simplify==True:
             self.op,self.mapping = simplify_tomography(
                     paulis,
                     **kw)

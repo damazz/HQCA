@@ -306,6 +306,7 @@ def compare_tomography(
         methods=['greedy'],
         strategies=['largest_first'],
         **kw):
+    print(' ---  ---  ---  ---  ---  --- ')
     print('Comparison of different sorting algorithms: ')
     print('Relation: {}'.format(rel))
     print('Constructing graph...')
@@ -318,7 +319,7 @@ def compare_tomography(
             graph.g.number_of_edges(),
             ))
         t2 = timeit.default_timer()
-        print('Time to make graph: {:.2f}'.format(t2-t1))
+        print('Time to make graph: {:.3f}'.format(t2-t1))
     for method,strategy in zip(methods,strategies):
         print('Comparison on colorings and clique sizes')
         t2 = timeit.default_timer()
@@ -326,7 +327,9 @@ def compare_tomography(
                 strategy=strategy)
         if verbose:
             t3 = timeit.default_timer()
-            print('Method: {}, Strategy: {}, Time: {}'.format(t3-t2))
+            print('Method: {}, Strategy: {}, Time: {:.3f}'.format(
+                method,strategy,
+                t3-t2))
         c2p = []
         colors = {}
         sizes = []
@@ -334,9 +337,9 @@ def compare_tomography(
             V = [operators[i] for i in v]
             sizes.append(len(V))
             colors[k]=V
-        print('Number of colors: {}'.format(len(graph.color.keys())))
+        print('Number of colors: {}'.format(len(graph.colors.keys())))
         print('Largest coloring: {}'.format(max(sizes)))
-        print('Std. dev. : {}'.format(np.std(np.asarray(sizes))))
+        print('Standard deviation: {:.3f}'.format(np.std(np.asarray(sizes))))
         for v in range(len(colors.keys())):
             c2p.append(__find_largest_qwc(colors[v]))
         ops= c2p[:]

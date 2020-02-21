@@ -25,12 +25,11 @@ molecules = [
             ['H',(1,3,0)],
             ['H',(4,1,0)],
             ['H',(6,1,0)],
-            ['H',(3,1,0)],
             ]
         ]
-qubits = [14]
+qubits = [12]
 spins = [
-        1,
+        0,
         ]
 for atoms,Q,S in zip(molecules,qubits,spins):
     mol = gto.Mole()
@@ -41,7 +40,7 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     mol.build()
     print('Starting Hamiltonian...')
     t1 = timeit.default_timer()
-    ham = MolecularHamiltonian(mol,verbose=False,operators=False)
+    ham = MolecularHamiltonian(mol,verbose=False,generate_operators=False)
     t2 = timeit.default_timer()
     print('Time for hamiltonian: {:.2f}'.format(t2-t1))
     Ins = PauliSet
@@ -57,41 +56,16 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     for maps in ['jw']:
         print('Mapping: {}'.format(maps))
         if maps=='bk':
-            MapSet = BravyiKitaevSet(Q,reduced=False,Ne=[0,0])
+            MapSet = BravyiKitaevSet(Q,reduced=False,Ne=[1,0])
         elif maps=='parity':
-            MapSet = ParitySet(Q,reduced=False,Ne=[0,0])
+            MapSet = ParitySet(Q,reduced=False,Ne=[1,0])
         else:
             MapSet=None
-        #tomoRe = StandardTomography(qs)
-        #print('Default Tomography for {} Qubits:'.format(Q))
-        #tomoRe.generate(
-        #    real=True,imag=False,simplify=False,
-        #    mapping=maps,bkSet=bkSet,verbose=True)
-        #print('Naive: {}'.format(len(tomoRe.op)))
-        #tomoRe.generate(
-        #    real=True,imag=False,verbose=True,
-        #    simplify=True,mapping=maps,bkSet=bkSet)
-        #print('Grouped, QWC: {}'.format(len(tomoRe.op)))
+        print('Reduced Tomography for {} Qubits'.format(Q))
         tomoRe = ReducedTomography(qs)
-        print('Randomly sampled sets....')
         tomoRe.generate(
-                real=True,imag=False,simplify=True,
-                mapping=maps,bkSet=bkSet,verbose=True,
-                weight=['I'],rel='qwc',stochastic=True,
-                threshold=0.2,
-
-                )
-        print('Grouped, QWC: {}'.format(len(tomoRe.op)))
-
-        tomoRe.generate(
-            real=True,imag=False,verbose=True,
-            simplify=False,mapping=maps,MapSet=MapSet)
-        print('Reduced Tomography for {} Qubits:'.format(Q))
-        print('Naive: {}'.format(len(tomoRe.op)))
-        tomoRe.generate(
-                real=True,imag=False,simplify=True,
+                real=True,imag=False,simplify='comparison',
                 mapping=maps,MapSet=MapSet,verbose=True,
                 weight=['I'],rel='qwc',
                 )
-        print('Grouped, QWC: {}'.format(len(tomoRe.op)))
 
