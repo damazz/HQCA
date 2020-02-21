@@ -458,7 +458,6 @@ class SimplifyTwoBody:
             self.imag[op]=[
                         [self.kl[inds[i]],vIm[n][i]
                             ] for i in trim(vIm[n])]
-    
 
     def _standard_subproblem(self):
         done=False

@@ -9,6 +9,7 @@ from hqca.core import *
 from hqca.tools import *
 from hqca.circuits import *
 from hqca.state_tomography._reduce_circuit import simplify_tomography
+from hqca.state_tomography._reduce_circuit import compare_tomography
 from hqca.state_tomography._simplify import *
 from hqca.core.primitives import *
 from qiskit import transpile,assemble,execute
@@ -737,6 +738,10 @@ class ReducedTomography(StandardTomography):
                     paulis.append(j)
         if simplify:
             self.op,self.mapping = simplify_tomography(
+                    paulis,
+                    **kw)
+        elif simplify=='comparison':
+            self.op,self.mapping = compare_tomography(
                     paulis,
                     **kw)
         else:

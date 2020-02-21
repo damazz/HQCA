@@ -299,3 +299,51 @@ def simplify_tomography(
             paulis[p]=K
     return ops,paulis
 
+def compare_tomography(
+        operators,
+        verbose=False,
+        rel='qwc',
+        methods=['greedy'],
+        strategies=['largest_first']
+        **kw):
+    print('Comparison of different sorting algorithms: ')
+    print('Relation: {}'.format(rel))
+    print('Constructing graph...')
+    t1 = timeit.default_timer()
+    relation = partial(pauli_relation,**{'rel':rel})
+    graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
+    if verbose:
+        print('Vertices: {}, Edges: {}'.format(
+            graph.g.number_of_nodes(),
+            graph.g.number_of_edges(),
+            ))
+        t2 = timeit.default_timer()
+        print('Time to make graph: {:.2f}'.format(t2-t1))
+    for method,strategy in zip(methods,strategies):
+        print('Comparison on colorings and clique sizes')
+        t2 = timeit.default_timer()
+        graph.color(method=method,
+                strategy=strategy)
+        if verbose:
+            t3 = timeit.default_timer()
+            print('Method: {}, Strategy: {}, Time: {}'.format(t3-t2))
+        c2p = []
+        colors = {}
+        sizes = []
+        for k,v in graph.colors.items():
+            V = [operators[i] for i in v]
+            sizes.append(len(V))
+            colors[k]=V
+        print('Number of colors: {}'.format(len(graph.color.keys())))
+        print('Largest coloring: {}'.format(max(sizes)))
+        print('Std. dev. : {}'.format(np.std(np.asarray(sizes))))
+        for v in range(len(colors.keys())):
+            c2p.append(__find_largest_qwc(colors[v]))
+        ops= c2p[:]
+        paulis = {}
+        for k,v in graph.colors.items():
+            K = ops[k]
+            for p in v:
+                paulis[p]=K
+    return ops,paulis
+
