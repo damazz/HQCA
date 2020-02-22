@@ -23,11 +23,9 @@ molecules = [
             ['H',(-1,-1,0)],
             ['H',(2,1,0)],
             ['H',(1,3,0)],
-            ['H',(4,1,0)],
-            ['H',(6,1,0)],
             ]
         ]
-qubits = [12]
+qubits = [8]
 spins = [
         0,
         ]
@@ -56,9 +54,9 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     for maps in ['jw']:
         print('Mapping: {}'.format(maps))
         if maps=='bk':
-            MapSet = BravyiKitaevSet(Q,reduced=False,Ne=[1,0])
+            MapSet = BravyiKitaevSet(Q,reduced=True,Ne=[0,0])
         elif maps=='parity':
-            MapSet = ParitySet(Q,reduced=False,Ne=[1,0])
+            MapSet = ParitySet(Q,reduced=True,Ne=[0,0])
         else:
             MapSet=None
         print('Reduced Tomography for {} Qubits'.format(Q))
