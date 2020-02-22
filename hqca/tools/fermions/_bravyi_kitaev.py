@@ -71,6 +71,7 @@ class BravyiKitaevSet:
                 self._reduced_set = []
                 self._reduced_coeff=[]
         else:
+            self.reduced=False
             N = int(2**(ceil(log2(self.Nq))))
             self._reduced_set = []
             self._reduced_coeff=[]
