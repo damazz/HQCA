@@ -65,7 +65,6 @@ def JordanWignerTransform(op,Nq,**kw):
                     c1[0]*=nc1
                     c2[0]*=nc2
             elif o in ['1','p']:
-                print(q)
                 tc1,tp1 =1,p[q]
                 tc2,tp2 = _commutator_relations(
                         'Z',p[q])
