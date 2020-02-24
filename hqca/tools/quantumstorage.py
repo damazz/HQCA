@@ -12,12 +12,12 @@ from math import pi
 from hqca.core import *
 try:
     from qiskit import Aer,IBMQ
+    from qiskit.providers.aer import noise
 except Exception:
     pass
 
 from qiskit import QuantumRegister,QuantumCircuit,ClassicalRegister
 from qiskit import execute
-from qiskit.providers.aer import noise
 from qiskit.ignis.mitigation.measurement import(
         complete_meas_cal,
         tensored_meas_cal,
