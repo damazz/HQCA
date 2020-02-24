@@ -10,7 +10,11 @@ import pickle
 import sys
 from math import pi
 from hqca.core import *
-from qiskit import Aer,IBMQ
+try:
+    from qiskit import Aer,IBMQ
+except Exception:
+    pass
+
 from qiskit import QuantumRegister,QuantumCircuit,ClassicalRegister
 from qiskit import execute
 from qiskit.providers.aer import noise
@@ -328,10 +332,6 @@ def get_direct_stats(QuantStore):
     'stats'- do some more compilcated statistics
     '''
     from hqca.quantum.QuantumFramework import build_circuits
-    try:
-        from qiskit import Aer,IBMQ,execute
-    except Exception:
-        pass
     from qiskit.tools.monitor import backend_overview
     from qiskit.compiler import transpile
     hold_para = QuantStore.parameters.copy()
