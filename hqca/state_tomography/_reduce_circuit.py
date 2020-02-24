@@ -5,55 +5,24 @@ import sys
 import timeit
 from copy import deepcopy as copy
 import networkx as nx
-
-class PauliString:
-    def __init__(self,term):
-        self.p = term
-        self.n = len(term)
-
-    def __mul__(self,P):
-        return self._qubit_wise_commuting(P)
-
-    def _qubit_wise_commuting(self,P):
-        if not self.n==P.n:
-            return False
-        for i in range(self.n):
-            if self.p[i]=='I' or P.p[i]=='I':
-                pass
-            elif self.p[i]==P.p[i]:
-                pass
-            else:
-                #return False
-                return False
-        #return True
-        return True
-
-    def __str__(self):
-        return self.p
-
-    def _commuting(self,P):
-        k=0
-        if not self.n==P.n:
-            return False
-        for i in range(self.n):
-            if self.p[i]=='I' or P.p[i]=='I':
-                pass
-            elif self.p[i]==P.p[i]:
-                pass
-            else:
-                k+=1
-        return (k+1)%2
-
-
-from networkx.algorithms.coloring import * 
+import graph_tool as gt
+from graph_tool import topology
+from networkx.algorithms.coloring import *
 
 class Graph:
+    '''
+    CLass for managing variety of graphing problems. Of note are two
+    implementations for handling large graphs:
+        1. networkx, and:
+        2. graph_tool
+    '''
     def __init__(self,
             generate=True,
             vertices=None,
             edges=None,
             verbose=False,
             graph=None,
+            backend='nx',
             **kwargs):
         if generate:
             self.g = nx.Graph()
@@ -66,63 +35,50 @@ class Graph:
             method='greedy',
             strategy='largest_first',
             **kwargs):
+        '''
+        selects coloring method and strategy from various options
+
+        method should include 'greedy' (referring to networkx implementation)
+        'gt' graph_tools
+        '''
         if method=='greedy':
             alg = greedy_color(self.g,strategy=strategy)
-        self.colors = {}
-        for k,v in alg.items():
-            try:
-                self.colors[v].append(k)
-            except Exception:
-                self.colors[v]=[k]
+            self.colors = {}
+            for k,v in alg.items():
+                try:
+                    self.colors[v].append(k)
+                except Exception:
+                    self.colors[v]=[k]
+        elif method=='gt':
+            if strategy in ['default']:
+                self.alg = gt.topology.sequential_vertex_coloring(self.g)
+                for n,i in enumerate(self.alg.a):
+                    try:
+                        self.colors[i].append(n)
+                    except Exception:
+                        self.colors[i]=[n]
+            elif strategy in ['rlf']:
+                self.recursive_largest_first()
+            elif strategy in ['largest_first','lf']:
+                v = self.g.get_vertices()
+                g = self.g.get_total_degrees(self.g.get_vertices())
+                ordering = sorted(v,key=lambda i:g[i],reverse=True)
+                ord_vpm = self.g.new_vertex_property('int')
+                for n,i in enumerate(ordering):
+                    ord_vpm[n]=i
+                alg = gt.topology.sequential_vertex_coloring(
+                        self.g,
+                        order=ord_vpm,
+                        )
+                self.colors = {}
+                for n,i in enumerate(alg.a):
+                    try:
+                        self.colors[i].append(n)
+                    except Exception:
+                        self.colors[i]=[n]
     
-class oldGraph:
-    def __init__(self,
-            vertices,
-            edges,
-            verbose=True,
-            **kw
-            ):
-        '''
-        self.V is a list of veritices
-        self.edge is a list of lists, where each entry has the vertices which
-        compose the edge
-        '''
-        self.V = vertices
-        self.edges = edges
-        print(self.edges)
-        self._order_vertices()
-        self.Nv = len(self.V)
-        self.Ne = len(self.edges)
-        self.verbose=verbose
-        
-
-
-    def _order_vertices(self):
-        '''
-        orders the list of vertices and finds the degree, indicating how many
-        edges it is included in, and paths indicates the possible connections
-        that each vertices can link to.
-        '''
-        self.degree = {k:0 for k in self.V}
-        self.paths = {k:[] for k in self.V}
-        for i,j in self.edges:
-            self.degree[i]+=1
-            self.degree[j]+=1
-            self.paths[i].append(j)
-            self.paths[j].append(i)
-        self.degree_sorted = sorted(
-                self.degree.items(),key=lambda item:item[1])
-
-    def color(self,method='RLF'):
-        if method=='RLF':
-            self._recursive_largest_first()
-        elif method=='fRLF':
-            self._faster_rlf()
-
-    def _faster_rlf(self):
+    def recursive_largest_first(self):
         pass
-    
-    def _recursive_largest_first(self):
         '''
         based on "A new efficient RLF-like algorithm for the Vertex Coloring
         Problem." Adegbindin, Hertz, Bellaiche. 2015
@@ -140,11 +96,73 @@ class oldGraph:
         self.coloring = {}
         done = False
         k = -1
-        U = self.V[:]
-        iteration = 0
+        N = self.g.num_vertices()
+        N_assigned = 0
+        assigned = self.g.new_vertex_property('bool')
+        colors = self.g.new_vertex_property('int')
+        while N_assigned<N:
+            self.g.set_vertex_filter(assigned,inverted=True)
+            k+=1
+            vertices = self.g.get_vertices()
+            degrees = self.g.get_total_degrees(vertices)
+            v2i = {i:n for n,i in enumerate(vertices)}
+            lf = sorted(
+                    vertices,
+                    key=lambda i:degrees[v2i[i]],
+                    reverse=True)
+            v = lf[0]
+            condition=True
+            # Cv
+            Nu = self.g.num_vertices()
+            W = self.g.new_vertex_property('bool')
+            Aw = self.g.new_vertex_property('int')
+            Au = self.g.get_total_degrees(vertices)
+            W[v]=1
+            for i in self.g.get_all_neighbors(v):
+                W[i]=1
+                Aw[i]+=1
+                Au[v2i[i]]-=1
+            assigned[v]=1
+            N_assigned+=1
+            colors[v]=k 
+            j=0
+            while np.sum(W.get_array())<Nu and j<10:
+                j+=1
+                # sort according to W
+                # element in U: W=0 
+                def sort_U(i):
+                    a = (1-W.get_array()[i])
+                    b = Aw[i]
+                    return (a,b)
+                large_w = sorted(
+                        vertices,
+                        key=lambda i:sort_U(i),
+                        reverse=True)
+                u = large_w[0]
+                assigned[u]=1
+                N_assigned+=1
+                colors[u]=k
+                neighbor_u  = self.g.get_all_neighbors(u)
+                Aw[u]=1
+                W[u]=1
+                for i in neighbor_u:
+                    W[i]=1
+                    Aw[i]+=1
+        self.colors = {}
+        for n,c in enumerate(colors.get_array()):
+            try:
+                self.colors[c].append(n)
+            except Exception:
+                self.colors[c]=[n]
+        self.g.clear_filters()
+
+
+    def _find_uncolored_vertices():
+        pass
+        #iteration = 0
         if self.verbose:
             t0 = timeit.default_timer()
-        while len(self.coloring)<len(self.V):
+        while len(self.coloring.keys())<len(N):
             iteration+=1
             # get Au
             k+=1
@@ -167,7 +185,7 @@ class oldGraph:
 
     def _rlf_generate_Cv(self,v,U):
         '''
-        subroutine to geneate Cv: 
+        subroutine to geneate Cv:
         '''
         W = []
         Cv = [v]
@@ -193,61 +211,68 @@ class oldGraph:
                     U.remove(ur)
         return Cv,W[:]
 
-def combine_strings(A,B):
-    def _delta(a,b):
-        if a=='I':
-            return b
-        elif b=='I':
-            return a
-        else:
-            return a
-    hold = []
+def qwc(A,B):
     for i in range(len(A)):
-        hold.append(_delta(A[i],B[i]))
-    return ''.join(hold)
+        if A[i]=='I' or B[i]=='I':
+            pass
+        elif A[i]==B[i]:
+            pass
+        else:
+            return False
+    return True
+
+
+def commute(A,B):
+    k=0
+    for i in range(len(A)):
+        if A[i]=='I' or B[i]=='I':
+            pass
+        elif A[i]==B[i]:
+            pass
+        else:
+            k+=1
+    return (k+1)%2
 
 def pauli_relation(A,B,rel='qwc'):
     if rel=='qwc':
-        test = not PauliString(A)*PauliString(B)
+        return not qwc(A,B)
     elif rel=='mc':
-        test = not PauliString(A)._commuting(PauliString(B))
-    return test
+        return not commute(A,B)
 
 def construct_simple_graph(
         items,related,
         verbose=False,
         stochastic=False,
         threshold=0.1,
+        backend='gt',
         **kw
         ):
-    graph = nx.Graph()
-    if stochastic:
+    if backend=='gt':
+        graph = gt.Graph(directed=False)
         N = len(items)
-        edges = np.ones((N,N))
-        #edges = [[i,j for j in xrange(N)] for i in xrange(i)]
-        k = 0
+        edges = []
         for j in range(N):
-            i = 0
-            while i<threshold*N:
-                rand = random.randint(0,N-1)
-                if not related(items[j],items[rand]):
-                    edges[j,rand]=0
-                    edges[rand,j]=0
-                    k+=1
-                i+=1
-        edges = np.nonzero(np.tril(edges))
-        for i,j in zip(edges[0],edges[1]):
-            graph.add_edge(i,j)
-        print('{} edges removed '.format(k))
-    else:
+            for i in range(j):
+                if related(items[i],items[j]):
+                    edges.append([i,j])
+        if verbose:
+            print('Size of edge list: {}'.format(sys.getsizeof(edges)))
+        graph.add_edge_list(edges)
+        G = Graph(generate=False,graph=graph)
+        if verbose:
+            print('Size of graph: {}'.format(sys.getsizeof(G)))
+    elif backend=='nx':
+        graph = nx.Graph()
         N = len(items)
         edges = []
         for j in range(N):
             for i in range(j):
                 if related(items[i],items[j]):
                     graph.add_edge(i,j)
-    return Graph(generate=False,graph=graph)
-
+        G = Graph(generate=False,graph=graph)
+        if verbose:
+            print('Size of graph: {}'.format(sys.getsizeof(G)))
+    return G
 
 def __find_largest_qwc(A):
     string = 'I'*len(A[0])
@@ -274,10 +299,13 @@ def simplify_tomography(
     relation = partial(pauli_relation,**{'rel':rel})
     graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
     if verbose:
-        print('Vertices: {}, Edges: {}'.format(
-            graph.g.number_of_nodes(),
-            graph.g.number_of_edges(),
-            ))
+        try:
+            print('Vertices: {}, Edges: {}'.format(
+                graph.g.number_of_nodes(),
+                graph.g.number_of_edges(),
+                ))
+        except Exception:
+            pass
         t2 = timeit.default_timer()
         print('Time to make graph: {:.2f}'.format(t2-t1))
     graph.color(**kw)
@@ -305,6 +333,7 @@ def compare_tomography(
         rel='qwc',
         methods=['greedy'],
         strategies=['largest_first'],
+        backend='gt',
         **kw):
     print('---  ---  ---  ---  ---  --- ')
     print('Comparison of different sorting algorithms: ')
@@ -312,14 +341,25 @@ def compare_tomography(
     print('Constructing graph...')
     t1 = timeit.default_timer()
     relation = partial(pauli_relation,**{'rel':rel})
-    graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
-    if verbose:
+    graph = construct_simple_graph(
+            operators,
+            relation,
+            verbose=verbose,
+            backend=backend,
+            **kw)
+    try:
         print('Vertices: {}, Edges: {}'.format(
             graph.g.number_of_nodes(),
             graph.g.number_of_edges(),
             ))
-        t2 = timeit.default_timer()
-        print('Time to make graph: {:.3f}'.format(t2-t1))
+    except Exception:
+        print('Vertices: {}, Edges: {}'.format(
+            graph.g.num_vertices(),
+            graph.g.num_edges()
+            )
+            )
+    t2 = timeit.default_timer()
+    print('Time to make graph: {:.3f}'.format(t2-t1))
     for method,strategy in zip(methods,strategies):
         print('Comparison on colorings and clique sizes')
         t2 = timeit.default_timer()

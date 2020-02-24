@@ -21,10 +21,10 @@ molecules = [
             ['H',(1,1,0)],
             ['H',(1,-1,0)],
             ['H',(-1,-1,0)],
-            ['H',(2,1,0)],
-            ['H',(1,3,0)],
-            ['H',(1,3,3)],
-            ['H',(1,0,3)],
+            ['H',(1,0,1)],
+            ['H',(1,1,1)],
+            ['H',(-1,0,1)],
+            ['H',(1,-1,1)],
             ]
         ]
 qubits = [16]
@@ -52,7 +52,7 @@ for atoms,Q,S in zip(molecules,qubits,spins):
             Nq=Q,
             provider='Aer')
     print('###############')
-    #for maps in ['jw','parity','bk']:
+    #for maps in ['bk']:
     for maps in ['bk']:
         print('Mapping: {}'.format(maps))
         if maps=='bk':
@@ -66,12 +66,6 @@ for atoms,Q,S in zip(molecules,qubits,spins):
         tomoRe.generate(
                 real=True,imag=False,simplify='comparison',
                 mapping=maps,MapSet=MapSet,verbose=True,
-                methods=['gt'],
+                methods=['gt'],strategies=['lf'],
                 weight=['I'],rel='qwc',
-                )
-
-        tomoRe.generate(
-                real=True,imag=False,simplify='comparison',
-                mapping=maps,MapSet=MapSet,verbose=True,
-                weight=['I'],rel='qwc',backend='nx',
                 )
