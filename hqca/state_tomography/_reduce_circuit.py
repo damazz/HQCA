@@ -243,21 +243,34 @@ def construct_simple_graph(
         items,related,
         verbose=False,
         stochastic=False,
-        threshold=0.1,
         backend='gt',
         **kw
         ):
     if backend=='gt':
         graph = gt.Graph(directed=False)
         N = len(items)
+        j = 1
+        n = 0
         edges = []
-        for j in range(N):
+        while j<N-1:
+            j+=1
             for i in range(j):
                 if related(items[i],items[j]):
+                    n+=1 
                     edges.append([i,j])
+            if n//1e8>0 and n>0: #10 million edges 
+                n-=1e8
+                if sys.getsizeof(edges)>1e10:
+                    # 10 gb of memory
+                    print('Contracting')
+                    graph.add_edge_list(edges)
+                    edges = []
+        graph.add_edge_list(edges)
+
+
+
         if verbose:
             print('Size of edge list: {}'.format(sys.getsizeof(edges)))
-        graph.add_edge_list(edges)
         G = Graph(generate=False,graph=graph)
         if verbose:
             print('Size of graph: {}'.format(sys.getsizeof(G)))
