@@ -258,11 +258,12 @@ def construct_simple_graph(
                 if related(items[i],items[j]):
                     n+=1 
                     edges.append([i,j])
-            if n//1e8>0 and n>0: #10 million edges 
-                n-=1e8
+            if n//1e7>0 and n>0: #10 million edges 
+                n-=1e7
                 if sys.getsizeof(edges)>1e10:
                     # 10 gb of memory
                     print('Contracting')
+                    print('Current size: {}'.format(sys.getsizeofedges))
                     graph.add_edge_list(edges)
                     edges = []
         graph.add_edge_list(edges)
