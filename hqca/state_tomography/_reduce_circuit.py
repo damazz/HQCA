@@ -263,7 +263,7 @@ def construct_simple_graph(
                 if sys.getsizeof(edges)>1e10:
                     # 10 gb of memory
                     print('Contracting')
-                    print('Current size: {}'.format(sys.getsizeofedges))
+                    print('Current size: {}'.format(sys.getsizeof(edges)))
                     graph.add_edge_list(edges)
                     edges = []
         graph.add_edge_list(edges)
