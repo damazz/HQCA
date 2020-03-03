@@ -413,8 +413,6 @@ class SimplifyTwoBody:
         else:
             self._degenerate_subproblem()
 
-
-
     def _degenerate_subproblem(self):
         ops = [
                 '+-+-','+--+',

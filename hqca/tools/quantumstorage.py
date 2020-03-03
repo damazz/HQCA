@@ -100,7 +100,6 @@ class QuantumStorage:
             transpiler_keywords={},
             provider='Aer',
             **kwargs):
-
         if self.check==0:
             sys.exit('Have not set up the quantumstorage algorithm yet.')
         self.transpile=transpile
@@ -307,9 +306,6 @@ class QuantumStorage:
                 }
 
 
-
-
-
 def print_qasm(circuit):
     filename = input('Save qasm as: ')
     print('Great!')
@@ -317,7 +313,6 @@ def print_qasm(circuit):
     print(circuit.count_ops())
     with open('{}.qasm'.format(filename),'w') as fp:
         fp.write(circuit.qasm())
-
 
 def get_direct_stats(QuantStore):
     '''
@@ -388,7 +383,6 @@ def get_direct_stats(QuantStore):
                 print(e)
                 sys.exit()
         print('Transpiling...')
-
         if QuantStore.transpile=='default':
             qt = transpile(qcirc[0],
                     backend=self.beo,

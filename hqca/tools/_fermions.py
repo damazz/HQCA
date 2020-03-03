@@ -2,6 +2,8 @@ import numpy as np
 from hqca.tools._operator import *
 from hqca.tools._qubit_operator import PauliOperator
 from hqca.tools.fermions import *
+from sympy import symbols
+from sympy import re,im
 
 class FermionicOperator:
     '''
@@ -17,11 +19,13 @@ class FermionicOperator:
             spin='abba',  # spin, for help.
             antisymmetric=True,
             add=True,
+            symbolic=False,
             ):
         self.c =coeff
         self.fermi = antisymmetric
         self.ind =indices
         self.op = sqOp
+        self.sym = symbolic
         self.add = add
         self.sp = spin
         self.norm = self.c*np.conj(self.c)
@@ -212,17 +216,22 @@ class FermionicOperator:
                     self,Nq,**kw)
         else:
             print('Incorrect mapping: {}. Goodbye!'.format(mapping))
-        self._complex  = [i.imag for i in self.pCoeff]
-        self._real = [i.real for i in self.pCoeff]
-        for n in reversed(range(len(self.pPauli))):
-            if not real:
-                if abs(self._complex[n])<1e-10:
-                    self.pPauli.pop(n)
-                    self.pCoeff.pop(n)
-            elif not imag:
-                if abs(self._real[n])<1e-10:
-                    self.pPauli.pop(n)
-                    self.pCoeff.pop(n)
+        if self.sym:
+            self._complex = [im(i) for i in self.pCoeff]
+            self._real = [re(i) for i in self.pCoeff]
+            pass
+        else:
+            self._complex  = [i.imag for i in self.pCoeff]
+            self._real = [i.real for i in self.pCoeff]
+        #for n in reversed(range(len(self.pPauli))):
+        #    if not real:
+        #        if abs(self._complex[n])<1e-10:
+        #            self.pPauli.pop(n)
+        #            self.pCoeff.pop(n)
+        #    elif not imag:
+        #        if abs(self._real[n])<1e-10:
+        #            self.pPauli.pop(n)
+        #            self.pCoeff.pop(n)
 
     def _commutator_relations(self,lp,rp):
         if rp=='I':
@@ -256,6 +265,6 @@ class FermionicOperator:
     def formOperator(self):
         new = Operator()
         for p,c in zip(self.pPauli,self.pCoeff):
-            new+=PauliOperator(p,c,add=self.add)
+            new+=PauliOperator(p,c,add=self.add,symbolic=self.sym)
         return new
 

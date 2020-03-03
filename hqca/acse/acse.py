@@ -51,6 +51,7 @@ class RunACSE(QuantumRun):
             verbose=True,
             tomo_S=None,
             tomo_Psi=None,
+            one_body_kw={},
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -61,6 +62,7 @@ class RunACSE(QuantumRun):
             sys.exit()
         self.verbose=verbose
         self.acse_method = method
+        self.one_body_kw = one_body_kw
         self.S_trotter= ansatz_depth
         self.S_commutative = commutative_ansatz
         self.N_trotter = trotter
@@ -189,9 +191,22 @@ class RunACSE(QuantumRun):
             self.built
         except AttributeError:
             sys.exit('Not built! Run acse.build()')
-        #print('-- -- -- -- -- -- -- -- -- -- --')
-        #print('         -- ACSE Run --  ')
-        #print('-- -- -- -- -- -- -- -- -- -- --')
+        #if self.acse_update=='q':
+        #    op = findOneBodyFermionicSQuantum(
+        #            operator=self.S,
+        #            instruct=self.Instruct,
+        #            store=self.Store,
+        #            qS_thresh_rel=self.qS_thresh_rel,
+        #            qS_max=self.qS_max,
+        #            ordering=self.qS_ordering,
+        #            trotter_steps=self.N_trotter,
+        #            hamiltonian_step_size=self.hamiltonian_step_size,
+        #            propagate_method=self.propagate_method,
+        #            depth=self.S_trotter,
+        #            commutative=self.S_commutative,
+        #            verbose=self.verbose,
+        #            **self.one_body_kw,
+        #            )
         if self.acse_update=='q':
             testS = findSPairsQuantum(
                     self.QuantStore.op_type,
@@ -284,7 +299,6 @@ class RunACSE(QuantumRun):
                 circ.construct()
                 en = np.real(self.Store.evaluate(circ.rdm))
                 self.Store.update(circ.rdm)
-        #self._calc_variance(circ)
 
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)

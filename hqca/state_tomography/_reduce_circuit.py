@@ -221,7 +221,6 @@ def qwc(A,B):
             return False
     return True
 
-
 def commute(A,B):
     k=0
     for i in range(len(A)):
@@ -267,9 +266,6 @@ def construct_simple_graph(
                     graph.add_edge_list(edges)
                     edges = []
         graph.add_edge_list(edges)
-
-
-
         if verbose:
             print('Size of edge list: {}'.format(sys.getsizeof(edges)))
         G = Graph(generate=False,graph=graph)
@@ -286,6 +282,7 @@ def construct_simple_graph(
         G = Graph(generate=False,graph=graph)
         if verbose:
             print('Size of graph: {}'.format(sys.getsizeof(G)))
+    G.rev_map = items
     return G
 
 def __find_largest_qwc(A):
@@ -338,7 +335,7 @@ def simplify_tomography(
     for k,v in graph.colors.items():
         K = ops[k]
         for p in v:
-            paulis[p]=K
+            paulis[graph.rev_map[p]]=K
     return ops,paulis
 
 def compare_tomography(
@@ -401,6 +398,6 @@ def compare_tomography(
         for k,v in graph.colors.items():
             K = ops[k]
             for p in v:
-                paulis[p]=K
+                paulis[graph.rev_map[p]]=K
     return ops,paulis
 

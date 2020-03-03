@@ -1,6 +1,7 @@
 from hqca.core.primitives import *
 import sys
 from hqca.core import *
+from sympy import re,im
 
 
 class PauliSet(Instructions):
@@ -42,18 +43,14 @@ class PauliSet(Instructions):
     def _applyOp(self,
             operator,Nq,depth=1,
             **kw):
-        #print('----------------------')
-        #print('Operator')
         for d in range(depth):
             for item in operator.op:
-                try:
-                    item.p
-                    if abs(item.c.imag)<1e-10:
-                        c = item.c.real
-                    elif abs(item.c.real)<1e-10:
-                        c =  item.c.imag
+                if item.sym:
+                    if abs(im(item.c))<1e-10:
+                        c = re(item.c)
+                    elif abs(re(item.c))<1e-10:
+                        c =  im(item.c)
                     if abs(c)>1e-10:
-                        #print(item)
                         self._gates.append(
                                 [(
                                     c/depth,
@@ -62,20 +59,36 @@ class PauliSet(Instructions):
                                     generic_Pauli_term
                                     ]
                                 )
-                except AttributeError:
-                    item.clear()
-                    item.generateOperators(Nq=Nq,imag=True,real=False,**kw)
-                    for p,c in zip(item.pPauli,item.pCoeff):
-                        self._gates.append(
-                                [(
-                                    c/depth,
-                                    p,
-                                    ),
-                                    generic_Pauli_term
-                                    ]
-                                )
-                except Exception as e:
-                    print(e)
+                else:
+                    try:
+                        item.p
+                        if abs(item.c.imag)<1e-10:
+                            c = item.c.real
+                        elif abs(item.c.real)<1e-10:
+                            c =  item.c.imag
+                        if abs(c)>1e-10:
+                            self._gates.append(
+                                    [(
+                                        c/depth,
+                                        item.p,
+                                        ),
+                                        generic_Pauli_term
+                                        ]
+                                    )
+                    except AttributeError:
+                        item.clear()
+                        item.generateOperators(Nq=Nq,imag=True,real=False,**kw)
+                        for p,c in zip(item.pPauli,item.pCoeff):
+                            self._gates.append(
+                                    [(
+                                        c/depth,
+                                        p,
+                                        ),
+                                        generic_Pauli_term
+                                        ]
+                                    )
+                    except Exception as e:
+                        print(e)
 
     def _applyH(self,
             HamiltonianOperator,

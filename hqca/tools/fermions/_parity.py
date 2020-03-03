@@ -115,6 +115,8 @@ def ParityTransform(op,Nq,MapSet=None,**kw):
                 if q>0:
                     tc1,tp1 = _commutator_relations(
                             'Z',p[q-1])
+                else:
+                    tc1,tp1 = 1,p
                 tc2,tp2 = _commutator_relations(
                         'Z',p[q])
                 if q==0:
@@ -128,6 +130,8 @@ def ParityTransform(op,Nq,MapSet=None,**kw):
                 if q>0:
                     tc1,tp1 = _commutator_relations(
                             'Z',p[q-1])
+                else:
+                    tc1,tp1 = 1,p
                 tc2,tp2 = _commutator_relations(
                         'Z',p[q])
                 if q==0:

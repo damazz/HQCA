@@ -20,6 +20,117 @@ def findSPairsQuantum(
         newS = _findQubitSQuantum(**kw)
     return newS
 
+def findOneBodyFermionicSQuantum(
+        operator=None,
+        instruct=None,
+        store=None,
+        quantstore=None,
+        verbose=False,
+        separate=False,
+        trotter_steps=1,
+        qS_thresh_rel=0.1,
+        qS_max=1e-10,
+        qS_screen=0.1,
+        hamiltonian_step_size=1.0,
+        ordering='default',
+        depth=1,
+        commutative=True,
+        tomo=None,
+        **kw
+        ):
+    '''
+    need to do following:
+        3. find S from resulting matrix
+    '''
+    if verbose:
+        print('Generating new S pairs with Hamiltonian step.')
+    print(operator)
+    newPsi = instruct(
+            operator=operator,
+            Nq=quantstore.Nq,
+            propagate=True,
+            HamiltonianOperator=store.H.qubit_operator,
+            scaleH=hamiltonian_step_size,
+            depth=depth
+            )
+    if type(tomo)==type(None):
+        newCirc = StandardTomography(
+                quantstore,
+                verbose=verbose,
+                )
+        newCirc.generate(real=False,imag=True)
+    else:
+        newCirc = StandardTomography(
+                quantstore,
+                preset=True,
+                Tomo=tomo,
+                verbose=verbose,
+                )
+    newCirc.set(newPsi)
+    if verbose:
+        print('Running circuits...')
+    newCirc.simulate(verbose=verbose)
+    if verbose:
+        print('Constructing the RDMs...')
+    newCirc.construct()
+    rdm = np.imag(newCirc.rdm.rdm)
+    print(rdm)
+    new = np.transpose(np.nonzero(rdm))
+    hss = (1/hamiltonian_step_size)
+    max_val = 0
+    for inds in new:
+        ind = tuple(inds)
+        v = abs(rdm[ind])*hss
+        if v>max_val:
+            max_val = v
+    print('Elements of S from quantum generation: ')
+    newS = Operator()
+    newF = Operator()
+    for index in new:
+        ind = tuple(index)
+        val = rdm[ind]*hss
+        if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
+            if quantstore.op_type=='fermionic':
+                spin = ''
+                for item in ind:
+                    c = item in quantstore.alpha['active']
+                    spin+= 'a'*c+(1-c)*'b'
+                l = len(ind)
+                sop = l//2*'+'+l//2*'-'
+                newEl = FermionicOperator(
+                        -val,
+                        indices=list(ind),
+                        sqOp=sop,
+                        spin=spin,
+                        add=True,
+                        )
+                newEl.generateOperators(
+                        Nq=quantstore.Nq,
+                        real=True,imag=True,
+                        mapping=quantstore.mapping,
+                        **quantstore._kw_mapping,
+                        )
+                newS+= newEl.formOperator()
+            if len(newF._op)==0:
+                newF+= newEl
+            else:
+                add = True
+                for o in newF._op:
+                    if o.isSame(newEl) or o.isHermitian(newEl):
+                        add = False
+                        break
+                if add:
+                    newF += newEl
+    newS.clean()
+    print('Fermionic S operator:')
+    print(newF)
+    if commutative:
+        pass
+    else:
+        for i in newS.op:
+            i.add=False
+    return newS
+
 def _findFermionicSQuantum(
         operator=None,
         instruct=None,
@@ -73,6 +184,8 @@ def _findFermionicSQuantum(
         print('Constructing the RDMs...')
     newCirc.construct()
     rdm = np.imag(newCirc.rdm.rdm)
+    contracted = newCirc.rdm.reduce_order()
+    print(contracted.rdm)
     new = np.transpose(np.nonzero(rdm))
     hss = (1/hamiltonian_step_size)
     max_val = 0
@@ -88,6 +201,8 @@ def _findFermionicSQuantum(
         ind = tuple(index)
         val = rdm[ind]*hss
         if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
+            #if len(set(ind))<4:
+            #    continue
             if quantstore.op_type=='fermionic':
                 spin = ''
                 for item in ind:

@@ -9,6 +9,7 @@ class Operator:
             ):
         self._op = ops
         self.ah=antihermitian
+        self.sym = False
 
     def reordering(self,method='magnitude',**kw):
         if method=='magnitude':
@@ -58,6 +59,11 @@ class Operator:
         '''
         Commutative addition
         '''
+        try:
+            if A.sym:
+                self.sym=True
+        except Exception:
+            pass
         for old_op in Old:
             old_op.clear()
         try:
@@ -99,10 +105,17 @@ class Operator:
         while not done:
             done=True
             for i in range(len(self._op)):
-                if abs(self._op[i].c)<1e-12:
-                    self._op.pop(i)
-                    done=False
-                    break
+                try: 
+                    if abs(self._op[i].c)<1e-12:
+                        self._op.pop(i)
+                        done=False
+                        break
+                except TypeError:
+                    if self.op==0:
+                        self._op.pop(i)
+                        done=False
+                        break
+
 
     def generateSkewExpOp(self):
         for items in self._op:

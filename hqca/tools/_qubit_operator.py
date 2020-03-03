@@ -10,6 +10,7 @@ class PauliOperator:
             coeff,
             add=True,
             get='default',
+            symbolic=False,
             ):
         self.p = pauli
         self.c = coeff
@@ -20,6 +21,7 @@ class PauliOperator:
         else:
             self.g = get
         self.norm = self.c*np.conj(self.c)
+        self.sym = symbolic
 
     def isSame(self,a):
         return self.p==a.p
@@ -44,10 +46,12 @@ class QubitOperator:
             indices=[0,1,2,3], #orbital indices
             sqOp='-+-+', #second quantized operators
             add=True,
+            symbolic=False,
             ):
         self.c = coeff
         self.ind = indices
         self.sqOp = sqOp
+        self.sym = symbolic
         self.norm = self.c*np.conj(self.c)
         self.order = len(indices)
         self.as_set = set(indices)

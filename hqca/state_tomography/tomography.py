@@ -32,7 +32,7 @@ class StandardTomography(Tomography):
         self.match_aa_bb = match_aa_bb
         self.qs = QuantStore
         self.p = QuantStore.p
-        if self.qs.mapping in ['bk','bravyi-kitaev']:
+        if self.qs.mapping in ['bk','bravyi-kitaev','parity']:
             if self.qs._kw_mapping['MapSet'].reduced:
                 self.dim = tuple([self.Nq+2 for i in range(2*self.p)])
             else:
@@ -69,7 +69,15 @@ class StandardTomography(Tomography):
                 if self.qs.mapping in ['jordan-wigner','jw']:
                     Q.qc.x(item)
                 elif self.qs.mapping in ['parity']:
-                    sys.exit('Need initialization for parity')
+                    MapSet = self.qs._kw_mapping['MapSet']
+                    if MapSet.reduced:
+                        for i in range(item,MapSet.Nq-2):
+                            if i in MapSet._reduced_set:
+                                continue
+                            elif i in MapSet._shifted:
+                                Q.qc.x(i-1)
+                            else:
+                                Q.qc.x(i)
                 elif self.qs.mapping in ['bk','bravyi-kitaev']:
                     MapSet = self.qs._kw_mapping['MapSet']
                     if MapSet.reduced:
@@ -234,8 +242,6 @@ class StandardTomography(Tomography):
         for r in self.rdme:
             temp = 0
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
-                #if r.qOp in ['hh','hp','ph','pp']:
-                #    print(r,Pauli,coeff)
                 try:
                     get = self.mapping[Pauli] #self.mapping has important get
                     # property to get the right pauli
@@ -245,7 +251,6 @@ class StandardTomography(Tomography):
                     temp+= zMeas*coeff
                 except KeyError as e:
                     pass
-                    #print('No key for {}->{}'.format(get,Pauli))
             ia = self.rdm.rev_map[tuple(r.qInd)]
 
             ib = self.rdm.rev_sq[r.sqOp]
@@ -314,6 +319,44 @@ class StandardTomography(Tomography):
                         for k in ['+','-','p','h']:
                             rdme.append(sub_rdme(i,j,p+k))
         self.rdme = rdme
+
+    def _generate_1rdme(self,real=True,imag=False,**kw):
+        self.real=real
+        self.imag=imag
+        if not self.grouping:
+            alp = self.qs.groups[0]
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.groups[1]
+            S = []
+            def sub_rdme(i,j,spin):
+                test = FermionicOperator(
+                    coeff=1,
+                    indices=[i,j],
+                    sqOp='+-',
+                    spin=spin)
+                test.generateTomography(Nq=self.Nq,
+                        real=real,
+                        imag=imag,
+                        **kw)
+                return test
+            for i in alp:
+                for j in alp:
+                    if i*Na>j*Na:
+                        continue
+                    if imag and i*Na==j*Na:
+                        continue
+                    new = sub_rdme(i,j,'aa')
+                    rdme.append(new)
+            for i in bet:
+                for j in bet:
+                    if i*Na>j*Na:
+                        continue
+                    if imag and i*Na==j*Na:
+                        continue
+                    new = sub_rdme(i,j,'bb')
+                    rdme.append(new)
+            self.rdme = rdme
 
     def _generate_2rdme(self,real=True,imag=False,**kw):
         self.real=real
@@ -590,7 +633,6 @@ class PseudoRDMElement:
             self.pPauli.append(p)
             self.pCoeff.append(c)
 
-
 class ReducedTomography(StandardTomography):
     def _pre_generate_2rdme(self,
             real=True,
@@ -657,6 +699,62 @@ class ReducedTomography(StandardTomography):
                         #        pass
                         #    else:
                         #        self._cp.append(p)
+
+    def _generate_1rdme(self,
+            real=True,
+            imag=False,
+            **kw):
+        self._pre_generate_2rdme(real=real,imag=imag,Nq=self.Nq,**kw)
+        self.real=real
+        self.imag=imag
+        if not self.grouping:
+            alp = self.qs.groups[0]
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.groups[1]
+            S = []
+            def sub_rdme(i,j,spin):
+                test = FermionicOperator(
+                    coeff=1,
+                    indices=[i,j],
+                    sqOp='+-',
+                    spin=spin)
+                idx = '-'.join([str(i) for i in test.qInd])
+                if self.real and not self.imag:
+                    try:
+                        tomo = self.qubit_pairing[idx].real[test.qOp]
+                    except Exception as e:
+                        traceback.print_exc()
+                        sys.exit()
+                elif not self.real and self.imag:
+                    try:
+                        tomo = self.qubit_pairing[idx].imag[test.qOp]
+                    except Exception:
+                        pass
+                elif self.real and self.imag:
+                    tomo = self.qubit_pairing[idx].real[test.qOp]
+                    tomoI = self.qubit_pairing[idx].imag[test.qOp]
+                    for i in tomoI:
+                        tomo.append(i)
+                if test.qCo==-1:
+                    for i in range(len(tomo)):
+                        tomo[i][1] = tomo[i][1]*test.qCo
+                return PseudoRDMElement(tomo,test.ind)
+            for i in bet:
+                for j in bet:
+                    if i*Na>j*Na:
+                        continue
+                    if imag and i*Na==j*Na:
+                        continue
+                    rdme.append(sub_rdme(i,j,'bb'))
+            for i in alp:
+                for j in alp:
+                    if i*Na>j*Na:
+                        continue
+                    if imag and i*Na==j*Na:
+                        continue
+                    rdme.append(sub_rdme(i,j,'aa'))
+            self.rdme = rdme
 
     def _generate_2rdme(self,
             real=True,

@@ -1,313 +1,171 @@
-'''
-./sub.py
-
-Holds the subroutines for the optimizations.
-'''
-import pickle
-import threading
-import os, sys
-from importlib import reload
-import numpy as np
-import traceback
-import warnings
-warnings.simplefilter(action='ignore',category=FutureWarning)
-from hqca.tools import Functions as fx
-from hqca.optimizers.Control import Optimizer
-from hqca.tools import RDMFunctions as rdmf
-from hqca.tools import EnergyFunctions as enf
-from hqca.sub.BaseRun import QuantumRun,Cache
-from hqca.quantum import ErrorCorrection as ec
-from hqca.quantum import QuantumFunctions as qf
-from hqca.quantum import NoiseSimulator as ns
-from hqca.tools.util import Errors
-from functools import reduce
-import datetime
-import sys
-from hqca.tools import Preset as pre
-np.set_printoptions(precision=3,suppress=True)
+from hqca.core import *
+from hqca.tools import *
+from hqca.vqe._store_vqe import *
+from hqca.state_tomography import *
+from hqca.vqe._ucc import *
+from hqca.vqe._pair import *
+from copy import deepcopy as copy
 
 
-class RunNOFT(QuantumRun):
-    '''
-    Subroutine for a natural-orbital function theory approach with a quantum
-    computing treatment of the natural orbitals.
-    '''
+class Cache:
+    def __init__(self):
+        self.use=True
+        self.err=False
+        self.msg=None
+        self.iter=0
+        self.done=False
+
+class RunVQE(QuantumRun):
     def __init__(self,
-            mol,
-            **kw
+            Storage,
+            Optimizer,
+            QuantStore,
+            Instructions,
+            **kw,
             ):
-        QuantumRun.__init__(self,**kw)
-        self.theory = 'noft'
-        if mol==None:
-            print('Did you forget to specify a mol object form pyscf?')
-            print('Please try again.')
-            sys.exit()
-        QuantumRun._build_energy(self,mol,**kw)
-        if self.Store.Ne_as==2:
-            self.kw = pre.NOFT_2e()
-        elif self.Store.Ne_as==3:
-            self.kw = pre.NOFT_3e()
-        else:
-            print('Do not yet have support for more than 3 electron or less')
-            print('than 2 electrons. Goodbye!')
-            sys.exit()
-        self.pr_g = self.kw['pr_g']
-        self.kw_qc = self.kw['qc']
-        self.kw_opt = self.kw['qc']['opt']
-        self.kw_orb = self.kw['orb']
-        self.kw_orb_opt = self.kw['orb']['opt']
-        self.Store.pr_m = self.kw['pr_m']
-        self.Store.pr_s = self.kw['pr_s']
-        self.total=Cache()
-        self.Run = {}
+        self.Store = Storage
+        self.Opt = Optimizer
+        self.QuantStore = QuantStore
+        self.Instruct = Instructions
+        self._update_vqe_kw(**kw)
 
-    def build(self,mol=None):
-        QuantumRun._build_quantum(self)
-        if self.QuantStore.ec_pre:
-            if self.QuantStore.filter_meas:
-                ns.get_measurement_filter(self.QuantStore)
-        self.kw_orb_opt['function'] = enf.find_function(
-                'noft',
-                'orb',
-                self.Store,
-                self.QuantStore)
-        grad_free = ['NM','nevergrad']
-        if self.kw_opt['optimizer'] not in grad_free:
-            self.kw_opt['gradient']=enf.find_function(
-                    'noft',
-                    'noft_grad',
-                    self.Store,
-                    self.QuantStore)
-        if self.kw_orb_opt['optimizer'] in grad_free:
+    def _update_vqe_kw(self,
+            method='noft',
+            ansatz='ucc',
+            initial='hf',
+            opt_thresh=1e-8,
+            max_iter=50,
+            trotter=1,
+            ansatz_depth=1,
+            tomography=None,
+            verbose=True,
+            gradient=False,
+            kw_opt={},
+            **kw):
+        self.ansatz=ansatz
+        self.vqe_method=method
+        self.max_iter=50
+        self.use_gradient = gradient
+        self.crit = opt_thresh
+        self.tomo = tomography
+        self.depth = ansatz_depth
+        self.verbose= verbose
+        if type(self.tomo)==type(None):
+            self.tomo_preset=False
+        else:
+            self.tomo_preset=True
+        self.kw_opt=kw_opt
+
+
+    def __test_vqe_function(self,para):
+        para_sym = copy(self.para_sym)
+        psi = copy(self.T)
+        for op in psi._op:
+            for n,x in enumerate(para):
+                op.c = op.c.subs(para_sym[n],x)
+        ins = self.Instruct(psi,
+                self.QuantStore.Nq,
+                depth=self.depth,
+                )
+        circ = StandardTomography(
+                self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo,
+                verbose=False,
+                #erbose=self.verbose)
+                )
+        if not self.tomo_preset:
+            circ.generate(real=self.Store.H.real)
+        circ.set(ins)
+        circ.simulate()
+        circ.construct()
+        en = np.real(self.Store.evaluate(circ.rdm))
+        return en
+
+    def __test_vqe_gradient(self,para,diff=0.01):
+        gradient = []
+        for i in range(len(para)):
+            tpara = []
+            for j in range(len(para)):
+                c = para[j]
+                if i==j:
+                    c-=diff
+                tpara.append(c)
+            e_m = self.__test_vqe_function(tpara)
+            tpara = []
+            for j in range(len(para)):
+                c = para[j]
+                if i==j:
+                    c+=diff
+                tpara.append(c)
+            e_p = self.__test_vqe_function(tpara)
+            gradient.append((e_p-e_m)/(2*diff))
+        return gradient
+
+    def build(self,**kw):
+        try:
+            if self.built:
+                sys.exit('Building VQE again?')
+        except Exception:
             pass
+        self.total = Cache()
+        # if criteria ...
+        if self.ansatz=='ucc':
+            self.T,self.para_sym = getUCCAnsatz(self.QuantStore)
+            self.para= []
+            if self.Store.initial in ['hf','hartree-fock']:
+                for i in range(len(self.para_sym)):
+                    self.para.append(0)
+        if self.use_gradient:
+            self.Opt = self.Opt(
+                    function=self.__test_vqe_function,
+                    gradient=self.__test_vqe_gradient,
+                    **self.kw_opt)
         else:
-            self.kw_orb_opt['gradient']=enf.find_function(
-                    'noft',
-                    'orb_grad',
-                    self.Store,
-                    self.QuantStore)
+            self.Opt = self.Opt(
+                    function=self.__test_vqe_function,
+                    **self.kw_opt)
+        self.Opt.initialize(self.para)
+        self.ei = self.Opt.opt.best_f
+        self.e0 = self.Opt.opt.best_f
+
         self.built=True
-        qf.get_direct_stats(self.QuantStore)
-        self._pre()
 
-    def _pre(self):
-        if self.QuantStore.ec_post:
-            if self.QuantStore.hyperplane in [True,'custom']:
-                ec.generate_error_polytope(self.QuantStore)
+        # here....we should generate the ansatz
 
-    def update_var(self,**kw):
-        QuantumRun.update_var(self,**kw)
-        self.Store.pr_m = self.kw['pr_m']
+    def _run_vqe(self):
+        try:
+            self.built
+        except AttributeError:
+            sys.exit('Run not built. Run vqe.build()')
+        self.Opt.next_step()
 
-    def run(self):
+    def _check(self):
+        en = self.Opt.opt.best_f
+        self.best = en
+        self.Opt.check(self.total)
+        if self.total.iter==self.max_iter:
+            self.total.done=True
+        elif self.Opt.opt.crit<self.crit:
+            self.total.done=True
+            
+
+
+
+    def run(self,**kw):
         if self.built:
             while not self.total.done:
-                self._OptNO()
-                self._OptOrb()
-                self._check(self.kw['opt_thresh'],self.kw['max_iter'])
+                self._run_vqe()
+                self._check()
+            print('E, init: {:+.12f} U'.format(np.real(self.ei)))
+            print('E, run: {:+.12f} U'.format(np.real(self.best)))
+            try:
+                diff = 1000*(self.best-self.Store.H.ef)
+                print('E, fin: {:+.12f} U'.format(self.Store.H.ef))
+                print('Energy difference from goal: {:.12f} mU'.format(diff))
+            except KeyError:
+                pass
+            except AttributeError:
+                pass
 
-    def _restart(self):
-        self.restart = True
-
-    def _check(self,
-            crit,
-            max_iter
-            ):
-        diff = abs(self.main.crit-self.sub.crit)*1000
-        if self.pr_g>0:
-            print('Macro iteration: {}'.format(self.total.iter))
-            print('E_noc: {}'.format(self.main.crit))
-            print('E_nor: {}'.format(self.sub.crit))
-            print('Diff in energies: {} mH '.format(diff))
-        if self.main.err or self.sub.err:
-            if self.main.err:
-                self.total.done= True
-                self.total.err = True
-                print(self.main.msg)
-            if self.sub.err:
-                print(self.sub.msg)
-        elif abs(self.main.crit-self.sub.crit)<crit:
-            self.total.done=True
-            self.Store.opt_analysis()
-        elif self.total.iter>=max_iter:
-            self.total.done=True
-            self.total.err=True
-        else:
-            pass
-        if self.total.done and not self.total.err==False:
-            print('Got an error.')
-            raise Exception
-        self.total.crit = self.Store.energy_best
-        self.main.crit=0
-        self.sub.crit=0
-        if self.pr_g>2:
-            self.Store.opt_analysis()
-        self.total.iter+=1
-
-    def _set_opt_parameters(self):
-        self.f = min(self.Store.F_alpha,self.Store.F_beta)
-        #self.kw_opt['unity']=self.kw_opt['unity']*(1-self.f*0.5)
-        #print('Scale factor: {}'.format(180*self.kw_opt['unity']/np.pi))
-
-    def _OptNO(self):
-        self.main=Cache()
-        key = 'rdm{}'.format(self.total.iter)
-        if not self.restart:
-            if self.total.iter>0:
-                self._set_opt_parameters()
-            self.Run[key] = Optimizer(
-                    **self.kw_opt
-                    )
-            self.Run[key].initialize(
-                    self.QuantStore.parameters)
-            if self.Run[key].error:
-                print('##########')
-                print('Encountered error in initialization.')
-                print('##########')
-                self.main.done=True
-        self.main.done=False
-        while not self.main.done:
-            self.Run[key].next_step()
-            if self.kw_opt['pr_o']>0:
-                print('Step: {:02}, E: {:.8f} c: {:.8f}  '.format(
-                    self.main.iter,
-                    self.Run[key].opt.best_f,
-                    self.Run[key].opt.crit)
-                    )
-            self.Run[key].check(self.main)
-            if self.main.iter==self.kw_opt['max_iter']:
-                self.main.error=False
-                self.Run[key].opt_done=True
-                self.main.done=True
-            elif self.Run[key].opt_done:
-                if self.Run[key].error:
-                    print('Error in run.')
-                    Store.opt_done=True
-                continue
-            self.main.iter+=1
-        self.kw_opt['shift']=self.Run[key].opt.best_y.copy()
-        self.Store.update_rdm2()
-
-    def _OptOrb(self):
-        self.sub=Cache()
-        key = 'orb{}'.format(self.total.iter)
-        self.sub.done=False
-        self.para_orb = np.asarray([0.0]*self.Store.Np_orb)
-        #if self.kw['restart']==True:
-        #    self._load()
-        #else:
-        self.Run[key] = Optimizer(
-                **self.kw_orb_opt
-                )
-        self.Run[key].initialize(self.para_orb)
-        while not self.sub.done:
-            self.Run[key].next_step()
-            if self.kw['pr_s']>0 and self.sub.iter%1==0:
-                print('Step: {:02}, E: {:.8f} c: {:.8f}'.format(
-                    self.sub.iter,
-                    self.Run[key].opt.best_f,
-                    self.Run[key].opt.crit)
-                    )
-            self.Run[key].check(self.sub)
-            if self.sub.iter==self.kw_orb_opt['max_iter']:
-                self.sub.done=True
-                self.sub.err=True
-                self.sub.msg='Max iterations met.'
-                self.Run[key].opt_done=True
-            self.sub.iter+=1
-        self.Store.update_full_ints()
-    
-    def single(self,target,para):
-        if target=='rdm':
-            self.E = self.kw_opt['function'](para)
-        elif target=='orb':
-            self.E = self.kw_orb_opt['function'](para)
-
-    def _find_orb(self):
-        self.main=Cache()
-        self.main.done=True
-        self._OptOrb()
-
-    def find_occ(self,on=0,spin='alpha'):
-        def f_test(para,**kw):
-            self.single(para,**kw)
-            if spin=='alpha':
-                return -self.E[0][on]
-            elif spin=='beta':
-                return -self.E[1][on]
-        self.Run = Optimizer(
-                function=f_test,
-                **self.kw_opt)
-        self.Run.initialize(self.QuantStore.parameters)
-
-    def go(self):
-        self.run()
-    def execute(self):
-        self.run()
-
-
-class RunRDM(QuantumRun):
-    '''
-    Subroutine for a RDM based approach. Orbital optimization is included in the
-    wavefunction.
-    '''
-    def __init__(self,store,**k):
-        QuantumRun.__init__(self)
-        self.kw = pre.RDM()
-        self.rc=Cache()
-        self.theory = 'rdm'
-
-    def run(self):
-        if self.built:
-            self._OptRDM()
-            self._analyze()
-        else:
-            sys.exit('# Not built yet! Run build() before execute(). ')
-
-    def build(self):
-        QuantumRun._build_energy(self,mol)
-        QuantumRun._build_quantum(self)
-        self.Store.fund_npara_orb()
-        self.built=True
-
-    def _OptRDM(self):
-        if self.kw['restart']==True:
-            self._load()
-        else:
-            Run = Optimizer(
-                    **self.kw_opt
-                    )
-            Run.initialize(self.QuantStore.parameters)
-        if Run.error:
-            print('##########')
-            print('Encountered error in initialization.')
-            print('##########')
-            self.rc.done=True
-        while not self.rc.done:
-            Run.next_step()
-            if self.kw_opt['pr_o']>0:
-                print('Step: {:02}, E: {:.8f} Sigma: {:.8f}'.format(
-                    self.rc.iter,
-                    Run.opt.best_f,
-                    Run.opt.crit)
-                    )
-            Run.check(self.rc)
-            if self.pr_g>3:
-                self.Store.opt_analysis()
-            if self.rc.iter==self.kw_opt['max_iter'] and not(self.rc.done):
-                self.rc.error=False
-                Run.opt_done=True
-                self.rc.done=True
-            elif Run.opt_done:
-                if Run.error:
-                    print('Error in run.')
-                    Store.opt_done=True
-                continue
-            self.rc.iter+=1
-        self.Store.update_rdm2()
-
-    def go(self):
-        self.run()
-    def execute(self):
-        self.run()
 
