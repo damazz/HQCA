@@ -498,7 +498,6 @@ class StandardTomography(Tomography):
                     print(e)
                     sys.exit()
         if self.qs.transpile=='default':
-            print(self.qs.transpiler_keywords)
             circuits = transpile(
                     circuits=self.circuits,
                     backend=beo,

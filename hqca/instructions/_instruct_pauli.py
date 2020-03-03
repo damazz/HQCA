@@ -98,7 +98,7 @@ class PauliSet(Instructions):
             for item in HamiltonianOperator.op:
                 self._gates.append(
                         [(
-                            (1/trotter_steps)*scaleH*item.c,
+                            (1/trotter_steps)*scaleH*item.c.real,
                             item.p
                             ),
                             generic_Pauli_term
