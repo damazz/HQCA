@@ -94,7 +94,6 @@ class PauliSet(Instructions):
             HamiltonianOperator,
             trotter_steps=1,
             scaleH=0.5,**kw):
-        print(HamiltonianOperator)
         for i in range(trotter_steps):
             for item in HamiltonianOperator.op:
                 self._gates.append(

@@ -498,6 +498,7 @@ class StandardTomography(Tomography):
                     print(e)
                     sys.exit()
         if self.qs.transpile=='default':
+            print(self.qs.transpiler_keywords)
             circuits = transpile(
                     circuits=self.circuits,
                     backend=beo,
@@ -514,7 +515,6 @@ class StandardTomography(Tomography):
         if self.qs.backend=='unitary_simulator':
             job = beo.run(qo)
             for circuit in self.circuit_list:
-                #print(job.result().get_unitary(circuit))
                 counts.append(job.result().get_counts(name))
         elif self.qs.backend=='statevector_simulator':
             job = beo.run(qo)
