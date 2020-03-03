@@ -71,7 +71,7 @@ class StandardTomography(Tomography):
                 elif self.qs.mapping in ['parity']:
                     MapSet = self.qs._kw_mapping['MapSet']
                     if MapSet.reduced:
-                        for i in range(item,MapSet.Nq-2):
+                        for i in range(item,MapSet.Nq):
                             if i in MapSet._reduced_set:
                                 continue
                             elif i in MapSet._shifted:

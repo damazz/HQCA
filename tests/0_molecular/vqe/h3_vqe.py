@@ -22,19 +22,18 @@ mol.build()
 ins = PauliSet
 MapSet = ParitySet(6,reduced=True,Ne=[0,1])
 kw_mapping = {'MapSet':MapSet}
-#ham = MolecularHamiltonian(mol,mapping='parity',kw_mapping=kw_mapping)
-ham = MolecularHamiltonian(mol)
+ham = MolecularHamiltonian(mol,mapping='parity',kw_mapping=kw_mapping)
 st = StorageVQE(ham)
 qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(
         backend='statevector_simulator',
         #backend='qasm_simulator',
-        Nq=6,
+        Nq=4,
         provider='Aer')
 tomoRe = ReducedTomography(qs)
 tomoRe.generate(real=True,imag=False,simplify=True,
-        mapping='jw',MapSet=MapSet,
+        mapping='parity',MapSet=MapSet,
         method='gt',
         strategy='lf',
         )

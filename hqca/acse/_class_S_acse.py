@@ -76,6 +76,7 @@ def evaluate2S(i,k,l,j,Store):
 
 def findSPairs(
         store,
+        quantstore,
         classS_thresh_rel=0.1,
         classS_max=1e-10,
         commutative=True,
@@ -121,7 +122,7 @@ def findSPairs(
                                 add=True
                                 )
                         newOp.generateOperators(
-                                2*store.H.No_tot,
+                                Nq=quantstore.Nq,
                                 real=True,imag=True,
                                 mapping=store.H.mapping,
                                 **store.H._kw_mapping,

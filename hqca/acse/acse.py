@@ -191,22 +191,6 @@ class RunACSE(QuantumRun):
             self.built
         except AttributeError:
             sys.exit('Not built! Run acse.build()')
-        #if self.acse_update=='q':
-        #    op = findOneBodyFermionicSQuantum(
-        #            operator=self.S,
-        #            instruct=self.Instruct,
-        #            store=self.Store,
-        #            qS_thresh_rel=self.qS_thresh_rel,
-        #            qS_max=self.qS_max,
-        #            ordering=self.qS_ordering,
-        #            trotter_steps=self.N_trotter,
-        #            hamiltonian_step_size=self.hamiltonian_step_size,
-        #            propagate_method=self.propagate_method,
-        #            depth=self.S_trotter,
-        #            commutative=self.S_commutative,
-        #            verbose=self.verbose,
-        #            **self.one_body_kw,
-        #            )
         if self.acse_update=='q':
             testS = findSPairsQuantum(
                     self.QuantStore.op_type,
@@ -228,6 +212,7 @@ class RunACSE(QuantumRun):
         elif self.acse_update=='c':
             testS = findSPairs(
                     self.Store,
+                    self.QuantStore,
                     classS_thresh_rel=self.cS_thresh_rel,
                     classS_max=self.cS_max,
                     commutative=self.S_commutative,
