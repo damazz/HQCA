@@ -92,7 +92,8 @@ def _findFermionicSQuantum(
                 spin = ''
                 for item in ind:
                     c = item in quantstore.alpha['active']
-                    spin+= 'a'*c+(1-c)*'b'
+                    b = item in quantstore.beta['active']
+                    spin+= 'a'*c+b*'b'
                 l = len(ind)
                 sop = l//2*'+'+l//2*'-'
                 newEl = FermionicOperator(
