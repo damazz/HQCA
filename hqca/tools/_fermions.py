@@ -223,15 +223,6 @@ class FermionicOperator:
         else:
             self._complex  = [i.imag for i in self.pCoeff]
             self._real = [i.real for i in self.pCoeff]
-        #for n in reversed(range(len(self.pPauli))):
-        #    if not real:
-        #        if abs(self._complex[n])<1e-10:
-        #            self.pPauli.pop(n)
-        #            self.pCoeff.pop(n)
-        #    elif not imag:
-        #        if abs(self._real[n])<1e-10:
-        #            self.pPauli.pop(n)
-        #            self.pCoeff.pop(n)
 
     def _commutator_relations(self,lp,rp):
         if rp=='I':

@@ -56,7 +56,7 @@ class Operator:
 
     def __add__(self,A):
         Old = copy(self._op)
-        '''
+        ''')
         Commutative addition
         '''
         try:
@@ -105,7 +105,7 @@ class Operator:
         while not done:
             done=True
             for i in range(len(self._op)):
-                try: 
+                try:
                     if abs(self._op[i].c)<1e-12:
                         self._op.pop(i)
                         done=False

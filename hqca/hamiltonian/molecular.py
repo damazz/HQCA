@@ -343,22 +343,23 @@ class MolecularHamiltonian(Hamiltonian):
                         **self._kw_mapping)
                 ferOp+= newOp
                 qubOp+= newOp.formOperator()
-        # 2e terms
         t2 = timeit.default_timer()
         print('1e terms: {}'.format(t2-t1))
-        for p in alp:
+
+        # starting 2 electron terms
+        for p in alp+bet:
             P = o2q[p]
-            for r in alp:
+            for r in alp+bet:
                 R = o2q[r]
                 if p==r:
                     continue
                 i1 = (p==r)
-                for s in alp:
+                for s in alp+bet:
                     S = o2q[s]
                     i2,i3 = (s==p),(s==r)
                     if i1+i2+i3==3:
                         continue
-                    for q in alp:
+                    for q in alp+bet:
                         Q = o2q[q]
                         i4,i5,i6 = (q==p),(q==r),(q==s)
                         if i1+i2+i3+i4+i5+i6>=3:
@@ -369,112 +370,7 @@ class MolecularHamiltonian(Hamiltonian):
                             continue
                         newOp = FermionicOperator(
                                 coeff=0.5*self.ints_2e[p,r,q,s],
-                                indices=[P,R,Q,S],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
-                                )
-                        newOp.generateOperators(
-                                Nq=2*self.No_as,
-                                mapping=self._mapping,
-                                **self._kw_mapping
-                                )
-                        ferOp+= newOp
-                        qubOp+= newOp.formOperator()
-        for p in alp:
-            P = o2q[p]
-            for r in bet:
-                R = o2q[r]
-                if p==r:
-                    continue
-                i1 = (p==r)
-                for s in bet:
-                    S = o2q[s]
-                    i2,i3 = (s==p),(s==r)
-                    if i1+i2+i3==3:
-                        continue
-                    for q in alp:
-                        Q = o2q[q]
-                        i4,i5,i6 = (q==p),(q==r),(q==s)
-                        if i1+i2+i3+i4+i5+i6>=3:
-                            continue
-                        if q==s:
-                            continue
-                        if abs(self.ints_2e[p,r,q,s])<=int_thresh:
-                            continue
-                        newOp = FermionicOperator(
-                                coeff=0.5*self.ints_2e[p,r,q,s],
-                                indices=[P,R,Q,S],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
-                                )
-                        newOp.generateOperators(
-                                Nq=2*self.No_as,
-                                mapping=self._mapping,
-                                **self._kw_mapping
-                                )
-                        ferOp+= newOp
-                        qubOp+= newOp.formOperator()
-        for p in bet:
-            P = o2q[p]
-            for r in alp:
-                R = o2q[r]
-                if p==r:
-                    continue
-                i1 = (p==r)
-                for s in alp:
-                    S = o2q[s]
-                    i2,i3 = (s==p),(s==r)
-                    if i1+i2+i3==3:
-                        continue
-                    for q in bet:
-                        Q = o2q[q]
-                        i4,i5,i6 = (q==p),(q==r),(q==s)
-                        if i1+i2+i3+i4+i5+i6>=3:
-                            continue
-                        if q==s:
-                            continue
-                        if abs(self.ints_2e[p,r,q,s])<=int_thresh:
-                            continue
-                        newOp = FermionicOperator(
-                                coeff=0.5*self.ints_2e[p,r,q,s],
-                                indices=[P,R,Q,S],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
-                                )
-                        newOp.generateOperators(
-                                Nq=2*self.No_as,
-                                mapping=self._mapping,
-                                **self._kw_mapping
-                                )
-                        ferOp+= newOp
-                        qubOp+= newOp.formOperator()
-        for p in bet:
-            P = o2q[p]
-            for r in bet:
-                R = o2q[r]
-                if p==r:
-                    continue
-                i1 = (p==r)
-                for s in bet:
-                    S = o2q[s]
-                    i2,i3 = (s==p),(s==r)
-                    if i1+i2+i3==3:
-                        continue
-                    for q in bet:
-                        Q = o2q[q]
-                        i4,i5,i6 = (q==p),(q==r),(q==s)
-                        if i1+i2+i3+i4+i5+i6>=3:
-                            continue
-                        if q==s:
-                            continue
-                        if abs(self.ints_2e[p,r,q,s])<=int_thresh:
-                            continue
-                        newOp = FermionicOperator(
-                                coeff=0.5*self.ints_2e[p,r,q,s],
-                                indices=[P,R,Q,S],
+                                indices=[P,R,S,Q],
                                 sqOp='++--',
                                 antisymmetric=True,
                                 add=True
