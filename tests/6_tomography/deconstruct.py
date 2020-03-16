@@ -13,7 +13,7 @@ from qiskit.providers.aer.noise.errors.readout_error import ReadoutError
 
 def generateNoiseModel(scaling=1.0):
     qs = QuantumStorage()
-    name+= '121619_ibmq_ourense'
+    name = '121619_ibmq_ourense'
     qs.set_noise_model(
             saved=name,
             )
