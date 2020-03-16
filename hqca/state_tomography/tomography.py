@@ -10,13 +10,14 @@ from hqca.tools import *
 from hqca.circuits import *
 from hqca.state_tomography._reduce_circuit import simplify_tomography
 from hqca.state_tomography._reduce_circuit import compare_tomography
+from hqca.processes import *
 from hqca.state_tomography._simplify import *
 from hqca.core.primitives import *
 from qiskit import transpile,assemble,execute
 
 class StandardTomography(Tomography):
     '''
-    Standard Tomography with optional 
+    Standard Tomography with optional
     '''
     def __init__(self,
             QuantStore,
@@ -29,6 +30,7 @@ class StandardTomography(Tomography):
             self._preset_configuration(**kw)
         self.run = False
         self.Nq = QuantStore.Nq
+        self.Nq_tot = QuantStore.Nq_tot
         self.match_aa_bb = match_aa_bb
         self.qs = QuantStore
         self.p = QuantStore.p
@@ -105,7 +107,8 @@ class StandardTomography(Tomography):
                 Q.qc.measure(Q.q,Q.c)
             self.circuits.append(Q.qc)
 
-    def construct(self,**kwargs):
+    def construct(self,
+            **kwargs):
         try:
             self.rdme[0]
         except Exception:
@@ -115,19 +118,31 @@ class StandardTomography(Tomography):
         except AttributeError:
             sys.exit('Did you forget to run the circuit? No counts available.')
         if self.op_type=='fermionic':
-            self._build_fermionic_RDM()
+            self._build_fermionic_RDM(**kwargs)
         elif self.op_type=='qubit':
             self._build_qubitRDM()
-        if self.qs.post:
-            self._apply_symmetry(self.qs._symm,**kwargs)
+            if self.qs.post:
+                self._apply_qubit_symmetry(self.qs._symm,**kwargs)
 
-    def _apply_symmetry(self,symmetry,rdm=None):
+    def _apply_fermionic_symmetry(self,symmetry,rdm=None):
+        rdm = copy(rdm)
+        rho = RDM(order=2,
+                Nq=self.Nq,state='blank')
+
+    def _apply_qubit_symmetry(self,symmetry,rdm=None):
         rdm = copy(rdm)
         if not self.Nq==2:
             sys.exit('No symmetry configured for N=/=2')
         rho = qRDM(order=2,
                 Nq=self.Nq,
                 state='blank')
+        rho = RDM(
+                order=self.p,
+                alpha=self.qs.groups[0],
+                beta=self.qs.groups[1],
+                state='blank',
+                Ne=self.qs.Ne,
+                )
         if not self.real and self.imag:
             rho.rdm = rdm.rdm + self.rdm.rdm
         else:
@@ -155,17 +170,25 @@ class StandardTomography(Tomography):
                 mat.z(n)
         return mat.m
 
-    def _build_fermionic_RDM(self,variance=False):
+    def _build_fermionic_RDM(self,
+            processor=None,
+            variance=False):
+        if type(processor)==type(None):
+            processor=StandardProcess()
         nRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
             temp = 0
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
-                #print(Pauli,coeff)
                 get = self.mapping[Pauli] #self.mapping has important get
                 # property to get the right pauli
-                zMeas = self.__measure_z_string(
-                        self.counts[get],
-                        Pauli)
+                zMeas = processor.process(
+                        counts=self.counts[get],
+                        pauli_string=Pauli,
+                        quantstore=self.qs,
+                        Nq=self.qs.Nq_tot)
+                #zMeas = self.__measure_z_string(
+                #        self.counts[get],
+                #        Pauli)
                 temp+= zMeas*coeff
             opAnn = r.ind[2:][::-1]
             opCre = r.ind[0:2]
@@ -252,11 +275,9 @@ class StandardTomography(Tomography):
                 except KeyError as e:
                     pass
             ia = self.rdm.rev_map[tuple(r.qInd)]
-
             ib = self.rdm.rev_sq[r.sqOp]
             ind = tuple([ia])+ib
             self.rdm.rdm[ind]+= temp
-
 
     def generate(self,**kw):
         if self.op_type=='fermionic':
@@ -283,7 +304,8 @@ class StandardTomography(Tomography):
                         coeff=1,
                         indices=[i],
                         sqOp=op)
-                test.generateTomography(Nq=self.Nq,**kw)
+                test.generateTomography(Nq=self.Nq,
+                        Nq_tot=self.Nq_tot,**kw)
                 return test
             for i in range(self.Nq):
                 rdme.append(sub_rdme(i,'+'))
@@ -309,6 +331,7 @@ class StandardTomography(Tomography):
                         sqOp=op)
                 test.generateTomography(
                         Nq=self.Nq,
+                        Nq_tot=self.Nq_tot,
                         real=real,
                         imag=imag,
                         **kw)
@@ -336,6 +359,7 @@ class StandardTomography(Tomography):
                     sqOp='+-',
                     spin=spin)
                 test.generateTomography(Nq=self.Nq,
+                        Nq_tot=self.Nq_tot,
                         real=real,
                         imag=imag,
                         **kw)
@@ -374,6 +398,7 @@ class StandardTomography(Tomography):
                     sqOp='++--',
                     spin=spin)
                 test.generateTomography(Nq=self.Nq,
+                        Nq_tot=self.Nq_tot,
                         real=real,
                         imag=imag,
                         **kw)
@@ -414,7 +439,27 @@ class StandardTomography(Tomography):
                             rdme.append(new)
             self.rdme = rdme
 
-    def _generate_pauli_measurements(self,simplify=False,**kw):
+    def _pauli_commutation(self,L,R):
+        new = ''
+        for a,b in zip(L,R):
+            if a=='I':
+                s=b[:]
+            elif b=='I':
+                s=a[:]
+            elif a==b:
+                s='I'
+            else:
+                p = set(['X','Y','Z'])
+                p.remove(a)
+                p.remove(b)
+                s = p.pop()
+            new = new+s
+        return new
+
+    def _generate_pauli_measurements(self,
+            simplify=False,
+            symmetries=[],
+            **kw):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -422,6 +467,17 @@ class StandardTomography(Tomography):
                     pass
                 else:
                     paulis.append(j)
+        for i in symmetries:
+            if j in paulis:
+                pass
+            else:
+                paulis.append(j)
+            for j in paulis:
+                new = self._pauli_commutation(i,j)
+                if new in paulis:
+                    pass
+                else:
+                    paulis.append(new)
         if simplify==True:
             self.op,self.mapping = simplify_tomography(
                     paulis,
@@ -440,36 +496,6 @@ class StandardTomography(Tomography):
             nrdme.append(self.qs.qubit_to_rdm[i])
         return nrdme
 
-    def __measure_z_string(self,counts,zstr):
-        if self.qs.backend in ['statevector_simulator']:
-            val = 0
-            N = 2**self.qs.Nq_tot
-            test = ['{:0{}b}'.format(
-                i,self.qs.Nq_tot)[::1] for i in range(0,N)]
-            for n,b in enumerate(test):
-                if abs(counts[n])<1e-14:
-                    continue
-                sgn = 1
-                for i in range(len(b)):
-                    if zstr[i]=='I':
-                        pass
-                    else:
-                        if b[self.Nq-i-1]=='1':
-                            sgn*=-1
-                val+= np.real(counts[n]*np.conj(counts[n])*sgn)
-        else:
-            val,total= 0,0
-            for det,n in counts.items():
-                ph=1
-                for i,z in enumerate(zstr):
-                    if z in ['I','i']:
-                        continue
-                    if det[self.Nq-i-1]=='1':
-                        ph*=-1
-                val+= n*ph
-                total+=n
-            val = val/total
-        return val
 
     def simulate(self,verbose=False):
         beo = self.qs.beo
@@ -565,7 +591,6 @@ class StandardTomography(Tomography):
             for i,j in self.counts.items():
                 print(i,j)
 
-
     def evaluate_error(
             self,
             numberOfSamples=256, # of times to repeat
@@ -596,7 +621,10 @@ class StandardTomography(Tomography):
                         counts_list,sample_size
                         )
                     )
-            sample_means.append(sample_mean)
+            if np.isnan(sample_mean):
+                continue
+            else:
+                sample_means.append(sample_mean)
             t2 = dt()
             #print('Time: {}'.format(t2-t1))
         t = stats.t.ppf(ci,N)
@@ -829,7 +857,8 @@ class ReducedTomography(StandardTomography):
                             rdme.append(sub_rdme(i,k,l,j,'abba'))
             self.rdme = rdme
 
-    def _generate_pauli_measurements(self,simplify=True,**kw):
+    def _generate_pauli_measurements(self,simplify=True,
+            symmetries=[],**kw):
         paulis = []
         for fermi in self.rdme:
             for j in fermi.pPauli:
@@ -837,6 +866,17 @@ class ReducedTomography(StandardTomography):
                     pass
                 else:
                     paulis.append(j)
+        for i in symmetries:
+            if j in paulis:
+                pass
+            else:
+                paulis.append(j)
+            for j in paulis:
+                new = self._pauli_commutation(i,j)
+                if new in paulis:
+                    pass
+                else:
+                    paulis.append(new)
         if simplify==True:
             self.op,self.mapping = simplify_tomography(
                     paulis,
@@ -848,5 +888,4 @@ class ReducedTomography(StandardTomography):
         else:
             self.op = paulis
             self.mapping = {p:p for p in paulis}
-
 

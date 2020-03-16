@@ -15,6 +15,7 @@ ham = MolecularHamiltonian(mol)
 
 maps  = {0:0,1:0,2:1,3:1}
 qubit = {0:0,1:1,2:0,3:1}
+print(ham._ferOp)
 
 ham = TwoQubitHamiltonian(sq=True,
         fermi=True,
@@ -62,9 +63,10 @@ tomoRe.mapping['XI']='XZ'
 tomoRe.mapping['IX']='ZX'
 tomoRe.mapping['IY']='ZY'
 tomoRe.mapping['YI']='YZ'
-#print(tomoRe.mapping)
-#print(tomoIm.mapping)
-#print(tomoIm.op)
+tomoRe.mapping['II']='ZZ'
+print(tomoRe.mapping)
+print(tomoIm.mapping)
+print(tomoIm.op)
 print(ham.qubit_operator)
 acse = RunACSE(
         st,qs,Ins,

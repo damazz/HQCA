@@ -228,15 +228,18 @@ class QubitOperator:
         self._jw_op_to_paulis()
         if mapping=='jw':
             self._fill_out_paulis(Nq)
-        #for n in reversed(range(len(self.pPauli))):
-        #    if not real:
-        #        if abs(self._complex[n])<1e-10:
-        #            self.pPauli.pop(n)
-        #            self.pCoeff.pop(n)
-        #    elif not imag:
-        #        if abs(self._real[n])<1e-10:
-        #            self.pPauli.pop(n)
-        #            self.pCoeff.pop(n)
+        try:
+            for n in reversed(range(len(self.pPauli))):
+                if not real:
+                    if abs(self._complex[n])<1e-10:
+                        self.pPauli.pop(n)
+                        self.pCoeff.pop(n)
+                elif not imag:
+                    if abs(self._real[n])<1e-10:
+                        self.pPauli.pop(n)
+                        self.pCoeff.pop(n)
+        except Exception:
+            pass
 
     def formOperator(self):
         new = Operator()

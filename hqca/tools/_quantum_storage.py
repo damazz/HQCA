@@ -1,9 +1,10 @@
 '''
-
 Contains QuantumStorage and other useful quantum functions. Basically,
 QuantumStorage is a class which is needed for any quantum calculation on the QC.
 Generates important information to that end.
+
 '''
+
 import numpy as np
 np.set_printoptions(suppress=True,precision=4)
 import pickle
@@ -15,7 +16,6 @@ try:
     from qiskit.providers.aer import noise
 except Exception:
     pass
-
 from qiskit import QuantumRegister,QuantumCircuit,ClassicalRegister
 from qiskit import execute
 from qiskit.ignis.mitigation.measurement import(
@@ -78,11 +78,16 @@ class QuantumStorage:
                 self.initial.append(alp[i])
             for i in range(Storage.H.Ne_bet):
                 self.initial.append(bet[i])
+            self.Ne_alp = Storage.H.Ne_alp
+            self.Ne_bet = Storage.H.Ne_bet
         elif Storage.H.model in ['sq','tq']:
             self.op_type = 'qubit'
             self.initial = []
+            self.mapping = 'qubit'
+            self._kw_mapping = {}
         self.use_meas_filter=False
         self.post = False
+        self.process = False
 
     def set_backend(self,
             Nq=4,
@@ -144,11 +149,21 @@ class QuantumStorage:
             print('#######')
 
     def set_noise_model(self,
+            custom=False,
             **kw
             ):
         self.use_noise = True
-        self._get_noise_model(
-                **kw)
+        if custom:
+            self._set_custom_noise_model(**kw)
+        else:
+            self._get_noise_model(**kw)
+
+
+    def set_error_mitigation(self,
+            mitigation=False,
+            **kwargs):
+        if mitigation=='stabilizer':
+            self._set_stabilizers(**kwargs)
 
     def set_error_correction(self,
             error_correction=False,
@@ -176,6 +191,11 @@ class QuantumStorage:
         for s in symmetries:
             self._symm.append(s)
 
+    def _set_stabilizers(self):
+        self.process =True
+        # need to see if we can set it for...parity check? 
+        # etc. 
+        pass
 
     def __set_ec_post_correction(self,
             symm_verify=False,
@@ -276,6 +296,16 @@ class QuantumStorage:
     def meas_filter(self,b):
         self._meas_filter = b
 
+    def _set_custom_noise_model(self,
+            noise_model=None,
+            noise_options={}):
+        self.noise_model=noise_model
+        self._noisy_be_options = {
+                'noise_model':self.noise_model,
+                'basis_gates':self.noise_model.basis_gates
+                }
+        self.noise_model.coupling_map = self.beo.configuration().coupling_map
+
 
     def _get_noise_model(self,
             times=None,
@@ -292,12 +322,15 @@ class QuantumStorage:
                 print('Wrong one :(')
             properties = data['properties']
             self._be_coupling = data['config'].coupling_map
-        if times is not None:
-            noise_model = noise.device.basic_device_noise_model(
-                properties,times)
-        else:
-            noise_model = noise.device.basic_device_noise_model(
-                properties)
+        self._be_properties = properties
+        noise_model = noise.NoiseModel()
+        noise_model.from_backend(properties)
+        #if times is not None:
+        #    noise_model = noise.device.basic_device_noise_model(
+        #        properties,times)
+        #else:
+        #    noise_model = noise.device.basic_device_noise_model(
+        #        properties)
         noise_model.coupling_map = self._be_coupling
         self.noise_model = noise_model
         self._noisy_be_options = {
@@ -401,7 +434,5 @@ def get_direct_stats(QuantStore):
             print('Gates after compilation/transpilation')
             print(qt.count_ops())
     QuantStore.parameters=hold_para
-
-
 
 

@@ -77,7 +77,6 @@ class SingleQubitExponential(Instructions):
             new+=item
         self._xyz_to_rotation(new)
 
-
     def _applySimpleOp(self,operator,Nq,**kw):
         #print('Operator')
         #print(operator)
@@ -115,7 +114,6 @@ class SingleQubitExponential(Instructions):
                     )
         self.op = rotations[0]
         self._xyz_to_rotation(self.op)
-
 
     def _combine_xyz_abc_rotation(self,op1,op2,s1=1,s2=1):
         '''
@@ -173,10 +171,6 @@ class SingleQubitExponential(Instructions):
             new+= PauliOperator('Y',k[1,0])
             new+= PauliOperator('Z',k[2,0])
         return new
-
-
-
-
 
     def _xyz_to_rotation(self,operator,scale=1):
         val = {'I':0,'X':0,'Y':0,'Z':0}

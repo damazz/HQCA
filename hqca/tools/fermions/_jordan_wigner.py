@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy as copy
 
 def _commutator_relations(lp,rp):
     if rp=='I':
@@ -29,9 +30,13 @@ def _commutator_relations(lp,rp):
     else:
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
-def JordanWignerTransform(op,Nq,**kw):
+def JordanWignerTransform(op,Nq,
+        Nq_tot='default',
+        **kw):
+    if Nq_tot=='default':
+        Nq_tot=copy(Nq)
     coeff = [op.qCo]
-    pauli = ['I'*Nq]
+    pauli = ['I'*Nq_tot]
     for q,o in zip(op.qInd[::-1],op.qOp[::-1]):
         p1s,c1s,p2s,c2s = [],[],[],[]
         for p,c in zip(pauli,coeff):
@@ -87,9 +92,3 @@ def JordanWignerTransform(op,Nq,**kw):
         pauli = p1s+p2s
         coeff = c1s+c2s
     return pauli,coeff
-
-def _project(self):
-    pass
-
-def InverseJordanWigner():
-    pass

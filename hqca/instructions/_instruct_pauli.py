@@ -3,7 +3,6 @@ import sys
 from hqca.core import *
 from sympy import re,im
 
-
 class PauliSet(Instructions):
     '''
     Simple object - generate gates from an operator.

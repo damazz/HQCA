@@ -53,10 +53,16 @@ def _commutator_relations(lp,rp):
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
 class BravyiKitaevSet:
-    def __init__(self,Nq,Ne=[],alternating=False,reduced=False):
+    def __init__(self,Nq,
+            Nq_tot='default',
+            Ne=[],alternating=False,reduced=False):
         '''
-        alternating 
+        alternating
         '''
+        if Nq_tot=='default':
+            self.Nq_tot=Nq_tot
+        else:
+            self.Nq_tot = Nq_tot
         self.Nq=Nq
         self.reduced=reduced
         if floor(log2(self.Nq))==ceil(log2(self.Nq)):
@@ -170,12 +176,18 @@ class BravyiKitaevSet:
                         done=False
                         break
 
-def BravyiKitaevTransform(op,Nq,MapSet=None,**kw):
+def BravyiKitaevTransform(op,
+        Nq,
+        Nq_tot='default',
+        MapSet=None,
+        **kw):
+    if Nq_tot=='default':
+        Nq_tot = copy(Nq)
     coeff = [op.qCo]
     if MapSet.reduced and Nq==MapSet.Nq:
-        pauli=['I'*(Nq)]
+        pauli=['I'*(Nq_tot)]
     else:
-        pauli = ['I'*MapSet.Nq]
+        pauli = ['I'*MapSet.Nq_tot]
     if type(MapSet)==type(None):
         print('Bravyi-Kitaev transform not initiated properly!')
         sys.exit()
@@ -289,9 +301,6 @@ def BravyiKitaevTransform(op,Nq,MapSet=None,**kw):
             c2s+= c2
         pauli = p1s+p2s
         coeff = c1s+c2s
-    #if op.qInd==[0,1,2,3]:
-    #    print(pauli,coeff)
-    #    print(op.qInd,op.qOp,op.qCo,op.ind)
     if MapSet.reduced:
         q1,q2 = MapSet._reduced_set[0],MapSet._reduced_set[1]
         c1,c2 = MapSet._reduced_coeff[q1],MapSet._reduced_coeff[q2]

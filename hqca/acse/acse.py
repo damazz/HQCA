@@ -52,6 +52,8 @@ class RunACSE(QuantumRun):
             tomo_S=None,
             tomo_Psi=None,
             one_body_kw={},
+            statistics=False,
+            processor=None,
             **kw):
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
@@ -60,7 +62,9 @@ class RunACSE(QuantumRun):
         if not method in ['NR','EM','opt','trust','newton','euler']:
             print('Specified method not valid. Update acse_kw: \'method\'')
             sys.exit()
+        self.process =processor
         self.verbose=verbose
+        self.stats=statistics
         self.acse_method = method
         self.one_body_kw = one_body_kw
         self.S_trotter= ansatz_depth
@@ -143,9 +147,13 @@ class RunACSE(QuantumRun):
             for s in self.S.op:
                 s.qCo*=self.delta
                 s.c*=self.delta
-            ins = self.Instruct(self.S,self.QuantStore.Nq,depth=self.S_trotter)
+            ins = self.Instruct(
+                    operator=self.S,
+                    Nq=self.QuantStore.Nq,
+                    depth=self.S_trotter,
+                    quantstore=self.QuantStore,)
             circ = StandardTomography(
-                    self.QuantStore,
+                    QuantStore=self.QuantStore,
                     preset=self.tomo_preset,
                     Tomo=self.tomo_Psi,
                     verbose=self.verbose,
@@ -154,7 +162,7 @@ class RunACSE(QuantumRun):
                 circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
             circ.set(ins)
             circ.simulate()
-            circ.construct()
+            circ.construct(processor=self.process)
             en = np.real(self.Store.evaluate(circ.rdm))
             self.e0 = np.real(en)
             self.ei = np.real(en)
@@ -164,7 +172,7 @@ class RunACSE(QuantumRun):
             print(self.S)
             print('Initial density matrix.')
             print(circ.rdm.rdm)
-            self._calc_variance(circ)
+            #self._calc_variance(circ)
         else:
             self.S = Operator(ops=[],antihermitian=True)
             self.e0 = self.Store.e0
@@ -195,6 +203,7 @@ class RunACSE(QuantumRun):
             testS = findSPairsQuantum(
                     self.QuantStore.op_type,
                     operator=self.S,
+                    process=self.process,
                     instruct=self.Instruct,
                     store=self.Store,
                     quantstore=self.QuantStore,
@@ -242,9 +251,14 @@ class RunACSE(QuantumRun):
             s.qCo*=self.delta
             s.c*=self.delta
         self.S = self.S+testS
-        ins = self.Instruct(self.S,self.QuantStore.Nq,depth=self.S_trotter)
+        ins = self.Instruct(
+                operator=self.S,
+                Nq=self.QuantStore.Nq,
+                depth=self.S_trotter,
+                quantstore=self.QuantStore,
+                )
         circ = StandardTomography(
-                self.QuantStore,
+                QuantStore=self.QuantStore,
                 preset=self.tomo_preset,
                 Tomo=self.tomo_Psi,
                 verbose=self.verbose,
@@ -253,7 +267,23 @@ class RunACSE(QuantumRun):
             circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
         circ.set(ins)
         circ.simulate()
-        circ.construct()
+        circ.construct(processor=self.process)
+        if self.stats==False:
+            pass
+        else:
+            if self.stats=='N':
+                self.ci = circ.evaluate_error(
+                        numberOfSamples=256,
+                        sample_size=2048,
+                        f=self._particle_number)
+            elif self.stats in ['E','en']:
+                self.ci = circ.evaluate_error(
+                        numberOfSamples=256,
+                        sample_size=2048,
+                        f=self.Store.evaluate)
+            print('Variance in {}: {:.6f} (CLT)'.format(
+                self.stats,np.real(self.ci)))
+            print('')
         en = np.real(self.Store.evaluate(circ.rdm))
         self.Store.update(circ.rdm)
         if self.total.iter==0:
@@ -265,12 +295,13 @@ class RunACSE(QuantumRun):
                     s.qCo*=-2
                     s.c*=-2
                 self.S+= testS
-                ins = self.Instruct(self.S,
-                        self.QuantStore.Nq,
+                ins = self.Instruct(operator=self.S,
+                        Nq=self.QuantStore.Nq,
                         depth=self.S_trotter,
+                        quantstore=self.QuantStore,
                         )
                 circ = StandardTomography(
-                        self.QuantStore,
+                        QuantStore=self.QuantStore,
                         preset=self.tomo_preset,
                         Tomo=self.tomo_Psi,
                         verbose=self.verbose,
@@ -281,7 +312,7 @@ class RunACSE(QuantumRun):
                             imag=self.Store.H.imag)
                 circ.set(ins)
                 circ.simulate()
-                circ.construct()
+                circ.construct(processor=self.process)
                 en = np.real(self.Store.evaluate(circ.rdm))
                 self.Store.update(circ.rdm)
 
@@ -293,12 +324,13 @@ class RunACSE(QuantumRun):
             f.qCo*= parameter[0]
         temp = currS+testS
         tIns =self.Instruct(
-                temp,
-                self.QuantStore.Nq,
+                operator=temp,
+                Nq=self.QuantStore.Nq,
+                quantstore=self.QuantStore,
                 depth=self.S_trotter,
                 )
         tCirc= StandardTomography(
-                self.QuantStore,
+                QuantStore=self.QuantStore,
                 preset=self.tomo_preset,
                 Tomo=self.tomo_Psi,
                 verbose=self.verbose,
@@ -309,11 +341,30 @@ class RunACSE(QuantumRun):
                     imag=self.Store.H.imag)
         tCirc.set(tIns)
         tCirc.simulate()
-        tCirc.construct()
-        #self._calc_variance(tCirc)
+        tCirc.construct(processor=self.process)
+        if self.stats==False:
+            pass
+        else:
+            if self.stats=='N':
+                self.ci = tCirc.evaluate_error(
+                        numberOfSamples=256,
+                        sample_size=2048,
+                        f=self._particle_number)
+            elif self.stats in ['E','en']:
+                self.ci = tCirc.evaluate_error(
+                        numberOfSamples=256,
+                        sample_size=2048,
+                        f=self.Store.evaluate)
+            print('Variance in {}: {:.6f} (CLT)'.format(
+                self.stats,np.real(self.ci)))
+            print('')
         en = np.real(self.Store.evaluate(tCirc.rdm))
         return en,tCirc.rdm
     
+    def _particle_number(self,rdm):
+        return rdm.trace()
+
+
     def __newton_acse(self,testS):
         max_val = 0
         for s in testS.op:
@@ -432,11 +483,13 @@ class RunACSE(QuantumRun):
         if not self.use_trust_region:
             self.S = self.S+testS
             # eval energy is in check step
-            Ins = self.Instruct(self.S,
-                    self.QuantStore.Nq,
+            Ins = self.Instruct(
+                    operator=self.S,
+                    Nq=self.QuantStore.Nq,
+                    quantstore=self.QuantStore,
                     depth=self.S_trotter)
             Psi= StandardTomography(
-                    self.QuantStore,
+                    QuantStore=self.QuantStore,
                     preset=self.tomo_preset,
                     Tomo=self.tomo_Psi,
                     verbose=self.verbose,
@@ -445,19 +498,12 @@ class RunACSE(QuantumRun):
                 Psi.generate(real=True,imag=False)
             Psi.set(tIns)
             Psi.simulate()
-            Psi.construct()
+            Psi.construct(processor=self.process)
             self.Store.update(Psi.rdm)
             Psi.rdm.switch()
         print('Current S: ')
         print(self.S)
 
-    def _calc_variance(self,psi,ci=0.90):
-        self.ci = psi.evaluate_error(
-                numberOfSamples=256,
-                sample_size=2048,
-                f=self.Store.evaluate)
-        print('Variance: {:.6f} (CLT)'.format(np.real(self.ci)))
-        print('')
 
     def run(self):
         '''

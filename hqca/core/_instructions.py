@@ -13,8 +13,6 @@ class Instructions(ABC):
     For default, maybe no action? 
     '''
     def __init__(self,
-            Ansatz,
-            procedure='default',
             **kw):
         self._gates = []
 

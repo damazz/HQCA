@@ -20,9 +20,12 @@ def findSPairsQuantum(
         newS = _findQubitSQuantum(**kw)
     return newS
 
+
+
 def _findFermionicSQuantum(
         operator=None,
         instruct=None,
+        process=None,
         store=None,
         quantstore=None,
         verbose=False,
@@ -36,6 +39,7 @@ def _findFermionicSQuantum(
         depth=1,
         commutative=True,
         tomo=None,
+        piecewise=False,
         **kw
         ):
     '''
@@ -47,10 +51,12 @@ def _findFermionicSQuantum(
     newPsi = instruct(
             operator=operator,
             Nq=quantstore.Nq,
+            quantstore=quantstore,
             propagate=True,
             HamiltonianOperator=store.H.qubit_operator,
             scaleH=hamiltonian_step_size,
-            depth=depth
+            depth=depth,
+            **kw
             )
     if type(tomo)==type(None):
         newCirc = StandardTomography(
@@ -71,7 +77,7 @@ def _findFermionicSQuantum(
     newCirc.simulate(verbose=verbose)
     if verbose:
         print('Constructing the RDMs...')
-    newCirc.construct()
+    newCirc.construct(processor=process)
     rdm = np.imag(newCirc.rdm.rdm)
     new = np.transpose(np.nonzero(rdm))
     hss = (1/hamiltonian_step_size)

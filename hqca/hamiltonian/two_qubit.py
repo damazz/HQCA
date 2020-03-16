@@ -79,6 +79,7 @@ class TwoQubitHamiltonian(Hamiltonian):
         print('Generating bosonic operators from fermionic operators:')
         Op = Operator()
         for item in ferOp.op:
+            print(item)
             if item.qOp=='p':
                 check = mapQub[item.qInd[0]]==0
                 sq = 'h'*(check)+'p'*(1-check)
@@ -102,7 +103,7 @@ class TwoQubitHamiltonian(Hamiltonian):
                 newOp.generateOperators(Nq=2,real=True,imag=True)
                 Op+= newOp.formOperator()
             elif item.qOp in ['+-+-','+--+','-++-','-+-+']:
-                conj = {'++':'--','+-':'-+','-+':'+-','--':'++'}
+                #conj = {'++':'--','+-':'-+','-+':'+-','--':'++'}
                 q = [mapQub[i] for i in item.qInd]
                 o = [mapOrb[i] for i in item.qInd]
                 sq = ''
@@ -119,12 +120,12 @@ class TwoQubitHamiltonian(Hamiltonian):
                         sqOp=sq)
                 newOp.generateOperators(Nq=2,real=True,imag=True)
                 Op+= newOp.formOperator()
-                newOp = QubitOperator(
-                        coeff=item.c,
-                        indices=[0,1],
-                        sqOp=conj[sq])
-                newOp.generateOperators(Nq=2,real=True,imag=True)
-                Op+= newOp.formOperator()
+                #newOp = QubitOperator(
+                #        coeff=item.c,
+                #        indices=[0,1],
+                #        sqOp=conj[sq])
+                #newOp.generateOperators(Nq=2,real=True,imag=True)
+                #Op+= newOp.formOperator()
             else:
                 print('Not mapped:')
                 print(item)

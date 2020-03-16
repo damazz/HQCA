@@ -120,6 +120,7 @@ class StorageACSE(Storage):
             self.rdm.get_spin_properties()
             print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
             print('S2: {:.8f}'.format(np.real(self.rdm.s2)))
+            print('N:  {:.8f}'.format(np.real(self.rdm.trace())))
             self.rdm.contract()
             print('Molecular Reduced Density Matrix: ')
             print(np.real(self.rdm.rdm))

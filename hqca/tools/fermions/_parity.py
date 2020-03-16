@@ -41,10 +41,18 @@ def _commutator_relations(lp,rp):
 
 
 class ParitySet:
-    def __init__(self,Nq,Ne=[],reduced=False):
+    def __init__(self,Nq,
+            Nq_tot='default',
+            Ne=[],
+            reduced=False
+            ):
         '''
         contains information for parity mapping
         '''
+        if Nq_tot=='default':
+            self.Nq_tot=copy(Nq)
+        else:
+            self.Nq_tot = Nq_tot
         self.Nq = Nq
         self.reduced = reduced
         if self.reduced:
@@ -58,12 +66,17 @@ class ParitySet:
             self._reduced_coeff=[]
 
 
-def ParityTransform(op,Nq,MapSet=None,**kw):
+def ParityTransform(op,
+        Nq,
+        Nq_tot='default',
+        MapSet=None,**kw):
+    if Nq_tot=='default':
+        Nq_tot = copy(Nq)
     coeff = [op.qCo]
     if MapSet.reduced and Nq==MapSet.Nq:
-        pauli=['I'*(Nq)]
+        pauli=['I'*(Nq_tot)]
     else:
-        pauli = ['I'*MapSet.Nq]
+        pauli = ['I'*MapSet.Nq_tot]
     if type(MapSet)==type(None):
         print('Parity transform not initiated with MapSet')
         sys.exit()
