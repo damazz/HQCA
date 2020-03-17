@@ -324,7 +324,10 @@ class QuantumStorage:
             self._be_coupling = data['config'].coupling_map
         self._be_properties = properties
         noise_model = noise.NoiseModel()
-        noise_model.from_backend(properties)
+        try:
+            noise_model.from_backend(properties)
+        except Exception:
+            pass
         #if times is not None:
         #    noise_model = noise.device.basic_device_noise_model(
         #        properties,times)
