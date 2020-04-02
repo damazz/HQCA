@@ -60,7 +60,7 @@ class BravyiKitaevSet:
         alternating
         '''
         if Nq_tot=='default':
-            self.Nq_tot=Nq_tot
+            self.Nq_tot=copy(Nq)
         else:
             self.Nq_tot = Nq_tot
         self.Nq=Nq
