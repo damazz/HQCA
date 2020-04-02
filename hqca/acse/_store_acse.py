@@ -115,23 +115,25 @@ class StorageACSE(Storage):
         en = rdm.observable(self.H.matrix)
         return en + self.H._en_c
 
-    def analysis(self):
+    def analysis(self,rdm='default'):
+        if rdm=='default':
+            rdm =self.rdm
         if self.H.model in ['molecule','mol','molecular']:
-            self.rdm.get_spin_properties()
-            print('Sz: {:.8f}'.format(np.real(self.rdm.sz)))
-            print('S2: {:.8f}'.format(np.real(self.rdm.s2)))
-            print('N:  {:.8f}'.format(np.real(self.rdm.trace())))
-            self.rdm.contract()
+            rdm.get_spin_properties()
+            print('Sz: {:.8f}'.format(np.real(rdm.sz)))
+            print('S2: {:.8f}'.format(np.real(rdm.s2)))
+            print('N:  {:.8f}'.format(np.real(rdm.trace())))
+            rdm.contract()
             print('Molecular Reduced Density Matrix: ')
-            print(np.real(self.rdm.rdm))
+            print(np.real(rdm.rdm))
             print('Eigenvalues of density matrix:')
-            for i in np.linalg.eigvalsh(self.rdm.rdm):
+            for i in np.linalg.eigvalsh(rdm.rdm):
                 if abs(i)>1e-10:
                     print(i)
-            self.rdm.expand()
+            rdm.expand()
         else:
             print('Density matrix:')
-            print(self.rdm.rdm)
+            print(rdm.rdm)
 
     def _set_overlap(self):
         self.d_hf_fci =  self.hf_rdm2.get_overlap(self.fci_rdm2)

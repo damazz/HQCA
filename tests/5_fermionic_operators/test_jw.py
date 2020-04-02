@@ -4,15 +4,17 @@ import sys
 op = FermionicOperator(
         coeff=1,
         indices=[0,1,2,3],
-        sqOp='+--+',
+        sqOp='++--',
         spin='aabb',
         add=True
         )
 op.generateOperators(Nq=4,mapping='jw')
+
 nop = op.formOperator()
 print('')
 print('Operator, ++--')
 print(nop)
+sys.exit()
 op = FermionicOperator(
         coeff=1,
         indices=[0,1,2,3],

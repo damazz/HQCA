@@ -388,6 +388,8 @@ class MolecularHamiltonian(Hamiltonian):
         t3 = timeit.default_timer()
         print('2e terms: {}'.format(t3-t2))
         if self.verbose:
+            print('Fermionic Hamiltonian')
+            print(ferOp)
             print('Hamiltonian in Pauli Basis:')
             print(qubOp)
             print('-------------------')

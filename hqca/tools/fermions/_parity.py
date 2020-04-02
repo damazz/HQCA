@@ -137,8 +137,8 @@ def ParityTransform(op,
                 else:
                     p1 = p[:q-1]+tp1+tp2+p[q+1:]
                 p2 = p[:]
-                c1.append(-c*0.5*tc1)
-                c2.append(c*0.5*tc2)
+                c1.append(-c*0.5*tc1*tc2)
+                c2.append(c*0.5)
             elif o in ['0','h']:
                 if q>0:
                     tc1,tp1 = _commutator_relations(
@@ -148,12 +148,12 @@ def ParityTransform(op,
                 tc2,tp2 = _commutator_relations(
                         'Z',p[q])
                 if q==0:
-                    p1 = p[:q]+tp2+p[q+1:]
+                    p1 = tp2+p[q+1:]
                 else:
                     p1 = p[:q-1]+tp1+tp2+p[q+1:]
                 p2 = p[:]
-                c1.append(c*0.5*tc1)
-                c2.append(c*0.5*tc2)
+                c1.append(c*0.5*tc1*tc2)
+                c2.append(c*0.5)
             p1s.append(p1)
             p2s.append(p2)
             c1s+= c1
@@ -163,14 +163,18 @@ def ParityTransform(op,
     if MapSet.reduced:
         q1,q2 = MapSet._reduced_set[0],MapSet._reduced_set[1]
         c1,c2 = MapSet._reduced_coeff[q1],MapSet._reduced_coeff[q2]
-        for n,(p,c) in enumerate(zip(pauli,coeff)):
-            c = copy(c)
-            if p[q1]=='Z':
-                c*=c1
-            if p[q2]=='Z':
-                c*=c2
-            pauli[n]=p[:q1]+p[(q1+1):q2]
-            coeff[n]=c
+        npauli = []
+        ncoeff = []
+        for n in range(len(pauli)):
+            tc = copy(coeff[n])
+            if pauli[n][q1]=='Z':
+                tc = tc*c1
+            if pauli[n][q2]=='Z':
+                tc = tc*c2
+            npauli.append(pauli[n][:q1]+pauli[n][(q1+1):q2])
+            ncoeff.append(tc)
+        pauli = npauli[:]
+        coeff = ncoeff[:]
     return pauli,coeff
 
 

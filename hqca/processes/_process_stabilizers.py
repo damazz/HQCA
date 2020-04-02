@@ -44,6 +44,7 @@ class StabilizerProcess(Process):
         for k,v in counts.items():
             if k[Nan1]==str(Na%2) and k[Nan2]==str(Nb%2):
                 new_counts[k]=v
+        print(counts,new_counts)
         return new_counts
 
     def process(self,**kw):

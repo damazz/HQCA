@@ -15,6 +15,15 @@ from hqca.state_tomography._simplify import *
 from hqca.core.primitives import *
 from qiskit import transpile,assemble,execute
 
+class PseudoRDMElement:
+    def __init__(self,pauli_list,ind):
+        self.ind = ind
+        self.pPauli = []
+        self.pCoeff = []
+        for p,c in pauli_list:
+            self.pPauli.append(p)
+            self.pCoeff.append(c)
+
 class StandardTomography(Tomography):
     '''
     Standard Tomography with optional
@@ -73,6 +82,13 @@ class StandardTomography(Tomography):
                 elif self.qs.mapping in ['parity']:
                     MapSet = self.qs._kw_mapping['MapSet']
                     if MapSet.reduced:
+                        if item>0:
+                            if item-1 in MapSet._reduced_set:
+                                pass
+                            elif item-1 in MapSet._shifted:
+                                Q.qc.z(item-2)
+                            else:
+                                Q.qc.z(item-1)
                         for i in range(item,MapSet.Nq):
                             if i in MapSet._reduced_set:
                                 continue
@@ -80,6 +96,11 @@ class StandardTomography(Tomography):
                                 Q.qc.x(i-1)
                             else:
                                 Q.qc.x(i)
+                    else:
+                        if item>0:
+                            Q.qc.z(item-1)
+                        for i in range(item,MapSet.Nq):
+                            Q.qc.x(i)
                 elif self.qs.mapping in ['bk','bravyi-kitaev']:
                     MapSet = self.qs._kw_mapping['MapSet']
                     if MapSet.reduced:
@@ -177,18 +198,18 @@ class StandardTomography(Tomography):
             processor=StandardProcess()
         nRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
+            #print(r.ind)
             temp = 0
             for Pauli,coeff in zip(r.pPauli,r.pCoeff):
+                #print(Pauli,coeff)
                 get = self.mapping[Pauli] #self.mapping has important get
                 # property to get the right pauli
                 zMeas = processor.process(
                         counts=self.counts[get],
                         pauli_string=Pauli,
                         quantstore=self.qs,
+                        backend=self.qs.backend,
                         Nq=self.qs.Nq_tot)
-                #zMeas = self.__measure_z_string(
-                #        self.counts[get],
-                #        Pauli)
                 temp+= zMeas*coeff
             opAnn = r.ind[2:][::-1]
             opCre = r.ind[0:2]
@@ -204,19 +225,6 @@ class StandardTomography(Tomography):
                     if not set(i[:2])==set(j[:2]):
                         ind2 = tuple(i[:self.p]+j[:self.p])
                         nRDM[ind2]+=np.conj(temp)*s
-        if self.match_aa_bb:
-            alp = self.qs.groups[0]
-            for i in alp:
-                I = self.qs.a2b[i]
-                for k in alp:
-                    K = self.qs.a2b[k]
-                    for l in alp:
-                        L = self.qs.a2b[l]
-                        for j in alp:
-                            J = self.qs.a2b[j]
-                            Ind = tuple(I,K,L,J)
-                            ind = tuple(i,k,l,j)
-                            nrdm[Ind]=nrdm[ind]
         self.rdm = RDM(
                 order=self.p,
                 alpha=self.qs.groups[0],
@@ -392,17 +400,36 @@ class StandardTomography(Tomography):
             bet = self.qs.groups[1]
             S = []
             def sub_rdme(i,k,l,j,spin):
+                op = Operator()
+                if self.real and self.imag:
+                    c1,c2=1,0
+                elif self.real and not self.imag:
+                    c1,c2=0.5,0.5
+                elif not self.real and self.imag:
+                    c1,c2 = 0.5,-0.5
+                op.ind = [i,k,l,j]
                 test = FermionicOperator(
-                    coeff=1,
+                    coeff=c1,
                     indices=[i,k,l,j],
                     sqOp='++--',
                     spin=spin)
-                test.generateTomography(Nq=self.Nq,
+                test.generateOperators(Nq=self.Nq,
                         Nq_tot=self.Nq_tot,
-                        real=real,
-                        imag=imag,
                         **kw)
-                return test
+                op+= test.formOperator()
+                test = FermionicOperator(
+                    coeff=c2,
+                    indices=[j,l,k,i],
+                    sqOp='++--',
+                    spin=spin)
+                test.generateOperators(Nq=self.Nq,
+                        Nq_tot=self.Nq_tot,
+                        **kw)
+                op+= test.formOperator()
+                op.clean()
+                op.ind = [i,k,l,j]
+                return op
+
             for i in alp:
                 for k in alp:
                     if i>=k:
@@ -411,7 +438,7 @@ class StandardTomography(Tomography):
                         for j in alp:
                             if j>=l or i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             new = sub_rdme(i,k,l,j,'aaaa')
                             rdme.append(new)
@@ -423,7 +450,7 @@ class StandardTomography(Tomography):
                         for j in bet:
                             if j>=l or i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             new = sub_rdme(i,k,l,j,'bbbb')
                             rdme.append(new)
@@ -433,7 +460,7 @@ class StandardTomography(Tomography):
                         for j in alp:
                             if i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             new = sub_rdme(i,k,l,j,'abba')
                             rdme.append(new)
@@ -651,14 +678,8 @@ class StandardTomography(Tomography):
         return self.rdm
 
 
-class PseudoRDMElement:
-    def __init__(self,pauli_list,ind):
-        self.ind = ind
-        self.pPauli = []
-        self.pCoeff = []
-        for p,c in pauli_list:
-            self.pPauli.append(p)
-            self.pCoeff.append(c)
+
+
 
 class ReducedTomography(StandardTomography):
     def _pre_generate_2rdme(self,
@@ -771,14 +792,14 @@ class ReducedTomography(StandardTomography):
                 for j in bet:
                     if i*Na>j*Na:
                         continue
-                    if imag and i*Na==j*Na:
+                    if imag and not real and i*Na==j*Na:
                         continue
                     rdme.append(sub_rdme(i,j,'bb'))
             for i in alp:
                 for j in alp:
                     if i*Na>j*Na:
                         continue
-                    if imag and i*Na==j*Na:
+                    if imag and not real and i*Na==j*Na:
                         continue
                     rdme.append(sub_rdme(i,j,'aa'))
             self.rdme = rdme
@@ -822,8 +843,11 @@ class ReducedTomography(StandardTomography):
                 if test.qCo==-1:
                     for i in range(len(tomo)):
                         tomo[i][1] = tomo[i][1]*test.qCo
+                elif test.qCo==1:
+                    pass
+                else:
+                    print(':/')
                 return PseudoRDMElement(tomo,test.ind)
-
             for i in alp:
                 for k in alp:
                     if i>=k:
@@ -832,7 +856,7 @@ class ReducedTomography(StandardTomography):
                         for j in alp:
                             if j>=l or i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             rdme.append(sub_rdme(i,k,l,j,'aaaa'))
             for i in bet:
@@ -843,7 +867,7 @@ class ReducedTomography(StandardTomography):
                         for j in bet:
                             if j>=l or i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             rdme.append(sub_rdme(i,k,l,j,'bbbb'))
             for i in alp:
@@ -852,7 +876,7 @@ class ReducedTomography(StandardTomography):
                         for j in alp:
                             if i*Na+k>j*Na+l:
                                 continue
-                            if imag and i*Na+k==j*Na+l:
+                            if imag and not real and i*Na+k==j*Na+l:
                                 continue
                             rdme.append(sub_rdme(i,k,l,j,'abba'))
             self.rdme = rdme

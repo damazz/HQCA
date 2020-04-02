@@ -46,7 +46,8 @@ class Operator:
 
     def _update(self):
         pass
-    
+
+
     def __str__(self):
         z = ''
         for i in self._op:
@@ -115,6 +116,12 @@ class Operator:
                         self._op.pop(i)
                         done=False
                         break
+        self.pPauli = []
+        self.pCoeff = []
+        for op in self.op:
+            self.pPauli.append(op.p)
+            self.pCoeff.append(op.c)
+
 
 
     def generateSkewExpOp(self):
@@ -124,6 +131,7 @@ class Operator:
     def generateHermExpOp(self):
         for items in self._op:
             items.generateHermitianExcitationOperators()
+
 
     @property
     def op(self):

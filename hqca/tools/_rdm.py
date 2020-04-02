@@ -165,6 +165,7 @@ class RDM:
                 Ne=self.Ne,
                 )
         self.expand()
+        rdm.expand()
         nRDM.expand()
         nRDM.rdm = self.rdm-rdm.rdm
         return nRDM
@@ -262,6 +263,7 @@ class RDM:
                         nRDM.rdm[indN]=sumTerms*sign
         return nRDM
         # wedge product
+
 
     def get_spin_properties(self):
         if self.p==3:

@@ -4,8 +4,6 @@ import numpy as np
 from qiskit.providers.aer import noise
 
 # procedure for generating noise model
-
-
 from qiskit.providers.aer.noise.device.parameters import *
 from qiskit.providers.aer.noise.device.models import *
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError

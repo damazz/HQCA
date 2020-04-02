@@ -56,7 +56,7 @@ if __name__=='__main__':
     while not selected:
         ans = input('ibm device: ')
         try:
-            be = IBMQ.get_backend(ans)
+            be = prov.get_backend(ans)
             add_to_config_log(backend=be,connect=True)
             selected=True
             res = input('Try another? y/n: ')

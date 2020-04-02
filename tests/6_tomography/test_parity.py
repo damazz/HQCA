@@ -37,7 +37,8 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     mol.spin=S
     mol.verbose=0
     mol.build()
-    ham = MolecularHamiltonian(mol,verbose=False,generate_operators=False)
+    ham = MolecularHamiltonian(mol,verbose=False,generate_operators=False,
+            mapping='parity',)
     Ins = PauliSet
     st = StorageACSE(ham)
     MapSet = ParitySet(Q,

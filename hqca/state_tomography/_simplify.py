@@ -129,6 +129,7 @@ class SimplifyTwoBody:
                 key=lambda x:self._get_keys(x),
                 reverse=True)
         n = len(self.kl)
+        lens = len(self.kl[0])
         try:
             done = False
             for l in range(0,n-3):
@@ -172,6 +173,8 @@ class SimplifyTwoBody:
                     'hh':[[self.kl[inds[i]],a4[i]] for i in trim(a4)],
                     }
             self.imag = {}
+            for op in ['pp','ph','hp','hh']:
+                self.imag[op]=[['I'*lens,0]]
         except Exception as e:
             self.real = {}
             self.imag = {}
@@ -184,6 +187,8 @@ class SimplifyTwoBody:
                 new.generateOperators(Nq,mapping=mapping,**kw)
                 newop = new.formOperator()
                 self.real[op]=[[o.p,o.c] for o in newop.op]
+                self.imag[op]=[['I'*lens,0]]
+
 
     def _simplify_number_excitation(self,
             spin='aabb',
@@ -215,6 +220,10 @@ class SimplifyTwoBody:
                 new.generateOperators(Nq,mapping=mapping,**kw)
                 newop = new.formOperator()
                 pauli_map[op]={}
+                # 
+                # pauli map is a dict with keys: opeartor, val: paulis 
+                # basis of pauli opeartors
+                # 
                 for item in newop.op:
                     pauli_map[op][item.p]=sign(item.c)
             fermi_map = {}
@@ -225,6 +234,10 @@ class SimplifyTwoBody:
                         temp[p].append(c)
                     except Exception:
                         temp[p]=[c]
+            #
+            # now, we want to move to the reverse: i.e., key: pauli
+            # value: operator
+            #
             for k,v in temp.items():
                 v = np.asarray(v)
             for k,v in temp.items():
@@ -234,9 +247,8 @@ class SimplifyTwoBody:
                         'imag':np.iscomplex(v[0]),
                         'weight':self._weights(k)
                         }
-            #for k,v in fermi_map.items():
-            #    print(k,v)
-
+            # fermi_map just has dict with:
+            # key:val, pauli:sqops
             key_list = [k for k,v in fermi_map.items()]
             self.fermi_map = fermi_map
             # sorting
@@ -267,7 +279,11 @@ class SimplifyTwoBody:
                                 v2 = self.fermi_map[self.kl[j]]['coeff']
                                 v3 = self.fermi_map[self.kl[k]]['coeff']
                                 v4 = self.fermi_map[self.kl[l]]['coeff']
+                                # note, each v is a vector of coefficients in
+                                # the op basis 
                                 mat = np.matrix([v1,v2,v3,v4])
+                                # mat has each row being a different pauli, 
+                                # and each col being the op
                                 d = np.linalg.det(mat)
                                 if abs(d)>1e-10:
                                     c1,c2,c3,c4 = copy(i),copy(j),copy(k),copy(l)
@@ -278,6 +294,10 @@ class SimplifyTwoBody:
                 v3 = self.fermi_map[self.kl[c3]]['coeff']
                 v4 = self.fermi_map[self.kl[c4]]['coeff']
                 mat = np.matrix([v1,v2,v3,v4]).T
+                # now, mat is transposed, and so has the row being the op and 
+                # cols being the pauli
+                # so, r1 is a vec in the op basis
+                # and a1, or the solution, is a vec in the pauli basis 
                 r1 = np.array([0.5,0,-0.5,0])
                 r2 = np.array([0,0.5,0,-0.5])
                 i1 = np.array([0.5,0,0.5,0])
@@ -287,9 +307,13 @@ class SimplifyTwoBody:
                 b1 = np.linalg.solve(mat,i1)
                 b2 = np.linalg.solve(mat,i2)
                 inds = [c1,c2,c3,c4]  # # c1 is....
-                vRe = [a1,a2,-a1,-a2]   # #
+                vRe = [a1,a2,-a1,-a2] # this is now...each row is a vector 
+                # in the pauli basis, giving the paulis to give that op
                 vIm = [b1,b2,b1,b2] # # 
                 for n,op in enumerate(place):
+                    # iterating through place with n,
+                    # we look to find the real opeartors from vRe that are non
+                    # zero, i.e. the correct Pauli matrices
                     self.real[op]=[
                                 [self.kl[inds[i]],vRe[n][i]
                                     ] for i in trim(vRe[n])]
@@ -297,6 +321,52 @@ class SimplifyTwoBody:
                                 [self.kl[inds[i]],vIm[n][i]
                                     ] for i in trim(vIm[n])]
             except Exception as e:
+                mat = np.asmatrix(
+                        [self.fermi_map[v]['coeff'] for v in self.kl]).T
+                inds = [0,1,2,3]
+
+                r1 = np.array([0.5,0,-0.5,0])
+                r2 = np.array([0,0.5,0,-0.5])
+                i1 = np.array([0.5,0,0.5,0])
+                i2 = np.array([0,0.5,0,0.5])
+                #r1 = np.array([1,0,-1,0])
+                #r2 = np.array([0,1,0,-1])
+                #i1 = np.array([1,0,1,0])
+                #i2 = np.array([0,1,0,1])
+                #for vec in [r1,r2,i1,i2]:
+                #    try:
+                #        x,res,rank,s = np.linalg.lstsq(mat,vec)
+                #    except Exception:
+                #        sys.exit()
+                #        ans = np.linalg.solve(mat,vec)
+                #    print(x)
+                #    print(res)
+                #    print(rank)
+                #    print(s)
+                a1,res1,rank1,s1 = np.linalg.lstsq(mat,r1)
+                a2,res2,rank2,s2 = np.linalg.lstsq(mat,r2)
+                b1,res3,rank3,s3 = np.linalg.lstsq(mat,i1)
+                b2,res4,rank4,s4 = np.linalg.lstsq(mat,i2)
+                vRe = [a1,a2,-a1,-a2]   # #
+                vIm = [b1,b2,b1,b2] # # 
+                lens = len(self.kl[0])
+                for n,op in enumerate(place):
+                    # iterating through place with n,
+                    # we look to find the real opeartors from vRe that are non
+                    # zero, i.e. the correct Pauli matrices
+                    if len(trim(vRe[n]))==0:
+                        self.real[op]=[['I'*lens,0]]
+                    else:
+                        self.real[op]=[
+                                    [self.kl[inds[i]],vRe[n][i]
+                                        ] for i in trim(vRe[n])]
+                    if len(trim(vIm[n]))==0:
+                        self.imag[op]=[['I'*lens,0]]
+                    else:
+                        self.imag[op]=[
+                                    [self.kl[inds[i]],vIm[n][i]
+                                        ] for i in trim(vIm[n])]
+                '''
                 conjOp = {
                         '+-h':'-+h',
                         '+-p':'-+p',
@@ -310,6 +380,10 @@ class SimplifyTwoBody:
                         'p+-':'p-+',
                         'h-+':'h+-',
                         'p-+':'p+-',}
+                '''
+                '''
+                for op in place:
+                    pass
                 for op in place:
                     new1 = FermionicOperator(
                             coeff=0.5,
@@ -317,7 +391,9 @@ class SimplifyTwoBody:
                             sqOp=op,
                             spin=spin)
                     new1.generateOperators(Nq,mapping=mapping,**kw)
+                    print(new1)
                     new = new1.formOperator()
+                    print(new)
                     new2 = FermionicOperator(
                             coeff=-0.5,
                             indices=self.ind,
@@ -339,7 +415,7 @@ class SimplifyTwoBody:
                     new1.generateOperators(Nq,mapping=mapping,**kw)
                     new = new1.formOperator()
                     new2 = FermionicOperator(
-                            coeff=+0.5,
+                            coeff=0.5,
                             indices=self.ind,
                             sqOp=conjOp[op],
                             spin=spin)
@@ -350,6 +426,7 @@ class SimplifyTwoBody:
                         self.imag[op]=[[Nq*'I',0]]
                     else:
                         self.imag[op]=[[o.p,o.c] for o in new.op]
+                '''
 
     def _simplify_double_excitation(self,
             spin='aabb',
@@ -531,12 +608,12 @@ class SimplifyTwoBody:
                 '-++-':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
                 }
         self.imag = {
-                '++--':[[self.kl[inds[i]],b1[i]] for i in trim(b1)],
-                '--++':[[self.kl[inds[i]],-1*b1[i]] for i in trim(b1)],
-                '+-+-':[[self.kl[inds[i]],b2[i]] for i in trim(b2)],
-                '-+-+':[[self.kl[inds[i]],-1*b2[i]] for i in trim(b2)],
-                '+--+':[[self.kl[inds[i]],b3[i]] for i in trim(b3)],
-                '-++-':[[self.kl[inds[i]],-1*b3[i]] for i in trim(b3)],
+                '++--':[[self.kl[inds[i]],-1*b1[i]] for i in trim(b1)],
+                '--++':[[self.kl[inds[i]],+1*b1[i]] for i in trim(b1)],
+                '+-+-':[[self.kl[inds[i]],-1*b2[i]] for i in trim(b2)],
+                '-+-+':[[self.kl[inds[i]],+1*b2[i]] for i in trim(b2)],
+                '+--+':[[self.kl[inds[i]],-1*b3[i]] for i in trim(b3)],
+                '-++-':[[self.kl[inds[i]],+1*b3[i]] for i in trim(b3)],
                 }
 
 
