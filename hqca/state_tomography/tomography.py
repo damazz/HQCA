@@ -266,7 +266,9 @@ class StandardTomography(Tomography):
             elif r.sqOp=='+':
                 self.rdm.rdm[0,1,0]+=temp
 
-    def _build_qubit2RDM(self):
+    def _build_qubit2RDM(self,processor=None,variance=False):
+        if type(processor)==type(None):
+            processor=StandardProcess()
         self.rdm = qRDM(order=2,
                 Nq=self.Nq,
                 state='blank')
@@ -276,9 +278,15 @@ class StandardTomography(Tomography):
                 try:
                     get = self.mapping[Pauli] #self.mapping has important get
                     # property to get the right pauli
-                    zMeas = self.__measure_z_string(
-                            self.counts[get],
-                            Pauli)
+                    zMeas = processor.process(
+                            counts=self.counts[get],
+                            pauli_string=Pauli,
+                            quantstore=self.qs,
+                            backend=self.qs.backend,
+                            Nq=self.qs.Nq_tot)
+                    #zMeas = self.__measure_z_string(
+                    #        self.counts[get],
+                    #        Pauli)
                     temp+= zMeas*coeff
                 except KeyError as e:
                     pass

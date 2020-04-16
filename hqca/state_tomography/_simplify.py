@@ -446,6 +446,7 @@ class SimplifyTwoBody:
         pauli_map = {}
         cont = True
         for op in ops:
+            # generate the operators 
             new = FermionicOperator(
                     coeff=1,
                     indices=self.ind,
@@ -462,7 +463,10 @@ class SimplifyTwoBody:
         fermi_map = {}
         temp = {}
         for so,v in pauli_map.items():
+            #so, second quantized opeartor 
             for p,c in v.items():
+                if abs(c)==0:
+                    continue
                 try:
                     temp[p].append(c)
                 except Exception:
@@ -485,7 +489,14 @@ class SimplifyTwoBody:
                 key_list,
                 key=lambda x:self._get_keys(x),
                 reverse=True)
-        if cont:
+        if len(key_list)==0:
+            self.real = {}
+            self.imag = {}
+            for op in ops:
+                lens =  len(list(pauli_map[op].keys())[0])
+                self.real[op]=[['I'*lens,0]]
+                self.imag[op]=[['I'*lens,0]]
+        elif cont:
             self._standard_subproblem()
         else:
             self._degenerate_subproblem()

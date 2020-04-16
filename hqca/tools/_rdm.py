@@ -412,6 +412,7 @@ class RDM:
                     (tuple([self.r for i in range(2*self.p)]))
                     )
 
+
 class Recursive:
     def __init__(self,
             depth='default',

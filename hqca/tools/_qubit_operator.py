@@ -224,7 +224,7 @@ class QubitOperator:
     def generateTomography(self,**kw):
         self.generateOperators(**kw)
 
-    def generateOperators(self,Nq,real=True,imag=True,mapping='jw'):
+    def generateOperators(self,Nq,real=True,imag=True,mapping='jw',**kw):
         self._jw_op_to_paulis()
         if mapping=='jw':
             self._fill_out_paulis(Nq)
@@ -241,7 +241,7 @@ class QubitOperator:
         except Exception:
             pass
 
-    def formOperator(self):
+    def formOperator(self,**kw):
         new = Operator()
         for p,c in zip(self.pPauli,self.pCoeff):
             new+=PauliOperator(p,c,add=self.add)

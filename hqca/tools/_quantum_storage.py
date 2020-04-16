@@ -53,7 +53,7 @@ class QuantumStorage:
         self.depth = depth
         self.check+=1
         self.p = Storage.p
-        if Storage.H.model in ['molecular','molecule','mol']:
+        if Storage.H.model in ['molecular','molecule','mol','fermionic']:
             self.alpha= Storage.alpha_mo
             self.beta = Storage.beta_mo
             self.Ne = Storage.Ne_as

@@ -153,6 +153,7 @@ def _findQubitSQuantum(
         depth=1,
         commutative=True,
         tomo=None,
+        process=None,
         ):
     '''
     need to do following:

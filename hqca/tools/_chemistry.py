@@ -381,6 +381,124 @@ def generate_spin_2ei(
                         new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,Q,R,d]
     return new_ei #, temp0
 
+def generate_spin_2ei_phys(
+        ei2,
+        U_a,
+        U_b,
+        alpha,
+        beta,
+        region='active',
+        spin2spac=mss,
+        new_ei=None):
+    '''
+    Input are the electron integrals in physicist notations, i.e. 
+    (ij) (kl)
+    i(e1)* k(e2)* j(e1) l(e2)
+
+    Output is a matrix with same incidices, just in spin orbitals
+    '''
+    N = len(U_a)
+    ei2 = np.reshape(ei2,(N,N,N,N))
+    if region=='full':
+        alpha = alpha['inactive']+alpha['active']+alpha['virtual']
+        beta = beta['inactive']+beta['active']+beta['virtual']
+        new_ei = np.zeros((N*2,N*2,N*2,N*2))
+    elif region in ['active','as','active_space']:
+        alpha=alpha['active']+alpha['inactive']
+        beta =beta['active']+beta['inactive']
+        if type(new_ei)==type(None):
+            new_ei = np.zeros((N*2,N*2,N*2,N*2))
+        else:
+            new_ei = np.reshape(new_ei,(N*2,N*2,N*2,N*2))
+    else:
+        print('Error?')
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in alpha:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_a[P,a]*ei2[a,:,:,:]
+        for j in alpha:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,:,Q,:] += U_a.T[b,Q]*temp1[P,:,b,:]
+            for k in alpha:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,R,Q,:] += U_a[R,c]*temp2[P,c,Q,:]
+                for l in alpha:
+                    #new_ei[i,k,j,l]=0
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        new_ei[i,k,j,l]+= U_a.T[d,S]*temp3[P,R,Q,d]
+    # now, alpha beta block 
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in alpha:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_a[P,a]*ei2[a,:,:,:]
+        for j in alpha:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,:,Q,:] += U_a.T[b,Q]*temp1[P,:,b,:]
+            for k in beta:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,R,Q,:] += U_b[R,c]*temp2[P,c,Q,:]
+                for l in beta:
+                    #new_ei[i,k,j,l]=0
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,R,Q,d]
+    # beta alpha block
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in beta:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_b[P,a]*ei2[a,:,:,:]
+        for j in beta:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,:,Q,:] += U_b.T[b,Q]*temp1[P,:,b,:]
+            for k in alpha:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,R,Q,:] += U_a[R,c]*temp2[P,c,Q,:]
+                for l in alpha:
+                    #new_ei[i,k,j,l]=0
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        #new_ei[i,j,k,l]+= U_a[S,d]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= U_a.T[d,S]*temp3[P,R,Q,d]
+    temp1 = np.zeros((N,N,N,N))
+    temp2 = np.zeros((N,N,N,N))
+    temp3 = np.zeros((N,N,N,N))
+    for i in beta:
+        P = spin2spac[i]
+        for a in range(0,N):
+            temp1[P,:,:,:] += U_b[P,a]*ei2[a,:,:,:]
+        for j in beta:
+            Q = spin2spac[j]
+            for b in range(0,N):
+                temp2[P,:,Q,:] += U_b.T[b,Q]*temp1[P,:,b,:]
+            for k in beta:
+                R = spin2spac[k]
+                for c in range(0,N):
+                    temp3[P,R,Q,:] += U_b[R,c]*temp2[P,c,Q,:]
+                for l in beta:
+                    S = spin2spac[l]
+                    for d in range(0,N):
+                        #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
+                        new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,R,Q,d]
+    return new_ei #, temp0
+
+
 def gen_spin_2ei_QISKit(
         ei2,
         U_a,
@@ -392,7 +510,7 @@ def gen_spin_2ei_QISKit(
         new_ei=None):
     '''
     Input is the standard electron integral matrices, ik format where i,k are
-    spatial orbitals. 
+    spatial orbitals.
 
     Output is a matrix with indices, i,k,l,j
     except that j and l have been switched, so that the first index refers to

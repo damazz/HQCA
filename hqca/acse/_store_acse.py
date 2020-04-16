@@ -70,7 +70,15 @@ class StorageACSE(Storage):
                         )
                 self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
                 self.ei = copy(self.e0)
-
+        elif self.H.model in ['fermion','fermi','fermionic']:
+            self.No_as = self.H.No_as
+            self.Ne_as = self.H.Ne_as
+            self.alpha_mo = self.H.alpha_mo
+            self.beta_mo  = self.H.beta_mo
+            self._get_HF_rdm()
+            self.e0 = self.hf_rdm.observable(self.H.matrix)+self.H._en_c
+            self.ei = copy(self.e0)
+            self.S = Operator()
         elif self.H.model in ['tq','two-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
@@ -118,19 +126,26 @@ class StorageACSE(Storage):
     def analysis(self,rdm='default'):
         if rdm=='default':
             rdm =self.rdm
-        if self.H.model in ['molecule','mol','molecular']:
+        if self.H.model in ['molecule','mol','molecular','fermionic']:
             rdm.get_spin_properties()
             print('Sz: {:.8f}'.format(np.real(rdm.sz)))
             print('S2: {:.8f}'.format(np.real(rdm.s2)))
             print('N:  {:.8f}'.format(np.real(rdm.trace())))
-            rdm.contract()
             print('Molecular Reduced Density Matrix: ')
+            rdm.contract()
             print(np.real(rdm.rdm))
-            print('Eigenvalues of density matrix:')
+
+            print('Eigenvalues of 2-RDM:')
             for i in np.linalg.eigvalsh(rdm.rdm):
                 if abs(i)>1e-10:
                     print(i)
             rdm.expand()
+            rdm1 = rdm.reduce_order()
+            print('Eigenvalues of 1-RDM:')
+            for i in np.linalg.eigvalsh(rdm1.rdm):
+                if abs(i)>1e-10:
+                    print(i)
+
         else:
             print('Density matrix:')
             print(rdm.rdm)

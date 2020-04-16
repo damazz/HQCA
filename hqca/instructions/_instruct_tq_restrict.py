@@ -46,10 +46,15 @@ class RestrictiveSet(Instructions):
         self._xy,self._yx= 0.001,0.001
         for item in operator.op:
             if item.p=='XY':
-                self._xy=item.c
+                if abs(item.c.imag)<1e-10:
+                    self._xy=item.c.real
+                else:
+                    self._xy=item.c.imag
             elif item.p=='YX':
-                self._yx= item.c
-
+                if abs(item.c.imag)<1e-10:
+                    self._yx=item.c.real
+                else:
+                    self._yx=item.c.imag
         if not self._propagate:
             self._gates.append(
                     [(

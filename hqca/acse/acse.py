@@ -315,6 +315,7 @@ class RunACSE(QuantumRun):
                 circ.construct(processor=self.process)
                 en = np.real(self.Store.evaluate(circ.rdm))
                 self.Store.update(circ.rdm)
+        self.circ = circ
 
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
@@ -359,6 +360,7 @@ class RunACSE(QuantumRun):
                 self.stats,np.real(self.ci)))
             print('')
         en = np.real(self.Store.evaluate(tCirc.rdm))
+        self.circ = tCirc
         return en,tCirc.rdm
     
     def _particle_number(self,rdm):
@@ -501,9 +503,25 @@ class RunACSE(QuantumRun):
             Psi.construct(processor=self.process)
             self.Store.update(Psi.rdm)
             Psi.rdm.switch()
+            self.circ = Psi
         print('Current S: ')
         print(self.S)
 
+    def next_step(self):
+        if self.built:
+            self._run_acse()
+            self._check()
+            print('E,init: {:+.12f} U'.format(np.real(self.ei)))
+            print('E, run: {:+.12f} U'.format(np.real(self.best)))
+            try:
+                diff = 1000*(self.best-self.Store.H.ef)
+                print('E, fin: {:+.12f} U'.format(self.Store.H.ef))
+                print('E, dif: {:.12f} mU'.format(diff))
+            except KeyError:
+                pass
+            except AttributeError:
+                pass
+            print('-------------------------')
 
     def run(self):
         '''

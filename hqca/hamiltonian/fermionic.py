@@ -7,9 +7,12 @@ from pyscf import gto,mcscf,scf
 import timeit
 
 
-class MolecularHamiltonian(Hamiltonian):
+class FermionicHamiltonian(Hamiltonian):
     def __init__(self,
-            mol,
+            proxy_mol,
+            ints_1e,
+            ints_2e,
+            ints_spatial=True,
             mapping='jordan-wigner',
             kw_mapping={},
             int_thresh=1e-10,
@@ -17,40 +20,30 @@ class MolecularHamiltonian(Hamiltonian):
             No_active_space='default',
             integral_basis='hf',
             generate_operators=True,
+            normalize=True,
             verbose=True,
-            en_c=None,
+            en_con=None,
+            en_fin=None,
             ):
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
             print('      -- HAMILTONIAN --  ')
             print('-- -- -- -- -- -- -- -- -- -- --')
-        self._mo_basis = integral_basis
         self.verbose = verbose
-        self.S = mol.intor('int1e_ovlp')
-        self.T_1e = mol.intor('int1e_kin')
-        self.V_1e = mol.intor('int1e_nuc')
-        self.ints_1e_ao = self.V_1e+self.T_1e
-        self._model='molecule'
-        self.ints_2e_ao = mol.intor('int2e')
+        self._model='fermionic'
         self.real=True
         self.imag=False
-        self.hf = scf.ROHF(mol)
-        self.hf.kernel()
-        self.hf.analyze()
-        self.e0 = self.hf.e_tot
-        self.C = self.hf.mo_coeff
-        self.f = self.hf.get_fock()
+        #self.e0 = self.hf.e_tot
+        self.C = np.identity(ints_1e.shape[0])
         self._order = 2
         if Ne_active_space=='default':
-            self.Ne_as = mol.nelec[0]+mol.nelec[1]
+            self.Ne_as = proxy_mol.nelec[0]+proxy_mol.nelec[1]
         else:
             self.Ne_as = int(Ne_active_space)
-        self.Ne_tot = mol.nelec[0]+mol.nelec[1]
+        self.Ne_tot = proxy_mol.nelec[0]+proxy_mol.nelec[1]
         self.Ne_core = self.Ne_tot - self.Ne_as
-        self.Ne_alp = mol.nelec[0]-self.Ne_core//2
-        self.Ne_bet = mol.nelec[1]-self.Ne_core//2
-        if self.verbose:
-            print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
+        self.Ne_alp = proxy_mol.nelec[0]-self.Ne_core//2
+        self.Ne_bet = proxy_mol.nelec[1]-self.Ne_core//2
         if No_active_space=='default':
             self.No_as = self.C.shape[0]
         else:
@@ -58,30 +51,33 @@ class MolecularHamiltonian(Hamiltonian):
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
         self._generate_spin2spac_mapping()
-        if self.No_as<=4:
-            self.mc = mcscf.CASCI(
-                    self.hf,
-                    self.No_as,
-                    self.Ne_as)
-            self.mc.kernel()
-            self.ef  = self.mc.e_tot
-            self.mc_coeff = self.mc.mo_coeff
-        else:
-            self.ef =  0
-        if self.verbose:
-            print('CASCI Energy: {:.8f}'.format(float(self.ef)))
-        self.spin = mol.spin
-        self.Ci = np.linalg.inv(self.C)
+        #if self.No_as<=4:
+        #    self.mc = mcscf.CASCI(
+        #            self.hf,
+        #            self.No_as,
+        #            self.Ne_as)
+        #    self.mc.kernel()
+        #    self.ef  = self.mc.e_tot
+        #    self.mc_coeff = self.mc.mo_coeff
+        #if self.verbose:
+        #    print('CASCI Energy: {:.8f}'.format(float(self.ef)))
+        self.spin = proxy_mol.spin
+        self.norm = normalize
         self._generate_active_space()
-        if type(en_c)==type(None):
-            self._en_c = mol.energy_nuc()
+        if type(en_con)==type(None):
+            self._en_c = 0 
         else:
-            self._en_c = en_c
-        if self._mo_basis in ['default','hf','active','as']:
+            self._en_c = en_con
+        if type(en_fin)==type(None):
+            self.ef = 0
+        else:
+            self.ef = en_fin
+        if ints_spatial:
+            # transforming spatial orbitals to spin :) 
             if verbose:
                 print('Transforming 1e integrals...')
             self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao.copy(),
+                    ints_1e,
                     self.C.T,
                     self.C.T,
                     self.alpha_mo,
@@ -91,8 +87,8 @@ class MolecularHamiltonian(Hamiltonian):
                     )
             if verbose:
                 print('Transforming 2e integrals...')
-            self.ints_2e = generate_spin_2ei(
-                    self.ints_2e_ao.copy(),
+            self.ints_2e = generate_spin_2ei_phys(
+                    ints_2e,
                     self.C.T,
                     self.C.T,
                     self.alpha_mo,
@@ -105,122 +101,15 @@ class MolecularHamiltonian(Hamiltonian):
             self.K2 = np.zeros((self.r,self.r,self.r,self.r))
             if self.verbose:
                 print('Transforming molecular integrals...')
-            if self._mo_basis in ['active','as']:
-                active = self.alpha_mo['active']+self.beta_mo['active']
-                for i in range(0,self.r):
-                    I = active[i]
-                    for j in range(0,self.r):
-                        J = active[j]
-                        for k in range(0,self.r):
-                            K = active[k]
-                            self.K2[i,k,j,k]+=(
-                                    1/(self.Ne_tot-1)
-                                    )*self.ints_1e[I,J]
-                            for l in range(0,self.r):
-                                L = active[l]
-                                self.K2[i,k,j,l]+= 0.5*self.ints_2e[I,K,J,L]
-                print('Done!')
-            else:
-                for i in range(0,self.r):
-                    for j in range(0,self.r):
-                        temp = 0.5*self.ints_2e[i,:,j,:]
-                        for k in range(0,self.r):
-                            temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                        self.K2[i,:,j,:]+= temp[:,:]
-        elif self._mo_basis=='no':
-            if self.verbose:
-                print('Obtaining natural orbitals.')
-            d1 = self.mc.fcisolver.make_rdm1s(
-                    self.mc.ci,
-                    self.No_as,
-                    self.Ne_as,
-                    )
-            def reorder(rdm1,orbit):
-                '''
-                Finds the transformation to obtain the Aufbau ordering 
-                for spatial orbitals: the spatial orbitals according 
-                to the eigenvalues of the 1-RDM (sometimes, 
-                diagonalization procedure will swap the orbital 
-                ordering). 
-                '''
-                ordered=False
-                T = np.identity(orbit)
-                for i in range(0,orbit):
-                    for j in range(i+1,orbit):
-                        if rdm1[i,i]>=rdm1[j,j]:
-                            continue
-                        else:
-                            temp= np.identity(orbit)
-                            temp[i,i] = 0 
-                            temp[j,j] = 0
-                            temp[i,j] = -1
-                            temp[j,i] = 1
-                            T = np.dot(temp,T)
-                return T
-            nocca, norba = np.linalg.eig(d1[0]) # diagonalize alpha
-            noccb, norbb = np.linalg.eig(d1[1]) # diagonalize beta 
-            # reorder according to eigenvalues for alpha, beta
-            Ta = reorder(reduce(np.dot, (norba.T,d1[0],norba)),self.No_as)
-            Tb = reorder(reduce(np.dot, (norbb.T,d1[1],norbb)),self.No_as)
-            # generate proper 1-RDM in NO basis, alpha bet
-            D1_a = reduce(np.dot, (Ta.T, norba.T, d1[0], norba, Ta))
-            D1_b = reduce(np.dot, (Tb.T, norbb.T, d1[1], norbb, Tb))
-            # transformation from AO to NO for alpha, beta, using the 
-            # provided HF solution as well
-            ao2no_a = reduce(np.dot, (self.mc.mo_coeff, norba, Ta))
-            ao2no_b = reduce(np.dot, (self.mc.mo_coeff, norbb, Tb))
-            # Note, these are in (AO,NO) form, so they are: "ao to no"
-            # important function, generates the full size 1e no (NOT 
-            # in the spatial orbital basis, but in the spin basis) 
-            self.ints_2e = generate_spin_2ei(
-                    self.ints_2e_ao, 
-                    ao2no_a.T, 
-                    ao2no_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    spin2spac=self.s2s
-                    )
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao,
-                    ao2no_a.T,
-                    ao2no_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-        elif self._mo_basis=='pyscf':
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            self.ints_2e = generate_spin_2ei_pyscf(
-                    self.ints_2e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            if self.verbose:
-                print('Transforming molecular integrals...')
             for i in range(0,self.r):
                 for j in range(0,self.r):
-                    temp = 0.5*self.ints_2e[i,j,:,:]
+                    temp = 0.5*self.ints_2e[i,:,j,:]
                     for k in range(0,self.r):
                         temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                    self.K2[i,j,:,:]+= temp[:,:]
+                    self.K2[i,:,j,:]+= temp[:,:]
         if self.verbose:
             print('... Done!')
         self._matrix = contract(self.K2)
-        self._model = 'molecular'
         self._mapping = mapping
         self._kw_mapping = kw_mapping
         if generate_operators:
@@ -316,7 +205,12 @@ class MolecularHamiltonian(Hamiltonian):
             self.s2s[i]=i-self.No_tot
 
 
-    def _build_operator(self,int_thresh=1e-14):
+    def _build_operator(self,int_thresh=1e-10):
+        if self.norm:
+            Cnorm = np.max(np.abs(self.K2))/(np.pi)
+        else:
+            Cnorm=1
+        print(Cnorm)
         print('Time: ')
         t1 = timeit.default_timer()
         alp = self.alpha_mo['active']
@@ -335,7 +229,7 @@ class MolecularHamiltonian(Hamiltonian):
                 if abs(self.ints_1e[p,q])<=int_thresh:
                     continue
                 newOp = FermionicOperator(
-                        coeff=self.ints_1e[p,q],
+                        coeff=self.ints_1e[p,q]/Cnorm,
                         indices=[P,Q],
                         sqOp='+-',
                         antisymmetric=True,
@@ -373,7 +267,7 @@ class MolecularHamiltonian(Hamiltonian):
                         if abs(self.ints_2e[p,r,q,s])<=int_thresh:
                             continue
                         newOp = FermionicOperator(
-                                coeff=0.5*self.ints_2e[p,r,q,s],
+                                coeff=0.5*self.ints_2e[p,r,q,s]/Cnorm,
                                 indices=[P,R,S,Q],
                                 sqOp='++--',
                                 antisymmetric=True,
