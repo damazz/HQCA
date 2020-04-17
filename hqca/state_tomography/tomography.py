@@ -437,7 +437,6 @@ class StandardTomography(Tomography):
                 op.clean()
                 op.ind = [i,k,l,j]
                 return op
-
             for i in alp:
                 for k in alp:
                     if i>=k:
@@ -851,10 +850,6 @@ class ReducedTomography(StandardTomography):
                 if test.qCo==-1:
                     for i in range(len(tomo)):
                         tomo[i][1] = tomo[i][1]*test.qCo
-                elif test.qCo==1:
-                    pass
-                else:
-                    print(':/')
                 return PseudoRDMElement(tomo,test.ind)
             for i in alp:
                 for k in alp:

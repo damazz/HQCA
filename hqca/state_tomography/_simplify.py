@@ -309,7 +309,7 @@ class SimplifyTwoBody:
                 inds = [c1,c2,c3,c4]  # # c1 is....
                 vRe = [a1,a2,-a1,-a2] # this is now...each row is a vector 
                 # in the pauli basis, giving the paulis to give that op
-                vIm = [b1,b2,b1,b2] # # 
+                vIm = [-b1,-b2,-b1,-b2] # # 
                 for n,op in enumerate(place):
                     # iterating through place with n,
                     # we look to find the real opeartors from vRe that are non
@@ -348,7 +348,7 @@ class SimplifyTwoBody:
                 b1,res3,rank3,s3 = np.linalg.lstsq(mat,i1)
                 b2,res4,rank4,s4 = np.linalg.lstsq(mat,i2)
                 vRe = [a1,a2,-a1,-a2]   # #
-                vIm = [b1,b2,b1,b2] # # 
+                vIm = [-b1,-b2,-b1,-b2] # # 
                 lens = len(self.kl[0])
                 for n,op in enumerate(place):
                     # iterating through place with n,
@@ -534,7 +534,7 @@ class SimplifyTwoBody:
         b2 = np.linalg.solve(mat,i2)
         inds = [0,1,2,3]  # # c1 is....
         vRe = [a1,a2,a1,a2]   # #
-        vIm = [b1,b2,-b1,-b2] # # 
+        vIm = [b1,+b2,-b1,-b2] # # 
         self.real = {}
         self.imag = {}
         for n,op in enumerate(ops):
@@ -546,6 +546,9 @@ class SimplifyTwoBody:
                             ] for i in trim(vIm[n])]
 
     def _standard_subproblem(self):
+        ops = [
+                '++--','+-+-','+--+',
+                '--++','-+-+','-++-']
         done=False
         n = len(self.kl)
         use = [self.kl[0]]
@@ -610,22 +613,36 @@ class SimplifyTwoBody:
         b1 = np.linalg.solve(mat,i1)
         b2 = np.linalg.solve(mat,i2)
         b3 = np.linalg.solve(mat,i3)
-        self.real = {
-                '++--':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
-                '--++':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
-                '+-+-':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
-                '-+-+':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
-                '+--+':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
-                '-++-':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
-                }
-        self.imag = {
-                '++--':[[self.kl[inds[i]],-1*b1[i]] for i in trim(b1)],
-                '--++':[[self.kl[inds[i]],+1*b1[i]] for i in trim(b1)],
-                '+-+-':[[self.kl[inds[i]],-1*b2[i]] for i in trim(b2)],
-                '-+-+':[[self.kl[inds[i]],+1*b2[i]] for i in trim(b2)],
-                '+--+':[[self.kl[inds[i]],-1*b3[i]] for i in trim(b3)],
-                '-++-':[[self.kl[inds[i]],+1*b3[i]] for i in trim(b3)],
-                }
+        #ops = [
+        #        '++--','+-+-','+--+',
+        #        '--++','-+-+','-++-']
+        vRe = [a1,a2,a3,a1,a2,a3]   # #
+        vIm = [-b1,-b2,-b3,b1,b2,b3] # # 
+        self.real = {}
+        self.imag = {}
+        for n,op in enumerate(ops):
+            self.real[op]=[
+                        [self.kl[inds[i]],vRe[n][i]
+                            ] for i in trim(vRe[n])]
+            self.imag[op]=[
+                        [self.kl[inds[i]],vIm[n][i]
+                            ] for i in trim(vIm[n])]
+        #self.real = {
+        #        '++--':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
+        #        '--++':[[self.kl[inds[i]],a1[i]] for i in trim(a1)],
+        #        '+-+-':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
+        #        '-+-+':[[self.kl[inds[i]],a2[i]] for i in trim(a2)],
+        #        '+--+':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
+        #        '-++-':[[self.kl[inds[i]],a3[i]] for i in trim(a3)],
+        #        }
+        #self.imag = {
+        #        '++--':[[self.kl[inds[i]],+1*b1[i]] for i in trim(b1)],
+        #        '--++':[[self.kl[inds[i]],-1*b1[i]] for i in trim(b1)],
+        #        '+-+-':[[self.kl[inds[i]],+1*b2[i]] for i in trim(b2)],
+        #        '-+-+':[[self.kl[inds[i]],-1*b2[i]] for i in trim(b2)],
+        #        '+--+':[[self.kl[inds[i]],+1*b3[i]] for i in trim(b3)],
+        #        '-++-':[[self.kl[inds[i]],-1*b3[i]] for i in trim(b3)],
+        #        }
 
 
 
