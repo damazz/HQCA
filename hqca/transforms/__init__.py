@@ -5,7 +5,6 @@ from hqca.transforms._functions import *
 
 __all__ = [
         'JordanWigner',
-        'ModifiedJW',
         'Parity',
         'BravyiKitaev',
         'trim_operator',

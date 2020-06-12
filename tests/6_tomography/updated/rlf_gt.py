@@ -18,7 +18,7 @@ molecules = [
         [['H',(j,0,0)] for j in range(5)],
         [['H',(j,0,0)] for j in range(6)],
         ]
-qubits = [4,6,8,10,12]
+qubits = [4,6,8]
 spins = [
         0,1,0,1,0,1,0,1,
         ]
@@ -44,7 +44,8 @@ for atoms,Q,S in zip(molecules,qubits,spins):
             provider='Aer')
     print('###############')
     #for maps in ['bk']:
-    T = JordanWigner
+    #T = JordanWigne
+    T = BravyiKitaev
     print('Standard Tomography for {} Qubits'.format(Q))
     tomoRe = StandardTomography(qs)
     tomoRe.generate(

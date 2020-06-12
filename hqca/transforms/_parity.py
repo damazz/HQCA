@@ -3,85 +3,51 @@ from copy import deepcopy as copy
 from hqca.tools.quantum_strings import *
 from hqca.tools._operator import *
 
-
-def _commutator_relations(lp,rp):
-    if rp=='I':
-        return 1,lp
-    elif rp==lp:
-        return 1,'I'
-    elif rp=='Z':
-        if lp=='X':
-            return -1j,'Y'
-        elif lp=='Y':
-            return 1j,'X'
-    elif rp=='Y':
-        if lp=='X':
-            return 1j,'Z'
-        elif lp=='Z':
-            return -1j,'X'
-    elif rp=='X':
-        if lp=='Y':
-            return -1j,'Z'
-        elif lp=='Z':
-            return 1j,'Y'
-    elif rp=='h':
-        if lp=='Z':
-            return 1,'h'
-        elif lp=='X':
-            return 1,'+'
-        elif lp=='Y':
-            return 1j,'+'
-    elif rp=='p':
-        if lp=='Z':
-            return -1,'p'
-        elif lp=='X':
-            return 1, '-'
-        elif lp=='Y':
-            return -1j,'-'
-    else:
-        sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
-
-
-class ParityMap:
-    def __init__(self,Nq,
-            Nq_tot='default',
-            Ne=[],
-            reduced=False
-            ):
-        '''
-        contains information for parity mapping
-        '''
-        if Nq_tot=='default':
-            self.Nq_tot=copy(Nq)
+def ParityTransform(op):
+    Nq = len(op.s)
+    pauli = ['I'*Nq]
+    new = Operator()+PauliString('I'*Nq,op.c)
+    for qi,o in enumerate(op.s):
+        # q index, op
+        if o=='i':
+            continue
+        if qi==0:
+            if o in ['+','-']:
+                s1 = 'X'+(Nq-qi-1)*'X'
+                s2 = 'Y'+(Nq-qi-1)*'X'
+                c1,c2 = 0.5,((o=='-')-0.5)*1j
+            elif o in ['p','h']:
+                s1 = 'I'+(Nq-qi-1)*'I'
+                s2 = 'Z'+(Nq-qi-1)*'I'
+                c1,c2 = 0.5,(o=='h')-0.5
         else:
-            self.Nq_tot = Nq_tot
-        self.Nq = Nq
-        self.reduced = reduced
-        if self.reduced:
-            self._reduced_set = [int(self.Nq/2)-1,self.Nq-1]
-            self._reduced_coeff={
-                    self._reduced_set[i]:(-1)**Ne[i] for i in range(2)
-                    }
-            self._shifted = [i for i in range(self.Nq//2,self.Nq-1)]
-        else:
-            self._reduced_set = []
-            self._reduced_coeff=[]
+            if o in ['+','-']:
+                s1 = 'I'*(qi-1)+'ZX'+(Nq-qi-1)*'X'
+                s2 = 'I'*(qi-1)+'IY'+(Nq-qi-1)*'X'
+                c1,c2 = 0.5,((o=='-')-0.5)*1j
+            elif o in ['p','h']:
+                s1 = 'I'*qi+'I'+(Nq-qi-1)*'I'
+                s2 = 'I'*qi+'Z'+(Nq-qi-1)*'I'
+                c1,c2 = 0.5,(o=='h')-0.5
+        tem = Operator()
+        tem+= PauliString(s1,c1)
+        tem+= PauliString(s2,c2)
+        new = new*tem
+    return new
 
-
-def ParityTransform(op,
-        Nq,
-        Nq_tot='default',
-        MapSet=None,**kw):
-    if Nq_tot=='default':
-        Nq_tot = copy(Nq)
-    coeff = [op.qCo]
-    if MapSet.reduced and Nq==MapSet.Nq:
-        pauli=['I'*(Nq_tot)]
+def Parity(operator,
+        **kw,
+        ):
+    if isinstance(operator,type(QuantumString())):
+        return ParityTransform(operator,**kw)
     else:
-        pauli = ['I'*MapSet.Nq_tot]
-    if type(MapSet)==type(None):
-        print('Parity transform not initiated with MapSet')
-        sys.exit()
+        new = Operator()
+        for op in operator:
+            new+= ParityTransform(op,**kw)
+        return new
+
+
+'''
     for q,o in zip(op.qInd[::-1],op.qOp[::-1]):
         p1s,c1s,p2s,c2s = [],[],[],[]
         for p,c in zip(pauli,coeff):
@@ -181,18 +147,8 @@ def ParityTransform(op,
         coeff = ncoeff[:]
         #print(pauli)
     return pauli,coeff
+'''
 
-
-def Parity(operator,
-        **kw,
-        ):
-    if isinstance(operator,type(QuantumString())):
-        return ParityTransform(operator,**kw)
-    else:
-        new = Operator()
-        for op in operator:
-            new+= ParityTransform(op,**kw)
-        return new
 
 
 

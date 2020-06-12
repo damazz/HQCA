@@ -55,34 +55,19 @@ def _commutator_relations(lp,rp):
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
 class BravyiKitaevMap:
-    def __init__(self,Nq,
-            Nq_tot='default',
-            Ne=[],alternating=False,reduced=False):
+    def __init__(self,
+            Nq,
+            alternating=False,
+            ):
         '''
         alternating
         '''
-        if Nq_tot=='default':
-            self.Nq_tot=copy(Nq)
-        else:
-            self.Nq_tot = Nq_tot
         self.Nq=Nq
-        self.reduced=reduced
+        self.Nq_tot=copy(Nq)
         if floor(log2(self.Nq))==ceil(log2(self.Nq)):
             N = self.Nq
-            if self.reduced:
-                self._reduced_set = [int(self.Nq/2)-1,self.Nq-1]
-                self._reduced_coeff={
-                        self._reduced_set[i]:(-1)**Ne[i] for i in range(2)
-                        }
-                self._shifted = [i for i in range(self.Nq//2,self.Nq-1)]
-            else:
-                self._reduced_set = []
-                self._reduced_coeff=[]
         else:
-            self.reduced=False
             N = int(2**(ceil(log2(self.Nq))))
-            self._reduced_set = []
-            self._reduced_coeff=[]
         self._find_flip_set(N)
         self._find_update_set(N)
         self._find_parity_set(N)
@@ -178,8 +163,48 @@ class BravyiKitaevMap:
                         done=False
                         break
 
+def BravyiKitaevTransform(op,**kw):
+    Nq = len(op.s)
+    MapSet = BravyiKitaevMap(Nq)
+    pauli = ['I'*Nq]
+    new = Operator()+PauliString('I'*Nq,1)
+    for q,o in enumerate(op.s):
+        if o=='i':
+            continue
+        if o in ['+','-']:
+            u,p,r = 'I'*Nq,'I'*Nq,'I'*Nq
+            for i in MapSet.update[q]:
+                u= u[:i]+'X'+u[i+1:]
+            for i in MapSet.parity[q]:
+                p= p[:i]+'Z'+p[i+1:]
+            for i in MapSet.rho[q]:
+                r= r[:i]+'Z'+r[i+1:]
+            p = Operator()+PauliString(p,1)
+            r = Operator()+PauliString(r,1)
+            u = Operator()+PauliString(u,1)
+            x = 'I'*q +'X'+(Nq-q-1)*'I'
+            y = 'I'*q +'Y'+(Nq-q-1)*'I'
+            s1 = Operator()+PauliString(x,0.5)
+            s2 = Operator()+PauliString(y,1j*((o=='-')-0.5))
+            s1 = (s1*u)*p
+            s2 = (s2*u)*r
+        elif o in ['p','h']:
+            f = 'I'*Nq
+            for i in MapSet.flip[q]:
+                f = f[:i]+'Z'+f[i+1:]
+            f = Operator()+PauliString(f,1)
+            s1 = Operator()+PauliString('I'*Nq,0.5)
+            t = 'I'*q+'Z'+(Nq-q-1)*'I'
+            s2 = Operator()+PauliString(t,(o=='h')-0.5)
+            s1 = s1*f
+            s2 = s2*f
+        temp = Operator()
+        temp+= s1
+        temp+= s2
+        new = new*temp
+    return new
 
-def BravyiKitaevTransform(op,
+def OldBravyiKitaevTransform(op,
         Nq,
         Nq_tot='default',
         MapSet=None,
@@ -258,35 +283,6 @@ def BravyiKitaevTransform(op,
                 c2[0]*=nc2
             return p1,p2,c1,c2
 
-        def particle(q,p,c,MapSet):
-            c1,c2 = [],[]
-            tc2,tp2 = _commutator_relations(
-                    'Z',p[q])
-            p1 = p[:]
-            p2 = p[:q]+tp2+p[q+1:]
-            c1.append(c*0.5)
-            c2.append(-c*0.5*tc2)
-            for i in MapSet.flip[q]:
-                nc2,np2 = _commutator_relations(
-                        'Z',p2[i])
-                p2 = p2[:i]+np2+p2[i+1:]
-                c2[0]*=nc2
-            return p1,p2,c1,c2
-
-        def hole(q,p,c,MapSet):
-            c1,c2 = [],[]
-            tc2,tp2 = _commutator_relations(
-                    'Z',p[q])
-            p1 = p[:]
-            p2 = p[:q]+tp2+p[q+1:]
-            c1.append(c*0.5)
-            c2.append(c*0.5*tc2)
-            for i in MapSet.flip[q]:
-                nc2,np2 = _commutator_relations(
-                        'Z',p2[i])
-                p2 = p2[:i]+np2+p2[i+1:]
-                c2[0]*=nc2
-            return p1,p2,c1,c2
 
         for p,c in zip(pauli,coeff):
             c1,c2 = [],[]
