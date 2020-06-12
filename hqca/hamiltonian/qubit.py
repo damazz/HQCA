@@ -40,7 +40,7 @@ class QubitHamiltonian(Hamiltonian):
         mat = np.zeros((2**self.N,2**self.N),dtype=np.complex_)
         for i in pauli.op:
             cir = Circ(self.N)
-            for n,p in enumerate(i.p):
+            for n,p in enumerate(i.s):
                 if p=='X':
                     cir.x(n)
                 elif p=='Y':
@@ -54,7 +54,7 @@ class QubitHamiltonian(Hamiltonian):
             self._generate_reduced_hamiltonian(mat)
         self.ef = np.min(np.linalg.eigvalsh(mat))+self._en_c
         print(self._qubOp)
-        print(self._matrix)
+        #print(self._matrix)
 
     def _generate_reduced_hamiltonian(self,mat):
         # generate pairs, triplets, etc. 

@@ -60,9 +60,11 @@ class RunVQE(QuantumRun):
     def __test_vqe_function(self,para):
         para_sym = copy(self.para_sym)
         psi = copy(self.T)
-        for op in psi._op:
-            for n,x in enumerate(para):
-                op.c = op.c.subs(para_sym[n],x)
+        ops = []
+        for n,op in enumerate(psi._op):
+            for m,x in enumerate(para):
+                op.c = op.c.subs(para_sym[m],x)
+            psi._op[n].c = np.complex(op.c)
         ins = self.Instruct(psi,
                 self.QuantStore.Nq,
                 depth=self.depth,

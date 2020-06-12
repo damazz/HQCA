@@ -358,6 +358,9 @@ def S2(
     s2z1= reduce(np.dot, (sz,rdm1)).trace()
     return s2pm_2+s2pm_1+s2z2_2+s2z2_1-s2z1
 
+def Z_operator():
+    pass
+
 def Sz(rdm1,alpha,beta,s2s):
     try: 
         alpha['active']

@@ -4,10 +4,10 @@ from hqca.tools import *
 from hqca.state_tomography import *
 
 '''
-/hqca/acse/FunctionsQACSE.py
+/hqca/acse/_quant_S_acse.py
 
-Contains functions for performing ACSE calculations, with a focus on generating
-the S matrix through time evolution of the Hamiltonian. 
+Will solve for the ACSE through the use of the time evolution operator
+
 '''
 
 def findSPairsQuantum(
@@ -19,8 +19,6 @@ def findSPairsQuantum(
     elif op_type=='qubit':
         newS = _findQubitSQuantum(**kw)
     return newS
-
-
 
 def _findFermionicSQuantum(
         operator=None,
@@ -35,11 +33,13 @@ def _findFermionicSQuantum(
         qS_max=1e-10,
         qS_screen=0.1,
         hamiltonian_step_size=1.0,
+        separate_hamiltonian=False,
         ordering='default',
         depth=1,
         commutative=True,
         tomo=None,
         piecewise=False,
+        transform=None,
         **kw
         ):
     '''
@@ -48,37 +48,91 @@ def _findFermionicSQuantum(
     '''
     if verbose:
         print('Generating new S pairs with Hamiltonian step.')
-    newPsi = instruct(
-            operator=operator,
-            Nq=quantstore.Nq,
-            quantstore=quantstore,
-            propagate=True,
-            HamiltonianOperator=store.H.qubit_operator,
-            scaleH=hamiltonian_step_size,
-            depth=depth,
-            **kw
-            )
-    if type(tomo)==type(None):
-        newCirc = StandardTomography(
-                quantstore,
-                verbose=verbose,
-                )
-        newCirc.generate(real=False,imag=True)
+    if separate_hamiltonian:
+        try:
+            #store.H._qubOp_sep
+            rdm = np.zeros(store.rdm.rdm.shape)
+            for opH in store.H._qubOp_sep:
+                newPsi = instruct(
+                        operator=operator,
+                        Nq=quantstore.Nq,
+                        quantstore=quantstore,
+                        propagate=True,
+                        HamiltonianOperator=opH,
+                        scaleH=hamiltonian_step_size,
+                        depth=depth,
+                        **kw
+                        )
+                if type(tomo)==type(None):
+                    newCirc = StandardTomography(
+                            quantstore,
+                            verbose=verbose,
+                            )
+                    newCirc.generate(real=False,imag=True)
+                else:
+                    newCirc = StandardTomography(
+                            quantstore,
+                            preset=True,
+                            Tomo=tomo,
+                            verbose=verbose,
+                            )
+                newCirc.set(newPsi)
+                if verbose:
+                    print('Running circuits...')
+                newCirc.simulate(verbose=verbose)
+                if verbose:
+                    print('Constructing the RDMs...')
+                newCirc.construct(processor=process)
+                #rdm = newCirc.rdm.rdm-store.rdm.rdm
+                rdm+= np.imag(newCirc.rdm.rdm)
+                temp= np.transpose(np.nonzero(newCirc.rdm.rdm))
+                hss = (1/hamiltonian_step_size)
+                max_val = 0
+                if verbose:
+                    print('Contributions from H_i - ')
+                    print('H_i: ')
+                    print(opH)
+                    print('S_i')
+                    for inds in temp:
+                        val = newCirc.rdm.rdm[tuple(inds)]*hss
+                        if abs(val)>1e-5:
+                            print(val,inds)
+        except Exception as e:
+            print(e)
+            sys.exit('Error in Hamiltonian separation.')
     else:
-        newCirc = StandardTomography(
-                quantstore,
-                preset=True,
-                Tomo=tomo,
-                verbose=verbose,
+        newPsi = instruct(
+                operator=operator,
+                Nq=quantstore.Nq,
+                quantstore=quantstore,
+                propagate=True,
+                HamiltonianOperator=store.H.qubit_operator,
+                scaleH=hamiltonian_step_size,
+                depth=depth,
+                **kw
                 )
-    newCirc.set(newPsi)
-    if verbose:
-        print('Running circuits...')
-    newCirc.simulate(verbose=verbose)
-    if verbose:
-        print('Constructing the RDMs...')
-    newCirc.construct(processor=process)
-    rdm = np.imag(newCirc.rdm.rdm)
+        if type(tomo)==type(None):
+            newCirc = StandardTomography(
+                    quantstore,
+                    verbose=verbose,
+                    )
+            newCirc.generate(real=False,imag=True)
+        else:
+            newCirc = StandardTomography(
+                    quantstore,
+                    preset=True,
+                    Tomo=tomo,
+                    verbose=verbose,
+                    )
+        newCirc.set(newPsi)
+        if verbose:
+            print('Running circuits...')
+        newCirc.simulate(verbose=verbose)
+        if verbose:
+            print('Constructing the RDMs...')
+        newCirc.construct(processor=process)
+        #rdm = newCirc.rdm.rdm-store.rdm.rdm
+        rdm = np.imag(newCirc.rdm.rdm)
     new = np.transpose(np.nonzero(rdm))
     hss = (1/hamiltonian_step_size)
     max_val = 0
@@ -88,52 +142,29 @@ def _findFermionicSQuantum(
         if v>max_val:
             max_val = v
     print('Elements of S from quantum generation: ')
-    newS = Operator()
     newF = Operator()
     for index in new:
         ind = tuple(index)
         val = rdm[ind]*hss
         if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
             if quantstore.op_type=='fermionic':
-                spin = ''
-                for item in ind:
-                    c = item in quantstore.alpha['active']
-                    b = item in quantstore.beta['active']
-                    spin+= 'a'*c+b*'b'
                 l = len(ind)
                 sop = l//2*'+'+l//2*'-'
-                newEl = FermionicOperator(
+                newEl = FermiString(
                         -val,
                         indices=list(ind),
-                        sqOp=sop,
-                        spin=spin,
-                        add=True,
+                        ops=sop,
+                        N=quantstore.dim,
                         )
-                newEl.generateOperators(
-                        Nq=quantstore.Nq,
-                        real=True,imag=True,
-                        mapping=quantstore.mapping,
-                        **quantstore._kw_mapping,
-                        )
-                newS+= newEl.formOperator()
-            if len(newF._op)==0:
                 newF+= newEl
-            else:
-                add = True
-                for o in newF._op:
-                    if o.isSame(newEl) or o.isHermitian(newEl):
-                        add = False
-                        break
-                if add:
-                    newF += newEl
-    newS.clean()
     print('Fermionic S operator:')
     print(newF)
+    newS = newF.transform(quantstore.transform)
+    print(newS)
     if commutative:
-        pass
+        newS.ca=True
     else:
-        for i in newS.op:
-            i.add=False
+        newS.ca=False
     return newS
 
 def _findQubitSQuantum(
@@ -155,6 +186,7 @@ def _findQubitSQuantum(
         tomo=None,
         process=None,
         ):
+    sys.exit('Update qubits ACSE.')
     '''
     need to do following:
         1. prepare the appropriate Hailtonian circuit

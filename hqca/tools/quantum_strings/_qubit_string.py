@@ -1,42 +1,43 @@
-from hqca.tools._operator import Operator
+from hqca.tools.quantum_strings._quantum_string import *
 import numpy as np
 
-class PauliOperator:
-    '''
-    Simple Pauli operator
-    '''
-    def __init__(self,
-            pauli,
-            coeff,
-            add=True,
-            get='default',
-            symbolic=False,
-            ):
-        self.p = pauli
-        self.c = coeff
-        self.qCo = np.copy(coeff)
-        self.add=add
-        if get=='default':
-            self.g = pauli #get 
-        else:
-            self.g = get
-        self.norm = self.c*np.conj(self.c)
-        self.sym = symbolic
 
-    def isSame(self,a):
-        return self.p==a.p
+#class PauliOperator:
+#    '''
+#    Simple Pauli operator
+#    '''
+#    def __init__(self,
+#            pauli,
+#            coeff,
+#            add=True,
+#            get='default',
+#            symbolic=False,
+#            ):
+#        self.p = pauli
+#        self.c = coeff
+#        self.qCo = np.copy(coeff)
+#        self.add=add
+#        if get=='default':
+#            self.g = pauli #get 
+#        else:
+#            self.g = get
+#        self.norm = self.c*np.conj(self.c)
+#        self.sym = symbolic
+#
+#    def isSame(self,a):
+#        return self.p==a.p
+#
+#    def isHermitian(self,a):
+#        return self.p==a.p
+#
+#    def clear(self):
+#        pass
+#
+#    def __str__(self):
+#        z = '{}: {}'.format(self.p,self.c)
+#        return z
 
-    def isHermitian(self,a):
-        return self.p==a.p
-
-    def clear(self):
-        pass
-
-    def __str__(self):
-        z = '{}: {}'.format(self.p,self.c)
-        return z
-
-class QubitOperator:
+class QubitString:
     '''
     Fermionic operator without the antisymmetry requirements, and more general
     tomography options

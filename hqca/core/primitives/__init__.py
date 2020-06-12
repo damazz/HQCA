@@ -4,6 +4,8 @@ from hqca.core.primitives._base import *
 
 __all__ = [
         'pauliOp',
+        'apply_pauli_string',
+        'apply_clifford_operation',
         'Cx',
         'generic_Pauli_term',
         'xy_yx_gate',

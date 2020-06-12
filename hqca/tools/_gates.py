@@ -3,6 +3,7 @@ from numpy import kron as k
 from functools import reduce
 import sympy as sy
 np.set_printoptions(suppress=True,precision=4,linewidth=200)
+import pyzx as pz
 
 
 class Circ:
@@ -21,14 +22,55 @@ class Circ:
         self.num_sqg = 0
         self.num_cx  = 0 
         self._cN_basis()
+        self.c = None
+        self.qasm = '\n\n # circuit qasm \n'
+        self.qasm+= 'qubits {}\n\n'.format(self.n)
 
-    def trace_operator(qb=[0]): 
+
+    def trace_operator(self,qb=[0]): 
+        '''
+        trace over the qubits  in qb
+
+        should be listed in reverse order
+        '''
         nd = self.n-len(qb)
-        Nd = 2**nd
-        nb = ['{:0{}b}'.format(i,nd)[::1] for i in range(0,Nd)]
-        nbd= {'{:0{}b}'.format(i,nd)[::1]:i for i in range(0,Nd)}
-        for i in self.b:
-            pass
+        Nd = len(qb)
+        nb = ['{:0{}b}'.format(i,nd)[::1] for i in range(0,2**nd)]
+        nbd= {'{:0{}b}'.format(i,nd)[::1]:i for i in range(0,2**nd)}
+        keys= {'{:0{}b}'.format(i,self.n)[::1]:i for i in range(0,2**self.n)}
+        Nb = ['{:0{}b}'.format(i,Nd)[::1] for i in range(0,2**Nd)]
+        new = np.zeros((2**nd,2**nd))
+        for n,i in enumerate(nb): #  new
+            for m,j in enumerate(nb):
+                for basis in Nb:
+                    ket = '0'*self.n
+                    bra = '0'*self.n
+                    q,s = 0,0
+                    for r in range(self.n):
+                        if not r in qb:
+                            t = i[s]
+                            u = j[s]
+                            s+=1
+                        else:
+                            t = basis[q]
+                            u = basis[q]
+                            q+=1
+                        bra = bra[:r]+t+bra[r+1:]
+                        ket = ket[:r]+u+ket[r+1:]
+                    ind_ket = keys[ket]
+                    ind_bra = keys[bra]
+                    new[n,m]+= self.m[ind_ket,ind_bra]
+        circ = Circ(nd)
+        circ.m = new*(1/2**(len(qb)))
+        return circ
+
+
+
+
+
+
+
+
 
     def _cN_basis(self):
         self.cNb = []
@@ -53,8 +95,6 @@ class Circ:
         for i in self.cNb:
             s+= i +'   '
         return t2
-
-
 
 
     def get(self):
@@ -112,6 +152,7 @@ class Circ:
         self.Cx(i,j)
         self.Cx(j,i)
         self.Cx(i,j)
+        self.num_cx-=3
 
     def i(self,**kw):
         pass
@@ -238,6 +279,11 @@ class Circ:
     def _apply_tqg(self):
         pass
 
+    def Cy(self,i,j,**kw):
+        self.si(j)
+        self.Cx(i,j)
+        self.s(j)
+
     def Cx(self,i,j,**kw):
         hold = np.identity(self.N)
         for k in range(0,self.N):
@@ -286,7 +332,7 @@ class Circ:
 
     def Rx(self,i=0,theta=np.pi/2,**kw):
         c = self.cos(theta/2)
-        s = 1j*self.sin(theta/2)
+        s = -1j*self.sin(theta/2)
         r = np.matrix([[c,s],[s,c]])
         self._apply_sqg(r,i)
 
@@ -301,5 +347,6 @@ class Circ:
         s = self.sin(theta/2)
         r = np.matrix([[c,-s],[s,c]])
         self._apply_sqg(r,i)
+
 
 

@@ -4,6 +4,22 @@ takes Pauli strings from qiskit aqua package, and actually adds on Hamiltonian
 circuit
 '''
 
+def apply_clifford_operation(Q,U):
+    def V(n):
+        Q.qc.s(n)
+        Q.qc.h(n)
+        Q.qc.sdg(n)
+    def S(n):
+        Q.qc.s(n)
+    cliff = {
+            'H':Q.qc.h,
+            'S':S,
+            'V':V,
+            }
+    for n,u in enumerate(U):
+        op = cliff[u]
+        op(n)
+
 def pauliOp(Q,loc,sigma='x',inv=False):
     if sigma in ['Z','z']:
         pass
@@ -12,32 +28,47 @@ def pauliOp(Q,loc,sigma='x',inv=False):
     elif sigma in ['I','i']:
         pass
     elif sigma in ['Y','y']:
-        if not inv:
-            Q.qc.rx(-pi/2,Q.q[loc])
+        if inv:
+            Q.qc.h(Q.q[loc])
+            Q.qc.s(Q.q[loc])
+            #Q.qc.rx(-pi/2,Q.q[loc])
         else:
-            Q.qc.rx(pi/2,Q.q[loc])
+            #Q.qc.rx(pi/2,Q.q[loc])
+            Q.qc.sdg(Q.q[loc])
+            Q.qc.h(Q.q[loc])
 
+def apply_pauli_string(Q,pauli):
+    if not abs(abs(pauli.c)-1)<1e-4:
+        sys.exit('Can not implement partial Pauli operator in line.')
+    for q,i in enumerate(pauli.s):
+        if i=='X':
+            Q.qc.x(Q.q[q])
+        elif i=='Y':
+            Q.qc.y(Q.q[q])
+        elif i=='Z':
+            Q.qc.z(Q.q[q])
 
 def generic_Pauli_term(Q,val,pauli,scaling=1.0):
-    if len(pauli)==1:
-        if pauli=='I':
+    s,c = pauli,val
+    if len(s)==1:
+        if s=='I':
             pass
             #Q.qc.u1(val,Q.q[0])
             #Q.qc.x(Q.q[0])
             #Q.qc.u1(val,Q.q[0])
             #Q.qc.x(Q.q[0])
-        elif pauli=='X':
+        elif s=='X':
             Q.qc.rx(val*scaling,Q.q[0])
-        elif pauli=='Y':
+        elif s=='Y':
             Q.qc.ry(val*scaling,Q.q[0])
-        elif pauli=='Z':
+        elif s=='Z':
             Q.qc.rz(val*scaling,Q.q[0])
     else:
         pauliTerms=0
         ind = []
         terms = []
-        for n,i in enumerate(pauli):
-            if not i in ['I','i']:
+        for n,i in enumerate(s):
+            if not i in ['I']:
                 pauliTerms+=1
                 ind.append(n)
                 terms.append(i)

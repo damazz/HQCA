@@ -67,8 +67,7 @@ class QuantumStorage:
             self.a2b = {
                     i:j for i,j in zip(self.alpha['active'],self.beta['active'])
                         }
-            self.mapping = Storage.H.mapping
-            self._kw_mapping = Storage.H._kw_mapping
+            self.transform = Storage.H._transform
             self.groups = [
                     alp,
                     bet
@@ -85,6 +84,7 @@ class QuantumStorage:
             self.initial = []
             self.mapping = 'qubit'
             self._kw_mapping = {}
+        self.dim = len(self.alpha['active'])+len(self.beta['active'])
         self.use_meas_filter=False
         self.post = False
         self.process = False

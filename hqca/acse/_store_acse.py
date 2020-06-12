@@ -33,7 +33,16 @@ class StorageACSE(Storage):
             self.Ne_as = self.H.Ne_as
             self.alpha_mo = self.H.alpha_mo
             self.beta_mo  = self.H.beta_mo
-            self._get_HF_rdm()
+            if not use_initial:
+                self._get_HF_rdm()
+            else:
+                self.S = copy(initial)
+                self.S+= op
+                for op in initial:
+                    self.S+= op
+                self._run_initial(**kwargs)
+                # use input state
+                sys.exit()
             if casci:
                 self.get_FCI_rdm()
                 self._set_overlap()
@@ -48,7 +57,7 @@ class StorageACSE(Storage):
                     pass
                 elif not second_quant:
                     for p,c,a in initial:
-                        temp = PauliOperator(
+                        temp = PauliString(
                                 pauli=p,
                                 coeff=c,
                                 add=a)
@@ -70,6 +79,7 @@ class StorageACSE(Storage):
                         )
                 self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
                 self.ei = copy(self.e0)
+                # so...generate the S operator 
         elif self.H.model in ['fermion','fermi','fermionic']:
             self.No_as = self.H.No_as
             self.Ne_as = self.H.Ne_as
@@ -78,7 +88,11 @@ class StorageACSE(Storage):
             self._get_HF_rdm()
             self.e0 = self.hf_rdm.observable(self.H.matrix)+self.H._en_c
             self.ei = copy(self.e0)
-            self.S = Operator()
+            if use_initial:
+                self.S = copy(initial)
+            else:
+                self.S = Operator()
+                # use input state
         elif self.H.model in ['tq','two-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
@@ -88,7 +102,7 @@ class StorageACSE(Storage):
                     pass
                 elif not second_quant:
                     for p,c,a in initial:
-                        temp = PauliOperator(
+                        temp = PauliString(
                                 pauli=p,
                                 coeff=c,
                                 add=a)
@@ -121,6 +135,11 @@ class StorageACSE(Storage):
     def evaluate(self,rdm):
         rdm.contract()
         en = rdm.observable(self.H.matrix)
+        #rdm.expand()
+        #zed = np.nonzero(rdm.rdm)
+        #for i,j,k,l in zip(zed[0],zed[1],zed[2],zed[3]):
+        #    if rdm.rdm[i,j,k,l]>1e-3:
+        #        print(i,j,k,l,rdm.rdm[i,j,k,l])
         return en + self.H._en_c
 
     def analysis(self,rdm='default'):
@@ -136,9 +155,43 @@ class StorageACSE(Storage):
             print(np.real(rdm.rdm))
 
             print('Eigenvalues of 2-RDM:')
-            for i in np.linalg.eigvalsh(rdm.rdm):
+            negative=False
+            for n,i in enumerate(np.linalg.eigvalsh(rdm.rdm)):
                 if abs(i)>1e-10:
-                    print(i)
+                    if i<0:
+                        print('Negative eigenvalue!')
+                        negative=True
+                        print(i)
+                        neg_ind = copy(n)
+            if negative:
+                rdm.expand()
+                zed = np.nonzero(rdm.rdm)
+                alpalp = np.zeros(rdm.rdm.shape)
+                alpbet = np.zeros(rdm.rdm.shape)
+                betbet = np.zeros(rdm.rdm.shape)
+                for i,j,k,l in zip(zed[0],zed[1],zed[2],zed[3]):
+                    if abs(rdm.rdm[i,j,k,l])>1e-8:
+                        print(i,j,k,l,rdm.rdm[i,j,k,l])
+                        c1 = i in self.alpha_mo['active']
+                        c2 = j in self.alpha_mo['active']
+                        c3 = k in self.alpha_mo['active']
+                        c4 = l in self.alpha_mo['active']
+                        val = rdm.rdm[i,j,k,l]
+                        if c1+c2+c3+c4==0:
+                            betbet[i,j,k,l]=val
+                        elif c1+c2+c3+c4==2:
+                            alpbet[i,j,k,l]=val
+                        elif c1+c2+c3+c4==4:
+                            alpalp[i,j,k,l]=val
+                rdm.contract()
+                for lab,mat in zip(['aa','ab','bb'],[alpalp,alpbet,betbet]):
+                    mat = np.reshape(mat,(rdm.rdm.shape))
+                    print('EIGVALS OF {} matrix'.format(lab))
+                    for n,i in enumerate(np.linalg.eigvalsh(mat)):
+                        if abs(i)>1e-10:
+                            if i<0:
+                                print(i)
+                sys.exit('Negative eigenvalue?')
             rdm.expand()
             rdm1 = rdm.reduce_order()
             print('Eigenvalues of 1-RDM:')
@@ -166,6 +219,9 @@ class StorageACSE(Storage):
                 )
         self.e0 = np.real(self.evaluate(self.hf_rdm))
         self.rdm = copy(self.hf_rdm)
+
+    def _run_initial(self,op,Ins,**kwargs):
+        pass
 
     def _get_FCI_rdm(self):
         d1,d2 = self.mc.fcisolver.make_rdm12s(

@@ -10,8 +10,7 @@ import timeit
 class MolecularHamiltonian(Hamiltonian):
     def __init__(self,
             mol,
-            mapping='jordan-wigner',
-            kw_mapping={},
+            transform=None,
             int_thresh=1e-10,
             Ne_active_space='default',
             No_active_space='default',
@@ -221,8 +220,7 @@ class MolecularHamiltonian(Hamiltonian):
             print('... Done!')
         self._matrix = contract(self.K2)
         self._model = 'molecular'
-        self._mapping = mapping
-        self._kw_mapping = kw_mapping
+        self._transform = transform
         if generate_operators:
             self._build_operator(int_thresh)
         else:
@@ -233,13 +231,6 @@ class MolecularHamiltonian(Hamiltonian):
     def order(self):
         return self._order
 
-    @property
-    def mapping(self):
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self,a):
-        self._mapping = a
 
     @property
     def qubit_operator(self):
@@ -317,7 +308,8 @@ class MolecularHamiltonian(Hamiltonian):
 
 
     def _build_operator(self,int_thresh=1e-14):
-        print('Time: ')
+        if self.verbose:
+            print('Time: ')
         t1 = timeit.default_timer()
         alp = self.alpha_mo['active']
         bet = self.beta_mo['active']
@@ -334,21 +326,16 @@ class MolecularHamiltonian(Hamiltonian):
                 Q = o2q[q]
                 if abs(self.ints_1e[p,q])<=int_thresh:
                     continue
-                newOp = FermionicOperator(
+                newOp = FermiString(
+                        N=len(alp+bet),
                         coeff=self.ints_1e[p,q],
                         indices=[P,Q],
-                        sqOp='+-',
-                        antisymmetric=True,
-                        add=True
+                        ops='+-',
                         )
-                newOp.generateOperators(
-                        Nq=2*self.No_as,
-                        mapping=self._mapping,
-                        **self._kw_mapping)
                 ferOp+= newOp
-                qubOp+= newOp.formOperator()
         t2 = timeit.default_timer()
-        print('1e terms: {}'.format(t2-t1))
+        if self.verbose:
+            print('1e terms: {}'.format(t2-t1))
 
         # starting 2 electron terms
         for p in alp+bet:
@@ -372,25 +359,19 @@ class MolecularHamiltonian(Hamiltonian):
                             continue
                         if abs(self.ints_2e[p,r,q,s])<=int_thresh:
                             continue
-                        newOp = FermionicOperator(
-                                coeff=0.5*self.ints_2e[p,r,q,s],
+                        newOp = FermiString(
+                                N=len(alp+bet),
+                                coeff=self.ints_2e[p,r,q,s],
                                 indices=[P,R,S,Q],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
-                                )
-                        newOp.generateOperators(
-                                Nq=2*self.No_as,
-                                mapping=self._mapping,
-                                **self._kw_mapping
+                                ops='++--',
                                 )
                         ferOp+= newOp
-                        qubOp+= newOp.formOperator()
-        qubOp.clean()
+        qubOp = ferOp.transform(self._transform)
         self._qubOp = qubOp
         self._ferOp = ferOp
         t3 = timeit.default_timer()
-        print('2e terms: {}'.format(t3-t2))
+        if self.verbose:
+            print('2e terms: {}'.format(t3-t2))
         if self.verbose:
             print('Fermionic Hamiltonian')
             print(ferOp)

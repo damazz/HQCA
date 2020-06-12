@@ -1,10 +1,245 @@
 '''
-from a given operator, find the simplest form of which can give the operator
+from a given operator, looking to project the operator into the constant number
+space
 '''
 from hqca.tools import *
 import numpy as np
 import sys
 from copy import deepcopy as copy
+from hqca.tools.quantum_strings import *
+import scipy as sp
+
+class ConstantNumberProjection:
+    def __init__(self,op,transform,verbose=False):
+        '''
+        takes a fermionic operator, and performs the following.
+
+        First, determine the order of E and C within the operators. The set E
+        has the elements + and -, and the set C has p and h.
+
+        Then, we look at elements of the operator in the Pauli basis, projected
+        onto the constant dimension space, which has dimension of the order of
+        E.
+
+        Using this, we can look for a potentially minimal representation if
+        there is over redundancy in the basis set. Note we also have to order
+        the list of operators that is generated? (Maybe).
+        '''
+        if isinstance(op,type(QuantumString())):
+            E,C=[],[]
+            for n,i in enumerate(op.s):
+                if i in ['+','-']:
+                    E.append(n)
+                elif i in ['p','h']:
+                    C.append(n)
+                nE = len(E)
+                nC = len(C)
+                op = ''.join(E)
+            perm = Recursive(choices=E)
+            perm.choose()
+            perm.simplify()
+            dimNe = len(perm.total)
+
+        elif isinstance(op,type(Operator())):
+            first = copy(op[0])
+            newop1 = FermiString(coeff=1,
+                    indices=[0,4,7,3],
+                    ops='++--',
+                    N=8)
+            newop2 = FermiString(coeff=1,
+                    indices=[3,7,4,0],
+                    ops='++--',
+                    N=8)
+            #if first==newop1:
+            #    print(first)
+            #elif first==newop2:
+            #    sys.exit('Found it! 2')
+            #print(op)
+            ops = []
+            for j in op:
+                E,C,e = [],[],[]
+                for n,i in enumerate(j.s):
+                    if i in ['+','-']:
+                        E.append(i)
+                    elif i in ['p','h']:
+                        C.append(i)
+                    ops.append([E,C])
+            if len(ops[0][0])==0:
+                self.qubOp = op.transform(transform)
+            else:
+                perm.simplify()
+                dimNe = len(perm.total)
+                dimCe = 2**(len(ops[0][1]))
+                def bin_to_ph(binary):
+                    ret = ''
+                    for item in binary:
+                        if item=='0':
+                            ret+='p'
+                        else:
+                            ret+='h'
+                    return ret
+                permC = [bin_to_ph(bin(i)[2:]) for i in range(dimCe)]
+                new = op.transform(transform)
+                if new.null():
+                    self.qubOp = new
+                    return None
+                # 
+                # subroutine using first
+                # getting Pauli basis 
+                # generators 
+                #
+                temp = copy(first)
+                ind = first.inds()
+                ts = copy(temp.s)
+                op_basis = {}
+                dimNull = 0
+                initial=False #propery, 'initialized'
+                for j,p in enumerate(perm.total):
+                    for k,q in enumerate(permC):
+                        top = ''. join(first.ops())
+                        m,l=0,0
+                        for n in range(len(top)):
+                            if top[n] in ['+','-']:
+                                top = top[:n]+p[m]+top[n+1:]
+                                m+=1 
+                            elif top[n] in ['p','h']:
+                                top = top[:n]+q[l]+top[n+1:]
+                                l+=1 
+                        if not initial:
+                            new = FermiString(
+                                    coeff=2**(len(first)),
+                                    ops=top,
+                                    indices=ind,
+                                    N=first.N(),
+                                    )
+                            new = (Operator()+ new).transform(transform)
+                            new = FermiString(
+                                    coeff=len(new),
+                                    ops=top,
+                                    indices=ind,
+                                    N=first.N(),
+                                    )
+                        else:
+                            new = FermiString(
+                                    coeff=len(pauli_basis.keys()),
+                                    ops=top,
+                                    indices=ind,
+                                    N=first.N(),
+                                    )
+                        #print(new)
+                        new = (Operator()+ new).transform(transform)
+                        if dimNe*dimCe>len(new):
+                            # i.e., 
+                            self.qubOp = op.transform(transform)
+                            return None
+
+
+                        # check for null vectors? 
+                        # i.e., because of transformation
+                        #print(new)
+                        if new.null():
+                            dimNull+=1 
+                            continue
+                        op_basis[top]=j*dimCe+k-dimNull
+                        if not initial:
+                            initial=True
+                            # if initial, then we generate basis and transformation
+                            # matrix pauli_to_op
+                            pauli_basis = {o.s:n for n,o in enumerate(new)}
+                            pauli_to_op = np.zeros(
+                                    (
+                                        dimNe*dimCe,
+                                        len(pauli_basis.keys())),
+                                    dtype=np.complex_)
+                        # now, expressing
+                        for pauli in new:
+                            pauli_to_op[
+                                    dimCe*j+k-dimNull,
+                                    pauli_basis[pauli.s]
+                                    ]=pauli.c
+                #if first==newop1:
+                #    print(dimCe,dimNe,dimNull)
+                #    print(pauli_basis)
+                #    print(pauli_to_op)
+
+                # now, remove null
+                pauli_to_op = pauli_to_op[:(dimCe*dimNe-dimNull),:]
+                # not pauli to op is a.....something
+                #print(pauli_to_op)
+                #print(dimCe,dimNe   )
+                # now, look for a square matrix
+                sq_pauli_to_op = np.zeros(
+                                    (
+                                        dimNe*dimCe-dimNull,
+                                        dimNe*dimCe-dimNull),
+                                    dtype=np.complex_)
+                # optional sorting should be done here
+                #print(dimNull)
+                added = []
+                done=False
+                #print(pauli_to_op)
+                error=False
+                while not done:
+                    if len(added)==(dimNe*dimCe-dimNull):
+                        # then, we are done
+                        done=True
+                        break
+                    elif len(added)==0:
+                        sq_pauli_to_op[:,len(added)]=pauli_to_op[:,0]
+                        added.append(0)
+                        continue
+                    for i in range(added[-1],len(pauli_basis.keys())):
+                        if i in added:
+                            continue
+                        vec = pauli_to_op[:,i]
+                        use=True
+                        # check linear dependence through rank
+                        temp = copy(sq_pauli_to_op)
+                        temp[:,len(added)]=pauli_to_op[:,i]
+                        if not np.linalg.matrix_rank(temp.T)==len(added)+1:
+                            use=False
+                            continue
+                        if use:
+                            sq_pauli_to_op[:,len(added)]=vec[:]
+                            added.append(i)
+                            break
+                        else:
+                            continue
+                    if use:
+                        continue
+                    else:
+                        print('ran into something...?')
+                        print(sq_pauli_to_op)
+                    # if we reach the end of this iteration, then we are done :
+                    print('Could not find linearly independent basis.')
+                    done=True
+                    error=True
+                if error:
+                    self.qubOp = op.transform(transform)
+                    print('Error generating operator: ')
+                    print(op)
+                else:
+                    # now, express original operator as a vector in op basis
+                    v_f = np.zeros((dimNe*dimCe-dimNull,1))
+                    for fermi in op:
+                        v_f[op_basis[''.join(fermi.ops())]]=fermi.c
+                    x = np.linalg.solve(sq_pauli_to_op,v_f)
+                    #
+                    n_to_pauli = {v:k for k,v in pauli_basis.items()}
+                    final = Operator()
+                    for n,i in enumerate(added):
+                        if abs(x[n])>1e-10:
+                            final+= PauliString(n_to_pauli[i],x[n])
+                    self.qubOp= final
+                #if first==newop1:
+                #    print(self.qubOp)
+        else:
+            sys.exit('Not implemented yet for operators.')
+
+
+
+
+
 
 def sign(c):
     if abs(c.real)>1e-14:

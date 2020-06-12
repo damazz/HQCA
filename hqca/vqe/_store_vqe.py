@@ -23,7 +23,7 @@ class StorageVQE(Storage):
             pass
         self.use_initial=use_initial
         self.initial = initial
-        if self.H.model in ['mol','molecular','molecule']:
+        if self.H.model in ['mol','molecular','molecule','fermionic']:
             self.No_as = self.H.No_as
             self.Ne_as = self.H.Ne_as
             self.alpha_mo = self.H.alpha_mo
@@ -32,8 +32,13 @@ class StorageVQE(Storage):
             if casci:
                 self.get_FCI_rdm()
                 self._set_overlap()
-            self.ei = self.H.hf.e_tot
+            try:
+                self.ei = self.H.hf.e_tot
+            except:
+                self.ei = 0
             self.T = Operator()
+        else:
+            sys.exit('Error in self.H.model in StorageVQE')
 
     def update(self,rdm):
         self.rdm = rdm

@@ -4,8 +4,6 @@ from hqca.core import *
 import numpy as np
 from hqca.tools import *
 
-
-
 class SingleQubitExponential(Instructions):
     '''
     Complex instructions: can implement arbitrary 1- body unitary
@@ -55,14 +53,14 @@ class SingleQubitExponential(Instructions):
             sys.exit('Not correct Instructions!')
         new = Operator()
         x,y,z=0,0,0
-        for item in operator.op:
+        for item in operator:
             if abs(item.c)<1e-10:
                 continue
-            if item.p=='Z':
+            if item.s=='Z':
                 z+=1 
-            elif item.p=='X':
+            elif item.s=='X':
                 x+=1 
-            elif item.p=='Y':
+            elif item.s=='Y':
                 y+=1 
             if z>1 or x>1 or y>1:
                 self._xyz_to_rotation(new)
@@ -85,14 +83,14 @@ class SingleQubitExponential(Instructions):
         rotations = []
         new = Operator()
         x,y,z=0,0,0
-        for item in operator.op:
+        for item in operator:
             if abs(item.c)<1e-10:
                 continue
-            if item.p=='Z':
+            if item.s=='Z':
                 z+=1 
-            elif item.p=='X':
+            elif item.s=='X':
                 x+=1 
-            elif item.p=='Y':
+            elif item.s=='Y':
                 y+=1 
             if z>1 or x>1 or y>1:
                 rotations.append(new)
@@ -123,16 +121,16 @@ class SingleQubitExponential(Instructions):
         v1 = {'I':0,'X':0,'Y':0,'Z':0}
         v2 = {'I':0,'X':0,'Y':0,'Z':0}
         #print('Combining operators')
-        for op in op1.op:
+        for op in op1:
             if abs(op.c.imag)<1e-12:
-                v1[op.p]+=op.c.real
+                v1[o.s]+=op.c.real
             else:
-                v1[op.p]+=op.c.imag
-        for op in op2.op:
+                v1[op.s]+=op.c.imag
+        for op in op2:
             if abs(op.c.imag)<1e-12:
-                v2[op.p]+=op.c.real
+                v2[op.s]+=op.c.real
             else:
-                v2[op.p]+=op.c.imag
+                v2[op.s]+=op.c.imag
         n = np.matrix([
             [v1['X']],
             [v1['Y']],
@@ -145,14 +143,14 @@ class SingleQubitExponential(Instructions):
         b = np.linalg.norm(m)
         if abs(a)<1e-14:
             new = Operator()
-            new+= PauliOperator('X',m[0,0]*s2)
-            new+= PauliOperator('Y',m[1,0]*s2)
-            new+= PauliOperator('Z',m[2,0]*s2)
+            new+= PauliString('X',m[0,0]*s2)
+            new+= PauliString('Y',m[1,0]*s2)
+            new+= PauliString('Z',m[2,0]*s2)
         elif abs(b)<1e-14:
             new = Operator()
-            new+= PauliOperator('X',n[0,0]*s1)
-            new+= PauliOperator('Y',n[1,0]*s1)
-            new+= PauliOperator('Z',n[2,0]*s1)
+            new+= PauliString('X',n[0,0]*s1)
+            new+= PauliString('Y',n[1,0]*s1)
+            new+= PauliString('Z',n[2,0]*s1)
         else:
             n*=(1/np.linalg.norm(a))
             m*=(1/np.linalg.norm(b))
@@ -167,18 +165,18 @@ class SingleQubitExponential(Instructions):
             k = (1/np.sin(c))*term*c
             #print('New k')
             new = Operator()
-            new+= PauliOperator('X',k[0,0])
-            new+= PauliOperator('Y',k[1,0])
-            new+= PauliOperator('Z',k[2,0])
+            new+= PauliString('X',k[0,0])
+            new+= PauliString('Y',k[1,0])
+            new+= PauliString('Z',k[2,0])
         return new
 
     def _xyz_to_rotation(self,operator,scale=1):
         val = {'I':0,'X':0,'Y':0,'Z':0}
-        for op in operator.op:
+        for op in operator:
             if abs(op.c.imag)<1e-12:
-                val[op.p]+=op.c.real
+                val[op.s]+=op.c.real
             else:
-                val[op.p]+=op.c.imag
+                val[op.s]+=op.c.imag
         #####
         norm = np.conj(val['X'])*val['X']
         norm+= np.conj(val['Y'])*val['Y']
@@ -234,9 +232,11 @@ class SingleQubitExponential(Instructions):
             test.Rz(0,beta)
             test.Ry(0,gam)
             test.Rz(0,delt)
-        if np.linalg.norm(test.m-new)>1e-10:
+        if np.linalg.norm(test.m-new)>1e-6:
             print('Error in matrix.')
+            print(np.linalg.norm(test.m-new))
             print(test.m)
+            print(new)
             sys.exit('')
         if abs(val['I'])>1e-10:
             self._gates.append(
@@ -310,7 +310,7 @@ class SingleQubitExponential(Instructions):
                 self._gates.append(
                         [(
                             (1/trotter_steps)*scaleH*item.c,
-                            item.p
+                            item.s
                             ),
                             generic_Pauli_term
                             ]

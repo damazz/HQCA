@@ -6,6 +6,7 @@ from numpy import conj as con
 from numpy import complex_
 from functools import reduce
 from hqca.tools import _rdmfunctions as rdmf
+from copy import deepcopy as copy
 
 
 class RDM:
@@ -416,7 +417,7 @@ class RDM:
 class Recursive:
     def __init__(self,
             depth='default',
-            choices=[]
+            choices=[],
             ):
         if depth=='default':
             depth=len(choices)
@@ -424,7 +425,44 @@ class Recursive:
         self.total=[]
         self.choices = list(choices)
 
+    def choose(self,choices='default',temp=[]):
+        '''
+        recursive function to give different choices? 
+        '''
+        if choices=='default':
+            choices=self.choices
+        done=True
+        for c in choices:
+            if not len(c)==0:
+                done=False
+                break
+        if done:
+            self.total.append(temp)
+        else:
+            for n,i in enumerate(choices):
+                for m in reversed(range(len(i))):
+                    nc = copy(choices)
+                    j = nc[n].pop(m)
+                    self.choose(nc,temp=temp[:]+[j])
+        
+    def simplify(self):
+        '''
+
+        '''
+        new = []
+        for i in self.total:
+            r = ''.join(i)
+            if r in new:
+                pass
+            else:
+                new.append(r)
+        self.total = new
+
     def permute(self,d='default',temp=[]):
+        '''
+        chooses d number of options from the choices, and returns 
+        and ordered list of choices (01,02,03,12,13,23,etc.)
+        '''
         if d=='default':
             d = self.depth
         if d==0:
@@ -456,7 +494,6 @@ class Recursive:
                     tempChoice = choices.copy()
                     tempChoice.pop(n)
                     self.unordered_permute(d-1,temp[:]+[j],tempChoice,s)
-
 
 
 def build_2rdm(

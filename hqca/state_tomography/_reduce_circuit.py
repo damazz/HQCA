@@ -30,16 +30,20 @@ class Graph:
                 self.g.add_edge(v,e)
         else:
             self.g = graph
-   
+
     def color(self,
-            method='greedy',
+            method='gt',
             strategy='largest_first',
-            **kwargs):
+            **kwargs
+            ):
         '''
         selects coloring method and strategy from various options
 
         method should include 'greedy' (referring to networkx implementation)
-        'gt' graph_tools
+
+
+        elsewhere 'gt' refers to graph_tools
+
         '''
         if method=='greedy':
             alg = greedy_color(self.g,strategy=strategy)
@@ -76,7 +80,7 @@ class Graph:
                         self.colors[i].append(n)
                     except Exception:
                         self.colors[i]=[n]
-    
+
     def recursive_largest_first(self):
         pass
         '''
@@ -221,6 +225,7 @@ def qwc(A,B):
             return False
     return True
 
+
 def commute(A,B):
     k=0
     for i in range(len(A)):
@@ -237,6 +242,8 @@ def pauli_relation(A,B,rel='qwc'):
         return not qwc(A,B)
     elif rel=='mc':
         return not commute(A,B)
+    else:
+        return rel(A,B)
 
 def construct_simple_graph(
         items,related,
@@ -267,10 +274,10 @@ def construct_simple_graph(
                     edges = []
         graph.add_edge_list(edges)
         if verbose:
-            print('Size of edge list: {}'.format(sys.getsizeof(edges)))
+            print('Size of edge list (mem): {}'.format(sys.getsizeof(edges)))
         G = Graph(generate=False,graph=graph)
         if verbose:
-            print('Size of graph: {}'.format(sys.getsizeof(G)))
+            print('Size of graph (mem): {}'.format(sys.getsizeof(G)))
     elif backend=='nx':
         graph = nx.Graph()
         N = len(items)
@@ -308,6 +315,9 @@ def simplify_tomography(
         print('Constructing graph...')
         t1 = timeit.default_timer()
     relation = partial(pauli_relation,**{'rel':rel})
+    if len(operators)==1:
+        op = operators[0]
+        return [op],{op:op}
     graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
     if verbose:
         try:
@@ -315,8 +325,12 @@ def simplify_tomography(
                 graph.g.number_of_nodes(),
                 graph.g.number_of_edges(),
                 ))
-        except Exception:
-            pass
+        except Exception as e:
+            print('Vertices: {}, Edges: {}'.format(
+                graph.g.num_vertices(),
+                graph.g.num_edges()
+                )
+                )
         t2 = timeit.default_timer()
         print('Time to make graph: {:.2f}'.format(t2-t1))
     graph.color(**kw)
@@ -325,8 +339,10 @@ def simplify_tomography(
         print('Time to color graph: {:.2f}'.format(t3-t2))
     c2p = []
     colors = {}
+    sizes = []
     for k,v in graph.colors.items():
         V = [operators[i] for i in v]
+        sizes.append(len(V))
         colors[k]=V
     for v in range(len(colors.keys())):
         c2p.append(__find_largest_qwc(colors[v]))
@@ -336,6 +352,9 @@ def simplify_tomography(
         K = ops[k]
         for p in v:
             paulis[graph.rev_map[p]]=K
+    print('Number of colors: {}'.format(len(graph.colors.keys())))
+    print('Largest coloring: {}'.format(max(sizes)))
+    print('Standard deviation: {:.3f}'.format(np.std(np.asarray(sizes))))
     return ops,paulis
 
 def compare_tomography(

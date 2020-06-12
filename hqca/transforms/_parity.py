@@ -1,5 +1,7 @@
 import sys
 from copy import deepcopy as copy
+from hqca.tools.quantum_strings import *
+from hqca.tools._operator import *
 
 
 def _commutator_relations(lp,rp):
@@ -40,7 +42,7 @@ def _commutator_relations(lp,rp):
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
 
-class ParitySet:
+class ParityMap:
     def __init__(self,Nq,
             Nq_tot='default',
             Ne=[],
@@ -171,12 +173,26 @@ def ParityTransform(op,
                 tc = tc*c1
             if pauli[n][q2]=='Z':
                 tc = tc*c2
+            #if pauli[n][q1] in ['Y','X'] or pauli[n][q2] in ['Y','X']:
+            #    print(pauli[n])
             npauli.append(pauli[n][:q1]+pauli[n][(q1+1):q2])
             ncoeff.append(tc)
         pauli = npauli[:]
         coeff = ncoeff[:]
+        #print(pauli)
     return pauli,coeff
 
+
+def Parity(operator,
+        **kw,
+        ):
+    if isinstance(operator,type(QuantumString())):
+        return ParityTransform(operator,**kw)
+    else:
+        new = Operator()
+        for op in operator:
+            new+= ParityTransform(op,**kw)
+        return new
 
 
 

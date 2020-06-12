@@ -455,10 +455,8 @@ class qRDM:
 
 
 
-
+'''
 class Recursive:
-    '''
-    '''
     def __init__(self,
             depth='default',
             choices=[]
@@ -501,7 +499,7 @@ class Recursive:
                     tempChoice = choices.copy()
                     tempChoice.pop(n)
                     self.unordered_permute(d-1,temp[:]+[j],tempChoice,s)
-
+'''
 
 
 def build_2rdm(

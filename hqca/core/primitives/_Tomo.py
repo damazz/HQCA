@@ -9,14 +9,18 @@ def _apply_pauli_op(Q,loc,sigma='x',inv=False):
         pass
     elif sigma in ['y','Y']:
         if not inv:
-            Q.qc.rx(-pi/2,Q.q[loc])
             #Q.qc.z(Q.q[loc])
             #Q.qc.s(Q.q[loc])
             #Q.qc.h(Q.q[loc])
-        else:
+            #Q.qc.s(Q.q[loc])
+            #Q.qc.z(Q.q[loc])
             Q.qc.rx(pi/2,Q.q[loc])
+        else:
             #Q.qc.h(Q.q[loc])
             #Q.qc.s(Q.q[loc])
+            #Q.qc.h(Q.q[loc])
+            #Q.qc.s(Q.q[loc])
+            Q.qc.rx(pi/2,Q.q[loc])
 
 
 def _pauli_1rdme_inline_symm(Q,i,j,anc,pauli='xx',swap=False):

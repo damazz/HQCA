@@ -5,6 +5,7 @@ from hqca.tools import *
 import numpy as np
 from pyscf import gto,mcscf,scf
 import timeit
+from copy import deepcopy as copy
 
 
 class FermionicHamiltonian(Hamiltonian):
@@ -13,8 +14,7 @@ class FermionicHamiltonian(Hamiltonian):
             ints_1e,
             ints_2e,
             ints_spatial=True,
-            mapping='jordan-wigner',
-            kw_mapping={},
+            transform=None,
             int_thresh=1e-10,
             Ne_active_space='default',
             No_active_space='default',
@@ -33,7 +33,6 @@ class FermionicHamiltonian(Hamiltonian):
         self._model='fermionic'
         self.real=True
         self.imag=False
-        #self.e0 = self.hf.e_tot
         self.C = np.identity(ints_1e.shape[0])
         self._order = 2
         if Ne_active_space=='default':
@@ -51,16 +50,6 @@ class FermionicHamiltonian(Hamiltonian):
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
         self._generate_spin2spac_mapping()
-        #if self.No_as<=4:
-        #    self.mc = mcscf.CASCI(
-        #            self.hf,
-        #            self.No_as,
-        #            self.Ne_as)
-        #    self.mc.kernel()
-        #    self.ef  = self.mc.e_tot
-        #    self.mc_coeff = self.mc.mo_coeff
-        #if self.verbose:
-        #    print('CASCI Energy: {:.8f}'.format(float(self.ef)))
         self.spin = proxy_mol.spin
         self.norm = normalize
         self._generate_active_space()
@@ -110,8 +99,7 @@ class FermionicHamiltonian(Hamiltonian):
         if self.verbose:
             print('... Done!')
         self._matrix = contract(self.K2)
-        self._mapping = mapping
-        self._kw_mapping = kw_mapping
+        self._transform = transform
         if generate_operators:
             self._build_operator(int_thresh)
         else:
@@ -205,13 +193,38 @@ class FermionicHamiltonian(Hamiltonian):
             self.s2s[i]=i-self.No_tot
 
 
+    def build_separable_operator(self,
+            ordering='default',  #ordering of H to use
+            threshold=1e-5,   #cut off for ints
+            specific_grouping=[], #not used for most
+            ):
+        '''
+        takes the self._qubOp representation and generates
+        input: keywords related to modifying self._qubOp
+
+        output: generates self._qubOp_sep, which is a list of separated
+        operators 
+        '''
+        self._qubOp_sep = []
+        if ordering in ['given','specified']:
+            for group in specific_grouping:
+                new = Operator()
+                for item in group:
+                    for op in self._qubOp:
+                        if op.s==item:
+                            new+= copy(op)
+                            break
+                self._qubOp_sep.append(new)
+
+
     def _build_operator(self,int_thresh=1e-10):
         if self.norm:
             Cnorm = np.max(np.abs(self.K2))/(np.pi)
         else:
             Cnorm=1
-        print(Cnorm)
-        print('Time: ')
+        if self.verbose:
+            print('Normalization: {}'.format(Cnorm))
+            print('Time: ')
         t1 = timeit.default_timer()
         alp = self.alpha_mo['active']
         bet = self.beta_mo['active']
@@ -228,21 +241,16 @@ class FermionicHamiltonian(Hamiltonian):
                 Q = o2q[q]
                 if abs(self.ints_1e[p,q])<=int_thresh:
                     continue
-                newOp = FermionicOperator(
+                newOp = FermiString(
                         coeff=self.ints_1e[p,q]/Cnorm,
                         indices=[P,Q],
-                        sqOp='+-',
-                        antisymmetric=True,
-                        add=True
+                        ops='+-',
+                        N = len(alp+bet),
                         )
-                newOp.generateOperators(
-                        Nq=2*self.No_as,
-                        mapping=self._mapping,
-                        **self._kw_mapping)
                 ferOp+= newOp
-                qubOp+= newOp.formOperator()
         t2 = timeit.default_timer()
-        print('1e terms: {}'.format(t2-t1))
+        if self.verbose:
+            print('1e terms: {}'.format(t2-t1))
 
         # starting 2 electron terms
         for p in alp+bet:
@@ -266,26 +274,25 @@ class FermionicHamiltonian(Hamiltonian):
                             continue
                         if abs(self.ints_2e[p,r,q,s])<=int_thresh:
                             continue
-                        newOp = FermionicOperator(
+                        newOp = FermiString(
                                 coeff=0.5*self.ints_2e[p,r,q,s]/Cnorm,
                                 indices=[P,R,S,Q],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
-                                )
-                        newOp.generateOperators(
-                                Nq=2*self.No_as,
-                                mapping=self._mapping,
-                                **self._kw_mapping
+                                ops='++--',
+                                N = len(alp+bet),
                                 )
                         ferOp+= newOp
-                        qubOp+= newOp.formOperator()
-        qubOp.clean()
+        new = ferOp.transform(self._transform)
+        qubOp = Operator()
+        for i in new:
+            if abs(i.c)>int_thresh:
+                qubOp+= i
+
         self._qubOp = qubOp
         self._ferOp = ferOp
         t3 = timeit.default_timer()
-        print('2e terms: {}'.format(t3-t2))
         if self.verbose:
+            print('2e terms: {}'.format(t3-t2))
+            print('-------------------')
             print('Fermionic Hamiltonian')
             print(ferOp)
             print('Hamiltonian in Pauli Basis:')

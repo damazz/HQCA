@@ -4,6 +4,8 @@ import numpy as np
 from functools import reduce
 from math import floor,ceil,log2
 from copy import deepcopy as copy
+from hqca.tools._operator import *
+from hqca.tools.quantum_strings import *
 
 def _commutator_relations(lp,rp):
     if rp=='I':
@@ -52,7 +54,7 @@ def _commutator_relations(lp,rp):
     else:
         sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
 
-class BravyiKitaevSet:
+class BravyiKitaevMap:
     def __init__(self,Nq,
             Nq_tot='default',
             Ne=[],alternating=False,reduced=False):
@@ -175,6 +177,7 @@ class BravyiKitaevSet:
                         i.remove(j)
                         done=False
                         break
+
 
 def BravyiKitaevTransform(op,
         Nq,
@@ -313,4 +316,17 @@ def BravyiKitaevTransform(op,
             pauli[n]=p[:q1]+p[(q1+1):q2]
             coeff[n] = c
     return pauli,coeff
+
+
+def BravyiKitaev(operator,
+        **kw
+        ):
+    if isinstance(operator,type(QuantumString())):
+        return BravyiKitaevTransform(operator,**kw)
+    else:
+        new = Operator()
+        for op in operator:
+            new+= BravyiKitaevTransform(op,**kw)
+        return new
+
 

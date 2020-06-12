@@ -1,48 +1,139 @@
 import numpy as np
-from hqca.tools._operator import *
-from hqca.tools._qubit_operator import PauliOperator
-from hqca.tools.fermions import *
+from copy import deepcopy as copy
+from hqca.tools.quantum_strings._quantum_string import *
 from sympy import symbols
 from sympy import re,im
 
-class FermionicOperator:
+class FermiString(QuantumString):
     '''
     Class of operators, obeys simple fermionic statistics.
 
     Also used to generate raw lists of Pauli strings and subterms, which can be
     compiled for circuits and tomography.
+
+    has a key word defining the type 
     '''
     def __init__(self,
             coeff=1,
+            s=None, # string
             indices=[0,1,2,3], #orbital indices
-            sqOp='-+-+', #second quantized operators
-            spin='abba',  # spin, for help.
+            ops='-+-+', #second quantized operators
+            N=10,
             antisymmetric=True,
             add=True,
             symbolic=False,
             ):
-        self.c =coeff
         self.fermi = antisymmetric
-        self.ind =indices
-        self.op = sqOp
+        if type(s)==type(None):
+            self._generate_from_sq(coeff,inds=indices,sqop=ops,N=N)
+        else:
+            # generate from string
+            self.s = string
+            self.c = coeff
         self.sym = symbolic
         self.add = add
-        self.sp = spin
-        self.norm = self.c*np.conj(self.c)
-        self.order = len(sqOp)
-        self.as_set = set(indices)
-        self._qubit_order()
-        self._simplify()
-        self._classify()
-
-    #def __str__(self):
-    #    z = '{}, {}, {}: {}'.format(self.ind,self.op,self.sp,self.qCo)
-    #    return z
 
     def __str__(self):
-        z1 = '{}, {}, {}: {}, '.format(self.ind,self.op,self.sp,self.qCo)
-        z2 = '<< {},{} >>'.format(self.qInd,self.qOp)
-        return z1+z2
+        s = ''.join([j for j in self.s if not j=='i'])
+        i = ''.join([str(n) for n in range(len(self.s)) if not self.s[n]=='i'])
+        #z = '{} {} {} '.format(self.c,s,i)
+        z = '{}: {}'.format(self.s,self.c)
+        return z
+
+    def __len__(self):
+        return len(self.ops())
+
+    def __add__(self,A):
+        new = copy(self)
+        if A==self:
+            new.c += A.c
+        else:
+            sys.exit('What are you adding these operators?')
+        return new
+
+    def __eq__(self,A):
+        return A.s==self.s
+
+    def inds(self):
+        return [n for n in range(len(self.s)) if not self.s[n]=='i']
+
+    def ops(self):
+        return  [j for j in self.s if not j=='i']
+
+    def N(self):
+        return len(self.s)
+
+    def __mul__(self,A):
+        s = ''
+        ind = []
+        for j in [self,A]:
+            for i in range(len(j.s)):
+                if not j.s[i]=='i':
+                    s+= j.s[i]
+                    ind.append(i)
+        #print(s,ind,self,A)
+        return FermiString(
+                coeff=self.c*A.c,
+                indices=ind,
+                ops=s,
+                antisymmetric=self.fermi,
+                add=self.add,
+                N=max(len(self.s),len(A.s)),
+                symbolic=self.sym)
+
+    def _generate_from_sq(self,coeff=1,inds=[],sqop='',N=10):
+        sort = False
+        while not sort:
+            sort=True
+            for i in range(len(sqop)-1):
+                if inds[i]>inds[i+1]:
+                    if self.fermi:
+                        if sqop[i] in ['p','h']:
+                            pass
+                        elif sqop[i+1] in ['p','h']:
+                            pass
+                        else:
+                            coeff*=-1
+                    inds = inds[:i]+[inds[i+1]]+[inds[i]]+inds[i+2:]
+                    sqop = sqop[:i]+sqop[i+1]+sqop[i]+sqop[i+2:]
+                    sort=False
+                    break
+        #print(sqop,inds)
+        if len(set(inds))==len(sqop):
+            pass
+        else:
+            zeros = ['h+','-h','p-','+p','++','--','ph','hp']
+            simple = {
+                    'h-':'-','+h':'+','p+':'+','-p':'-',
+                    'pp':'p','hh':'h','+-':'p','-+':'h',}
+            done = False
+            while not done:
+                done=True
+                for i in range(len(inds)-1):
+                    if inds[i]==inds[i+1]:
+                        inds.pop(i+1)
+                        if sqop[i:i+2] in zeros:
+                            coeff=0
+                            sqop= ''
+                            break
+                        else:
+                            key = simple[sqop[i:i+2]]
+                            sqop = sqop[0:i]+key+sqop[i+2:]
+                        done=False
+                        break
+        if coeff==0:
+            s = 'i'*N
+        else:
+            s = 'i'*inds[0]
+            #print(sqop,inds,s)
+            for i in range(len(inds)-1):
+                s+= sqop[i]
+                s+='i'*(inds[i+1]-inds[i]-1)
+            s+= sqop[-1]+'i'*(N-inds[-1]-1)
+        self.s = s
+        self.c = coeff
+
+
 
     def hasSameInd(self,b):
         '''
@@ -53,10 +144,6 @@ class FermionicOperator:
         else:
             return False
 
-    def clear(self):
-        self.pPauli = []
-        self.pGet = []
-        self.pCoeff = []
 
     def hasSameOp(self,b):
         return self.qOp==b.qOp
@@ -93,40 +180,6 @@ class FermionicOperator:
         else:
             return False
 
-    def _classify(self):
-        if self.order%2==0:
-            l = len(set(self.ind))
-            if l==1 and self.order==2:
-                self.opType = 'no' #number operator
-            elif l==2 and self.order==2:
-                self.opType = 'se' # single excitation
-            elif l==2 and self.order==4:
-                self.opType = 'nn' # double number operator
-            elif l==3 and self.order==4:
-                self.opType = 'ne' # number-excitation operator
-            elif l==4 and self.order==4:
-                self.opType = 'de' # double excitation operator
-            else:
-                self.opType = 'none'
-            self.rdm = self.order//2
-            Nb,Na = 0,0
-            for i in self.sp:
-                if i=='a':
-                    Na+=1 
-                elif i=='b':
-                    Nb+=1
-            if Na-Nb==0:
-                self.spBlock = 'ab'
-            elif Na-Nb==-1:
-                self.spBlock = 'b'
-            elif Na-Nb==1:
-                self.spBlock = 'a'
-            elif Na-Nb==-2:
-                self.spBlock = 'bb'
-            elif Na-Nb==2:
-                self.spBlock = 'aa'
-        else:
-            pass
 
     def _simplify(self):
         '''
@@ -166,36 +219,14 @@ class FermionicOperator:
                         done=False
                         break
 
-    def _qubit_order(self):
-        sort = False
-        self.no = self.ind[:]
-        to = self.op[:]
-        ts = self.sp[:]
-        ti = self.ind[:]
-        tc = self.c
-        order = self.order
-        while not sort:
-            sort=True
-            for i in range(order-1):
-                if ti[i]>ti[i+1]:
-                    if self.fermi:
-                       tc*=-1
-                    to = to[:i]+to[i+1]+to[i]+to[i+2:]
-                    ti = ti[:i]+[ti[i+1]]+[ti[i]]+ti[i+2:]
-                    ts = ts[:i]+ts[i+1]+ts[i]+ts[i+2:]
-                    sort=False
-                    break
-        self.qOp = to
-        self.qInd = ti
-        self.qSp = ts
-        self.qCo = tc
-        self.q2rdm = tc
 
     ##
     #
     # Hermitian Excitation Operators, such as in exp(iHt)
     #
     ##
+
+
     def generateTomography(self,**kw):
         self.generateOperators(**kw)
 
@@ -207,7 +238,7 @@ class FermionicOperator:
             **kw):
         if mapping in ['jw','jordan-wigner']:
             self.pPauli,self.pCoeff = JordanWignerTransform(
-                    self,Nq)
+                    self,Nq,**kw)
         elif mapping=='parity':
             self.pPauli,self.pCoeff = ParityTransform(
                     self,Nq,**kw)

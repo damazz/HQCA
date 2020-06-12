@@ -48,6 +48,7 @@ class RunACSE(QuantumRun):
             hamiltonian_step_size=0.1,
             restrict_S_size=0.5,
             propagation='trotter',
+            separate_hamiltonian=False,
             verbose=True,
             tomo_S=None,
             tomo_Psi=None,
@@ -55,6 +56,9 @@ class RunACSE(QuantumRun):
             statistics=False,
             processor=None,
             **kw):
+        '''
+        Updates the ACSE keywords. 
+        '''
         if update in ['quantum','Q','q']:
             self.acse_update = 'q'
         elif update in ['class','classical','c','C']:
@@ -73,6 +77,7 @@ class RunACSE(QuantumRun):
         self.max_iter = max_iter
         self.crit = opt_thresh
         self.hamiltonian_step_size = hamiltonian_step_size
+        self.sep_hamiltonian = separate_hamiltonian
         self.qS_thresh_rel = quantS_thresh_rel
         self.qS_max = quantS_max
         self.delta = restrict_S_size
@@ -90,18 +95,25 @@ class RunACSE(QuantumRun):
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      --  ACSE KEYWORDS --      ')
         print('-- -- -- -- -- -- -- -- -- -- --')
+        print('algorithm...')
         print('ACSE Method: {}'.format(method))
         print('ACSE Update: {}'.format(update))
         print('Max iterations: {}'.format(max_iter))
         print('Convergence type: {}'.format(convergence_type))
         print('Convergence threshold: {}'.format(self.crit))
-        print('Hamiltonian epsilon: {}'.format(hamiltonian_step_size))
-        print('Trotter-H: {}'.format(trotter))
+
+        print('solution of ACSE...')
+        if self.acse_update=='q':
+            print('Trotter-H: {}'.format(trotter))
+            print('Hamiltonian delta: {}'.format(hamiltonian_step_size))
+            print('Quant-S rel threshold: {}'.format(quantS_thresh_rel))
+            print('Quant-S max threshold: {}'.format(quantS_max))
+        elif self.acse_update=='c':
+            print('Class-S rel threshold: {}'.format(classS_thresh_rel))
+            print('Class-S max threshold: {}'.format(classS_max))
+        print('implementing the ansatz...')
+        print('S epsilon: {}'.format(self.delta))
         print('Trotter-S: {}'.format(ansatz_depth))
-        print('Quant-S rel threshold: {}'.format(quantS_thresh_rel))
-        print('Quant-S max threshold: {}'.format(quantS_max))
-        print('Class-S rel threshold: {}'.format(classS_thresh_rel))
-        print('Class-S max threshold: {}'.format(classS_max))
         if self.acse_method=='newton':
             self._update_acse_newton(**kw)
         self.grad=0
@@ -144,8 +156,8 @@ class RunACSE(QuantumRun):
             sys.exit('Build error.')
         if self.Store.use_initial:
             self.S = copy(self.Store.S)
-            for s in self.S.op:
-                s.qCo*=self.delta
+            for s in self.S:
+                #s.qCo*=self.delta
                 s.c*=self.delta
             ins = self.Instruct(
                     operator=self.S,
@@ -171,10 +183,11 @@ class RunACSE(QuantumRun):
             print('S: ')
             print(self.S)
             print('Initial density matrix.')
-            print(circ.rdm.rdm)
+            circ.rdm.contract()
+            print(np.real(circ.rdm.rdm))
             #self._calc_variance(circ)
         else:
-            self.S = Operator(ops=[],antihermitian=True)
+            self.S = Operator()
             self.e0 = self.Store.e0
             self.ei = self.Store.ei
         self.best = self.e0
@@ -215,6 +228,7 @@ class RunACSE(QuantumRun):
                     propagate_method=self.propagate_method,
                     depth=self.S_trotter,
                     commutative=self.S_commutative,
+                    separate_hamiltonian=self.sep_hamiltonian,
                     verbose=self.verbose,
                     tomo=self.tomo_S,
                     )
@@ -247,8 +261,8 @@ class RunACSE(QuantumRun):
         '''
         # where is step size from? 
         # test procedure
-        for s in testS.op:
-            s.qCo*=self.delta
+        for s in testS:
+            #s.qCo*=self.delta
             s.c*=self.delta
         self.S = self.S+testS
         ins = self.Instruct(
@@ -291,8 +305,8 @@ class RunACSE(QuantumRun):
                 pass
             elif en>self.e0:
                 self.delta*=-1
-                for s in testS.op:
-                    s.qCo*=-2
+                for s in testS:
+                    #s.qCo*=-2
                     s.c*=-2
                 self.S+= testS
                 ins = self.Instruct(operator=self.S,
@@ -320,9 +334,8 @@ class RunACSE(QuantumRun):
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
         currS = copy(self.S)
-        for f in testS.op:
+        for f in testS:
             f.c*= parameter[0]
-            f.qCo*= parameter[0]
         temp = currS+testS
         tIns =self.Instruct(
                 operator=temp,
@@ -473,13 +486,13 @@ class RunACSE(QuantumRun):
                     trust_iter+=1
                     if trust_iter>=2:
                         trust=True
-            for f in testS.op:
-                f.qCo*= coeff
+            for f in testS:
+                #f.qCo*= coeff
                 f.c*= coeff
             self.S = self.S+testS
         else:
-            for f in testS.op:
-                f.qCo*= -(d1D/d2D)
+            for f in testS:
+                #f.qCo*= -(d1D/d2D)
                 f.c*= -(d1D/d2D)
             self.S = self.S+testS
         if not self.use_trust_region:
