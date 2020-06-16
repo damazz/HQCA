@@ -17,6 +17,7 @@ class SymmetryProjection:
             transform,
             quantstore,
             weight='default',
+            skip_sz=False,
             verbose=False):
         '''
         takes a fermionic operator, and performs the following.
@@ -81,20 +82,21 @@ class SymmetryProjection:
                 dimNe = len(perm.total)   ## length of something? 
                 dimCe = 2**(len(ops[0][1])) # length constant
                 sz_done = False
-                while not sz_done: #filtering out wrong excitations
-                    sz_done = True
-                    for z,op_str in enumerate(perm.total):
-                        na,nb=0,0
-                        for s,q in zip(op_str,sites):
-                            if q in alp:
-                                na+= (-1)**(s=='+')
-                            else:
-                                nb+= (-1)**(s=='+')
-                        if not na==0 and not nb==0:
-                            perm.total.pop(z)
-                            sz_done = False
-                            dimNe-=1
-                            break
+                if skip_sz:
+                    while not sz_done: #filtering out wrong excitations
+                        sz_done = True
+                        for z,op_str in enumerate(perm.total):
+                            na,nb=0,0
+                            for s,q in zip(op_str,sites):
+                                if q in alp:
+                                    na+= (-1)**(s=='+')
+                                else:
+                                    nb+= (-1)**(s=='+')
+                            if not na==0 and not nb==0:
+                                perm.total.pop(z)
+                                sz_done = False
+                                dimNe-=1
+                                break
                 def bin_to_ph(binary):
                     ret = ''
                     for item in binary:

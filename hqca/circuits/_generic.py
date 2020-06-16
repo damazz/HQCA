@@ -31,3 +31,6 @@ class GenericCircuit(Circuit):
 
     def Rz(self,q,val):
         self.qc.rz(val,self.q[q])
+
+    def Sw(self,q,p):
+        self.qc.swap(self.q[q],self.q[p])

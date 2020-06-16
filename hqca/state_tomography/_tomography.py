@@ -112,9 +112,10 @@ class StandardTomography(Tomography):
                 apply_pauli_string(Q,s)
             Q.apply(Instruct=Instruct)
             if self.verbose:
-                if i==0:
-                    print(Q.qc.qasm())
-                    i+=1 
+                pass
+                #if i==0:
+                #    print(Q.qc.qasm())
+                #    i+=1 
             for n,q in enumerate(circ):
                 pauliOp(Q,n,q)
             if self.qs.backend in ['unitary_simulator','statevector_simulator']:
