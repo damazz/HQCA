@@ -111,10 +111,10 @@ class StandardTomography(Tomography):
             for s in init:
                 apply_pauli_string(Q,s)
             Q.apply(Instruct=Instruct)
-            #if self.verbose:
-            #    if i==0:
-            #        print(Q.qc.qasm())
-            #        i+=1 
+            if self.verbose:
+                if i==0:
+                    print(Q.qc.qasm())
+                    i+=1 
             for n,q in enumerate(circ):
                 pauliOp(Q,n,q)
             if self.qs.backend in ['unitary_simulator','statevector_simulator']:
@@ -487,7 +487,7 @@ class StandardTomography(Tomography):
         return new
 
     def _generate_pauli_measurements(self,
-            simplify=False,
+            simplify=True,
             symmetries=[],
             **kw):
         paulis = []
@@ -497,17 +497,6 @@ class StandardTomography(Tomography):
                     pass
                 else:
                     paulis.append(j.s)
-        for i in symmetries:
-            if j in paulis:
-                pass
-            else:
-                paulis.append(j)
-            for j in paulis:
-                new = self._pauli_commutation(i,j)
-                if new in paulis:
-                    pass
-                else:
-                    paulis.append(new)
         if simplify==True:
             self.op,self.mapping = simplify_tomography(
                     paulis,

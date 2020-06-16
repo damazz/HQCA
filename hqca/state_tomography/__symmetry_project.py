@@ -278,6 +278,8 @@ class SymmetryProjection:
                     # now, express original operator as a vector in op basis
                     v_f = np.zeros((dimNe*dimCe-dimNull,1))
                     for fermi in op:
+                        if fermi.c==0:
+                            continue
                         v_f[op_basis[''.join(fermi.ops())]]=fermi.c
                     x = np.linalg.solve(sq_pauli_to_op,v_f)
                     #

@@ -48,7 +48,6 @@ class ReducedTomography(StandardTomography):
             rdme = []
             bet = self.qs.groups[1]
             S = []
-
             def sub_rdme(i,k,l,j,transform,**kw):
                 op = Operator()
                 if self.real and self.imag:

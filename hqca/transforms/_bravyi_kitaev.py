@@ -167,37 +167,31 @@ def BravyiKitaevTransform(op,**kw):
     Nq = len(op.s)
     MapSet = BravyiKitaevMap(Nq)
     pauli = ['I'*Nq]
-    new = Operator()+PauliString('I'*Nq,1)
+    new = Operator()+PauliString('I'*Nq,op.c)
     for q,o in enumerate(op.s):
         if o=='i':
             continue
         if o in ['+','-']:
-            u,p,r = 'I'*Nq,'I'*Nq,'I'*Nq
+            s1 = 'I'*Nq
+            s2 = 'I'*Nq
             for i in MapSet.update[q]:
-                u= u[:i]+'X'+u[i+1:]
+                s1= s1[:i]+'X'+s1[i+1:]
+                s2= s2[:i]+'X'+s2[i+1:]
             for i in MapSet.parity[q]:
-                p= p[:i]+'Z'+p[i+1:]
+                s1= s1[:i]+'Z'+s1[i+1:]
             for i in MapSet.rho[q]:
-                r= r[:i]+'Z'+r[i+1:]
-            p = Operator()+PauliString(p,1)
-            r = Operator()+PauliString(r,1)
-            u = Operator()+PauliString(u,1)
-            x = 'I'*q +'X'+(Nq-q-1)*'I'
-            y = 'I'*q +'Y'+(Nq-q-1)*'I'
-            s1 = Operator()+PauliString(x,0.5)
-            s2 = Operator()+PauliString(y,1j*((o=='-')-0.5))
-            s1 = (s1*u)*p
-            s2 = (s2*u)*r
+                s2= s2[:i]+'Z'+s2[i+1:]
+            s1 = s1[:q]+'X'+s1[q+1:]
+            s2 = s2[:q]+'Y'+s2[q+1:]
+            s1 = Operator()+PauliString(s1,0.5)
+            s2 = Operator()+PauliString(s2,1j*((o=='-')-0.5))
         elif o in ['p','h']:
             f = 'I'*Nq
             for i in MapSet.flip[q]:
                 f = f[:i]+'Z'+f[i+1:]
-            f = Operator()+PauliString(f,1)
+            f = f[:q]+'Z'+f[q+1:]
             s1 = Operator()+PauliString('I'*Nq,0.5)
-            t = 'I'*q+'Z'+(Nq-q-1)*'I'
-            s2 = Operator()+PauliString(t,(o=='h')-0.5)
-            s1 = s1*f
-            s2 = s2*f
+            s2 = Operator()+PauliString(f,(o=='h')-0.5)
         temp = Operator()
         temp+= s1
         temp+= s2

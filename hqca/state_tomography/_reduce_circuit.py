@@ -7,7 +7,6 @@ from copy import deepcopy as copy
 import networkx as nx
 import graph_tool as gt
 from graph_tool import topology
-from networkx.algorithms.coloring import *
 
 class Graph:
     '''
@@ -24,6 +23,7 @@ class Graph:
             graph=None,
             backend='nx',
             **kwargs):
+        self.singular = []
         if generate:
             self.g = nx.Graph()
             for (v,e) in edges:
@@ -40,19 +40,22 @@ class Graph:
         selects coloring method and strategy from various options
 
         method should include 'greedy' (referring to networkx implementation)
-
-
         elsewhere 'gt' refers to graph_tools
 
         '''
         if method=='greedy':
             alg = greedy_color(self.g,strategy=strategy)
             self.colors = {}
+            nc = 0
             for k,v in alg.items():
                 try:
                     self.colors[v].append(k)
-                except Exception:
+                except Exception as e:
                     self.colors[v]=[k]
+                    print(e)
+                nc+=1 
+            for k in self.singular:
+                self.colors[nc]=[k]
         elif method=='gt':
             if strategy in ['default']:
                 self.alg = gt.topology.sequential_vertex_coloring(self.g)
@@ -80,6 +83,10 @@ class Graph:
                         self.colors[i].append(n)
                     except Exception:
                         self.colors[i]=[n]
+                for k in self.singular:
+                    if not k in alg.a:
+                        print('Reassigning element ',k)
+                        self.colors[0].append(k)
 
     def recursive_largest_first(self):
         pass
@@ -258,12 +265,17 @@ def construct_simple_graph(
         j = 1
         n = 0
         edges = []
+        single = []
         while j<N-1:
             j+=1
+            rel = False
             for i in range(j):
                 if related(items[i],items[j]):
                     n+=1 
                     edges.append([i,j])
+                    rel=True
+            if not rel:
+                single.append(j)
             if n//1e7>0 and n>0: #10 million edges 
                 n-=1e7
                 if sys.getsizeof(edges)>1e10:
@@ -276,8 +288,10 @@ def construct_simple_graph(
         if verbose:
             print('Size of edge list (mem): {}'.format(sys.getsizeof(edges)))
         G = Graph(generate=False,graph=graph)
+        G.singular = single
         if verbose:
             print('Size of graph (mem): {}'.format(sys.getsizeof(G)))
+    '''
     elif backend=='nx':
         graph = nx.Graph()
         N = len(items)
@@ -289,6 +303,7 @@ def construct_simple_graph(
         G = Graph(generate=False,graph=graph)
         if verbose:
             print('Size of graph: {}'.format(sys.getsizeof(G)))
+    '''
     G.rev_map = items
     return G
 

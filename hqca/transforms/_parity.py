@@ -26,8 +26,8 @@ def ParityTransform(op):
                 s2 = 'I'*(qi-1)+'IY'+(Nq-qi-1)*'X'
                 c1,c2 = 0.5,((o=='-')-0.5)*1j
             elif o in ['p','h']:
-                s1 = 'I'*qi+'I'+(Nq-qi-1)*'I'
-                s2 = 'I'*qi+'Z'+(Nq-qi-1)*'I'
+                s1 = 'I'*(qi-1)+'II'+(Nq-qi-1)*'I'
+                s2 = 'I'*(qi-1)+'ZZ'+(Nq-qi-1)*'I'
                 c1,c2 = 0.5,(o=='h')-0.5
         tem = Operator()
         tem+= PauliString(s1,c1)

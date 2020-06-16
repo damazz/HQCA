@@ -82,6 +82,7 @@ class FermiString(QuantumString):
                 symbolic=self.sym)
 
     def _generate_from_sq(self,coeff=1,inds=[],sqop='',N=10):
+        #print(sqop,inds,coeff,N)
         sort = False
         while not sort:
             sort=True
@@ -99,7 +100,7 @@ class FermiString(QuantumString):
                     sort=False
                     break
         #print(sqop,inds)
-        if len(set(inds))==len(sqop):
+        if len(set(copy(inds)))==len(sqop):
             pass
         else:
             zeros = ['h+','-h','p-','+p','++','--','ph','hp']
@@ -150,8 +151,8 @@ class FermiString(QuantumString):
 
     def hasHermitianOp(self,b):
         # if all unique elements
-        if len(b.qOp)==len(set(b.qOp)):
-            for l in range(len(b.qOp)):
+        if len(b.qOp)==len(copy(set(b.qOp[:]))):
+            for l in range(len(copy(b.qOp[:]))):
                 if b.qOp[l]==self.qOp[l]:
                     return False
         else:
@@ -198,7 +199,7 @@ class FermiString(QuantumString):
                 '+-':'p',
                 '-+':'h',
                 }
-        if len(set(self.qInd))==len(self.qInd):
+        if len(set(copy(self.qInd[:])))==len(copy(self.qInd)):
             pass
         else:
             done = False
