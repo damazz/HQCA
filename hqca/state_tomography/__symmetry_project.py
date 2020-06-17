@@ -18,7 +18,8 @@ class SymmetryProjection:
             quantstore,
             weight='default',
             skip_sz=False,
-            verbose=False):
+            verbose=False,
+            **kw):
         '''
         takes a fermionic operator, and performs the following.
 
