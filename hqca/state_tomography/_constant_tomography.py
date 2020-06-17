@@ -71,7 +71,7 @@ class ReducedTomography(StandardTomography):
                     )
                 op+= test
                 #con = ConstantNumberProjection(op,transform)
-                con = SymmetryProjection(op,transform,self.qs)
+                con = SymmetryProjection(op,transform,self.qs,**kw)
                 #print('---')
                 #print('Qubit op: ')
                 #print(con.qubOp)

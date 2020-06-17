@@ -59,5 +59,4 @@ for atoms,Q,S in zip(molecules,qubits,spins):
     tomoRe.generate(
             real=True,imag=False,
             transform=T,verbose=True,
-            rel='qwc',
             )

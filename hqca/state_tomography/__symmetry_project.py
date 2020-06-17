@@ -82,7 +82,7 @@ class SymmetryProjection:
                 dimNe = len(perm.total)   ## length of something? 
                 dimCe = 2**(len(ops[0][1])) # length constant
                 sz_done = False
-                if skip_sz:
+                if skip_sz==False:
                     while not sz_done: #filtering out wrong excitations
                         sz_done = True
                         for z,op_str in enumerate(perm.total):
