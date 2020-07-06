@@ -194,6 +194,8 @@ class StorageACSE(Storage):
                 #sys.exit('Negative eigenvalue?')
             rdm.expand()
             rdm1 = rdm.reduce_order()
+            print('1-RDM: ')
+            print(rdm.rdm)
             print('Eigenvalues of 1-RDM:')
             for i in np.linalg.eigvalsh(rdm1.rdm):
                 if abs(i)>1e-10:

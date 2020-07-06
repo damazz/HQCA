@@ -15,9 +15,9 @@ from hqca.core.primitives import *
 from qiskit import transpile,assemble,execute
 
 class RDMElement:
-    def __init__(self,op,transform,ind=None,**kw):
+    def __init__(self,op,qubOp,ind=None,**kw):
         self.rdmOp = op
-        self.qubOp = op.transform(transform)
+        self.qubOp = qubOp
         try:
             ind[0]
             self.ind = ind
@@ -59,11 +59,9 @@ class StandardTomography(Tomography):
     def _preset_configuration(self,
             Tomo=None,
             ):
-        #self.grouping = Tomo.preset_cliques
         self.grouping=True
         self.mapping = Tomo.mapping
         self.op = Tomo.op
-        #print(self.grouping)
         self.rdme = Tomo.rdme
         self.real = Tomo.real
         self.imag = Tomo.imag
@@ -111,19 +109,19 @@ class StandardTomography(Tomography):
             for s in init:
                 apply_pauli_string(Q,s)
             Q.apply(Instruct=Instruct)
-            if self.verbose:
-                pass
-                #if i==0:
-                #    print(Q.qc.qasm())
-                #    i+=1 
-            for n,q in enumerate(circ):
-                pauliOp(Q,n,q)
             if self.qs.backend in ['unitary_simulator','statevector_simulator']:
-                pass
+                for (i,j) in Q.sl:
+                    Q.qc.swap(Q.q[i],Q.q[j])
+                for n,q in enumerate(circ):
+                    pauliOp(Q,n,q)
             else:
-                Q.qc.measure(Q.q,Q.c)
+                for n,q in enumerate(circ):
+                    j = Q.swap[n]
+                    pauliOp(Q,j,q)
+                for i in range(self.qs.Nq):
+                    j = Q.swap[i]
+                    Q.qc.measure(Q.q[j],Q.c[i])
             self.circuits.append(Q.qc)
-
 
     def construct(self,
             **kwargs):
@@ -206,20 +204,23 @@ class StandardTomography(Tomography):
                         backend=self.qs.backend,
                         Nq=self.qs.Nq_tot)
                 temp+= zMeas*op.c
-            opAnn = r.ind[2:][::-1]
-            opCre = r.ind[0:2]
-            reAnn = Recursive(choices=opAnn)
-            reCre = Recursive(choices=opCre)
-            reAnn.unordered_permute()
-            reCre.unordered_permute()
-            for i in reAnn.total:
-                for j in reCre.total:
-                    ind1 = tuple(j[:self.p]+i[:self.p])
-                    s = i[self.p]*j[self.p]
-                    nRDM[ind1]+=temp*s #factor of 2 is for double counting
-                    if not set(i[:2])==set(j[:2]):
-                        ind2 = tuple(i[:self.p]+j[:self.p])
-                        nRDM[ind2]+=np.conj(temp)*s
+            if self.p==2:
+                opAnn = r.ind[2:][::-1]
+                opCre = r.ind[0:2]
+                reAnn = Recursive(choices=opAnn)
+                reCre = Recursive(choices=opCre)
+                reAnn.unordered_permute()
+                reCre.unordered_permute()
+                for i in reAnn.total:
+                    for j in reCre.total:
+                        ind1 = tuple(j[:self.p]+i[:self.p])
+                        s = i[self.p]*j[self.p]
+                        nRDM[ind1]+=temp*s #factor of 2 is for double counting
+                        if not set(i[:2])==set(j[:2]):
+                            ind2 = tuple(i[:self.p]+j[:self.p])
+                            nRDM[ind2]+=np.conj(temp)*s
+            elif self.p==1:
+                nRDM[tuple(r.ind)]+=temp #factor of 2 is for double counting
         self.rdm = RDM(
                 order=self.p,
                 alpha=self.qs.groups[0],
@@ -354,8 +355,12 @@ class StandardTomography(Tomography):
                             rdme.append(sub_rdme(i,j,p+k))
         self.rdme = rdme
 
-    def _generate_1rdme(self,real=True,imag=False,**kw):
+    def _generate_1rdme(self,
+            real=True,
+            imag=False,
+            verbose=False,**kw):
         self.real=real
+        kw['verbose']=verbose
         self.imag=imag
         if not self.grouping:
             alp = self.qs.groups[0]
@@ -363,35 +368,52 @@ class StandardTomography(Tomography):
             rdme = []
             bet = self.qs.groups[1]
             S = []
-            def sub_rdme(i,j,spin):
+            def sub_rdme(i,j,transform,**kw):
+                op = Operator()
+                if self.real and self.imag:
+                    c1,c2=1,0
+                elif self.real and not self.imag:
+                    c1,c2=0.5,0.5
+                elif not self.real and self.imag:
+                    c1,c2 = 0.5,-0.5
                 test = FermiString(
-                    coeff=1,
+                    coeff=c1,
                     indices=[i,j],
-                    sqOp='+-',
-                    spin=spin)
-                test.generateTomography(Nq=self.Nq,
-                        Nq_tot=self.Nq_tot,
-                        real=real,
-                        imag=imag,
-                        **kw)
-                return test
+                    ops='+-',
+                    N = self.qs.dim,
+                    )
+                op+=test
+                test = FermiString(
+                    coeff=c2,
+                    indices=[j,i],
+                    ops='+-',
+                    N=self.qs.dim,
+                    )
+                op+= test
+                qubOp = op.transform(transform)
+                return RDMElement(op,qubOp,ind=[i,j])
+            if verbose:
+                print('Generating alpha-alpha block of 2-RDM')
             for i in alp:
                 for j in alp:
-                    if i*Na>j*Na:
+                    if i>j:
                         continue
-                    if imag and i*Na==j*Na:
+                    if (imag and not real) and i==j:
                         continue
-                    new = sub_rdme(i,j,'aa')
+                    new = sub_rdme(i,j,**kw)
                     rdme.append(new)
+            if verbose:
+                print('Generating beta-beta block of 2-RDM')
             for i in bet:
                 for j in bet:
-                    if i*Na>j*Na:
+                    if i>j:
                         continue
-                    if imag and i*Na==j*Na:
+                    if (imag and not real) and i==j:
                         continue
-                    new = sub_rdme(i,j,'bb')
+                    new = sub_rdme(i,j,**kw)
                     rdme.append(new)
             self.rdme = rdme
+        self.rdme = rdme
 
     def _generate_2rdme(self,real=True,imag=False,verbose=False,
             **kw):
@@ -427,7 +449,7 @@ class StandardTomography(Tomography):
                     N=self.qs.dim,
                     )
                 op+= test
-                return RDMElement(op,ind=[i,k,l,j],**kw)
+                return RDMElement(op,qubOp,ind=[i,k,l,j],**kw)
             if verbose:
                 print('Generating alpha-alpha block of 2-RDM')
             for i in alp:
@@ -551,7 +573,6 @@ class StandardTomography(Tomography):
                     initial_layout=self.qs.be_initial,
                     **self.qs.transpiler_keywords
                     )
-            #print(circuits[0])
         else:
             sys.exit('Configure pass manager.')
         qo = assemble(

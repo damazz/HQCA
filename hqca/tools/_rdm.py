@@ -59,6 +59,130 @@ class RDM:
             self.rdm = np.zeros(
                     tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
 
+    def analysis(self,verbose=True,print_rdms=False,split=False):
+        # start with alpha alpha block
+        # generate basis
+        if self.p==2:
+            aa_basis = []
+            ab_basis = []
+            bb_basis = []
+            for i in self.alp:
+                for j in self.alp:
+                    if j>i:
+                        aa_basis.append([i,j])
+            for i in self.alp:
+                for j in self.bet:
+                    ab_basis.append([i,j])
+            for i in self.bet:
+                for j in self.bet:
+                    if j>i:
+                        bb_basis.append([i,j])
+            N_aa = len(aa_basis)
+            N_ab = len(ab_basis)
+            N_bb = len(bb_basis)
+            aa = np.zeros((N_aa,N_aa),dtype=np.complex_)
+            ab = np.zeros((N_ab,N_ab),dtype=np.complex_)
+            bb = np.zeros((N_bb,N_bb),dtype=np.complex_)
+            for ni,I in enumerate(aa_basis):
+                for nj,J in enumerate(aa_basis):
+                    ind = tuple(I+J)
+                    aa[ni,nj]+= self.rdm[ind]
+            for ni,I in enumerate(ab_basis):
+                for nj,J in enumerate(ab_basis):
+                    ind = tuple(I+J)
+                    ab[ni,nj]+= self.rdm[ind]
+            for ni,I in enumerate(bb_basis):
+                for nj,J in enumerate(bb_basis):
+                    ind = tuple(I+J)
+                    bb[ni,nj]+= self.rdm[ind]
+            aa_eig = np.linalg.eigvalsh(aa)
+            ab_eig = np.linalg.eigvalsh(ab)
+            bb_eig = np.linalg.eigvalsh(bb)
+            print('Analysis of 2-RDM')
+            print('---------------------------------')
+            print('AA basis: ')
+            print(aa_basis)
+            print('alpha-alpha block: ')
+            print(aa)
+            print('eigenvalues: ')
+            print(aa_eig)
+            print('---------------------------------')
+            print('BB basis: ')
+            print(bb_basis)
+            print('beta-beta block: ')
+            print(bb)
+            print('eigenvalues: ')
+            print(bb_eig)
+            print('---------------------------------')
+            print('AB basis: ')
+            print(ab_basis)
+            print('alpha-beta block: ')
+            if split:
+                print('real: ')
+                print(np.real(ab))
+                print('imaginary')
+                print(np.imag(ab))
+            else:
+                print(ab)
+            print('eigenvalues: ')
+            print(ab_eig)
+            print('Analysis of 1-RDM and local properties')
+            a1 = np.zeros((len(self.alp),len(self.alp)),dtype=np.complex_)
+            b1 = np.zeros((len(self.alp),len(self.alp)),dtype=np.complex_)
+            rdm1 = self.reduce_order()
+            for ni,I in enumerate(self.alp):
+                for nj,J in enumerate(self.alp):
+                    ind = tuple([I,J])
+                    a1[ni,nj]+= rdm1.rdm[ind]
+            for ni,I in enumerate(self.bet):
+                for nj,J in enumerate(self.bet):
+                    ind = tuple([I,J])
+                    b1[ni,nj]+= rdm1.rdm[ind]
+            print('---------------------------------')
+            print('alpha block: ')
+            print(a1)
+            print('eigenvalues: ')
+            print(np.linalg.eigvalsh(a1))
+            a_eig = np.linalg.eigvalsh(a1)
+            print('---------------------------------')
+            print('beta block: ')
+            print(b1)
+            print('eigenvalues: ')
+            print(np.linalg.eigvalsh(b1))
+            b_eig = np.linalg.eigvalsh(b1)
+            return aa_eig,bb_eig,ab_eig,a_eig,b_eig
+        elif self.p==1:
+            print('Analysis of 1-RDM and local properties')
+            a1 = np.zeros((len(self.alp),len(self.alp)),dtype=np.complex_)
+            b1 = np.zeros((len(self.alp),len(self.alp)),dtype=np.complex_)
+            for ni,I in enumerate(self.alp):
+                for nj,J in enumerate(self.alp):
+                    ind = tuple([I,J])
+                    a1[ni,nj]+= self.rdm[ind]
+            for ni,I in enumerate(self.bet):
+                for nj,J in enumerate(self.bet):
+                    ind = tuple([I,J])
+                    b1[ni,nj]+= self.rdm[ind]
+            print('---------------------------------')
+            print('alpha block: ')
+            print(a1)
+            print('eigenvalues: ')
+            print(np.linalg.eigvalsh(a1))
+            print('---------------------------------')
+            print('beta block: ')
+            print(b1)
+            print('eigenvalues: ')
+            print(np.linalg.eigvalsh(b1))
+            pass
+
+
+
+
+
+
+
+
+
     def copy(self):
         nRDM = RDM(
                 order=self.p,

@@ -164,25 +164,10 @@ class QuantumStorage:
             **kwargs):
         if mitigation=='stabilizer':
             self._set_stabilizers(**kwargs)
-
-    def set_error_correction(self,
-            error_correction=False,
-            **kwargs
-            ):
-        '''
-        Note there are three types of error correction.
-            (1) Post correction (hyperplane, symmetry)
-                ec_type = 'post'
-            (2) Correction in a entangler, in circuit
-                ec_type = 'ent'
-            (3) Syndrome, in circuit
-                ec_type = 'syndrome'
-        Honestly, probably better to just manually specify them...
-        '''
-        if error_correction=='measure':
+        elif mitigation=='measure':
             self.use_meas_filter = True
             self._get_measurement_filter(initial=True,**kwargs)
-        elif error_correction=='symmetry':
+        elif mitigation=='symmetry':
             self._set_symmetries(**kwargs)
 
     def _set_symmetries(self,symmetries):
@@ -250,40 +235,76 @@ class QuantumStorage:
     def _get_measurement_filter(self,
             initial=False,
             frequency=3,
+            tensored=False,
+            mit_pattern=None,
             **kw
             ):
         if initial:
+            self.tensored=tensored
             self.freq = frequency
-            self.n = 0 
+            self.n = 0
+            self.pattern = mit_pattern
         if self.n==0:
-            print('Reculating measurement filter')
-            qubit_list= [i for i in range(self.Nq_tot)]
-            cal_circuits,state_labels = complete_meas_cal(
-                    qubit_list,
-                    QuantumRegister(self.Nq_tot),
-                    ClassicalRegister(self.Nq_tot)
-                    )
-            if self.use_noise:
-                job = execute(
-                        cal_circuits,
-                        backend=self.beo,
-                        backend_options=self._noisy_be_options,
-                        noise_model=self.noise_model,
-                        )
+            if initial:
+                print('Calculating measurement filters.')
             else:
-                job = execute(cal_circuits,
-                        backend=self.beo,
-                        shots=self.Ns,
-                        initial_layout=self.be_initial)
-            cal_results = job.result()
-            meas_fitter = CompleteMeasFitter(
-                    cal_results,
-                    state_labels)
-            meas_filter = meas_fitter.filter
-            #self.meas_fitter = meas_fitter
-            self._meas_filter = meas_filter
-            self.n = np.copy(self.freq)-1
-            print(meas_filter.cal_matrix)
+                print('Reculating measurement filter')
+            qubit_list= [i for i in range(self.Nq_tot)]
+            if not self.tensored:
+                cal_circuits,state_labels = complete_meas_cal(
+                        qubit_list,
+                        QuantumRegister(self.Nq_tot),
+                        ClassicalRegister(self.Nq_tot)
+                        )
+                if self.use_noise:
+                    job = execute(
+                            cal_circuits,
+                            backend=self.beo,
+                            backend_options=self._noisy_be_options,
+                            noise_model=self.noise_model,
+                            )
+                else:
+                    job = execute(cal_circuits,
+                            backend=self.beo,
+                            shots=self.Ns,
+                            initial_layout=self.be_initial)
+                cal_results = job.result()
+                meas_fitter = CompleteMeasFitter(
+                        cal_results,
+                        state_labels)
+                meas_filter = meas_fitter.filter
+                #self.meas_fitter = meas_fitter
+                self._meas_filter = meas_filter
+                self.n = np.copy(self.freq)-1
+                print(meas_filter.cal_matrix)
+            else:
+                cal_circuits, labels = tensored_meas_cal(
+                        self.pattern,
+                        QuantumRegister(self.Nq_tot),
+                        ClassicalRegister(self.Nq_tot))
+                if self.use_noise:
+                    job = execute(
+                            cal_circuits,
+                            backend=self.beo,
+                            backend_options=self._noisy_be_options,
+                            noise_model=self.noise_model,
+                            )
+                else:
+                    job = execute(cal_circuits,
+                            backend=self.beo,
+                            shots=self.Ns,
+                            initial_layout=self.be_initial)
+                cal_results = job.result()
+                meas_fitter = TensoredMeasFitter(
+                        cal_results,
+                        labels)
+                meas_filter = meas_fitter.filter
+                #self.meas_fitter = meas_fitter
+                self._meas_filter = meas_filter
+                self.n = np.copy(self.freq)-1
+                for mat in meas_filter.cal_matrices:
+                    print(mat)
+
         else:
             self.n-=1
 

@@ -164,7 +164,6 @@ class SymmetryProjection:
                             self.qubOp = op.transform(transform)
                             return None
 
-
                         # check for null vectors? 
                         # i.e., because of transformation
                         #print(new)

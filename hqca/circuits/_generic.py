@@ -3,7 +3,8 @@ from hqca.core import *
 class GenericCircuit(Circuit):
     def __init__(self,**kwargs):
         Circuit.__init__(self,**kwargs)
-        pass
+        self.swap = {i:i for i in range(self.Nq)}
+        self.sl = []
 
     def apply(self,**kwargs):
         Circuit.apply(self,**kwargs)
@@ -33,4 +34,10 @@ class GenericCircuit(Circuit):
         self.qc.rz(val,self.q[q])
 
     def Sw(self,q,p):
-        self.qc.swap(self.q[q],self.q[p])
+        #self.qc.swap(self.q[q],self.q[p])
+        self.swap[p]=q
+        self.swap[q]=p
+        self.sl.append([p,q])
+        
+
+

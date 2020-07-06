@@ -81,12 +81,15 @@ class Graph:
                 for n,i in enumerate(alg.a):
                     try:
                         self.colors[i].append(n)
-                    except Exception:
+                    except Exception: 
                         self.colors[i]=[n]
                 for k in self.singular:
                     if not k in alg.a:
                         print('Reassigning element ',k)
-                        self.colors[0].append(k)
+                        try:
+                            self.colors[0].append(k)
+                        except KeyError as e:
+                            self.colors[0]=[k]
 
     def recursive_largest_first(self):
         pass
@@ -284,6 +287,9 @@ def construct_simple_graph(
                     print('Current size: {}'.format(sys.getsizeof(edges)))
                     graph.add_edge_list(edges)
                     edges = []
+        if len(single)==(N-2):
+            single.append(0)
+            single.append(1)
         graph.add_edge_list(edges)
         if verbose:
             print('Size of edge list (mem): {}'.format(sys.getsizeof(edges)))

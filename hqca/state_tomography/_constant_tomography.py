@@ -34,6 +34,67 @@ class ReducedTomography(StandardTomography):
             **kw):
         raise AttributeError
 
+    def _generate_1rdme(self,
+            real=True,
+            imag=False,
+            verbose=False,
+            **kw):
+        self.real=real
+        kw['verbose']=verbose
+        self.imag=imag
+        if not self.grouping:
+            alp = self.qs.groups[0]
+            Na = len(alp)
+            rdme = []
+            bet = self.qs.groups[1]
+            S = []
+            def sub_rdme(i,j,transform,**kw):
+                op = Operator()
+                if self.real and self.imag:
+                    c1,c2=1,0
+                elif self.real and not self.imag:
+                    c1,c2=0.5,0.5
+                elif not self.real and self.imag:
+                    c1,c2 = 0.5,-0.5
+                test = FermiString(
+                    coeff=c1,
+                    indices=[i,j],
+                    ops='+-',
+                    N = self.qs.dim,
+                    )
+                op+=test
+                test = FermiString(
+                    coeff=c2,
+                    indices=[j,i],
+                    ops='+-',
+                    N=self.qs.dim,
+                    )
+                op+= test
+                con = SymmetryProjection(op,transform,self.qs,**kw)
+                return ConRDMElement(op,con.qubOp,ind=[i,j])
+            if verbose:
+                print('Generating alpha-alpha block of 2-RDM')
+            for i in alp:
+                for j in alp:
+                    if i>j:
+                        continue
+                    if imag and not real and i==j:
+                        continue
+                    new = sub_rdme(i,j,**kw)
+                    rdme.append(new)
+            if verbose:
+                print('Generating beta-beta block of 2-RDM')
+            for i in bet:
+                for j in bet:
+                    if i>j:
+                        continue
+                    if imag and not real and i==j:
+                        continue
+                    new = sub_rdme(i,j,**kw)
+                    rdme.append(new)
+            self.rdme = rdme
+        self.rdme = rdme
+
     def _generate_2rdme(self,
             real=True,
             imag=False,
@@ -80,10 +141,9 @@ class ReducedTomography(StandardTomography):
                 #print('----')
                 # op and qubOp
                 return ConRDMElement(op,con.qubOp,ind=[i,k,l,j])
-            
+
             if verbose:
                 print('Generating alpha-alpha block of 2-RDM')
-            
             for i in alp:
                 for k in alp:
                     if i>=k:
@@ -123,75 +183,6 @@ class ReducedTomography(StandardTomography):
                             new = sub_rdme(i,k,l,j,**kw)
                             rdme.append(new)
             self.rdme = rdme
-        '''
-        if not self.grouping:
-            alp = self.qs.groups[0]
-            Na = len(alp)
-            rdme = []
-            bet = self.qs.groups[1]
-            S = []
-
-            def sub_rdme(i,k,l,j,spin):
-                test = FermiString(
-                    N = self.qs.dim,
-                    coeff=1,
-                    indices=[i,k,l,j],
-                    ops='++--',
-                    )
-                idx = '-'.join([str(i) for i in test.qInd])
-                if self.real and not self.imag:
-                    try:
-                        tomo = self.qubit_pairing[idx].real[test.qOp]
-                    except Exception as e:
-                        traceback.print_exc()
-                        sys.exit()
-                elif not self.real and self.imag:
-                    try:
-                        tomo = self.qubit_pairing[idx].imag[test.qOp]
-                    except Exception:
-                        pass
-                elif self.real and self.imag:
-                    tomo = self.qubit_pairing[idx].real[test.qOp]
-                    tomoI = self.qubit_pairing[idx].imag[test.qOp]
-                    for i in tomoI:
-                        tomo.append(i)
-                if test.qCo==-1:
-                    for i in range(len(tomo)):
-                        tomo[i][1] = tomo[i][1]*test.qCo
-                return PseudoRDMElement(tomo,test.ind)
-
-            for i in alp:
-                for k in alp:
-                    if i>=k:
-                        continue
-                    for l in alp:
-                        for j in alp:
-                            if j>=l or i*Na+k>j*Na+l:
-                                continue
-                            if imag and not real and i*Na+k==j*Na+l:
-                                continue
-                            rdme.append(sub_rdme(i,k,l,j,'aaaa'))
-            for i in bet:
-                for k in bet:
-                    if i>=k:
-                        continue
-                    for l in bet:
-                        for j in bet:
-                            if j>=l or i*Na+k>j*Na+l:
-                                continue
-                            if imag and not real and i*Na+k==j*Na+l:
-                                continue
-                            rdme.append(sub_rdme(i,k,l,j,'bbbb'))
-            for i in alp:
-                for k in bet:
-                    for l in bet:
-                        for j in alp:
-                            if i*Na+k>j*Na+l:
-                                continue
-                            if imag and not real and i*Na+k==j*Na+l:
-                                continue
-                            rdme.append(sub_rdme(i,k,l,j,'abba'))
-        '''
         self.rdme = rdme
 
     def _generate_pauli_measurements(self,simplify=True,
