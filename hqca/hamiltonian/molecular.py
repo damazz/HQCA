@@ -361,18 +361,22 @@ class MolecularHamiltonian(Hamiltonian):
                             continue
                         newOp = FermiString(
                                 N=len(alp+bet),
-                                coeff=self.ints_2e[p,r,q,s],
+                                coeff=0.5*self.ints_2e[p,r,q,s],
                                 indices=[P,R,S,Q],
                                 ops='++--',
                                 )
                         ferOp+= newOp
-        qubOp = ferOp.transform(self._transform)
+        new = ferOp.transform(self._transform)
+        qubOp = Operator()
+        for i in new:
+            if abs(i.c)>int_thresh:
+                qubOp+= i
         self._qubOp = qubOp
         self._ferOp = ferOp
         t3 = timeit.default_timer()
         if self.verbose:
             print('2e terms: {}'.format(t3-t2))
-        if self.verbose:
+            print('-------------------')
             print('Fermionic Hamiltonian')
             print(ferOp)
             print('Hamiltonian in Pauli Basis:')

@@ -141,7 +141,8 @@ def _findFermionicSQuantum(
         v = abs(rdm[ind])*hss
         if v>max_val:
             max_val = v
-    print('Elements of S from quantum generation: ')
+    if verbose:
+        print('Elements of S from quantum generation: ')
     newF = Operator()
     for index in new:
         ind = tuple(index)
@@ -157,10 +158,12 @@ def _findFermionicSQuantum(
                         N=quantstore.dim,
                         )
                 newF+= newEl
-    print('Fermionic S operator:')
-    print(newF)
     newS = newF.transform(quantstore.transform)
-    print(newS)
+    if verbose:
+        print('Fermionic S operator:')
+        print(newF)
+        print('Qubit S operator: ')
+        print(newS)
     if commutative:
         newS.ca=True
     else:
