@@ -79,6 +79,7 @@ class QuantumStorage:
                 self.initial.append(bet[i])
             self.Ne_alp = Storage.H.Ne_alp
             self.Ne_bet = Storage.H.Ne_bet
+            self.No_as = Storage.No_as
         elif Storage.H.model in ['sq','tq']:
             self.op_type = 'qubit'
             self.initial = []
@@ -118,6 +119,10 @@ class QuantumStorage:
             sys.exit()
         self.transpiler_keywords = transpiler_keywords
         self.be_initial = backend_initial_layout
+        #self.be_initial = {}
+        #qr = QuantumRegister(Nq+Nq_ancilla)
+        #for n,i in enumerate(backend_initial_layout):
+        #    self.be_initial[qr[n]]=i
         self.be_coupling = backend_coupling_layout
         self.be_file = backend_file
         self.Nq = Nq  # active qubits
@@ -137,7 +142,17 @@ class QuantumStorage:
         else:
             prov = Aer
         self.backend=backend
-        self.beo = prov.get_backend(backend)
+        try:
+            self.beo = prov.get_backend(backend)
+        except Exception:
+            self.provider = IBMQ.get_provider(hub='ibm-q-university',
+                    group='uchicago',project='main')
+            try:
+                self.beo = self.provider.get_backend(backend)
+            except Exception:
+                self.provider = IBMQ.get_provider(hub='ibm-q-research',
+                        group='Scott-Smart',project='main')
+                self.beo = self.provider.get_backend(backend)
         self.use_noise=False
         if self.verbose:
             print('# Summary of quantum parameters:')
@@ -169,6 +184,39 @@ class QuantumStorage:
             self._get_measurement_filter(initial=True,**kwargs)
         elif mitigation=='symmetry':
             self._set_symmetries(**kwargs)
+        elif mitigation in ['MSES','encoded']:
+            #method of stabilizer encoded symmetries
+            self._set_encoded_symmetries(**kwargs)
+        elif mitigation=='ansatz_shift':
+            self._set_ansatz_shift(**kwargs)
+            pass
+        elif mitigation=='reconstruction':
+            self._set_reconstruction(**kwargs)
+
+
+
+    def _set_reconstruction(self,**kw):
+        self.post = True
+        pass
+
+    def _set_ansatz_shift(self,coeff=1,**kw):
+        '''
+        after measuring a 2-RDM, we shift it
+
+        but when do we measure the 2-RDM?
+        '''
+        self.post=True
+        self.method = 'shift'
+        self.add_Gamma =True
+        self.Gamma = None
+        self.Gam_coeff = coeff
+
+
+
+    def _set_encoded_symmetries(self,
+            stabilizer_map,
+            ):
+        self.stabilizer_map = stabilizer_map
 
     def _set_symmetries(self,symmetries):
         self.post=True
@@ -180,7 +228,6 @@ class QuantumStorage:
         self.process =True
         # need to see if we can set it for...parity check? 
         # etc. 
-        pass
 
     def __set_ec_post_correction(self,
             symm_verify=False,

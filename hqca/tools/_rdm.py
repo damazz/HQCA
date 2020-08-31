@@ -23,8 +23,11 @@ class RDM:
             S=0,
             S2=0,
             verbose=0,
-            rdm=None
+            rdm=None,
+            rdm_type='d'
+
             ):
+        self.dqg=rdm_type
         self.p = order
         self.r = len(alpha)+len(beta) # spin
         self.R = int(self.r/2)
@@ -58,6 +61,21 @@ class RDM:
         else:
             self.rdm = np.zeros(
                     tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
+
+
+    def _get_ab_block(self):
+        if self.p==2:
+            ab_basis = []
+            for i in self.alp:
+                for j in self.bet:
+                    ab_basis.append([i,j])
+            N_ab = len(ab_basis)
+            ab = np.zeros((N_ab,N_ab),dtype=np.complex_)
+            for ni,I in enumerate(ab_basis):
+                for nj,J in enumerate(ab_basis):
+                    ind = tuple(I+J)
+                    ab[ni,nj]+= self.rdm[ind]
+        return ab
 
     def analysis(self,verbose=True,print_rdms=False,split=False):
         # start with alpha alpha block
@@ -176,13 +194,6 @@ class RDM:
             pass
 
 
-
-
-
-
-
-
-
     def copy(self):
         nRDM = RDM(
                 order=self.p,
@@ -217,7 +228,8 @@ class RDM:
         if type(rdm)==type(self):
             pass
         else:
-            sys.exit('Wrong type specified.')
+            print('Trying to add a {} to a RDM, '.format(str(type(rdm))))
+            sys.exit('wrong type specified.')
         c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
         c3, c4 = self.bet==rdm.bet,self.p==rdm.p
         if c1+c2+c3+c4<4:
@@ -272,7 +284,8 @@ class RDM:
         if type(rdm)==type(self):
             pass
         else:
-            sys.exit('Wrong type specified.')
+            print('Trying to sub a {} to a RDM, '.format(str(type(rdm))))
+            sys.exit('wrong type specified.')
         c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
         c3, c4 = self.bet==rdm.bet,self.p==rdm.p
         if c1+c2+c3+c4<4:
@@ -298,7 +311,7 @@ class RDM:
     def __mul__(self,rdm):
         if type(rdm)==type(self):
             pass
-        elif type(rdm) in [type(1),type(0),type(0.5)]:
+        elif  type(rdm) in [type(1),type(0),type(0.5)]:
             self.rdm = self.rdm*rdm
             return self
         self.expand()
@@ -486,6 +499,72 @@ class RDM:
                     ind = tuple(c[:-1]+a[:-1])
                     self.rdm[ind]=s#*(1/factorial(self.p))
 
+
+    def cumulant(self):
+        if self.p==2:
+            rdm1 = self.reduce_order()
+            rdm2 = rdm1*rdm1
+        return self-rdm2
+
+    def get_G_matrix(self):
+        if not self.p==2:
+            sys.exit('Not order 2 g matrix.')
+        if not self.dqg=='d':
+            sys.exit('Getting G from non-2RDM!.')
+        self.expand()
+        new = np.zeros(self.rdm.shape,dtype=np.complex_)
+        d1 = self.reduce_order()
+        for i in range(self.r):
+            for j in range(self.r):
+                for k in range(self.r):
+                    for l in range(self.r):
+                        delta = (k==l)
+                        new[i,l,j,k]+= -self.rdm[i,k,j,l]+delta*d1.rdm[i,j]
+        nRDM = RDM(
+                order=self.p,
+                alpha=self.alp,
+                beta=self.bet,
+                state='given',
+                Ne=self.Ne,
+                rdm=new,
+                rdm_type='g',
+                )
+        return nRDM
+
+    def get_Q_matrix(self):
+        if not self.p==2:
+            sys.exit('Not order 2 g matrix.')
+        if not self.dqg=='d':
+            sys.exit('Getting Q from non-2RDM!.')
+        self.expand()
+        new = np.zeros(self.rdm.shape,dtype=np.complex_)
+        d1 = self.reduce_order()
+        for i in range(self.r):
+            for j in range(self.r):
+                ij = (i==j)
+                for k in range(self.r):
+                    ik,jk = (i==k),(j==k)
+                    for l in range(self.r):
+                        il,jl,kl = (i==l),(j==l),(k==l)
+                        new[j,l,i,k]+= self.rdm[i,k,j,l]
+                        new[j,l,i,k]+= -il*jk
+                        new[j,l,i,k]+= il*d1.rdm[k,j]
+                        new[j,l,i,k]+= -kl*d1.rdm[i,j]
+                        new[j,l,i,k]+= jk*d1.rdm[i,l]
+                        new[j,l,i,k]+= -ij*d1.rdm[k,l]
+                        new[j,l,i,k]+= kl*ij
+        nRDM = RDM(
+                order=self.p,
+                alpha=self.alp,
+                beta=self.bet,
+                state='given',
+                Ne=self.Ne,
+                rdm=new,
+                rdm_type='q',
+                )
+        return nRDM
+
+
     def reconstruct(self,
             approx='V',
             method='cumulant',):
@@ -504,12 +583,15 @@ class RDM:
         if self.p==2:
             self.expand()
             rdm1 = self.reduce_order()
-        if approx in ['v','V','valdemoro','Valdemoro']:
-            rdm3a = rdm1*rdm1*rdm1
-            rdm2w = self-rdm1*rdm1
-            rdm3b = (rdm2w*rdm1)*3
-            rdm3 = rdm3a + rdm3b
-            return rdm3
+            if approx in ['v','V','valdemoro','Valdemoro']:
+                rdm3a = rdm1*rdm1*rdm1
+                rdm2w = self-rdm1*rdm1
+                rdm3b = (rdm2w*rdm1)*3
+                rdm3 = rdm3a + rdm3b
+                return rdm3
+        elif self.p==1:
+            rdm = self*self
+            return rdm
 
     def switch(self):
         size = len(self.rdm.shape)

@@ -4,14 +4,10 @@ np.set_printoptions(linewidth=300)
 import sympy as sy
 from hqca.tools._operator import *
 from hqca.tools.quantum_strings import *
+from hqca.core.primitives import *
 
-
-# generate the parity check matrix
-
-
-
-class ParityCheckMatrix:
-    def __init__(self,paulis,verbose=False):
+class Stabilizer:
+    def __init__(self,paulis,verbose=False,**kw):
         '''
         Given a Pauli operator (i.e., Operator class composed of Pauli strings),
         we are trying to construct the parity check matrix.  If hthere 
@@ -20,21 +16,11 @@ class ParityCheckMatrix:
         self.verbose = verbose
         self.op = paulis
         if type(paulis)==type([]):
-            self.N = len(paulis[0].s)
-            self.l = len(paulis)
-            self.E = np.zeros((self.l-1,2*self.N))
-            iden = 'I'*self.N
-            add = 0
-            for i in range(self.l):
-                if paulis[i].s==iden:
-                    add = -1
-                    continue
-                else:
-                    self.E[i+add,:]=self._pauli_to_check(paulis[i+add].s)
+            sys.exit('Please provide the list in Pauli operator form.')
         else:
             self.N = len(paulis.op[0].s)
             self.l = len(paulis.op)
-            self.E = np.zeros((self.l,2*self.N))
+            self.G = np.zeros((2*self.N,self.l))
             iden = 'I'*self.N
             add = 0
             for i in range(self.l):
@@ -42,15 +28,19 @@ class ParityCheckMatrix:
                     add = -1
                     continue
                 else:
-                    self.E[i+add,:]=self._pauli_to_check(paulis.op[i].s)
+                    self.G[:,i+add]=self._pauli_to_check(paulis.op[i].s)
         if add==-1:
-            self.E = self.E[:self.l-1,:]
+            self.G = self.G[:,:self.l-1]
             self.l-=1
-        self.gaussian_elimination()
-        #p,l,u  = la.lu(self.E)
-        #print(p.shape)
-        #print(l.shape)
-        #print(u.shape)
+        self.G0 = np.copy(self.G)
+        self.E = np.zeros((self.l,2*self.N))
+        self.E[:,:self.N] = self.G[self.N:,:].T
+        self.E[:,self.N:] = self.G[:self.N,:].T
+        if self.verbose:
+            print('Parity check matrix: ')
+            print(self.E)
+            print('Generator matrix: ')
+            print(self.G)
 
     def _pauli_to_check(self,p):
         vec = np.zeros(2*self.N)
@@ -61,6 +51,21 @@ class ParityCheckMatrix:
             if p[i%self.N]=='X' or p[i%self.N]=='Y':
                 vec[i]=1
         return vec
+
+    def _check_to_pauli(self,vec):
+        s = ''
+        for i in range(self.N):
+            if vec[i]==1:
+                if vec[i+self.N]==1:
+                    s+='Y'
+                else:
+                    s+='Z'
+            else:
+                if vec[i+self.N]==1:
+                    s+='X'
+                else:
+                    s+='I'
+        return PauliString(s,1)
 
     def gaussian_elimination(self):
         def apply_h(vec):
@@ -74,21 +79,25 @@ class ParityCheckMatrix:
         # n rows = self.l
         # n cols = self.N
         adjust=0
-        dep = []
-        ind = []
+        pivot = []
         for c in range(2*self.N):
-            #
+            if (c+adjust)==self.l:
+                self.done=True
+                break
             if self.E[c+adjust,c]==1:
                 pass
             else:
                 done = False
                 for r in range(c+1+adjust,self.l):
                     # for rows in the column range
+                    #
+                    #
                     if self.E[r,c]==1:
+                        #
                         # swap r should be adjusted, c should be norm
+                        #
                         self.E[[c+adjust,r]]=self.E[[r,c+adjust]]
                         done = True
-                        #print('Swapping {},{}'.format(r,c+adjust))
                         break
                 if not done:
                     # we did not find any row to switch..
@@ -100,7 +109,8 @@ class ParityCheckMatrix:
             for r in range(self.l):
                 # found a pivot
                 if r==c+adjust:
-                    dep.append(c)
+                    pivot.append(c)
+                    # dependent is simply the amount of dependent variables 
                     continue
                 else:
                     if self.E[r,c]==1:
@@ -108,111 +118,298 @@ class ParityCheckMatrix:
                         self.E = np.mod(self.E,2)
         if self.verbose:
             print('Parity check matrix in RRE form:')
-            c = 0
-            for i in range(self.E.shape[0]):
-                if np.linalg.norm(self.E[i,:])>0:
+        c = 0
+        n = 0
+        for i in range(self.E.shape[0]):
+            if np.linalg.norm(self.E[i,:])>0:
+                if self.verbose:
                     print(self.E[i,:])
-                else:
-                    c+=1 
+                n+=1 
+            else:
+                c+=1 
+        if self.verbose:
             print('...with {} trivial rows.'.format(c))
+        self.pivot = pivot
+        self.Gm = np.zeros((2*self.N,n)) #G-mod
+        self.Gm[:self.N,:] = self.E[:n,self.N:].T
+        self.Gm[self.N:,:] = self.E[:n,:self.N].T
+        self.paulis = {}
+        for v in range(self.G0.shape[1]):
+            target = self.G0[:,v]
+            done = False
+            soln=  []
+            while not done:
+                done = True
+                for u in range(self.Gm.shape[0]):
+                    if target[u]==0:
+                        continue
+                    for w in range(self.Gm.shape[1]):
+                        # target is 1
+                        if self.Gm[u,w]==1:
+                            target = np.mod(target+self.Gm[:,w],2)
+                            soln.append(w)
+                            done=False
+                            break
+                        # checking for 1s 
+            #for u in range(self.Gm.shape)
+            p0 = self._check_to_pauli(self.G0[:,v])
+            ps = [self._check_to_pauli(self.Gm[:,i]) for i in soln]
+            c = 1
+            prod = PauliString('I'*self.N,1)
+            for i in ps:
+                prod = prod*i
+            self.paulis[p0.s] = [[s.s for s in ps],prod.c]
 
         # done with gaussian elimination! 
+        # 
+        # now, we try to find symmetry generators
+        # for the space of operators
+        #
+        # i.e., a basis set for the null space
 
-        tE = self.E[:2*self.N,:2*self.N]
-        #null = la.null_space(tE)
-        #dimN =null.shape[1]
+    def find_symmetry_generators(self):
+        tE = self.E[:2*self.N,:2*self.N] ## tE is a square matrix? yes.
+        # 
+        #dimension should be square....I think
+        # if there are 10 non trivial rows, 6 qubits, we should have 2 non
+        # trivial generators 
+        #
+        #
+
         xs = sy.numbered_symbols('x')
-        Xv = sy.zeros(2*self.N,1)
-        dep_var = []
-        ind_var = []
-        for c in range(2*self.N):
-            x= next(xs)
-            Xv[c,0]=x
-            if c in dep:
-                dep_var.append(x)
+        zs = sy.numbered_symbols('z')
+        X = sy.zeros(2*self.N,1)
+        pivot_var = []
+        indep_var = []
+        variables = []
+        for c in range(self.N):
+            x= next(zs)
+            if c in self.pivot:
+                pivot_var.append(x)
             else:
-                ind_var.append(x)
-        #print(ind_var) # these are elements of null space
-        dimN = len(ind_var)
+                indep_var.append(x)
+            variables.append(x)
+        for c in range(self.N,self.N*2):
+            x = next(xs)
+            if c in self.pivot:
+                pivot_var.append(x)
+            else:
+                indep_var.append(x)
+            variables.append(x)
+        #print(pivot_var,indep_var)
+        dimN = self.N*2-len(pivot_var)
         if self.verbose:
-            print('Found {} vectors in the null space.'.format(dimN))
-        vecs = np.zeros((2*self.N,dimN))
-        nullB = Operator()
+            print('Rank of null space: {}'.format(dimN))
+        X = sy.zeros(2*self.N,1) #here is our x vector
+        Np = 0 
+        for n in range(2*self.N):
+            if n in self.pivot:
+                for m in range(n+1,2*self.N):
+                    if m in self.pivot:
+                        pass
+                    else:
+                        X[n]+= self.E[Np,m]*variables[m]
+                Np+=1 
+            else:
+                X[n]=variables[n]
+        # now.....we can separate N according to dep variables? 
+        # Xv will hold the new variables 
+        Xv = sy.zeros(2*self.N,dimN)
+        for i in range(dimN):
+            temp = X[:,0]
+            for j in range(dimN):
+                if i==j:
+                    temp = temp.subs(indep_var[j],int(1))
+                else:
+                    temp = temp.subs(indep_var[j],0)
+            Xv[:,i]=temp[:,0]
+
+        #sy.pprint(Xv)
+        #new = tE
+        # now, need to check that they are all linear
+        # and that they commute with all terms in H
+
+        Xv = np.asarray(Xv)
+        def dot(a,b):
+            bp = np.zeros(b.shape)
+            bp[:self.N]=b[self.N:]
+            bp[self.N:]=b[:self.N]
+            return np.mod(np.dot(a.T,bp),2)
+
+
+        #new = np.zeros(Xv.shape)
+        #OBfor n in range(0,dimN):
+        #    temp = np.copy(Xv[:,n])
+        #    #print('-----')
+        #    #print(temp)
+        #    for j in range(n):
+        #        #print('temp: ')
+        #        #print(temp)
+        #        #temp2 = np.zeros(Xv[:,j].shape)
+        #        t = np.copy(new[:,j])
+        #        #temp2[:self.N] = Xv[self.N:,j]
+        #        #temp2[self.N:] = Xv[:self.N,j]
+        #        temp+= np.mod(dot(Xv[:,n],t)*t,2)
+        #        #print( dot(Xv[:,j],Xv[:,n]))
+        #        #print(Xv[:,n],Xv[:,j])
+        #    new[:,n]=np.mod(temp[:],2)
+        #for n in range(dimN):
+        #    for m in range(dimN):
+        #        print(n,m,dot(new[:,n],new[:,m]))
+
+        #print(new)
+        #
+        #Xv = np.copy(new)
+        nullB = []
+        ## assuming that they work....
+        for n in range(1,dimN):
+            pass
         for n in range(dimN):
             if self.verbose:
                 print('Finding vector {}...'.format(n+1))
-            new = tE*Xv
-            xn = Xv
-            for m,d in enumerate(ind_var):
-                if m==n:
-                    new = new.subs(d,1)
-                    xn = xn.subs(d,1)
-                else:
-                    new = new.subs(d,0)
-                    xn = xn.subs(d,0)
-            sol = sy.solve(new)
-            vecs[:,n]= np.mod(xn.subs(sol).T,2)
-            #vecs[:,n]= apply_h(vecs[:,n])
             p = ''
             for s in range(self.N):
-                c1 = vecs[s,n]
-                c2 = vecs[s+self.N,n]
+                c1 = Xv[s,n]
+                c2 = Xv[s+self.N,n]
                 if c1==0 and c2==0:
                     p+='I'
                 elif c1==1 and c2==0:
-                    p+='X'
+                    p+='Z'
                 elif c1==0 and c2==1:
-                    p+='Z' 
+                    p+='X' 
                 elif c1==1 and c2==1:
                     p+='Y'
             if self.verbose:
                 print('...tau is {}'.format(p))
-            nullB+= PauliString(p,1)
-        null = np.mod(vecs,2)
+            nullB.append(p)
         dimE = 2*self.N-dimN
         self.dimE = dimE
         self.dimN = dimN
-        self.null_vecs = null
+        self.null_vecs = Xv
         self.null_basis = nullB
 
-    def get_transformation(self,qubits='default'):
-        if qubits=='default':
-            qubits = [i for i in range(self.dimN)]
-        U = Operator()
-        Ut = Operator()
-        U+=PauliString('I'*self.N,1)
-        Ut+=PauliString('I'*self.N,1)
+class StabilizedCircuit(Stabilizer):
+    def construct_circuit(self):
+        try: 
+            self.null_basis
+        except Exception as e:
+            sys.exit('Need to run symmetry generation first.')
+        z_symm = []
+        z_str = []
+        num_symm = []
         for i in range(self.dimN):
-            I = self.dimN-i-1
-            x = 'I'*qubits[i]+'X'+'I'*(self.N-qubits[i]-1)
-            xt = 'I'*qubits[I]+'X'+'I'*(self.N-qubits[I]-1)
-            UiT = Operator()
+            nz = np.count_nonzero(self.null_vecs[self.N:,i])
+            if nz==0:
+                Nz = np.count_nonzero(self.null_vecs[:self.N,i])
+                if Nz>1:
+                    z_symm.append(i)
+                    z_str.append(self._check_to_pauli(self.null_vecs[:,i]))
+        new = np.zeros((self.dimE+len(z_symm),2*self.N))
+        new[:self.dimE,:]=self.Gm[:,:].T
+        for i in range(self.dimE):
+            pass
+        for n,i in enumerate(z_symm):
+            new[self.dimE+n,:]=self.null_vecs[:,i].T
+        self.m = new
+        self.T0 = [] # T is transformed measurement, M is native (Z)
+        for i in range(new.shape[0]):
+            self.T0.append(self._check_to_pauli(new[i,:]))
+        self.T_M = {}
+        self.gates = []
+        self.zz = z_str
 
-            Ui = Operator()
-            use=True
-            x = PauliString(x,1/np.sqrt(2))
-            xt = PauliString(xt,1/np.sqrt(2))
-            # check 
-            for j in range(self.dimN):
-                test= PauliString(self.null_basis.op[j].s,1)
-                if j==i:
-                    if x.comm(test):
-                        print(test,x,'commuting')
-                        use=False
-                        break
-                else:
-                    if not x.comm(test):
-                        print(test,x,'anti commuting')
-                        use=False
-                        break
-            if not use:
-                sys.exit('Wrong qubits specified for generators.')
-            Ui+= PauliString(self.null_basis.op[i].s,1/np.sqrt(2))
-            Ui+= x
-            UiT+= PauliString(self.null_basis.op[I].s,1/np.sqrt(2))
-            UiT+= xt
 
-            U*=Ui
-            Ut*=UiT
-        return U,Ut
+    def simplify(self):
+        m = self._simplify_y_qwc(self.m)
+        m = self._simplify_xx_zz_qwc(m)
+        m = self._simplify_x_z_qwc(m)
+        self.m = m
+        self.T_M = {self.T0[i].s:self._check_to_pauli(self.m[i,:]).s
+                for i in range(self.m.shape[0])}
+        #print('T -> M')
+        #print(self.T_M)
+
+    def _simplify_y_qwc(self,mat,verbose=True):
+        '''
+        note, this only works for QWC types..otherwise more complicated
+        procedure required to get rid of y-type ops
+        '''
+        for i in range(self.N):
+            for j in range(mat.shape[0]):
+                if mat[j,i]==1 and mat[j,i+self.N]==1:
+                    self.gates.append([
+                                (i,),
+                                apply_si])
+                    for k in range(mat.shape[0]):
+                        if mat[k,i]==1 and mat[k,i+self.N]==1:
+                            mat[k,i]=0
+                        elif mat[k,i]==0 and mat[k,i+self.N]==1:
+                            mat[k,i]=1
+                    break
+        return mat
+
+    def _simplify_xx_zz_qwc(self,mat,verbose=True):
+        # find rank of each qubit 
+        # basically, we want to go from high rank to low rank
+        done = False
+        def _sub(mat):
+            rank = np.zeros(2*self.N)
+            for i in range(2*self.N):
+                rank[i]=np.sum(mat[:,i])
+            for r in range(mat.shape[0]):
+                for i in range(self.N):
+                    for j in range(i):
+                        # check for zz, xx
+                        # mostly, xx
+                        #c1 = mat[r,i]==1 and mat[r,j]==1
+                        c2 = mat[r,i+self.N]==1 and mat[r,j+self.N]==1
+                        if c2:
+                            l1,l2 = rank[i],rank[j]
+                            r1,r2 = rank[i+self.N],rank[j+self.N]
+                            if l1>l2 or r2>r1:
+                                #self.gates.append(['Cx',[i,j]])
+                                self.gates.append([
+                                            (i,j),
+                                            apply_cx])
+                                for s in range(mat.shape[0]):
+                                    mat[s,i]+=mat[s,j]
+                                    mat[s,j+self.N]+=mat[s,i+self.N]
+                            else:
+                                #self.gates.append(['Cx',[j,i]])
+                                self.gates.append([
+                                            (j,i),
+                                            apply_cx])
+                                for s in range(mat.shape[0]):
+                                    mat[s,j]+=mat[s,i]
+                                    mat[s,i+self.N]+=mat[s,j+self.N]
+                            return np.mod(mat,2),False
+            return mat,True
+        iters = 0
+        while (not done) or iters<5:
+            mat,done = _sub(mat)
+            iters+=1 
+        return mat
+            
+    def _simplify_x_z_qwc(self,mat):
+        '''
+        note, this only works for QWC types..otherwise more complicated
+        procedure required to get rid of y-type ops
+        '''
+        for i in range(self.N):
+            for j in range(mat.shape[0]):
+                if mat[j,i]==0 and mat[j,i+self.N]==1:
+                    self.gates.append(
+                            [
+                                (i,),
+                                apply_h])
+                    for k in range(mat.shape[0]):
+                        if mat[k,i]==0 and mat[k,i+self.N]==1:
+                            mat[k,i]=1
+                            mat[k,i+self.N]=0
+                        elif mat[k,i]==1 and mat[k,i+self.N]==0:
+                            mat[k,i]=0
+                            mat[k,i+self.N]=1
+                    break
+        return mat
+
 

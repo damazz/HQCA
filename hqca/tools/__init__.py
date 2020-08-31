@@ -21,13 +21,15 @@ __all__ = [
         'generate_spin_2ei_phys',
         'spin_rdm_to_spatial_rdm',
         'Operator',
-        'ParityCheckMatrix',
         'PauliString',
         'QuantumString',
         'QubitString',
         'qRDM',
         'RDM',
         'Recursive',
+        'Stabilizer',
+        'StabilizedCircuit',
         'State',
+
         ]
 

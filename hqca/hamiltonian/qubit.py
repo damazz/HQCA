@@ -10,7 +10,6 @@ class QubitHamiltonian(Hamiltonian):
             order=3,
             **kw,
             ):
-        pass
         self._en_c = 0
         self._order=order
         self._model = 'q'
@@ -19,7 +18,6 @@ class QubitHamiltonian(Hamiltonian):
         self.p = order
         if operator=='pauli':
             self._matrix_from_pauli(**kw)
-            pass
         elif operator=='sq':
             pass
 
@@ -36,18 +34,18 @@ class QubitHamiltonian(Hamiltonian):
         print('--- --- --- --- ---')
         self._matrix_from_op()
 
-    def _matrix_from_pauli(self,pauli):
+    def _matrix_from_pauli(self,op):
         mat = np.zeros((2**self.N,2**self.N),dtype=np.complex_)
-        for i in pauli.op:
+        for o in op:
             cir = Circ(self.N)
-            for n,p in enumerate(i.s):
+            for n,p in enumerate(o.s):
                 if p=='X':
                     cir.x(n)
                 elif p=='Y':
                     cir.y(n)
                 elif p=='Z':
                     cir.z(n)
-            mat+=i.c*cir.m
+            mat+=o.c*cir.m
         if self.p==self.N:
             self._matrix = np.array([mat])
         else:

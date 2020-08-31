@@ -3,6 +3,7 @@ import sys
 np.set_printoptions(linewidth=200,suppress=False,precision=3)
 from hqca.tools import *
 from functools import reduce
+from copy import deepcopy as copy
 
 '''
 /hqca/acse/FunctionsACSE.py
@@ -82,6 +83,7 @@ def findSPairs(
         commutative=True,
         recon_approx='V',
         verbose=True,
+        transform=None,
         **kw,
         ):
     '''
@@ -95,8 +97,9 @@ def findSPairs(
     No = 2*Na
     S = []
     tS = []
-    newS = Operator()
-    ferOp= Operator()
+    new = Operator()
+    newF= Operator()
+    max_val=0
     for p in alp+bet:
         for r in alp+bet:
             if p==r:
@@ -114,29 +117,29 @@ def findSPairs(
                         continue
                     term  = evaluate2S(p,r,s,q,store)
                     if abs(term)>=classS_max:
-                        newOp = FermionicOperator(
-                                coeff=term,
+                        new+= FermiString(
+                                coeff=term*0.5,
                                 indices=[p,r,s,q],
-                                sqOp='++--',
-                                antisymmetric=True,
-                                add=True
+                                ops='++--',
+                                N = quantstore.dim,
                                 )
-                        newOp.generateOperators(
-                                Nq=quantstore.Nq,
-                                real=True,imag=True,
-                                mapping=store.H.mapping,
-                                **store.H._kw_mapping,
-                                )
-                        ferOp+= newOp
-                        newS+= newOp.formOperator()
-    print('Elements of S from classical ACSE: ')
-    newS.clean()
+    for op in new:
+        if abs(op.c)>=abs(max_val):
+            max_val = copy(op.c)
+    for op in new:
+        if abs(op.c)>=classS_thresh_rel*abs(max_val):
+            newF+= op
+    newS = newF.transform(quantstore.transform)
+    if verbose:
+        print('From the classical solution of the ACSE...')
+        print('Fermionic S operator:')
+        print(newF)
+        print('Qubit S operator: ')
+        print(newS)
     if commutative:
-        pass
+        newS.ca=True
     else:
-        for i in newS.op:
-            i.add=False
-    print(ferOp)
+        newS.ca=False
     return newS
 
 

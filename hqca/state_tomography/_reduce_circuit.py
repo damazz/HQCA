@@ -170,7 +170,6 @@ class Graph:
                 self.colors[c]=[n]
         self.g.clear_filters()
 
-
     def _find_uncolored_vertices():
         pass
         #iteration = 0
@@ -330,6 +329,7 @@ def simplify_tomography(
         operators,
         verbose=False,
         rel='qwc',
+        reassign_z=True,
         **kw):
     if verbose:
         print('Relation: {}'.format(rel))
@@ -339,6 +339,13 @@ def simplify_tomography(
     if len(operators)==1:
         op = operators[0]
         return [op],{op:op}
+    if reassign_z:
+        zed = []
+        for n in reversed(range(len(operators))):
+            l = len(set(operators[n]))
+            iz = ('I' in operators[n] and 'Z' in operators[n])
+            if l==2 and iz:
+                zed.append(operators.pop(n))
     graph = construct_simple_graph(operators,relation,verbose=verbose,**kw)
     if verbose:
         try:
@@ -373,9 +380,17 @@ def simplify_tomography(
         K = ops[k]
         for p in v:
             paulis[graph.rev_map[p]]=K
-    print('Number of colors: {}'.format(len(graph.colors.keys())))
-    print('Largest coloring: {}'.format(max(sizes)))
-    print('Standard deviation: {:.3f}'.format(np.std(np.asarray(sizes))))
+    if reassign_z:
+        for z in zed:
+            paulis[z]='Z'*len(z)
+        if 'Z'*len(operators[0]) in ops:
+            pass
+        else:
+            ops.append('Z'*len(operators[0]))
+    if verbose:
+        print('Number of colors: {}'.format(len(graph.colors.keys())))
+        print('Largest coloring: {}'.format(max(sizes)))
+        print('Standard deviation: {:.3f}'.format(np.std(np.asarray(sizes))))
     return ops,paulis
 
 def compare_tomography(
@@ -439,5 +454,6 @@ def compare_tomography(
             K = ops[k]
             for p in v:
                 paulis[graph.rev_map[p]]=K
+        
     return ops,paulis
 

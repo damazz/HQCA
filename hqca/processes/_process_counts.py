@@ -13,7 +13,7 @@ class StandardProcess(Process):
 
     def __measure_z_string(self,counts,
             pauli_string,
-            backend='statvector_simulator',
+            backend='qasm_simulator',
             Nq='default',
             **kw):
         if backend in ['statevector_simulator']:

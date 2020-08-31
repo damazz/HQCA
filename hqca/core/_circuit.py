@@ -25,7 +25,13 @@ class Circuit(ABC):
             Instruct,
             ):
         for var,fxn in Instruct.gates:
-            #if self.name=='Z':
-            #    print(var)
             fxn(self,*var)
+
+    @abstractmethod
+    def tomography(self,
+            Instruct,
+            ):
+        for var,fxn in Instruct.generate_tomography(self):
+            fxn(self,*var)
+
 

@@ -39,11 +39,11 @@ def Parity(operator,
         **kw,
         ):
     if isinstance(operator,type(QuantumString())):
-        return ParityTransform(operator,**kw)
+        return ParityTransform(operator)
     else:
         new = Operator()
         for op in operator:
-            new+= ParityTransform(op,**kw)
+            new+= ParityTransform(op)
         return new
 
 

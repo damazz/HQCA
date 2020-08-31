@@ -15,6 +15,7 @@ from hqca.core import *
 from hqca.acse._class_S_acse import *
 from hqca.acse._quant_S_acse import *
 from hqca.tools import *
+from optss import *
 
 class RunACSE(QuantumRun):
     '''
@@ -63,7 +64,7 @@ class RunACSE(QuantumRun):
             self.acse_update = 'q'
         elif update in ['class','classical','c','C']:
             self.acse_update ='c'
-        if not method in ['NR','EM','opt','trust','newton','euler']:
+        if not method in ['NR','EM','opt','trust','newton','euler','line']:
             print('Specified method not valid. Update acse_kw: \'method\'')
             sys.exit()
         self.process =processor
@@ -116,7 +117,20 @@ class RunACSE(QuantumRun):
         print('Trotter-S: {}'.format(ansatz_depth))
         if self.acse_method=='newton':
             self._update_acse_newton(**kw)
+        elif self.acse_method in ['line','opt']:
+            self._update_acse_opt(**kw)
         self.grad=0
+
+    def _update_acse_opt(self,
+            optimizer='nm',
+            optimizer_threshold='default',
+            **kw,
+            ):
+        print('Optimizer threshold: {}'.format(optimizer_threshold))
+        self._optimizer = optimizer
+        self._opt_thresh = optimizer_threshold
+
+
 
     def _update_acse_newton(self,
             use_trust_region=False,
@@ -146,7 +160,7 @@ class RunACSE(QuantumRun):
         self.tr_object = 1
 
 
-    def build(self,log_rdm=False):
+    def build(self,log=False):
         try:
             self.Store.H
             self.QuantStore.Nq
@@ -199,9 +213,9 @@ class RunACSE(QuantumRun):
             self.log_ci = [self.ci]
         except Exception: 
             pass
-        self.lrdm=log_rdm
-        if self.lrdm:
-            self.log_rdm = [self.Store.rdm]
+        #self.log=log_r
+        #if self.lrdm:
+        #    self.log_rdm = [self.Store.rdm]
         self.total=Cache()
         self.built=True
 
@@ -241,10 +255,64 @@ class RunACSE(QuantumRun):
                     commutative=self.S_commutative,
                     )
         self._check_norm(testS)
+        # check if ansatz will change length
+        self._check_length(testS)
         if self.acse_method in ['NR','newton']:
             self.__newton_acse(testS)
         elif self.acse_method in ['default','em','EM','euler']:
             self.__euler_acse(testS)
+        elif self.acse_method in ['line']:
+            self.__opt_line_acse(testS)
+
+    def _check_length(self,newS):
+        testS = copy(newS)
+        currS = copy(self.S)
+        for f in testS:
+            f.c*= 0.0001
+        I0=self.Instruct(
+                operator=currS,
+                Nq=self.QuantStore.Nq,
+                quantstore=self.QuantStore,
+                depth=self.S_trotter,
+                )
+        I1=self.Instruct(
+                operator=currS+testS,
+                Nq=self.QuantStore.Nq,
+                quantstore=self.QuantStore,
+                depth=self.S_trotter,
+                )
+        if len(I1._gates)>len(I0._gates):
+            if self.verbose:
+                print('Increasing gate length.')
+            if self.QuantStore.post:
+                if self.QuantStore.method=='shift':
+                    #self.QuantStore.measure_shift=True
+                    # then, we need to update
+                    Circ= StandardTomography(
+                            QuantStore=self.QuantStore,
+                            preset=self.tomo_preset,
+                            Tomo=self.tomo_Psi,
+                            verbose=self.verbose,
+                            )
+                    if not self.tomo_preset:
+                        Circ.generate(
+                                real=self.Store.H.real,
+                                imag=self.Store.H.imag)
+                    Circ.set(I1)
+                    Circ.simulate()
+
+                    Circ.construct(processor=self.process)
+                    if type(self.QuantStore.Gamma)==type(None):
+                        self.QuantStore.Gamma = self.Store.rdm-Circ.rdm
+                    else:
+                        self.QuantStore.Gamma+= self.Store.rdm-Circ.rdm
+                    print('---------------------------------')
+                    print('New Gamma:')
+                    print('---------------------------------')
+                    self.QuantStore.Gamma.analysis()
+                    print('---------------------------------')
+                    print('---------------------------------')
+                    #self.QuantStore.measure_shift=False
 
     def _check_norm(self,testS):
         '''
@@ -254,6 +322,40 @@ class RunACSE(QuantumRun):
         for item in testS.op:
             self.norm+= item.norm
         self.norm = self.norm**(0.5)
+
+
+    def __opt_line_acse(self,testS):
+        '''
+        '''
+        self._opt_log = []
+        self._opt_en  = []
+        func = partial(self.__opt_acse_function,newS=testS)
+        if self._opt_thresh=='default':
+            thresh = self.delta/4
+        else:
+            thresh = self._opt_thresh
+        opt = Optimizer(self._optimizer,
+                function=func,
+                verbose=True,
+                shift= -1.01*self.delta,
+                initial_conditions='old',
+                unity=self.delta,
+                conv_threshold=thresh,
+                diagnostic=True,
+                )
+        opt.initialize([self.delta])
+        # use if nelder mead
+        print('Initial Simplex: ')
+        for x,e in zip(opt.opt.simp_x,opt.opt.simp_f):
+            print(x,e)
+        opt.run()
+        for r,e in zip(self._opt_log,self._opt_en):
+            if abs(e-opt.opt.best_f)<=1e-5:
+                self.Store.update(r.rdm)
+        for s in testS:
+            s.c*=opt.opt.best_x[0]
+        self.S = self.S + testS
+        print(self.S)
 
     def __euler_acse(self,testS):
         '''
@@ -331,6 +433,36 @@ class RunACSE(QuantumRun):
                 self.Store.update(circ.rdm)
         self.circ = circ
 
+    def __opt_acse_function(self,parameter,newS=None,verbose=False):
+        testS = copy(newS)
+        currS = copy(self.S)
+        for f in testS:
+            f.c*= parameter[0]
+        temp = currS+testS
+        tIns =self.Instruct(
+                operator=temp,
+                Nq=self.QuantStore.Nq,
+                quantstore=self.QuantStore,
+                depth=self.S_trotter,
+                )
+        tCirc= StandardTomography(
+                QuantStore=self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo_Psi,
+                verbose=self.verbose,
+                )
+        if not self.tomo_preset:
+            tCirc.generate(
+                    real=self.Store.H.real,
+                    imag=self.Store.H.imag)
+        tCirc.set(tIns)
+        tCirc.simulate()
+        tCirc.construct(processor=self.process)
+        en = np.real(self.Store.evaluate(tCirc.rdm))
+        self._opt_log.append(tCirc)
+        self._opt_en.append(en)
+        return en
+
     def __test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
         currS = copy(self.S)
@@ -375,10 +507,9 @@ class RunACSE(QuantumRun):
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self.circ = tCirc
         return en,tCirc.rdm
-    
+
     def _particle_number(self,rdm):
         return rdm.trace()
-
 
     def __newton_acse(self,testS):
         max_val = 0
@@ -411,7 +542,7 @@ class RunACSE(QuantumRun):
         self.grad = d1D
         self.hess = d2D
         if self.use_trust_region:
-            print('Trust region step.')
+            print('Carrying out trust region step:')
             if self.hess<0:
                 print('Hessian non-positive. Taking Euler step.')
                 if e2<e1:
@@ -566,8 +697,8 @@ class RunACSE(QuantumRun):
         #print('S Operator: ')
         #print(self.S)
         en = self.Store.evaluate(self.Store.rdm)
-        if self.lrdm:
-            self.log_rdm.append(self.Store.rdm)
+        #if self.lrdm:
+        #    self.log_rdm.append(self.Store.rdm)
         if self.total.iter==0:
             self.old = copy(self.e0)
         self.total.iter+=1
@@ -660,6 +791,9 @@ class RunACSE(QuantumRun):
                     print('Ending optimization.')
             elif self._conv_type=='iterations':
                 pass
+            elif self._conv_type in ['S-norm','norm']:
+                if self.norm<self.crit:
+                    self.total.done=True
             else:
                 print('Convergence type not specified.')
                 sys.exit('Goodbye.')

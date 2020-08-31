@@ -163,6 +163,7 @@ class StorageACSE(Storage):
                         negative=True
                         print(i)
                         neg_ind = copy(n)
+            '''
             if negative:
                 rdm.expand()
                 zed = np.nonzero(rdm.rdm)
@@ -192,6 +193,7 @@ class StorageACSE(Storage):
                             if i<0:
                                 print(i)
                 #sys.exit('Negative eigenvalue?')
+            '''
             rdm.expand()
             rdm1 = rdm.reduce_order()
             print('1-RDM: ')

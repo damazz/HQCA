@@ -16,8 +16,6 @@ class Instructions(ABC):
             **kw):
         self._gates = []
 
-
-
     @property
     @abstractmethod
     def gates(self):
@@ -26,5 +24,3 @@ class Instructions(ABC):
     @gates.setter
     def gates(self,gates):
         self._gates = gates
-
-

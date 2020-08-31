@@ -12,7 +12,8 @@ from hqca.state_tomography._reduce_circuit import simplify_tomography
 from hqca.state_tomography._reduce_circuit import compare_tomography
 from hqca.processes import *
 from hqca.core.primitives import *
-from qiskit import transpile,assemble,execute
+from qiskit.transpiler import Layout
+from qiskit import transpile,assemble,execute,schedule
 
 class RDMElement:
     def __init__(self,op,qubOp,ind=None,**kw):
@@ -35,6 +36,7 @@ class StandardTomography(Tomography):
             Nq=None,
             dim=None,
             order=None,
+            method='local',
             **kw):
         self.grouping = False
         self.run = False
@@ -46,18 +48,25 @@ class StandardTomography(Tomography):
             self.Nq = QuantStore.Nq
             self.Nq_tot = QuantStore.Nq_tot
             self.qs = QuantStore
-            self.p = QuantStore.p
+            if type(order)==type(None):
+                self.p = QuantStore.p
+            else:
+                self.p = order
         if preset:
             self._preset_configuration(**kw)
+        self.method=method
         self.dim = tuple([
             self.qs.dim for i in range(2*self.p)])
         self.circuits = []
+        self.qr = []
+        self.cr = []
         self.circuit_list = []
         self.verbose=verbose
         self.op_type = QuantStore.op_type
 
     def _preset_configuration(self,
             Tomo=None,
+            **kw
             ):
         self.grouping=True
         self.mapping = Tomo.mapping
@@ -65,6 +74,10 @@ class StandardTomography(Tomography):
         self.rdme = Tomo.rdme
         self.real = Tomo.real
         self.imag = Tomo.imag
+        try:
+            self.p = Tomo.p
+        except Exception:
+            pass
 
     def set(self,Instruct):
         if self.verbose:
@@ -109,22 +122,27 @@ class StandardTomography(Tomography):
             for s in init:
                 apply_pauli_string(Q,s)
             Q.apply(Instruct=Instruct)
-            if self.qs.backend in ['unitary_simulator','statevector_simulator']:
-                for (i,j) in Q.sl:
-                    Q.qc.swap(Q.q[i],Q.q[j])
+            if self.method=='local':
                 for n,q in enumerate(circ):
                     pauliOp(Q,n,q)
+                    if not self.qs.backend in ['statevector_simulator']:
+                        Q.qc.measure(Q.q[n],Q.c[n])
+            elif self.method=='stabilizer':
+                self._stabilizer(Q)
             else:
-                for n,q in enumerate(circ):
-                    j = Q.swap[n]
-                    pauliOp(Q,j,q)
-                for i in range(self.qs.Nq):
-                    j = Q.swap[i]
-                    Q.qc.measure(Q.q[j],Q.c[i])
+                sys.exit('Need to specify method')
             self.circuits.append(Q.qc)
+            self.qr.append(Q.q)
+            self.cr.append(Q.c)
+
 
     def construct(self,
             **kwargs):
+        '''
+        build the RDM or qubit-RDM 
+
+        use keywords from quantstore (self.qs) for error mitigation, etc. 
+        '''
         try:
             self.rdme[0]
         except Exception:
@@ -135,6 +153,15 @@ class StandardTomography(Tomography):
             sys.exit('Did you forget to run the circuit? No counts available.')
         if self.op_type=='fermionic':
             self._build_fermionic_RDM(**kwargs)
+            #
+            # here, we an implement some post processing
+            #
+            if self.qs.post:
+                if self.qs.method=='shift':
+                    if type(self.qs.Gamma)==type(None):
+                        pass
+                    else:
+                        self.rdm+= self.qs.Gamma*self.qs.Gam_coeff
         elif self.op_type=='qubit':
             self._build_qubitRDM()
             if self.qs.post:
@@ -188,20 +215,24 @@ class StandardTomography(Tomography):
 
     def _build_fermionic_RDM(self,
             processor=None,
-            variance=False):
+            variance=False,**kw):
         if type(processor)==type(None):
             processor=StandardProcess()
         nRDM = np.zeros(self.dim,dtype=np.complex_)
         for r in self.rdme:
             temp = 0
             for op in r.qubOp:
-                get = self.mapping[op.s] #self.mapping has important get
+                if op.s=='I'*len(op.s):
+                    temp+= op.c
+                    continue
+                get = self.mapping[op.s] #self.mapping gets appropriate pauli
                 # property to get the right pauli
                 zMeas = processor.process(
                         counts=self.counts[get],
                         pauli_string=op.s,
                         quantstore=self.qs,
                         backend=self.qs.backend,
+                        original=get,
                         Nq=self.qs.Nq_tot)
                 temp+= zMeas*op.c
             if self.p==2:
@@ -220,7 +251,9 @@ class StandardTomography(Tomography):
                             ind2 = tuple(i[:self.p]+j[:self.p])
                             nRDM[ind2]+=np.conj(temp)*s
             elif self.p==1:
-                nRDM[tuple(r.ind)]+=temp #factor of 2 is for double counting
+                nRDM[tuple(r.ind)]+=temp
+                if len(set(r.ind))==len(r.ind):
+                    nRDM[tuple(r.ind[::-1])]+=np.conj(temp)
         self.rdm = RDM(
                 order=self.p,
                 alpha=self.qs.groups[0],
@@ -566,19 +599,30 @@ class StandardTomography(Tomography):
                     print(e)
                     sys.exit()
         if self.qs.transpile=='default':
-            circuits = transpile(
-                    circuits=self.circuits,
+            circuits = []
+            for m,c in enumerate(self.circuits):
+                lo = Layout()
+                for n,i in enumerate(self.qs.be_initial):
+                    lo.add(self.qr[m][n],i)
+                #layout = {self.qr[m][n]:i for n,i in
+                #        enumerate(self.qs.be_initial)}
+                layout = lo
+                circuits.append(transpile(
+                    circuits=c,
                     backend=beo,
                     coupling_map=coupling,
-                    initial_layout=self.qs.be_initial,
+                    #initial_layout=self.qs.be_initial,
+                    initial_layout=layout,
                     **self.qs.transpiler_keywords
-                    )
+                    ))
         else:
             sys.exit('Configure pass manager.')
+
         qo = assemble(
                 circuits,
                 shots=self.qs.Ns
                 )
+        #qo = schedule(qo,beo)
         if self.qs.backend=='unitary_simulator':
             job = beo.run(qo)
             for circuit in self.circuit_list:
@@ -694,3 +738,35 @@ class StandardTomography(Tomography):
         #new = self._build_mod_2RDM(random_counts)
         #print('Build 2rdm: {}'.format(t4-t3))
         return self.rdm
+
+
+    def _stabilizer(self,Q):
+        # this applies the stabilizer circuit
+        # self.op is list of measurements
+        # self.mapping maps needed pauli measurements to elements of self.op
+        # if we need A,B,C, mapped to B,C, self.mapping takes in A,B,C and will
+        # output B,C
+
+        stable = self.qs.stabilizer_map[Q.name] # this should 
+        Q.apply(Instruct=stable)
+        if not self.qs.backend in ['statevector_simulator']:
+            Q.qc.measure(Q.q,Q.c)
+
+    def build_stabilizer(self):
+        circs = {k:[] for k in self.op}
+        for k,v in self.mapping.items():
+            circs[v].append(k)
+        stabilizer_map = {}
+        for k,v in circs.items():
+            new = Operator()
+            for j in v:
+                if not j=='I'*self.Nq:
+                    new+= PauliString(pauli=j,coeff=1)
+            check = StabilizedCircuit(new,verbose=self.verbose)
+            check.gaussian_elimination()
+            check.find_symmetry_generators()
+            check.construct_circuit()
+            check.simplify()
+            stabilizer_map[k]=check
+        return stabilizer_map
+

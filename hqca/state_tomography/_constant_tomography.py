@@ -28,11 +28,6 @@ class ConRDMElement:
             self.ind = op.op[0].inds()
 
 class ReducedTomography(StandardTomography):
-    def _generate_1rdme(self,
-            real=True,
-            imag=False,
-            **kw):
-        raise AttributeError
 
     def _generate_1rdme(self,
             real=True,

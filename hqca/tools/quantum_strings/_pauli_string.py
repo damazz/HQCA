@@ -86,7 +86,6 @@ class PauliString(QuantumString):
         return (c+1)%2
 
 
-
     def isSame(self,a):
         return self.s==a.p
 

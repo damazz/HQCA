@@ -289,7 +289,11 @@ class SymmetryProjection:
                     final = Operator()
                     for n,i in enumerate(added):
                         if abs(x[n])>1e-10:
-                            final+= PauliString(n_to_pauli[i],x[n])
+                            if type(x[n]) in [type(np.array([]))]:
+                                xn = x[n][0]
+                            else: 
+                                xn = x[n]
+                            final+= PauliString(n_to_pauli[i],xn)
                     self.qubOp= final
                 #if first==newop1:
                 #    print(self.qubOp)
