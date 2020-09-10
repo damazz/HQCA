@@ -10,14 +10,14 @@ from hqca.acse import *
 from pyscf import gto
 mol = gto.Mole()
 
-d = 0.5
+d = 1.0
 mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
 #mol.atom=[['H',(0,0,0)],['H',(d,0,0)],['H',(-d,0,0)]]
 mol.basis='sto-3g'
 mol.spin=0
 mol.verbose=0
 mol.build()
-ham = MolecularHamiltonian(mol)
+ham = MolecularHamiltonian(mol,transform=JordanWigner)
 Ins = PauliSet
 st = StorageACSE(ham)
 qs = QuantumStorage()
@@ -27,10 +27,10 @@ qs.set_backend(
         #backend='qasm_simulator',
         Nq=4,
         provider='Aer')
-tomoRe = StandardTomography(qs)
-tomoIm = StandardTomography(qs)
-tomoRe.generate(real=True,imag=False)
-tomoIm.generate(real=False,imag=True)
+tomoRe = ReducedTomography(qs)
+tomoIm = ReducedTomography(qs)
+tomoRe.generate(real=True,imag=False,transform=JordanWigner,)
+tomoIm.generate(real=False,imag=True,transform=JordanWigner,)
 
 acse = RunACSE(
         st,qs,Ins,
@@ -43,6 +43,7 @@ acse = RunACSE(
         propagation='trotter',
         use_trust_region=True,
         convergence_type='trust',
+        commutative_ansatz=True,
         hamiltonian_step_size=0.01,
         max_iter=100,
         initial_trust_region=0.1,

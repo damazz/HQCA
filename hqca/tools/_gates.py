@@ -3,7 +3,7 @@ from numpy import kron as k
 from functools import reduce
 import sympy as sy
 np.set_printoptions(suppress=True,precision=4,linewidth=200)
-import pyzx as pz
+#import pyzx as pz
 
 
 class Circ:

@@ -20,16 +20,17 @@ mol.verbose=0
 mol.build()
 ham = MolecularHamiltonian(mol,transform=JordanWigner)
 Ins = PauliSet
-st = StorageACSE(ham)
+st = StorageACSE(ham,S_depth=2)
 qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(
-        backend='statevector_simulator',
-        #backend='qasm_simulator',
+        #backend='statevector_simulator',
+        backend='qasm_simulator',
         backend_initial_layout=[0,1,2,3],
         Nq=4,
+        num_shots=8192,
         provider='Aer')
-qs.set_error_mitigation(mitigation='ansatz_shift',coeff=0.0)
+qs.set_error_mitigation(mitigation='ansatz_shift',coeff=1.0)
 
 tomoRe = ReducedTomography(qs)
 tomoIm = ReducedTomography(qs)
@@ -50,13 +51,16 @@ acse = RunACSE(
         hamiltonian_step_size=0.01,
         max_iter=10,
         initial_trust_region=0.1,
+        commutative_ansatz=True,
         newton_step=-1,
         restrict_S_size=1,
         tomo_S = tomoIm,
         tomo_Psi = tomoRe,
-        verbose=False,
+        verbose=True,
         )
+
 acse.build()
 acse.run()
 #print(acse.log_rdm)
+
 

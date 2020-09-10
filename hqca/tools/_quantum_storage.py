@@ -118,7 +118,10 @@ class QuantumStorage:
             print(self.transpile)
             sys.exit()
         self.transpiler_keywords = transpiler_keywords
-        self.be_initial = backend_initial_layout
+        if type(backend_initial_layout)==type(None):
+            self.be_initial = [i for i in range(Nq)]
+        else:
+            self.be_initial = backend_initial_layout
         #self.be_initial = {}
         #qr = QuantumRegister(Nq+Nq_ancilla)
         #for n,i in enumerate(backend_initial_layout):
