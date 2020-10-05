@@ -1,0 +1,233 @@
+> with(LinearAlgebra);
+> cdir := "/home/scott/wDocuments/research/software/hqca/hqca/maple/";
+cdir := "/home/scott/Documents/research/software/hqca/hqca/maple/"
+
+;
+> data := readdata(cat(cdir, "temp.rdm"), 6);
+data := [[0., 1., 2.], [3., 4., 5.], [1., 1., 1., 1., 0., 0.], 
+
+  [1., 2., 1., 2., 1.000000, 0.], [2., 1., 2., 1., 1.000000, 0.], 
+
+  [2., 2., 2., 2., 0., 0.]]
+
+
+;
+> with(ArrayTools);
+# 
+> Rearrange := proc(x) local n, a, i, j, k, l; `local`(a, n, i, j, k, l); `description`("convert chemists to numpy and flatten an array to form a matrix"); n := Size(x); a := Array(1 .. n[1], 1 .. n[2], 1 .. n[3], 1 .. n[4], datatype = float[8]); for i to n[1] do for j to n[2] do for k to n[3] do for l to n[4] do a[i, k, j, l] := x[i, j, k, l]; end do; end do; end do; end do; return a; end proc;
+Warning, (in Rearrange) `n` is implicitly declared local
+Warning, (in Rearrange) `a` is implicitly declared local
+Warning, (in Rearrange) `i` is implicitly declared local
+Warning, (in Rearrange) `j` is implicitly declared local
+Warning, (in Rearrange) `k` is implicitly declared local
+Warning, (in Rearrange) `l` is implicitly declared local
+;
+> Flatten := proc(x) local n, a, i, j, k, l; `local`(a, n, i, j, k, l); `description`("convert chemists to numpy and flatten an array to form a matrix"); n := Size(x); a := Array(1 .. n[1]*n[2], 1 .. n[3]*n[4], datatype = float[8]); for i to n[1] do for j to n[2] do for k to n[3] do for l to n[4] do a[(i - 1)*n[1] + j, (k - 1)*n[3] + l] := x[i, k, j, l]; end do; end do; end do; end do; return a; end proc;
+Warning, (in Flatten) `n` is implicitly declared local
+Warning, (in Flatten) `a` is implicitly declared local
+Warning, (in Flatten) `i` is implicitly declared local
+Warning, (in Flatten) `j` is implicitly declared local
+Warning, (in Flatten) `k` is implicitly declared local
+Warning, (in Flatten) `l` is implicitly declared local
+Flatten := proc (x) local n, a, i, j, k, l; `local`(a, n, i, j, 
+
+   k, l); `description`("convert chemists to numpy and flatten 
+
+   an array to form a matrix"); n := ArrayTools:-Size(x); a := 
+
+   Array(1 .. n[1]*n[2], 1 .. n[3]*n[4], datatype = float[8]); 
+
+   for i to n[1] do for j to n[2] do for k to n[3] do for l to 
+
+   n[4] do a[(i-1)*n[1]+j, (k-1)*n[3]+l] := x[i, k, j, l] end 
+
+   do end do end do end do; return a end proc
+
+
+;
+> New := Array(1 .. 3, 1 .. 3, 1 .. 3, 1 .. 3, datatype = float[8]);
+                 _rtable[18446884079504928766]
+
+;
+> newdata := data[3 .. ()];
+newdata := [[1., 1., 1., 1., 0., 0.], 
+
+  [1., 2., 1., 2., 1.000000, 0.], [2., 1., 2., 1., 1.000000, 0.], 
+
+  [2., 2., 2., 2., 0., 0.]]
+
+
+;
+> for i in newdata do
+>     New[round(i[1]), round(i[2]), round(i[4]), round(i[3])] := i[5];
+> end do;
+                     New[1, 1, 1, 1] := 0.
+
+                  New[1, 2, 2, 1] := 1.000000
+
+                  New[2, 1, 1, 2] := 1.000000
+
+                     New[2, 2, 2, 2] := 0.
+
+;
+> New[1, 2];
+                      [    0.      0.  0.]
+                      [                  ]
+                      [1.00000000  0.  0.]
+                      [                  ]
+                      [    0.      0.  0.]
+
+;
+> with(QuantumChemistry);
+[AOLabels, ActiveSpaceCI, ActiveSpaceSCF, AtomicData, BondAngles, 
+
+  BondDistances, Charges, ChargesPlot, CorrelationEnergy, 
+
+  CoupledCluster, DensityFunctional, DensityPlot3D, Dipole, 
+
+  DipolePlot, Energy, ExcitationEnergies, ExcitationSpectra, 
+
+  ExcitationSpectraPlot, ExcitedStateEnergies, ExcitedStateSpins, 
+
+  FullCI, GeometryOptimization, HartreeFock, Interactive, 
+
+  Isotopes, MOCoefficients, MODiagram, MOEnergies, MOIntegrals, 
+
+  MOOccupations, MOOccupationsPlot, MOSymmetries, MP2, 
+
+  MolecularData, MolecularGeometry, NuclearEnergy, 
+
+  NuclearGradient, OscillatorStrengths, Parametric2RDM, 
+
+  PlotMolecule, Populations, Purify2RDM, RDM1, RDM2, RTM1, 
+
+  ReadXYZ, Restore, Save, SaveXYZ, SearchBasisSets, 
+
+  SearchFunctionals, SkeletalStructure, Thermodynamics, 
+
+  TransitionDipolePlot, TransitionDipoles, TransitionOrbitalPlot, 
+
+  TransitionOrbitals, Variational2RDM, VibrationalModeAnimation, 
+
+  VibrationalModes, Video]
+
+
+;
+> 
+;
+> mol := [["H", 1.00000000, 0, 0], ["H", -1.00000000, 0, 0]];
+          mol := [["H", 1.0, 0, 0], ["H", -1.0, 0, 0]]
+
+;
+> 
+;
+> h2 := Variational2RDM(mol, basis = "STO-3G", return_rdm = "rdm1_and_rdm2");
+          tableApplyFunction(%id=18446884080745345310)
+
+;
+> 
+;
+> 
+;
+> 
+;
+> h2[rdm2];
+                 _rtable[18446884080985558542]
+
+;
+> 
+;
+> pure := Purify2RDM(h2[rdm2], spin_free = true, electron_number = 2, conv_tol = 0.10000000, conditions = "DQG");
+          tableApplyFunction(%id=18446884080984193502)
+
+;
+> ^2 D ^{i,j}_{k,l} = < i j l k  > -> A[1..r,1..r,1..r,1..r] <=> A[i,j,k,l]  
+;
+> 
+;
+> G := Flatten(h2[rdm2]);
+     [[                                  &uminus0;10      
+G := [[1.42254129, &uminus0;1.89066701 10           , 0., 
+
+                     ]  [                      &uminus0;10  
+  &uminus0;0.90635806], [&uminus0;1.89066701 10           , 
+
+               &uminus0;20               &uminus0;20  
+  2.51284215 10           , 2.51284215 10           , 
+
+               &uminus0;10]  
+  1.20461971 10           ], 
+
+  [                 &uminus0;20                   &uminus0;10]  
+  [0., 2.51284215 10           , 0., 1.20461971 10           ], 
+
+  [                                  &uminus0;10  
+  [&uminus0;0.90635806, 1.20461971 10           , 
+
+               &uminus0;10            ]]
+  1.20461971 10           , 0.57747704]]
+
+
+;
+> 
+;
+> Eigenvalues(G);
+     [           2.00001833 + 0. &ImaginaryI;            ]
+     [                                                   ]
+     [                      &uminus0;10                  ]
+     [&uminus0;1.01593399 10            + 0. &ImaginaryI;]
+     [                                                   ]
+     [                 &uminus0;10                       ]
+     [    1.01593365 10            + 0. &ImaginaryI;     ]
+     [                                                   ]
+     [                 &uminus0;32                       ]
+     [    2.59269158 10            + 0. &ImaginaryI;     ]
+
+;
+> F := Flatten(pure[rdm2]);
+     [[                                  &uminus0;10  
+F := [[1.42252822, &uminus0;6.73365406 10           , 
+
+                        &uminus0;10                     ]  
+  &uminus0;6.73365406 10           , &uminus0;0.90634964], 
+
+  [                      &uminus0;10               &uminus0;19  
+  [&uminus0;6.73365406 10           , 3.18743040 10           , 
+
+               &uminus0;19               &uminus0;10]  
+  3.18743040 10           , 4.29028041 10           ], 
+
+  [                      &uminus0;10               &uminus0;19  
+  [&uminus0;6.73365406 10           , 3.18743040 10           , 
+
+                   &uminus0;10]  [                     
+  0., 4.29028041 10           ], [&uminus0;0.90634964, 
+
+               &uminus0;10               &uminus0;10            ]
+  4.29028041 10           , 4.29028041 10           , 0.57747162]
+
+  ]
+  ]
+
+
+;
+> 
+;
+> 
+;
+> Eigenvalues(F);
+     [           1.99999984 + 0. &ImaginaryI;            ]
+     [                                                   ]
+     [                      &uminus0;16                  ]
+     [&uminus0;1.11022302 10            + 0. &ImaginaryI;]
+     [                                                   ]
+     [                  0. &ImaginaryI;                  ]
+     [                                                   ]
+     [                      &uminus0;19                  ]
+     [&uminus0;3.18743041 10            + 0. &ImaginaryI;]
+
+;
+> 
+;
+> 
+;

@@ -12,8 +12,10 @@ from hqca.state_tomography._reduce_circuit import simplify_tomography
 from hqca.state_tomography._reduce_circuit import compare_tomography
 from hqca.processes import *
 from hqca.core.primitives import *
+from hqca.maple import *
 from qiskit.transpiler import Layout
 from qiskit import transpile,assemble,execute,schedule
+
 
 class RDMElement:
     def __init__(self,op,qubOp,ind=None,**kw):
@@ -157,11 +159,14 @@ class StandardTomography(Tomography):
             # here, we an implement some post processing
             #
             if self.qs.post:
-                if self.qs.method=='shift':
+                if 'shift' in self.qs.method:
                     if type(self.qs.Gamma)==type(None):
                         pass
                     else:
                         self.rdm+= self.qs.Gamma*self.qs.Gam_coeff
+                if 'sdp' in self.qs.method:
+                    self.rdm = purify(rdm,self.qs)
+
         elif self.op_type=='qubit':
             self._build_qubitRDM()
             if self.qs.post:

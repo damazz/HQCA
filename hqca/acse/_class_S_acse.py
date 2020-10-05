@@ -78,9 +78,7 @@ def evaluate2S(i,k,l,j,Store):
 def findSPairs(
         store,
         quantstore,
-        classS_thresh_rel=0.1,
-        classS_max=1e-10,
-        commutative=True,
+        S_min=1e-10,
         recon_approx='V',
         verbose=True,
         transform=None,
@@ -90,7 +88,11 @@ def findSPairs(
     '''
     store.rdm3 = store.rdm.reconstruct(approx=recon_approx)
     if verbose:
-        print('3-RDM Trace: {}'.format(store.rdm3.trace()))
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('classical ACSE')
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('trace of the 3-RDM: {}'.format(store.rdm3.trace()))
+        print('')
     alp = store.alpha_mo['active']
     bet = store.beta_mo['active']
     Na = len(alp)
@@ -116,30 +118,27 @@ def findSPairs(
                     if q==s:
                         continue
                     term  = evaluate2S(p,r,s,q,store)
-                    if abs(term)>=classS_max:
+                    if abs(term)>=S_min:
                         new+= FermiString(
                                 coeff=term*0.5,
                                 indices=[p,r,s,q],
                                 ops='++--',
                                 N = quantstore.dim,
                                 )
-    for op in new:
-        if abs(op.c)>=abs(max_val):
-            max_val = copy(op.c)
-    for op in new:
-        if abs(op.c)>=classS_thresh_rel*abs(max_val):
-            newF+= op
-    newS = newF.transform(quantstore.transform)
+    fullS = new.transform(quantstore.transform)
+    #for op in new:
+    #    if abs(op.c)>=abs(max_val):
+    #        max_val = copy(op.c)
     if verbose:
-        print('From the classical solution of the ACSE...')
-        print('Fermionic S operator:')
+        print('fermionic A operator:')
         print(newF)
-        print('Qubit S operator: ')
-        print(newS)
-    if commutative:
-        newS.ca=True
-    else:
-        newS.ca=False
-    return newS
+        print('')
+    #if commutative:
+    #    newS.ca=True
+    #else:
+    #    newS.ca=False
+    return fullS
+
+
 
 

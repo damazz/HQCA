@@ -227,6 +227,7 @@ class MolecularHamiltonian(Hamiltonian):
             self._qubOp = None
             self._ferOp = None
 
+
     @property
     def order(self):
         return self._order
@@ -376,12 +377,12 @@ class MolecularHamiltonian(Hamiltonian):
         t3 = timeit.default_timer()
         if self.verbose:
             print('2e terms: {}'.format(t3-t2))
-            print('-------------------')
-            print('Fermionic Hamiltonian')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('Second Quantized Hamiltonian')
             print(ferOp)
-            print('Hamiltonian in Pauli Basis:')
+            print('Pauli String Hamiltonian:')
             print(qubOp)
-            print('-------------------')
+            print('-- -- -- -- -- -- -- -- -- -- --')
 
     @property
     def model(self):

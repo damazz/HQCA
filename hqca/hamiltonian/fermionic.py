@@ -105,6 +105,8 @@ class FermionicHamiltonian(Hamiltonian):
         else:
             self._qubOp = None
             self._ferOp = None
+        if self.verbose:
+            print('\n\n')
 
     @property
     def order(self):

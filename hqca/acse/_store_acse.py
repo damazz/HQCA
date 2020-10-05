@@ -141,11 +141,6 @@ class StorageACSE(Storage):
     def evaluate(self,rdm):
         rdm.contract()
         en = rdm.observable(self.H.matrix)
-        #rdm.expand()
-        #zed = np.nonzero(rdm.rdm)
-        #for i,j,k,l in zip(zed[0],zed[1],zed[2],zed[3]):
-        #    if rdm.rdm[i,j,k,l]>1e-3:
-        #        print(i,j,k,l,rdm.rdm[i,j,k,l])
         return en + self.H._en_c
 
     def analysis(self,rdm='default'):

@@ -89,6 +89,7 @@ class QuantumStorage:
         self.use_meas_filter=False
         self.post = False
         self.process = False
+        self.method=[]
 
     def set_backend(self,
             Nq=4,
@@ -99,15 +100,14 @@ class QuantumStorage:
             backend_coupling_layout=None,
             backend_initial_layout=None,
             backend_file=None,
-            noise=False,
-            noise_model_location=None,
-            noise_gate_times=None,
             transpile='default',
             transpiler_keywords={},
             provider='Aer',
             **kwargs):
         if self.check==0:
-            sys.exit('Have not set up the quantumstorage algorithm yet.')
+            print('Error in setting backend, ')
+            print('run quantstore.set_algorithm() first.')
+            sys.exit()
         self.transpile=transpile
         if self.transpile in [True,'default']:
             self.transpile='default'
@@ -122,10 +122,6 @@ class QuantumStorage:
             self.be_initial = [i for i in range(Nq)]
         else:
             self.be_initial = backend_initial_layout
-        #self.be_initial = {}
-        #qr = QuantumRegister(Nq+Nq_ancilla)
-        #for n,i in enumerate(backend_initial_layout):
-        #    self.be_initial[qr[n]]=i
         self.be_coupling = backend_coupling_layout
         self.be_file = backend_file
         self.Nq = Nq  # active qubits
@@ -147,39 +143,53 @@ class QuantumStorage:
         self.backend=backend
         try:
             self.beo = prov.get_backend(backend)
+            hub = 'main'
         except Exception:
             self.provider = IBMQ.get_provider(hub='ibm-q-university',
                     group='uchicago',project='main')
+            hub = 'uchicago'
             try:
                 self.beo = self.provider.get_backend(backend)
             except Exception:
                 self.provider = IBMQ.get_provider(hub='ibm-q-research',
                         group='Scott-Smart',project='main')
+                hub = 'ibm-q-research'
                 self.beo = self.provider.get_backend(backend)
         self.use_noise=False
         if self.verbose:
-            print('# Summary of quantum parameters:')
-            print('#  backend   : {}'.format(self.backend))
-            print('#  num shots : {}'.format(self.Ns))
-            print('#  num qubit : {}'.format(self.Nq))
-            print('#  provider  : {}'.format(provider))
-            print('#  transpile  : {}'.format(self.transpile))
-            print('#######')
+            print('\n\n')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print(' -- QUANTUM COMPUTER SETTING --')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('provider    : {}'.format(provider))
+            print('hub         : {}'.format(hub))
+            print('backend     : {}'.format(self.backend))
+            print('num qubit   : {}'.format(self.Nq))
+            print('num shots   : {}'.format(self.Ns))
+            print('qubit layout: {}'.format(backend_initial_layout))
+            print('transpile   : {}'.format(self.transpile))
+            print('-- -- -- -- -- -- -- -- -- -- --')
 
     def set_noise_model(self,
             custom=False,
             **kw
             ):
         self.use_noise = True
+        if self.verbose:
+            print('Setting noise model.')
         if custom:
             self._set_custom_noise_model(**kw)
         else:
             self._get_noise_model(**kw)
+        if self.verbose:
+            print('-- -- -- -- -- -- -- -- -- -- --')
 
 
     def set_error_mitigation(self,
             mitigation=False,
             **kwargs):
+        if self.verbose:
+            print('setting Error mitigation method: {}'.format(mitigation))
         if mitigation=='stabilizer':
             self._set_stabilizers(**kwargs)
         elif mitigation=='measure':
@@ -195,6 +205,10 @@ class QuantumStorage:
             pass
         elif mitigation=='reconstruction':
             self._set_reconstruction(**kwargs)
+        elif mitigation=='sdp':
+            self._configure_sdp(**kwargs)
+        if self.verbose:
+            print('-- -- -- -- -- -- -- -- -- -- --')
 
 
 
@@ -208,11 +222,21 @@ class QuantumStorage:
 
         but when do we measure the 2-RDM?
         '''
+        if self.verbose:
+            print('shift coefficient: {}'.format(coeff))
         self.post=True
-        self.method = 'shift'
+        self.method.append('shift')
         self.add_Gamma =True
         self.Gamma = None
         self.Gam_coeff = coeff
+
+    def _configure_sdp(self,path_to_maple='default',
+            spin_rdm=True,**kw):
+        if path_to_maple=='default':
+            self.path_to_maple = 'maple' #assuming maple command is in PATH
+        self.method.append('sdp')
+        self.spin_rdm=spin_rdm
+        self.post = True
 
 
 

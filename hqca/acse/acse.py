@@ -41,11 +41,9 @@ class RunACSE(QuantumRun):
             pr_a=1,
             ansatz_depth=1,
             commutative_ansatz=False,
-            quantS_thresh_rel=0.1,
-            quantS_ordering='default',
-            quantS_max=1e-10,
-            classS_thresh_rel=0.1,
-            classS_max=1e-10,
+            S_ordering='default',
+            S_thresh_rel=0.1,
+            S_min=1e-10,
             convergence_type='default',
             hamiltonian_step_size=0.1,
             restrict_S_size=0.5,
@@ -54,9 +52,10 @@ class RunACSE(QuantumRun):
             verbose=True,
             tomo_S=None,
             tomo_Psi=None,
-            one_body_kw={},
             statistics=False,
             processor=None,
+            max_depth=None,
+            max_constant_depth=None,
             **kw):
         '''
         Updates the ACSE keywords. 
@@ -72,21 +71,20 @@ class RunACSE(QuantumRun):
         self.verbose=verbose
         self.stats=statistics
         self.acse_method = method
-        self.one_body_kw = one_body_kw
         self.S_trotter= ansatz_depth
         self.S_commutative = commutative_ansatz
         self.N_trotter = trotter
         self.max_iter = max_iter
+        self.max_depth = max_depth
+        self.max_constant_depth = max_constant_depth
         self.crit = opt_thresh
         self.hamiltonian_step_size = hamiltonian_step_size
         self.sep_hamiltonian = separate_hamiltonian
-        self.qS_thresh_rel = quantS_thresh_rel
-        self.qS_max = quantS_max
+        self.S_thresh_rel = S_thresh_rel
+        self.S_min = S_min
         self.delta = restrict_S_size
         self.propagate_method=propagation
-        self.qS_ordering = quantS_ordering
-        self.cS_thresh_rel = classS_thresh_rel
-        self.cS_max = classS_max
+        self.S_ordering = S_ordering
         self._conv_type = convergence_type
         self.tomo_S=tomo_S
         self.tomo_Psi=tomo_Psi
@@ -94,28 +92,36 @@ class RunACSE(QuantumRun):
             self.tomo_preset=False
         else:
             self.tomo_preset=True
+        print('\n\n')
         print('-- -- -- -- -- -- -- -- -- -- --')
         print('      --  ACSE KEYWORDS --      ')
         print('-- -- -- -- -- -- -- -- -- -- --')
-        print('algorithm...')
-        print('ACSE Method: {}'.format(method))
-        print('ACSE Update: {}'.format(update))
-        print('Max iterations: {}'.format(max_iter))
-        print('Convergence type: {}'.format(convergence_type))
-        print('Convergence threshold: {}'.format(self.crit))
+        print('algorithm')
+        print('-- -- -- --')
+        print('ACSE method: {}'.format(method))
+        print('ACSE update: {}'.format(update))
+        print('max iterations: {}'.format(max_iter))
+        print('max depth: {}'.format(max_depth))
+        print('convergence type: {}'.format(convergence_type))
+        print('convergence threshold: {}'.format(self.crit))
 
-        print('solution of ACSE...')
+        print('-- -- -- --')
+        print('ACSE solution')
+        print('-- -- -- --')
         if self.acse_update=='q':
-            print('Trotter-H: {}'.format(trotter))
-            print('Hamiltonian delta: {}'.format(hamiltonian_step_size))
-            print('Quant-S rel threshold: {}'.format(quantS_thresh_rel))
-            print('Quant-S max threshold: {}'.format(quantS_max))
-        elif self.acse_update=='c':
-            print('Class-S rel threshold: {}'.format(classS_thresh_rel))
-            print('Class-S max threshold: {}'.format(classS_max))
-        print('implementing the ansatz...')
+            print('trotter-H: {}'.format(trotter))
+            print('hamiltonian delta: {}'.format(hamiltonian_step_size))
+        print('S rel threshold: {}'.format(S_thresh_rel))
+        print('S max threshold: {}'.format(S_min))
+        print('-- -- -- --')
+        print('ansatz')
+        print('-- -- -- --')
         print('S epsilon: {}'.format(self.delta))
-        print('Trotter-S: {}'.format(ansatz_depth))
+        print('trotter-S: {}'.format(ansatz_depth))
+        print('-- -- -- --')
+        print('optimization')
+        print('-- -- -- --')
+
         if self.acse_method=='newton':
             self._update_acse_newton(**kw)
         elif self.acse_method in ['line','opt']:
@@ -127,7 +133,8 @@ class RunACSE(QuantumRun):
             optimizer_threshold='default',
             **kw,
             ):
-        print('Optimizer threshold: {}'.format(optimizer_threshold))
+        print('optimizer : {}'.format(optimizer))
+        print('optimizer threshold: {}'.format(optimizer_threshold))
         self._optimizer = optimizer
         self._opt_thresh = optimizer_threshold
 
@@ -153,15 +160,20 @@ class RunACSE(QuantumRun):
         self.tr_gd = tr_gamma_dec
         self.tr_nv = tr_nu_accept # very good?
         self.tr_ns = tr_nu_reject #shrink
-        print('Newton step: {}'.format(newton_step))
-        print('Newton trust region: {}'.format(use_trust_region))
-        print('Trust region: {:.6f}'.format(initial_trust_region))
-        print('-- -- -- -- -- -- -- -- -- -- --')
+        print('newton step: {}'.format(newton_step))
+        print('newton trust region: {}'.format(use_trust_region))
+        print('trust region: {:.6f}'.format(initial_trust_region))
         self.tr_taylor = 1
         self.tr_object = 1
 
 
     def build(self,log=False):
+        if self.verbose:
+            print('\n\n')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('building the ACSE run')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+
         try:
             self.Store.H
             self.QuantStore.Nq
@@ -200,85 +212,135 @@ class RunACSE(QuantumRun):
             print('Initial density matrix.')
             circ.rdm.contract()
             print(np.real(circ.rdm.rdm))
-            #self._calc_variance(circ)
         else:
             self.S = copy(self.Store.S)
             self.e0 = self.Store.e0
             self.ei = self.Store.ei
+            print('taking energy from storage')
+            print('initial energy: {:.8f}'.format(np.real(self.e0)))
         self.best = self.e0
         self.best_avg = self.e0
-        self.log_S = []
+
+        self.log = log
+        self.log_depth = []
+        if self.log:
+            self.log_rdm = [self.Store.rdm]
+            self.log_A = []
+            self.log_Gamma = []
+            self.log_S  = []
+        self.log_norm = []
         self.log_E = [self.e0]
         self.log_G = []
         try:
             self.log_ci = [self.ci]
         except Exception: 
             pass
-        #self.log=log_r
-        #if self.lrdm:
-        #    self.log_rdm = [self.Store.rdm]
         self.total=Cache()
+        self.__get_S()
+        if self.log:
+            self.log_A.append(copy(self.A))
+        #self._check_norm(self.A)
+        # check if ansatz will change length
+        print('||A||: {:.10f}'.format(np.real(self.norm)))
+        print('-- -- -- -- -- -- -- -- -- -- --')
         self.built=True
 
 
-
-    def _run_acse(self):
-        try:
-            self.built
-        except AttributeError:
-            sys.exit('Not built! Run acse.build()')
+    def __get_S(self):
         if self.acse_update=='q':
-            testS = findSPairsQuantum(
+            A_sq = findSPairsQuantum(
                     self.QuantStore.op_type,
                     operator=self.S,
                     process=self.process,
                     instruct=self.Instruct,
                     store=self.Store,
                     quantstore=self.QuantStore,
-                    qS_thresh_rel=self.qS_thresh_rel,
-                    qS_max=self.qS_max,
-                    ordering=self.qS_ordering,
+                    S_min=self.S_min,
+                    ordering=self.S_ordering,
                     trotter_steps=self.N_trotter,
                     hamiltonian_step_size=self.hamiltonian_step_size,
                     propagate_method=self.propagate_method,
                     depth=self.S_trotter,
-                    commutative=self.S_commutative,
                     separate_hamiltonian=self.sep_hamiltonian,
                     verbose=self.verbose,
                     tomo=self.tomo_S,
                     )
         elif self.acse_update=='c':
-            testS = findSPairs(
+            A_sq  = findSPairs(
                     self.Store,
                     self.QuantStore,
-                    classS_thresh_rel=self.cS_thresh_rel,
-                    classS_max=self.cS_max,
-                    commutative=self.S_commutative,
+                    S_min=self.S_min,
+                    verbose=self.verbose,
                     )
-        self._check_norm(testS)
-        # check if ansatz will change length
-        self._check_length(testS)
-        if self.acse_method in ['NR','newton']:
-            self.__newton_acse(testS)
-        elif self.acse_method in ['default','em','EM','euler']:
-            self.__euler_acse(testS)
-        elif self.acse_method in ['line']:
-            self.__opt_line_acse(testS)
+        max_val,norm = 0,0
+        new = Operator()
+        for op in A_sq:
+            norm+= op.norm
+            if abs(op.c)>=abs(max_val):
+                max_val = copy(op.c)
+        for op in A_sq:
+            if abs(op.c)>=abs(self.S_thresh_rel*max_val):
+                new+= op
+        if self.S_commutative:
+            new.ca=True
+        else:
+            new.ca=False
+        self.norm = norm**(0.5)
+        self.A = new
+        if self.verbose:
+            print('qubit A operator: ')
+            print(self.A)
+        print('-- -- -- -- -- -- -- -- -- -- --')
 
-    def _check_length(self,newS,full=True):
-        print('Checking ansatz length....')
-        if full and self.QuantStore.post and self.QuantStore.method=='shift':
+
+    def _run_acse(self):
+        '''
+        Function to the run the ACSE algorithm
+
+        Note, the algorithm is configured to optimize the energy, and then
+        calculate the residual of the ACSE.
+        '''
+        if self.verbose:
+            print('\n\n')
+        self._check_length()
+        try:
+            self.built
+        except AttributeError:
+            sys.exit('Not built! Run acse.build()')
+        if self.acse_method in ['NR','newton']:
+            self.__newton_acse()
+        elif self.acse_method in ['default','em','EM','euler']:
+            self.__euler_acse()
+        elif self.acse_method in ['line']:
+            self.__opt_line_acse()
+        self.__get_S()
+        #self._check_norm(self.A)
+        # check if ansatz will change length
+        if self.log:
+            self.log_rdm.append(self.Store.rdm)
+            self.log_A.append(copy(self.A))
+            self.log_S.append(copy(self.S))
+
+    def _check_length(self,full=True):
+        qsp = self.QuantStore.post
+        try:
+            met = self.QuantStore.method in ['shift']
+        except Exception:
+            met = False
+        if full and qsp and met:
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('checking ansatz length')
             print('--------------')
-            print('Recalculating Gamma error mitigation.')
+            print('recalculating Gamma error mitigation.')
             self.QuantStore.Gamma = None
-            testS = copy(newS)
+            testS = copy(self.A)
             currS = copy(self.S)
             total = currS+testS
             s1 = copy(total)
             s1.truncate(1)
             for f in s1.A[-1]:
                 f.c*=0.000001
-            print('Initial step: ')
+            print('initial step: ')
             print(s1)
 
             I0=self.Instruct(
@@ -301,7 +363,6 @@ class RunACSE(QuantumRun):
             Circ.set(I0)
             Circ.simulate()
             Circ.construct(processor=self.process)
-            #self.QuantStore.Gamma = self.Store.hf_rdm-Circ.rdm
             Gamma = self.Store.hf_rdm-Circ.rdm
             e0 = self.Store.evaluate(self.Store.hf_rdm)
             e1 = self.Store.evaluate(Circ.rdm)
@@ -378,79 +439,8 @@ class RunACSE(QuantumRun):
             print('Total energy shift: {:.8f}'.format(np.real(et)))
             print('----------------------------------')
             self.QuantStore.Gamma = Gamma
-        else:
-            testS = copy(newS)
-            currS = copy(self.S)
-            for f in testS:
-                f.c*= 0.000001
-            for f in currS:
-                f.c*= 0.000001
-            I0=self.Instruct(
-                    operator=currS,
-                    Nq=self.QuantStore.Nq,
-                    quantstore=self.QuantStore,
-                    depth=self.S_trotter,
-                    )
-            I1=self.Instruct(
-                    operator=currS+testS,
-                    Nq=self.QuantStore.Nq,
-                    quantstore=self.QuantStore,
-                    depth=self.S_trotter,
-                    )
-            if len(I1._gates)>len(I0._gates):
-                if self.verbose:
-                    print('Increasing gate length.')
-                if self.QuantStore.post:
-                    if self.QuantStore.method=='shift':
-                        #self.QuantStore.measure_shift=True
-                        # then, we need to update
-                        Circ= StandardTomography(
-                                QuantStore=self.QuantStore,
-                                preset=self.tomo_preset,
-                                Tomo=self.tomo_Psi,
-                                verbose=self.verbose,
-                                )
-                        if not self.tomo_preset:
-                            Circ.generate(
-                                    real=self.Store.H.real,
-                                    imag=self.Store.H.imag)
-                        Circ.set(I1)
-                        Circ.simulate()
-
-                        Circ.construct(processor=self.process)
-
-                        #Circ0= StandardTomography(
-                        #        QuantStore=self.QuantStore,
-                        #        preset=self.tomo_preset,
-                        #        Tomo=self.tomo_Psi,
-                        #        verbose=self.verbose,
-                        #        )
-                        #if not self.tomo_preset:
-                        #    Circ0.generate(
-                        #            real=self.Store.H.real,
-                        #            imag=self.Store.H.imag)
-                        #Circ0.set(I0)
-                        #Circ0.simulate()
-
-                        #Circ0.construct(processor=self.process)
-
-                        #if type(self.QuantStore.Gamma)==type(None):
-                        #    self.QuantStore.Gamma = self.Store.hf_rdm-Circ.rdm
-                        ##else:
-                        ##    self.QuantStore.Gamma+= Circ0.rdm-Circ.rdm
-                        #else:
-                        #    self.QuantStore.Gamma = self.Store.hf_rdm-Circ.rdm
-                        self.QuantStore.Gamma = self.Store.hf_rdm-Circ.rdm
-                        print('---------------------------------')
-                        print('New Gamma:')
-                        print('---------------------------------')
-                        self.QuantStore.Gamma.analysis()
-                        en = self.Store.evaluate(
-                                self.QuantStore.Gamma) - self.Store.H._en_c
-                        print('Energy shift: {:.10f}'.format(np.real(en)))
-                        print('---------------------------------')
-                        print('---------------------------------')
-                        #self.QuantStore.measure_shift=False
+            if self.log:
+                self.log_Gamma.append(Gamma)
 
     def _check_norm(self,testS):
         '''
@@ -461,10 +451,10 @@ class RunACSE(QuantumRun):
             self.norm+= item.norm
         self.norm = self.norm**(0.5)
 
-
-    def __opt_line_acse(self,testS):
+    def __opt_line_acse(self):
         '''
         '''
+        testS = copy(self.A)
         self._opt_log = []
         self._opt_en  = []
         func = partial(self.__opt_acse_function,newS=testS)
@@ -487,6 +477,7 @@ class RunACSE(QuantumRun):
         for x,e in zip(opt.opt.simp_x,opt.opt.simp_f):
             print(x,e)
         opt.run()
+        # run optimization, then choose best run
         for r,e in zip(self._opt_log,self._opt_en):
             if abs(e-opt.opt.best_f)<=1e-5:
                 self.Store.update(r.rdm)
@@ -495,10 +486,11 @@ class RunACSE(QuantumRun):
         self.S = self.S + testS
         print(self.S)
 
-    def __euler_acse(self,testS):
+    def __euler_acse(self):
         '''
         function of Store.build_trial_ansatz
         '''
+        testS = copy(self.A)
         # where is step size from? 
         # test procedure
         for s in testS:
@@ -649,7 +641,8 @@ class RunACSE(QuantumRun):
     def _particle_number(self,rdm):
         return rdm.trace()
 
-    def __newton_acse(self,testS):
+    def __newton_acse(self):
+        testS =  copy(self.A)
         max_val = 0
         for s in testS.op:
             if abs(s.c)>abs(max_val):
@@ -826,32 +819,27 @@ class RunACSE(QuantumRun):
                 pass
             except AttributeError:
                 pass
+        self.save
 
     def _check(self,full=True):
         '''
         Internal check on the energy as well as norm of the S matrix
         '''
-        # need to find energy
-        #print('S Operator: ')
-        #print(self.S)
         en = self.Store.evaluate(self.Store.rdm)
-        #if self.lrdm:
-        #    self.log_rdm.append(self.Store.rdm)
         if self.total.iter==0:
-            self.old = copy(self.e0)
+            self.best = copy(self.e0)
         self.total.iter+=1
         if self.total.iter==self.max_iter:
             print('Max number of iterations met. Ending optimization.')
             self.total.done=True
-        try:
-            self.old
-        except AttributeError:
-            self.old = en
-        if en<=self.old:
-            self.old = en
+        elif self.S.d==self.max_depth:
+            if copy(self.S)+copy(self.A)>self.max_depth:
+                self.total.done=True
         self.log_E.append(en)
-        self.log_S.append(self.norm)
+        self.log_depth.append(self.S.d)
+        self.log_norm.append(self.norm)
         self.log_G.append(self.grad)
+
         try:
             self.log_ci.append(self.ci)
         except:
@@ -862,7 +850,7 @@ class RunACSE(QuantumRun):
         temp_std_G = []
         while i<= min(3,self.total.iter):
             temp_std_En.append(self.log_E[-i])
-            temp_std_S.append(self.log_S[-i])
+            temp_std_S.append(self.log_norm[-i])
             temp_std_G.append(self.log_G[-i])
             i+=1
         avg_En = np.real(np.average(np.asarray(temp_std_En)))
@@ -871,6 +859,7 @@ class RunACSE(QuantumRun):
         std_S  = np.real(np.std(np.asarray(temp_std_S)))
         std_G =  np.abs(np.real(np.average(np.asarray(temp_std_G))))
         self.Store.analysis()
+        print('')
         print('---------------------------------------------')
         print('Step {:02}, Energy: {:.12f}, S: {:.12f}'.format(
             self.total.iter,
@@ -893,55 +882,96 @@ class RunACSE(QuantumRun):
         else:
             if en<self.best:
                 self.best = np.real(en)
-            #else:
-            #    self.best = avg_En
-        # implementing dynamic stopping criteria 
-        if 'q' in self.acse_update or 'c' in self.acse_update:
-            if self._conv_type=='default':
-                if std_En<self.crit and self.norm<0.05:
-                    print('Criteria met. Ending optimization.')
+        #
+        if self._conv_type=='default':
+            if std_En<self.crit and self.norm<0.05:
+                print('Criteria met. Ending optimization.')
+                self.total.done=True
+        elif self._conv_type in ['gradient','gradient_norm']:
+            if self._conv_type=='gradient_norm':
+                print('Normed gradient: {:.14f}'.format(
+                    np.real(self.grad/self.norm)))
+            print('Gradient size: {:.14f}'.format(np.real(self.grad)))
+            if abs(self.grad)<self.crit:
+                self.total.done=True
+                print('Criteria met in gradient. Ending optimization.')
+            if self.acse_method=='newton' and self.use_trust_region:
+                if self.tr_Del<self.crit:
                     self.total.done=True
-            elif self._conv_type in ['gradient','gradient_norm']:
-                if self._conv_type=='gradient_norm':
-                    print('Normed gradient: {:.14f}'.format(
-                        np.real(self.grad/self.norm)))
-                print('Gradient size: {:.14f}'.format(np.real(self.grad)))
-                if abs(self.grad)<self.crit:
+                    print('Trust region met criteria!')
+                    print('Ending optimization')
+            if avg_En>self.best_avg:
+                print('Optimization status 2')
+                print('Average energy is increasing!')
+                print('Ending optimization.')
+                self.total.done=True
+        elif self._conv_type in ['trust']:
+            if abs(self.tr_taylor)<=self.tr_ts_crit:
+                self.total.done=True
+                print('Optimization status 0')
+                print('Criteria met in taylor series model.')
+                print('Ending optimization.')
+            elif abs(self.tr_object)<= self.tr_obj_crit:
+                self.total.done=True
+                print('Criteria met in objective function.')
+                print('Ending optimization.')
+        elif self._conv_type=='iterations':
+            pass
+        elif self._conv_type in ['S-norm','norm']:
+            if self.norm<self.crit:
+                self.total.done=True
+        elif self._conv_type in ['custom']:
+            # hm...rawr 
+            # first, want to check how long we have had a constant depth d
+            # 
+            curr_depth = self.S.d
+            constant = 0
+            done = False
+            while not done:
+                if constant<len(self.log_depth):
+                    done=True
+                    continue
+                if self.log_depth[::-1][constant]==curr_depth:
+                    done=True
+            if constant>self.max_constant_depth:
+                # now, check if next step is same depth
+                new = copy(self.S)+copy(self.A)
+                if new.d==self.S.d:
+                    print('Optimization status 1')
+                    print('Ansatz failed to increase depth.')
                     self.total.done=True
-                    print('Criteria met in gradient. Ending optimization.')
-                if self.acse_method=='newton' and self.use_trust_region:
-                    if self.tr_Del<self.crit:
-                        self.total.done=True
-                        print('Trust region met criteria!')
-                        print('Ending optimization')
-                if avg_En>self.best_avg:
-                    print('Average energy is increasing!')
-                    print('Ending optimization.')
-                    self.total.done=True
-            elif self._conv_type in ['trust']:
-                if abs(self.tr_taylor)<=self.tr_ts_crit:
-                    self.total.done=True
-                    print('Criteria met in taylor series model.')
-                    print('Ending optimization.')
-                elif abs(self.tr_object)<= self.tr_obj_crit:
-                    self.total.done=True
-                    print('Criteria met in objective function.')
-                    print('Ending optimization.')
-            elif self._conv_type=='iterations':
-                pass
-            elif self._conv_type in ['S-norm','norm']:
-                if self.norm<self.crit:
-                    self.total.done=True
-            else:
-                print('Convergence type not specified.')
-                sys.exit('Goodbye.')
+            if avg_En>self.best_avg:
+                print('Optimization status 2')
+                print('Average energy is increasing!')
+                print('Ending optimization.')
+            if self.norm<self.crit:
+                self.total.done=True
+        else:
+            print('Convergence type not specified.')
+            sys.exit('Goodbye.')
         self.e0 = copy(en)
         print('---------------------------------------------')
 
     def save(self,
-            name
+            name,
             ):
-        np.savetxt(name,np.asarray(
-            [self.log_E,self.log_S]))
+        try:
+            self.log_A
+        except AttributeError:
+            sys.exit('Forgot to turn logging on!')
+        data = {
+                'log-A':self.log_A,
+                'log-D':self.log_rdm,
+                'log-S':self.log_S,
+                'H':self.Store.H.matrix,
+                'config':{
 
+                    },
+                }
+        try:
+            data['log-Gamma']=self.log_Gamma
+        except AttributeError as e:
+            pass
+        with open(name+'.log','wb') as fp:
+            pickle.dump(data,fp,pickle.HIGHEST_PROTOCOL)
 

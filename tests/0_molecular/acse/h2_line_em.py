@@ -20,12 +20,12 @@ mol.verbose=0
 mol.build()
 ham = MolecularHamiltonian(mol,transform=JordanWigner)
 Ins = PauliSet
-st = StorageACSE(ham,S_depth=2)
+st = StorageACSE(ham,S_depth=1)
 qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(
-        #backend='statevector_simulator',
-        backend='qasm_simulator',
+        backend='statevector_simulator',
+        #backend='qasm_simulator',
         backend_initial_layout=[0,1,2,3],
         Nq=4,
         num_shots=8192,
@@ -59,8 +59,8 @@ acse = RunACSE(
         verbose=True,
         )
 
-acse.build()
+acse.build(log=True)
 acse.run()
-#print(acse.log_rdm)
+acse.save('test_save')
 
 

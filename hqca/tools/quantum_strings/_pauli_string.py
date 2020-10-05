@@ -96,6 +96,9 @@ class PauliString(QuantumString):
         pass
 
     def __str__(self):
-        z = '{}: {}'.format(self.s,self.c)
+        if abs(self.c.real)>1e-10:
+            z = '{}: {:.8f}'.format(self.s,self.c.real)
+        else:
+            z = '{}: {:+.8f}j'.format(self.s,self.c.imag)
         return z
 

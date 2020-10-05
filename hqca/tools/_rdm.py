@@ -2,6 +2,7 @@ import numpy as np
 import traceback
 import sys
 import numpy.linalg as LA
+import datetime
 from numpy import conj as con
 from numpy import complex_
 from functools import reduce
@@ -24,12 +25,12 @@ class RDM:
             S2=0,
             verbose=0,
             rdm=None,
-            rdm_type='d'
-
+            rdm_type='d',
+            **kw
             ):
         self.dqg=rdm_type
         self.p = order
-        self.r = len(alpha)+len(beta) # spin
+        self.r = len(alpha)+len(beta) # num spin orbitals, fermionic sites
         self.R = int(self.r/2)
         self.v = verbose
         self.alp = alpha
@@ -58,10 +59,60 @@ class RDM:
                 self.rdm = rdm.copy()
             except Exception:
                 self.rdm = rdm
+        elif state in ['alpha-beta']:
+            self._generate_from_ab_block(rdm)
+            pass
+        elif state in ['spatial']:
         else:
             self.rdm = np.zeros(
                     tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
 
+    def _generate_from_spatial(self,rdm):
+        if not self.S2==0:
+            sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
+        aa = ab - ab.transpose(1,0,2,3)
+        new = np.zeros((self.r,self.r,self.r,self.r))
+        for i in range(self.R):
+            I =i+self.R
+            for j in range(self.R):
+                J = j+self.R
+                for k in range(self.R):
+                    K = self.R+k
+                    for l in range(self.R):
+                        L = l+self.R
+                        new[i,k,j,l]+=rdm[i,k,j,l]
+                        new[I,K,J,L]+=rdm[i,k,j,l]
+
+                        new[i,K,j,L]+=rdm[i,k,j,l]
+                        new[I,k,J,l]+=rdm[i,k,j,l]
+
+                        new[K,i,j,L]+=rdm[i,k,j,l]
+                        new[k,I,J,l]+=rdm[i,k,j,l]
+        self.rdm =  new
+
+
+    def _generate_from_ab_block(self,rdm):
+        if not self.S2==0:
+            sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
+        aa = ab - ab.transpose(1,0,2,3)
+        new = np.zeros((self.r,self.r,self.r,self.r))
+        for i in range(self.R):
+            I =i+self.R
+            for j in range(self.R):
+                J = j+self.R
+                for k in range(self.R):
+                    K = self.R+k
+                    for l in range(self.R):
+                        L = l+self.R
+                        new[i,k,j,l]+=aa[i,k,j,l]
+                        new[I,K,J,L]+=aa[i,k,j,l]
+
+                        new[i,K,j,L]+=ab[i,k,j,l]
+                        new[I,k,J,l]+=ab[i,k,j,l]
+
+                        new[K,i,j,L]+=ab[i,k,j,l]
+                        new[k,I,J,l]+=ab[i,k,j,l]
+        self.rdm =  new
 
     def _get_ab_block(self):
         if self.p==2:
@@ -76,6 +127,99 @@ class RDM:
                     ind = tuple(I+J)
                     ab[ni,nj]+= self.rdm[ind]
         return ab
+
+    def spatial_rdm(self):
+        '''
+        get the spin integrated 2-RDM
+
+        note, ordering is preserved
+        '''
+        new = np.zeros((self.R,self.R,self.R,self.R),dtype=np.complex_)
+        for i in range(self.R):
+            I = self.R+i
+            for j in range(self.R):
+                J = self.R+j
+                for k in range(self.R):
+                    K = self.R+k
+                    for l in range(self.R):
+                        L = self.R+l
+                        new[i,k,j,l]+= self.rdm[i,K,j,L] #abba  
+                        new[i,k,j,l]+= self.rdm[I,k,J,l] #baab
+                        new[i,k,j,l]+= self.rdm[i,k,j,l] #aaaa
+                        new[i,k,j,l]+= self.rdm[I,K,J,L] #bbbb
+        return new
+
+    def symmetric_block(self):
+        '''
+        returns the alpha-alpha block (alpha beta alpha beta)
+        '''
+        new = np.zeros((self.R,self.R,self.R,self.R),dtype=np.complex_)
+        for i in self.alp:
+            I = i%self.R
+            for j in self.alp:
+                J = j%self.R
+                for k in self.alp:
+                    K = k%self.R
+                    for l in self.alp:
+                        L = l%self.R
+                        new[I,K,J,L]+= self.rdm[i,k,j,l]
+        return new
+
+    def antisymmetric_block(self,spin=True):
+        '''
+        returns the alpha-beta blocks
+        '''
+        new = np.zeros((self.R,self.R,self.R,self.R),dtype=np.complex_)
+        for i in self.alp:
+            I = i%self.R
+            for j in self.alp:
+                J = j%self.R
+                for k in self.bet:
+                    K = k%self.R
+                    for l in self.bet:
+                        L = l%self.R
+                        new[I,K,J,L]+= self.rdm[i,k,j,l]
+        return new
+
+    def transpose(self,*args,**kwargs):
+        self.rdm.transpose(*args,**kwargs)
+        return self
+
+    def save(self,name='default',precision=8,dtype='rdm',spin=True):
+        if name=='default':
+            name = datetime.strftime(datetime.now(),'%m%d%y')
+            name+= '-'
+            name+= datetime.strftime(datetime.now(),'%H%M')
+        if dtype=='rdm':
+            with open(name+'.rdm','w') as fp:
+                self.expand()
+                if spin:
+                    d = self.antisymmetric_block()
+                else:
+                    d = self.spatial_rdm()
+                nz = np.nonzero(d)
+                first = ''
+                for i in self.alp:
+                    first+='{} '.format(i)
+                first+= '\n'
+                fp.write(first)
+                first = ''
+                for i in self.bet:
+                    first+='{} '.format(i)
+                first+= '\n'
+                fp.write(first)
+                line = ''
+                if self.p==2:
+                    for i,j,k,l in zip(nz[0],nz[1],nz[2],nz[3]):
+                        line+= '{} {} {} {} {:f} {:f}\n'.format(
+                                i+1,j+1,k+1,l+1,
+                                round(d[i,j,k,l].real,precision),
+                                round(d[i,j,k,l].imag,precision),
+                                )
+                    fp.write(line[:-1])
+        else:
+            print(dtype)
+            sys.exit('File type for save rdm not recognized')
 
     def analysis(self,verbose=True,print_rdms=False,split=False):
         # start with alpha alpha block
@@ -193,7 +337,6 @@ class RDM:
             print(np.linalg.eigvalsh(b1))
             pass
 
-
     def copy(self):
         nRDM = RDM(
                 order=self.p,
@@ -307,6 +450,7 @@ class RDM:
         nRDM.expand()
         nRDM.rdm = self.rdm-rdm.rdm
         return nRDM
+
 
     def __mul__(self,rdm):
         if type(rdm)==type(self):
@@ -618,7 +762,6 @@ class RDM:
                     self.rdm,
                     (tuple([self.r for i in range(2*self.p)]))
                     )
-
 
 class Recursive:
     def __init__(self,
