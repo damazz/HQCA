@@ -16,7 +16,7 @@ import sys
 from hqca.sub import VQA,Scan,Circuit,ACSE
 import pickle
 
-version='0.2.0'
+__version__ ='0.3.0'
 
 def sp(theory=None,
         ansatz=None,

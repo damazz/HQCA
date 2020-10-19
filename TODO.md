@@ -1,5 +1,9 @@
 TODO/Changelog List
 
+### 10/05/20 
+
+* added support for Maple SDP programs
+
 ### 02/19/2020
 * Implementation for maximally commuting groups onto quantum computer
 * Look at timing for hamiltoninan conversion and RLF algorithms

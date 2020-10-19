@@ -44,6 +44,7 @@ class RunACSE(QuantumRun):
             S_ordering='default',
             S_thresh_rel=0.1,
             S_min=1e-10,
+            S_num_terms=None,
             convergence_type='default',
             hamiltonian_step_size=0.1,
             restrict_S_size=0.5,
@@ -82,6 +83,7 @@ class RunACSE(QuantumRun):
         self.sep_hamiltonian = separate_hamiltonian
         self.S_thresh_rel = S_thresh_rel
         self.S_min = S_min
+        self.S_num_terms = S_num_terms
         self.delta = restrict_S_size
         self.propagate_method=propagation
         self.S_ordering = S_ordering
@@ -324,7 +326,7 @@ class RunACSE(QuantumRun):
     def _check_length(self,full=True):
         qsp = self.QuantStore.post
         try:
-            met = self.QuantStore.method in ['shift']
+            met = 'shift' in self.QuantStore.method 
         except Exception:
             met = False
         if full and qsp and met:

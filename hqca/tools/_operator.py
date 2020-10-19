@@ -4,6 +4,16 @@ import traceback
 from hqca.tools.quantum_strings import *
 
 class Operator:
+    '''
+    Can construct mathematical operators using different 'string'.
+    Aggregate collection of smaller strings, typically either qubit, 
+    fermionic, or Pauli strings. Addition or multiplication follows the 
+    rules for the component string. Can also be iterated through, or accessed
+    through indices. 
+
+    transform(Transformation) returns a new operator.   
+
+    '''
     def __init__(self,
             commutative_addition=True
             ):

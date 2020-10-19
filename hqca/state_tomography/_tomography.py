@@ -137,7 +137,6 @@ class StandardTomography(Tomography):
             self.qr.append(Q.q)
             self.cr.append(Q.c)
 
-
     def construct(self,
             **kwargs):
         '''
@@ -165,8 +164,13 @@ class StandardTomography(Tomography):
                     else:
                         self.rdm+= self.qs.Gamma*self.qs.Gam_coeff
                 if 'sdp' in self.qs.method:
-                    self.rdm = purify(rdm,self.qs)
-
+                    try:
+                        if type(self.qs.Gamma)==type(None):
+                            pass
+                        else:
+                            self.rdm = purify(self.rdm,self.qs)
+                    except Exception as e:
+                        self.rdm = purify(self.rdm,self.qs)
         elif self.op_type=='qubit':
             self._build_qubitRDM()
             if self.qs.post:
@@ -775,3 +779,111 @@ class StandardTomography(Tomography):
             stabilizer_map[k]=check
         return stabilizer_map
 
+
+def compile_circuits(circuits):
+    beo = self.qs.beo
+    backend_options = {}
+    counts = []
+    if self.qs.use_noise:
+        backend_options['noise_model']=self.qs.noise_model
+        backend_options['basis_gates']=self.qs.noise_model.basis_gates
+        coupling = self.qs.noise_model.coupling_map
+    else:
+        if self.qs.be_file in [None,False]:
+            if self.qs.be_coupling in [None,False]:
+                if self.qs.backend=='qasm_simulator':
+                    coupling=None
+                else:
+                    coupling = beo.configuration().coupling_map
+            else:
+                coupling = self.qs.be_coupling
+        else:
+            try:
+                coupling = NoiseSimulator.get_coupling_map(
+                        device=self.qs.backend,
+                        saved=self.qs.be_file
+                        )
+            except Exception as e:
+                print(e)
+                sys.exit()
+    if self.qs.transpile=='default':
+        circuits = []
+        for m,c in enumerate(self.circuits):
+            lo = Layout()
+            for n,i in enumerate(self.qs.be_initial):
+                lo.add(self.qr[m][n],i)
+            #layout = {self.qr[m][n]:i for n,i in
+            #        enumerate(self.qs.be_initial)}
+            layout = lo
+            circuits.append(transpile(
+                circuits=c,
+                backend=beo,
+                coupling_map=coupling,
+                #initial_layout=self.qs.be_initial,
+                initial_layout=layout,
+                **self.qs.transpiler_keywords
+                ))
+    else:
+        sys.exit('Configure pass manager.')
+
+    qo = assemble(
+            circuits,
+            shots=self.qs.Ns
+            )
+    #qo = schedule(qo,beo)
+    if self.qs.backend=='unitary_simulator':
+        job = beo.run(qo)
+        for circuit in self.circuit_list:
+            counts.append(job.result().get_counts(name))
+    elif self.qs.backend=='statevector_simulator':
+        job = beo.run(qo)
+        for n,circuit in enumerate(self.circuit_list):
+            #if self.verbose and self.Nq<=4:
+            #    print('Circuit: {}'.format(circuit))
+            #    print(job.result().get_statevector(circuit))
+            counts.append(job.result().get_statevector(circuit))
+    elif self.qs.use_noise:
+        try:
+            job = beo.run(
+                    qo,
+                    backend_options=backend_options,
+                    noise_model=self.qs.noise_model,
+                    )
+        except Exception as e:
+            traceback.print_exc()
+        for circuit in self.circuit_list:
+            name = circuit
+            counts.append(job.result().get_counts(name))
+    else:
+        try:
+            job = beo.run(qo)
+            for circuit in self.circuit_list:
+                name = circuit
+                counts.append(job.result().get_counts(name))
+            for circ in self.circuits:
+                if circ.name=='Z':
+                    print(circ)
+                elif circ.name=='ZZ':
+                    print(circ)
+                elif circ.name=='XY':
+                    print(circ)
+        except Exception as e:
+            print('Error: ')
+            print(e)
+            traceback.print_exc()
+    if self.qs.use_meas_filter:
+        self.counts  = {}
+        for i,j in zip(self.circuit_list,counts):
+            c = self.qs.meas_filter.apply(
+                j,
+                method='least_squares'
+                )
+            self.counts[i]=c
+    else:
+        self.counts = {i:j for i,j in zip(self.circuit_list,counts)}
+    if self.verbose:
+        for i,j in self.counts.items():
+            if self.qs.backend=='statevector_simulator':
+                pass
+            else:
+                print(i,j)

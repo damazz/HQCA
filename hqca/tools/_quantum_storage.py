@@ -189,7 +189,7 @@ class QuantumStorage:
             mitigation=False,
             **kwargs):
         if self.verbose:
-            print('setting Error mitigation method: {}'.format(mitigation))
+            print('setting error mitigation method: {}'.format(mitigation))
         if mitigation=='stabilizer':
             self._set_stabilizers(**kwargs)
         elif mitigation=='measure':
@@ -234,6 +234,8 @@ class QuantumStorage:
             spin_rdm=True,**kw):
         if path_to_maple=='default':
             self.path_to_maple = 'maple' #assuming maple command is in PATH
+        else:
+            self.path_to_maple = path_to_maple
         self.method.append('sdp')
         self.spin_rdm=spin_rdm
         self.post = True

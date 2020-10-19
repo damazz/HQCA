@@ -61,8 +61,8 @@ class RDM:
                 self.rdm = rdm
         elif state in ['alpha-beta']:
             self._generate_from_ab_block(rdm)
-            pass
         elif state in ['spatial']:
+            self._generate_from_spatial(rdm)
         else:
             self.rdm = np.zeros(
                     tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
@@ -94,7 +94,7 @@ class RDM:
     def _generate_from_ab_block(self,rdm):
         if not self.S2==0:
             sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
-        aa = ab - ab.transpose(1,0,2,3)
+        aa = rdm - rdm.transpose(1,0,2,3)
         new = np.zeros((self.r,self.r,self.r,self.r))
         for i in range(self.R):
             I =i+self.R
@@ -106,12 +106,13 @@ class RDM:
                         L = l+self.R
                         new[i,k,j,l]+=aa[i,k,j,l]
                         new[I,K,J,L]+=aa[i,k,j,l]
+                        # which means we also do ki jl? yeah. 
 
-                        new[i,K,j,L]+=ab[i,k,j,l]
-                        new[I,k,J,l]+=ab[i,k,j,l]
+                        new[i,K,j,L]+=rdm[i,k,j,l]
+                        new[I,k,J,l]+=rdm[i,k,j,l]
 
-                        new[K,i,j,L]+=ab[i,k,j,l]
-                        new[k,I,J,l]+=ab[i,k,j,l]
+                        new[K,i,j,L]-=rdm[i,k,j,l]
+                        new[k,I,J,l]-=rdm[i,k,j,l]
         self.rdm =  new
 
     def _get_ab_block(self):

@@ -1,22 +1,34 @@
-# Hybrid Quantum Classical Algorithm for Quantum Chemistry Computation
-# v 2.0 
+# Hybrid Quantum Classical Algorithms for Quantum Chemistry Computation
+# v 0.2.1
+# updated 10-05-2020
 # hqca
 
-In summary, this python module program is a compilation of relatively simple programs 
+This python module program is a compilation of relatively simple programs 
 developed along the course of my doctoral studies under Prof. David A. Mazziotti at the 
 University of Chicago to run different types of quantum chemistry calculations 
 on a quantum computer.
 
 Primarily, the focus is on approaches which incorporate reduced density matrix
-theory, either in the construction or error correction, and which only need to
+theory, either in the construction or error mitigation, and which only need to
 measure or utilize reduced system. Additionally, while there is the potential
 for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is
 not well optimized for large calculations, and is instead optimized around
 practical calculations of smaller systems at a high accuracy, and for method
-development. As such, many features which worked at one time, either have not
-been maintained or simply have morphed and changed into newer features.
+development. The programs are intended for use with the IBMQ systems. 
 
-The generic program includes the following structures, included in the core
+Additionally, the following theoretical ideas are included at some level:
+- Implementation of the quantum-ACSE method
+- Implentation of basic variational quantum eigensovlers (VQE)
+- Diffferent tomography schemes with options for grouping by cliques
+- Tapering qubit Hamiltonians and locating different symmetries
+- Construction of parity check matrices
+- Handling and construction of RDMs 
+- A couple of error mitigation techniques, mostly based in post processing RDMs 
+
+The test examples generally provide the suitable range of applications. 
+
+
+The generic program includes the following classes, included in the core
 module:
 - QuantumRun
 - Hamiltonian
@@ -25,20 +37,21 @@ module:
 - Storage
 - Tomography
 
-A typical method might be constructed in this manner, with dependencies
-indicated by ->, and storage indicated by -+->. I.e., y -+-> x implies that the
-information in y is contained in x, an agglomerate variable. 
+Additionally, for interfacing with quantum devices, QuantumStorage in hqca/tools 
+is needed. 
+
+A typical method might be constructed in this manner with the help of the 
 
 -- -- -- -- -- -- -- --
-Hamiltonian -> Storage -+-> x
-Instructions -+-> x
-Tomography -+-> x
+Hamiltonian
+Storage(Hamiltonian)
+QuantumStorage(Storage)
+Instructions
+Tomography(QuantumStorage,Instructions)
+QuantumRun(Tomography)
+-- -- -- -- -- -- -- --
 
-A necessary tool, though not in core, is the quantum storage.
-QuantumStorage -+-> x
 
-Then, all of x can be used in some run:
-x -> QuantumRun
 -- -- -- -- -- -- -- --
 Note, other tools are included by importing hqca.tools. A summary of the above
 core entities is given below: 
@@ -59,6 +72,9 @@ Dictates the method used to processes output of a run into quantum gates to be
 used on the quantum computer. GenericPauli provides a simple scheme, but for
 actual runs better compiled circuits with shorter lengths should be used. 
 
+Custom circuits can also be deisgned, although generally there will be a mapping function
+which will take suitable input and then map it to a potential circuit. 
+
 Tomography:
 Handles the tomography, execution, constructions of a quantum system. Has
 important functions:
@@ -68,26 +84,47 @@ important functions:
 4) construct - constructs the RDMs 
 
 
+QuantumStorage: 
+Contains information relevant to running things on a quantum computer. Typically, 
+one sets the algorithm and then can set backend and additional parameters. Types of 
+error mitigation are passed in through here. 
+-- -- -- -- -- -- -- --
 
-Instructions 
+Operators and Transforms:
+Operators are composite objects, composed of different strings. These strings are typically
+either PauliStrings, QubitString, or FermiStrings. Qubit and Fermi Strings are denoted in
+second quantized notation, and PauliStrings are denoted in the basis of quantum operators.
+
+To go from a fermionic operator to a qubit operator, one uses the Transforms folder, which
+has fermionic transformations and others. Transforms can function recursively as 
+well which is desirable for qubit reduction techniques where we taper off qubits iteratively. 
+
+To use a transform T, the operator.transform(T) functions is used, which will return a 
+new operator in the requisite string basis. These can then be used for other work as well.
+
+
+Operator:
 
 
 ## Getting Started:
 
 ### Prerequisites:
 python >= 3.7
-qiskit >= 1.0.0
-(with qiskit-terra and qiskit-aer)
-pyscf (and prerequisite packs) >= 1.5.4
-nevergrad >= 0.2.0
+qiskit >= 0.15.1
+pyscf (and prerequisite packs) >= 1.7.4
+
+
+Optionally:
+optss (simple optimization program for different ACSE or VQE optimizations)
+graph_tool >= 2.35
+maple, with QuantumChemistry module for SDP purification
  
 ### Installing:
-Nothing too important besides having python and the corresponding modules. Need
-to configure the Qconfig, and or load your own configuration with IBMQ provider
-from qiskit if you want to run actual tests. 
+Nothing too important besides having python and the corresponding modules. Using the quantum
+computer should be set up by yourself. 
 
 Note, qiskit-aer should be installed for access to the C++ qasm simulator, and
-ibmq-provider should be obtained for running results on the actualy quantum
+ibmq-provider should be obtained for running results on the actual quantum
 computer. qiskit is inclusive of terra, aqua, and ibmq-provider, although the 
 latter two are optional. 
 
@@ -96,16 +133,17 @@ latter two are optional.
 Tests are located in the test directory, which has some simple examples for a
 variety of different calculations that can be done. 
 
-
 # Authors
 Scott Smart
 
 # License
 Project licensed under the MIT License. See LICENSE.txt for more details. 
 
-# Acknowledgement
+# Acknowledgements
 
-Acknowledgements to David Mazziotti, for supporting the work. 
+A very big thank you to David Mazziotti, for supporting the work and myself through
+graduate school. Additionally to IBMQ for the support and development of open-access 
+quantum computers, without which the extent of the current work would be impossible. 
 
 
 
