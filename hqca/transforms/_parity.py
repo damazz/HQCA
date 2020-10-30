@@ -32,7 +32,7 @@ def ParityTransform(op):
         tem = Operator()
         tem+= PauliString(s1,c1)
         tem+= PauliString(s2,c2)
-        new = new*tem
+        new = tem*new
     return new
 
 def Parity(operator,

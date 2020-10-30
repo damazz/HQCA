@@ -3,6 +3,7 @@ from copy import deepcopy as copy
 from hqca.tools.quantum_strings._quantum_string import *
 from sympy import symbols
 from sympy import re,im
+import sys
 
 class FermiString(QuantumString):
     '''
@@ -17,7 +18,7 @@ class FermiString(QuantumString):
             coeff=1,
             s=None, # string
             indices=[0,1,2,3], #orbital indices
-            ops='-+-+', #second quantized operators
+            ops='+-+-', #second quantized operators
             N=10,
             antisymmetric=True,
             add=True,
@@ -28,10 +29,11 @@ class FermiString(QuantumString):
             self._generate_from_sq(coeff,inds=indices,sqop=ops,N=N)
         else:
             # generate from string
-            self.s = string
+            self.s = s
             self.c = coeff
         self.sym = symbolic
         self.add = add
+
 
     def __str__(self):
         s = ''.join([j for j in self.s if not j=='i'])
@@ -48,8 +50,9 @@ class FermiString(QuantumString):
         if A==self:
             new.c += A.c
         else:
-            sys.exit('What are you adding these operators?')
+            sys.exit('Huh?')
         return new
+
 
     def __eq__(self,A):
         return A.s==self.s
@@ -71,7 +74,6 @@ class FermiString(QuantumString):
                 if not j.s[i]=='i':
                     s+= j.s[i]
                     ind.append(i)
-        #print(s,ind,self,A)
         return FermiString(
                 coeff=self.c*A.c,
                 indices=ind,
@@ -220,74 +222,4 @@ class FermiString(QuantumString):
                         done=False
                         break
 
-
-    ##
-    #
-    # Hermitian Excitation Operators, such as in exp(iHt)
-    #
-    ##
-
-
-    def generateTomography(self,**kw):
-        self.generateOperators(**kw)
-
-    def generateOperators(self,
-            Nq,
-            real=True,
-            imag=True,
-            mapping='jw',
-            **kw):
-        if mapping in ['jw','jordan-wigner']:
-            self.pPauli,self.pCoeff = JordanWignerTransform(
-                    self,Nq,**kw)
-        elif mapping=='parity':
-            self.pPauli,self.pCoeff = ParityTransform(
-                    self,Nq,**kw)
-        elif mapping in ['bravyi-kitaev','bk']:
-            self.pPauli,self.pCoeff = BravyiKitaevTransform(
-                    self,Nq,**kw)
-        else:
-            print('Incorrect mapping: {}. Goodbye!'.format(mapping))
-        if self.sym:
-            self._complex = [im(i) for i in self.pCoeff]
-            self._real = [re(i) for i in self.pCoeff]
-            pass
-        else:
-            self._complex  = [i.imag for i in self.pCoeff]
-            self._real = [i.real for i in self.pCoeff]
-
-    def _commutator_relations(self,lp,rp):
-        if rp=='I':
-            return 1,lp
-        elif rp==lp:
-            return 1,'I'
-        elif rp=='Z':
-            if lp=='X':
-                return -1j,'Y'
-            elif lp=='Y':
-                return 1j,'X'
-        elif rp=='Y':
-            if lp=='X':
-                return 1j,'Z'
-            elif lp=='Z':
-                return -1j,'X'
-        elif rp=='X':
-            if lp=='Y':
-                return -1j,'Z'
-            elif lp=='Z':
-                return 1j,'Y'
-        elif rp=='h':
-            if lp=='Z':
-                return 1,'h'
-        elif rp=='p':
-            if lp=='Z':
-                return -1,'p'
-        else:
-            sys.exit('Incorrect paulis: {}, {}'.format(lp,rp))
-
-    def formOperator(self):
-        new = Operator()
-        for p,c in zip(self.pPauli,self.pCoeff):
-            new+=PauliOperator(p,c,add=self.add,symbolic=self.sym)
-        return new
 

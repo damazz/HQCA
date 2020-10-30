@@ -15,10 +15,21 @@ class Operator:
 
     '''
     def __init__(self,
+            op=None,
             commutative_addition=True
             ):
         self.op = []
         self.ca = commutative_addition
+        if type(op)==type(None):
+            pass
+        elif isinstance(op, type(QuantumString())):
+            self.op = self.__add__(op).op
+        elif isinstance(op,type([])):
+            new = copy(self)
+            for o in op:
+                new+= o
+            self.op = new.op
+
 
     def __str__(self):
         z = ''
@@ -58,6 +69,7 @@ class Operator:
             if add:
                 new.op.append(A)
             return new
+
         elif isinstance(A,type(Operator())):
             for o in A:
                 if not self.ca or not A.ca:
@@ -83,9 +95,9 @@ class Operator:
             new.clean()
             return new
         elif isinstance(A,type(Operator())):
-            for o in A:
-                for p in self:
-                    new+= o*p
+            for a in A:
+                for s in self:
+                    new+= s*a
         else:
             raise TypeError
         new.clean()
@@ -140,6 +152,7 @@ class Operator:
                     new.op.append(o)
         new.clean()
         return new
+
     def clean(self):
         done = False
         while not done:
@@ -149,6 +162,114 @@ class Operator:
                     self.op.pop(n)
                     done=False
                     break
+
+    def simplify(self):
+        if not isinstance(self.op[0],type(FermiString())):
+            sys.exit('Can not simplify non Fermionic strings.')
+        done = False
+        def sub1(self):
+            for j in range(len(self.op)):
+                for i in range(j):
+                    for k in range(len(self.op[i].s)):
+                        s1 = self.op[i].s[:k]+self.op[i].s[k+1:]
+                        s2 = self.op[j].s[:k]+self.op[j].s[k+1:]
+                        c1,c2 = copy(self.op[i].c),copy(self.op[j].c)
+                        if s1==s2 and set([self.op[i].s[k],self.op[j].s[k]])==set(['p','h']):
+                            self.op[i].s = self.op[i].s[:k]+'i'+self.op[i].s[k+1:]
+                            self.op[j].c = c2-c1
+                            return False
+            return True
+
+        def sub2(self):
+            for j in range(len(self.op)):
+                for i in range(j):
+                    if self.op[i]==self.op[j]:
+                        #print(self.op[i],self.op[j])
+                        self.op[i].c+= self.op[j].c
+                        del self.op[j]
+                        return False
+            return True
+
+        def sub3(self):
+            for j in range(len(self.op)):
+                for i in range(j):
+                    for k in range(len(self.op[i].s)):
+                        s1 = self.op[i].s[:k]+self.op[i].s[k+1:]
+                        s2 = self.op[j].s[:k]+self.op[j].s[k+1:]
+                        k1,k2 = self.op[i].s[k], self.op[j].s[k]
+                        c1,c2 = copy(self.op[i].c),copy(self.op[j].c)
+                        if s1==s2 and set([self.op[i].s[k],self.op[j].s[k]])==set(['p','i']):
+                            if abs(c1+c2)<1e-6:
+                                c = abs(c1)
+                                if self.op[i].s[k]=='p':
+                                    self.op[i].c = c2
+                                elif self.op[i].s[k]=='i':
+                                    self.op[i].c = c1
+                                self.op[i].s = self.op[i].s[:k]+'h'+self.op[i].s[k+1:]
+                                del self.op[j]
+                                return False
+                            elif k1=='i' and abs(c1+c2*0.5)<1e-6:
+                                # c1 is half as large as c2
+                                # i.e., c1 = c2*0.5
+                                # c1 I - 2c1 P = * 
+                                self.op[i].s = self.op[i].s[:k]+'h'+self.op[i].s[k+1:]
+                                self.op[i].c = c1
+                                self.op[j].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
+                                self.op[j].c = 0.5*c2
+                            elif k2=='i' and abs(c1*0.5+c2)<1e-6:
+                                # 
+                                #
+                                self.op[i].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
+                                self.op[i].c = c1*0.5
+                                self.op[j].s = self.op[i].s[:k]+'h'+self.op[i].s[k+1:]
+                                self.op[j].c = c2
+
+                        elif s1==s2 and set([self.op[i].s[k],self.op[j].s[k]])==set(['h','i']):
+                            if abs(c1+c2)<1e-6:
+                                c = abs(c1)
+                                if self.op[i].s[k]=='h':
+                                    self.op[i].c = c2
+                                elif self.op[i].s[k]=='i':
+                                    self.op[i].c = c1
+                                self.op[i].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
+                                del self.op[j]
+                                return False
+                            elif k1=='i' and abs(c1+c2*0.5)<1e-6:
+                                # c1 is half as large as c2
+                                # i.e., c1 = c2*0.5
+                                # c1 I - 2c1 P = * 
+                                self.op[i].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
+                                self.op[i].c = c1
+                                self.op[j].s = self.op[i].s[:k]+'h'+self.op[i].s[k+1:]
+                                self.op[j].c = 0.5*c2
+                            elif k2=='i' and abs(c1*0.5+c2)<1e-6:
+                                # 
+                                #
+                                self.op[i].s = self.op[i].s[:k]+'h'+self.op[i].s[k+1:]
+                                self.op[i].c = c1*0.5
+                                self.op[j].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
+            return True
+
+        pre = False
+        #print(len(self.op))
+        while not pre:
+            pre = sub2(self)
+        #print(len(self.op))
+        l1 = False
+        l2 = False
+        while not (l1 and l2):
+            l1 = False
+            while not l1:
+                l1 = sub1(self)
+                almost = False
+                while not almost:
+                    almost = sub2(self)
+            l2 = False
+            while not l2:
+                l2 = sub3(self)
+        self.clean()
+        return self
+
 
     def commutator(self,A):
         try:

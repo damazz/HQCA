@@ -102,3 +102,19 @@ class PauliString(QuantumString):
             z = '{}: {:+.8f}j'.format(self.s,self.c.imag)
         return z
 
+    def partial_trace(self,qb=[0]):
+        qb = sorted(qb)[::-1]
+        s = ''
+        c = copy(self.c)
+        for q in reversed(range(len(self.s))):
+            if q in qb:
+                if not self.s[q]=='I':
+                    c*= 0
+            else:
+                s+= self.s[q]
+        return PauliString(pauli=s[::-1],coeff=c)
+
+
+
+
+

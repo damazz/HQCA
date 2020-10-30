@@ -195,7 +195,7 @@ def BravyiKitaevTransform(op,**kw):
         temp = Operator()
         temp+= s1
         temp+= s2
-        new = new*temp
+        new = temp*new
     return new
 
 def OldBravyiKitaevTransform(op,

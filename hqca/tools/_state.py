@@ -2,6 +2,15 @@ import numpy as np
 from numpy import kron as k
 from functools import reduce
 
+
+'''
+State class......similar to circuit class, but returns vectors instead of matrices
+
+and
+
+Density Matrix class
+'''
+
 class State:
     def __init__(self,size=3,symbolic=False):
         if symbolic:
@@ -16,9 +25,21 @@ class State:
         self.n = size
         self.N = 2**self.n
         self.b = ['{:0{}b}'.format(i,self.n)[::1] for i in range(0,self.N)]
-        self.m = np.zeros((self.N,1))
+        self.m = np.zeros((self.N,1),dtype=np.complex_)
         self.m[0,0]=1
         self._cN_basis()
+
+    def __str__(self):
+        z = ''
+        for b,s in zip(self.b,self.m[:,0]):
+            if abs(s)>1e-6:
+                if abs(s.real)<1e-6:
+                    z+= 'i{:+.8f} |{}> \n'.format(s.imag,b)
+                elif abs(s.imag)<1e-6:
+                    z+= ' {:+.8f} |{}> \n'.format(s.real,b)
+                else:
+                    z+= ' {:+.8f} + i{:.8f} |{}> \n'.format(s.real,s.imag,b)
+        return z
 
     def _cN_basis(self):
         self.cNb = []
@@ -32,28 +53,28 @@ class State:
                     self.cNb.append(b)
                     self.cNi.append(n)
 
-
     def __mul__(self,circ):
         temp = np.dot(circ.m,self.m).T
         N = temp.shape[1]
         real, imag,bas = '','',''
         lb = len(self.b[0])
         try:
-            for k in range(0,N//16+1):
+            add = 0
+            for k in range(N):
                 real, imag,bas = '','',''
-                for i,j in enumerate(np.asarray(temp).tolist()[0][k*16:k*16+16]):
+                for i,j in enumerate(np.asarray(temp).tolist()[0][k:k]):
                     #if np.count_nonzero(j)==1:
-                    real += '{:6.3f}   '.format(np.real(j))
-                    imag += '{:6.3f}   '.format(np.imag(j))
-                    bas  += '|{}>{:{}}'.format(self.b[i+k*16],'',7-lb)
-                if real=='':
-                    break
+                    if abs(j)>1e-6:
+                        add+=1 
+                        real += '{:6.3f}   '.format(np.real(j))
+                        imag += '{:6.3f}   '.format(np.imag(j))
+                        bas  += '|{}>{:{}}'.format(self.b[i+k*16],'',7-lb)
                 print(real)
                 print(imag)
                 print(bas)
                 print('')
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
         self.m = temp
 
 class DensityMatrix:

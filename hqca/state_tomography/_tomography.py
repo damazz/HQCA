@@ -469,7 +469,7 @@ class StandardTomography(Tomography):
             bet = self.qs.groups[1]
             S = []
 
-            def sub_rdme(i,k,l,j,**kw):
+            def sub_rdme(i,k,l,j,transform,**kw):
                 op = Operator()
                 if self.real and self.imag:
                     c1,c2=1,0
@@ -491,6 +491,7 @@ class StandardTomography(Tomography):
                     N=self.qs.dim,
                     )
                 op+= test
+                qubOp = op.transform(transform)
                 return RDMElement(op,qubOp,ind=[i,k,l,j],**kw)
             if verbose:
                 print('Generating alpha-alpha block of 2-RDM')
