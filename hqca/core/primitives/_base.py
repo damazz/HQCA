@@ -32,3 +32,7 @@ def apply_z(Q,i):
 
 def apply_y(Q,i):
     Q.qc.y(Q.q[i])
+
+def apply_U3(Q,i,theta,phi,lamb,**kw):
+    Q.qc.U3(theta,phi,lamb,Q.q[i])
+

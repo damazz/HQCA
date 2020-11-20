@@ -216,7 +216,7 @@ class QuantumStorage:
         self.post = True
         pass
 
-    def _set_ansatz_shift(self,coeff=1,**kw):
+    def _set_ansatz_shift(self,coeff=1,D0=False,**kw):
         '''
         after measuring a 2-RDM, we shift it
 
@@ -226,6 +226,7 @@ class QuantumStorage:
             print('shift coefficient: {}'.format(coeff))
         self.post=True
         self.method.append('shift')
+        self.set_to_D0 = D0
         self.add_Gamma =True
         self.Gamma = None
         self.Gam_coeff = coeff
@@ -239,8 +240,6 @@ class QuantumStorage:
         self.method.append('sdp')
         self.spin_rdm=spin_rdm
         self.post = True
-
-
 
     def _set_encoded_symmetries(self,
             stabilizer_map,

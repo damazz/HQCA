@@ -134,7 +134,6 @@ class StorageACSE(Storage):
             print('Model: {}'.format(self.H.model))
             sys.exit('Specify model initialization.')
 
-
     def update(self,rdm):
         self.rdm = rdm
 
@@ -153,7 +152,10 @@ class StorageACSE(Storage):
             print('N:  {:.8f}'.format(np.real(rdm.trace())))
             print('Molecular Reduced Density Matrix: ')
             rdm.contract()
-            print(np.real(rdm.rdm))
+            if np.count_nonzero(rdm.rdm)>0:
+                print(np.real(rdm.rdm))
+            else:
+                print(rdm.rdm)
 
             print('Eigenvalues of 2-RDM:')
             negative=False

@@ -17,6 +17,7 @@ __all__ = [
         'apply_x',
         'apply_y',
         'apply_z',
+        'apply_U3',
         'generic_Pauli_term',
         'xy_yx_gate',
         'h2_hamiltonian',

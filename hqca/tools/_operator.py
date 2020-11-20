@@ -249,7 +249,6 @@ class Operator:
                                 self.op[i].c = c1*0.5
                                 self.op[j].s = self.op[i].s[:k]+'p'+self.op[i].s[k+1:]
             return True
-
         pre = False
         #print(len(self.op))
         while not pre:
@@ -270,6 +269,10 @@ class Operator:
         self.clean()
         return self
 
+    def truncate(self,threshold=1e-10):
+        for i in reversed(range(len(self))):
+            if abs(self.op[i].c)<threshold:
+                self.op.pop(i)
 
     def commutator(self,A):
         try:
@@ -296,7 +299,7 @@ class Operator:
                     'Z':['Z',1],
                     'I':['I',1],
                     },
-                'V':{   # SHS
+                'V':{   # SHSdag
                     'X':['X',-1],
                     'Y':['Z',-1],
                     'Z':['Y',-1],

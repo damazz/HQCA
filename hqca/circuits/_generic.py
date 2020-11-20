@@ -35,10 +35,15 @@ class GenericCircuit(Circuit):
 
     def x(self,q):
         self.qc.x(self.q[q])
+
     def y(self,q):
         self.qc.y(self.q[q])
+
     def z(self,q):
         self.qc.z(self.q[q])
+
+    def U3(self,q,theta,phi,lamb):
+        self.qc.u3(theta,phi,lamb,self.q[q])
 
     def Sw(self,q,p):
         #self.qc.swap(self.q[q],self.q[p])

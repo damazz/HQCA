@@ -208,7 +208,7 @@ class FermionicHamiltonian(Hamiltonian):
         operators 
         '''
         self._qubOp_sep = []
-        if ordering in ['given','specified']:
+        if ordering in ['given','specified','default']:
             for group in specific_grouping:
                 new = Operator()
                 for item in group:

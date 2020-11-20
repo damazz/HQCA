@@ -128,14 +128,8 @@ class ReducedTomography(StandardTomography):
                 op+= test
                 #con = ConstantNumberProjection(op,transform)
                 con = SymmetryProjection(op,transform,self.qs,**kw)
-                #print('---')
-                #print('Qubit op: ')
-                #print(con.qubOp)
-                #print('Fermi op: ')
-                #print(op)
-                #print('----')
-                # op and qubOp
                 return ConRDMElement(op,con.qubOp,ind=[i,k,l,j])
+
 
             if verbose:
                 print('Generating alpha-alpha block of 2-RDM')

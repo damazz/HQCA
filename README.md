@@ -1,6 +1,6 @@
 # Hybrid Quantum Classical Algorithms for Quantum Chemistry Computation
 # v 0.2.1
-# updated 10-05-2020
+# updated 11-15-2020
 # hqca
 
 This python module program is a compilation of relatively simple programs 

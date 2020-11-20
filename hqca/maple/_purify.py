@@ -5,16 +5,17 @@ import tempfile
 from hqca.tools import *
 from copy import deepcopy as copy
 
-def purify(rdm,quantstore):
+def purify(rdm,quantstore,verbose=False):
     cdir = os.getcwd()
     rdm.save(name=cdir+'/_temp',spin=quantstore.spin_rdm)
     rdm.contract()
     path_to_maple = quantstore.path_to_maple
-    print('Purifying 2-RDM...')
-    print('(with eigenvalues: )')
-    print(np.linalg.eigvalsh(rdm.rdm))
-    print('-----------------------------')
-    print('-----------------------------')
+    if quantstore.verbose:
+        print('Purifying 2-RDM...')
+        print('(with eigenvalues: )')
+        print(np.linalg.eigvalsh(rdm.rdm))
+        print('-----------------------------')
+        print('-----------------------------')
     r = quantstore.No_as
     #
     blank = 'cdir := \"{}/\":\n'.format(cdir)
@@ -48,11 +49,14 @@ def purify(rdm,quantstore):
     temp.write(blank)
     temp.close()
 
-    subprocess.run([path_to_maple+' '+temp.name],shell=True)
+    if quantstore.verbose:
+        subprocess.run([path_to_maple+' '+temp.name],shell=True)
+        print('-----------------------------')
+        print('-----------------------------')
+    else:
+        subprocess.run([path_to_maple+' '+temp.name],shell=True,capture_output=True)
     test = np.loadtxt(cdir+'/_temp_purified.csv',delimiter=',')
     test = np.reshape(test, (r,r,r,r))
-    print('-----------------------------')
-    print('-----------------------------')
     # 
     pure = RDM(order=2,
             alpha=quantstore.groups[0],
@@ -69,11 +73,12 @@ def purify(rdm,quantstore):
     sz = pure.sz
     s2 = pure.s2
     name = copy(temp.name)
-    print('Eigenvalues of purified 2-RDM...')
-    print(np.linalg.eigvalsh(pure.rdm))
-    print('Trace of 2-RDM: {}'.format(pure.trace()))
-    print('Projected spin: {}'.format(sz))
-    print('Total spin: {}'.format(s2))
+    if quantstore.verbose:
+        print('Eigenvalues of purified 2-RDM...')
+        print(np.linalg.eigvalsh(pure.rdm))
+        print('Trace of 2-RDM: {}'.format(pure.trace()))
+        print('Projected spin: {}'.format(sz))
+        print('Total spin: {}'.format(s2))
     pure.expand()
     cn = abs(abs(tr-quantstore.Ne*(quantstore.Ne-1)))>0.01
     csz = abs(abs(sz)-abs(quantstore.Ne_alp-quantstore.Ne_bet))>0.01

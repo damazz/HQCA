@@ -82,8 +82,6 @@ class StandardTomography(Tomography):
             pass
 
     def set(self,Instruct):
-        if self.verbose:
-            print('Generating circuits to run.')
         i=0
         for circ in self.op:
             self.circuit_list.append(circ)
@@ -251,14 +249,19 @@ class StandardTomography(Tomography):
                 reCre = Recursive(choices=opCre)
                 reAnn.unordered_permute()
                 reCre.unordered_permute()
+                #print('Hrm.')
                 for i in reAnn.total:
+                    #print(i)
                     for j in reCre.total:
+                        #print(j)
                         ind1 = tuple(j[:self.p]+i[:self.p])
                         s = i[self.p]*j[self.p]
                         nRDM[ind1]+=temp*s #factor of 2 is for double counting
+                        #print(ind1,s)
                         if not set(i[:2])==set(j[:2]):
                             ind2 = tuple(i[:self.p]+j[:self.p])
                             nRDM[ind2]+=np.conj(temp)*s
+                            #print(ind2)
             elif self.p==1:
                 nRDM[tuple(r.ind)]+=temp
                 if len(set(r.ind))==len(r.ind):
@@ -749,7 +752,6 @@ class StandardTomography(Tomography):
         #print('Build 2rdm: {}'.format(t4-t3))
         return self.rdm
 
-
     def _stabilizer(self,Q):
         # this applies the stabilizer circuit
         # self.op is list of measurements
@@ -780,89 +782,94 @@ class StandardTomography(Tomography):
             stabilizer_map[k]=check
         return stabilizer_map
 
-
-def compile_circuits(circuits):
-    beo = self.qs.beo
+def run_multiple(tomo_list,quantstore,verbose=False):
+    new_circ = []
+    new_circ_list = []
+    for n,tomo in enumerate(tomo_list):
+        for circ in tomo.circuits:
+            new_name = circ.name+'{:02}'.format(int(n))
+            new_circ_list.append(new_name)
+    ##
+    beo = quantstore.beo
     backend_options = {}
     counts = []
-    if self.qs.use_noise:
-        backend_options['noise_model']=self.qs.noise_model
-        backend_options['basis_gates']=self.qs.noise_model.basis_gates
-        coupling = self.qs.noise_model.coupling_map
+    if quantstore.use_noise:
+        backend_options['noise_model']=quantstore.noise_model
+        backend_options['basis_gates']=quantstore.noise_model.basis_gates
+        coupling = quantstore.noise_model.coupling_map
     else:
-        if self.qs.be_file in [None,False]:
-            if self.qs.be_coupling in [None,False]:
-                if self.qs.backend=='qasm_simulator':
+        if quantstore.be_file in [None,False]:
+            if quantstore.be_coupling in [None,False]:
+                if quantstore.backend=='qasm_simulator':
                     coupling=None
                 else:
                     coupling = beo.configuration().coupling_map
             else:
-                coupling = self.qs.be_coupling
+                coupling = quantstore.be_coupling
         else:
             try:
                 coupling = NoiseSimulator.get_coupling_map(
-                        device=self.qs.backend,
-                        saved=self.qs.be_file
+                        device=quantstore.backend,
+                        saved=quantstore.be_file
                         )
             except Exception as e:
                 print(e)
                 sys.exit()
-    if self.qs.transpile=='default':
+    if quantstore.transpile=='default':
         circuits = []
-        for m,c in enumerate(self.circuits):
-            lo = Layout()
-            for n,i in enumerate(self.qs.be_initial):
-                lo.add(self.qr[m][n],i)
-            #layout = {self.qr[m][n]:i for n,i in
-            #        enumerate(self.qs.be_initial)}
-            layout = lo
-            circuits.append(transpile(
-                circuits=c,
-                backend=beo,
-                coupling_map=coupling,
-                #initial_layout=self.qs.be_initial,
-                initial_layout=layout,
-                **self.qs.transpiler_keywords
-                ))
+        for z,t in enumerate(tomo_list):
+            for m,c in enumerate(t.circuits):
+                lo = Layout()
+                for n,i in enumerate(quantstore.be_initial):
+                    lo.add(t.qr[m][n],i)
+                #layout = {self.qr[m][n]:i for n,i in
+                #        enumerate(self.qs.be_initial)}
+                c.name = c.name+'{:02}'.format(int(z))
+                layout = lo
+                circuits.append(transpile(
+                    circuits=c,
+                    backend=beo,
+                    coupling_map=coupling,
+                    #initial_layout=self.qs.be_initial,
+                    initial_layout=layout,
+                    **quantstore.transpiler_keywords
+                    ))
     else:
         sys.exit('Configure pass manager.')
 
     qo = assemble(
             circuits,
-            shots=self.qs.Ns
+            shots=quantstore.Ns
             )
     #qo = schedule(qo,beo)
-    if self.qs.backend=='unitary_simulator':
+    if quantstore.backend=='statevector_simulator':
         job = beo.run(qo)
-        for circuit in self.circuit_list:
-            counts.append(job.result().get_counts(name))
-    elif self.qs.backend=='statevector_simulator':
-        job = beo.run(qo)
-        for n,circuit in enumerate(self.circuit_list):
+        for n,circuit in enumerate(new_circ_list):
             #if self.verbose and self.Nq<=4:
             #    print('Circuit: {}'.format(circuit))
             #    print(job.result().get_statevector(circuit))
             counts.append(job.result().get_statevector(circuit))
-    elif self.qs.use_noise:
+    elif quantstore.use_noise:
         try:
             job = beo.run(
                     qo,
                     backend_options=backend_options,
-                    noise_model=self.qs.noise_model,
+                    noise_model=quantstore.noise_model,
                     )
         except Exception as e:
             traceback.print_exc()
-        for circuit in self.circuit_list:
+        for circuit in new_circ_list:
             name = circuit
             counts.append(job.result().get_counts(name))
     else:
         try:
             job = beo.run(qo)
-            for circuit in self.circuit_list:
+            for circuit in new_circ_list:
                 name = circuit
                 counts.append(job.result().get_counts(name))
-            for circ in self.circuits:
+            for circ in new_circ:
                 if circ.name=='Z':
+                    print('ZZ')
                     print(circ)
                 elif circ.name=='ZZ':
                     print(circ)
@@ -872,19 +879,22 @@ def compile_circuits(circuits):
             print('Error: ')
             print(e)
             traceback.print_exc()
-    if self.qs.use_meas_filter:
-        self.counts  = {}
-        for i,j in zip(self.circuit_list,counts):
-            c = self.qs.meas_filter.apply(
+    for t in tomo_list:
+        t.counts  = {}
+    if quantstore.use_meas_filter:
+        for i,j in zip(new_circ_list,counts):
+            c = quantstore.meas_filter.apply(
                 j,
                 method='least_squares'
                 )
-            self.counts[i]=c
+            counts
+            n = int(i[-2:])
+            new_counts[n][i:-2]=c
     else:
-        self.counts = {i:j for i,j in zip(self.circuit_list,counts)}
-    if self.verbose:
-        for i,j in self.counts.items():
-            if self.qs.backend=='statevector_simulator':
-                pass
-            else:
-                print(i,j)
+        for i in range(len(new_circ_list)):
+            name = new_circ_list[i]
+            res = counts[i]
+            n = int(name[-2:])
+            ni = name[:-2]
+            tomo_list[n].counts[ni] = res
+

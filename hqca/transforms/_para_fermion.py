@@ -17,7 +17,7 @@ def ParaFermionTransform(op):
     for qi,o in enumerate(op.s[::-1]):
         # reversed is because of the order in which we apply cre/ann ops
         q = Nq-qi-1
-        if o=='I':
+        if o in ['i','I']:
             continue
         if o in ['+','-']:
             # # #
@@ -39,6 +39,8 @@ def ParaFermionTransform(op):
             c1 = 1
             tem1 = Operator()
             tem1+= FermiString(s=s1,coeff=c1)
+        else:
+            continue
         new = tem1*new
     return new
 

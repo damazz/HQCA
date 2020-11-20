@@ -11,6 +11,17 @@ from copy import deepcopy as copy
 from hqca.tools.quantum_strings import *
 import scipy as sp
 
+class NewSymmetryProjection:
+    def __init__(self,
+            op,
+            transform,
+            quantstore,
+            weight='default',
+            skip_sz=False,
+            verbose=False):
+        pass
+
+
 class SymmetryProjection:
     def __init__(self,
             op,
@@ -158,6 +169,7 @@ class SymmetryProjection:
                                     N=first.N(),
                                     )
                         #print(new)
+                        #print(new)
                         new = (Operator()+ new).transform(transform)
                         if dimNe*dimCe>len(new):
                             # i.e., 
@@ -205,11 +217,14 @@ class SymmetryProjection:
                                         len(pauli_basis.keys())),
                                     dtype=np.complex_)
                         # now, expressing
+                        #print(new)
                         for pauli in new:
                             pauli_to_op[
                                     dimCe*j+k-dimNull, #here, null is not added
                                     pauli_basis[pauli.s]
-                                    ]=pauli.c
+                                    ]=np.conj(pauli.c) #because...it is the reverse transformation
+                            #print(pauli)
+                            #print(pauli_to_op)
                 #print(op_basis)
                 #print(pauli_basis)
                 #print(pauli_to_op)
@@ -278,23 +293,30 @@ class SymmetryProjection:
                     print(op)
                 else:
                     # now, express original operator as a vector in op basis
-                    v_f = np.zeros((dimNe*dimCe-dimNull,1))
+                    v_f = np.zeros((dimNe*dimCe-dimNull,1),dtype=np.complex_)
+                    #print('----------')
                     for fermi in op:
+                        #print(fermi)
                         if fermi.c==0:
                             continue
                         v_f[op_basis[''.join(fermi.ops())]]=fermi.c
+                    #print(sq_pauli_to_op)
+                    #print(v_f)
                     x = np.linalg.solve(sq_pauli_to_op,v_f)
-                    #
+                    #print(x)
                     n_to_pauli = {v:k for k,v in pauli_basis.items()}
+                    #print(n_to_pauli)
+                    #print(added)
                     final = Operator()
                     for n,i in enumerate(added):
                         if abs(x[n])>1e-10:
                             if type(x[n]) in [type(np.array([]))]:
                                 xn = x[n][0]
-                            else: 
+                            else:
                                 xn = x[n]
                             final+= PauliString(n_to_pauli[i],xn)
                     self.qubOp= final
+                    #print(self.qubOp)
                 #if first==newop1:
                 #    print(self.qubOp)
             #print('-----')

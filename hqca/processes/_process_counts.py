@@ -45,3 +45,4 @@ class StandardProcess(Process):
                 total+=n
             val = val/total
         return val
+

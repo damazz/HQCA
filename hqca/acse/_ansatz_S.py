@@ -7,10 +7,10 @@ class Ansatz:
             depth_to_add=1,
             **kw):
         '''
-        Close to an opeartor class, but really an operator of operator? Yeah.
-         Addition, mulptiplication are defined differently though
+        Close to an operator class, but really an operator of operator? Yeah.
+        Addition, mulptiplication are defined differently though
 
-         need to update ACSE as well :( o.o o.p O.D 
+        need to update ACSE as well :( o.o o.p O.D 
         '''
         self.A = [] #instead of strings, holds operators at each place
         self.depth=  depth_to_add #if 1, will go back 1 step
@@ -20,6 +20,8 @@ class Ansatz:
         self.A = self.A[:d]
         self.d = d
 
+    def __getitem__(self,k):
+        return self.A[k]
 
     def _op_form(self):
         return [p for o in self.A for p in o]

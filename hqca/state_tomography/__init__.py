@@ -13,4 +13,5 @@ __all__ = [
         'construct_simple_graph',
         'simplify_tomography',
         'ReducedTomography',
+        'run_multiple',
         ]

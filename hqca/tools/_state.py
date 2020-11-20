@@ -31,7 +31,11 @@ class State:
 
     def __str__(self):
         z = ''
-        for b,s in zip(self.b,self.m[:,0]):
+        for b,s in zip(self.b,np.asarray(self.m[:,0])):
+            try:
+                s = s[0]
+            except IndexError:
+                pass
             if abs(s)>1e-6:
                 if abs(s.real)<1e-6:
                     z+= 'i{:+.8f} |{}> \n'.format(s.imag,b)

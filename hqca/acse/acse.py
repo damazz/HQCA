@@ -124,6 +124,8 @@ class RunACSE(QuantumRun):
         print('optimization')
         print('-- -- -- --')
 
+        self._optimizer = None
+        self._opt_thresh = None
         if self.acse_method=='newton':
             self._update_acse_newton(**kw)
         elif self.acse_method in ['line','opt']:
@@ -151,7 +153,8 @@ class RunACSE(QuantumRun):
             tr_gamma_inc=2,
             tr_gamma_dec=0.5,
             tr_nu_accept=0.9,
-            tr_nu_reject=0.1
+            tr_nu_reject=0.1,
+            **kw
             ):
         self.use_trust_region = use_trust_region
         self.d = newton_step #for estimating derivative
@@ -241,8 +244,6 @@ class RunACSE(QuantumRun):
         self.__get_S()
         if self.log:
             self.log_A.append(copy(self.A))
-        #self._check_norm(self.A)
-        # check if ansatz will change length
         print('||A||: {:.10f}'.format(np.real(self.norm)))
         print('-- -- -- -- -- -- -- -- -- -- --')
         self.built=True
@@ -334,71 +335,25 @@ class RunACSE(QuantumRun):
             print('checking ansatz length')
             print('--------------')
             print('recalculating Gamma error mitigation.')
-            self.QuantStore.Gamma = None
-            testS = copy(self.A)
-            currS = copy(self.S)
-            total = currS+testS
-            s1 = copy(total)
-            s1.truncate(1)
-            for f in s1.A[-1]:
-                f.c*=0.000001
-            print('initial step: ')
-            print(s1)
+            if not self.QuantStore.set_to_D0:
+                self.QuantStore.Gamma = None
+                testS = copy(self.A)
+                currS = copy(self.S)
+                total = currS+testS
+                s1 = copy(total)
+                s1.truncate(1)
+                for f in s1.A[-1]:
+                    f.c*=0.000001
+                print('initial step: ')
+                print(s1)
 
-            I0=self.Instruct(
-                    operator=s1,
-                    Nq=self.QuantStore.Nq,
-                    quantstore=self.QuantStore,
-                    depth=self.S_trotter,
-                    )
-            Circ= StandardTomography(
-                    QuantStore=self.QuantStore,
-                    preset=self.tomo_preset,
-                    Tomo=self.tomo_Psi,
-                    #verbose=self.verbose,
-                    verbose=False,
-                    )
-            if not self.tomo_preset:
-                Circ.generate(
-                        real=self.Store.H.real,
-                        imag=self.Store.H.imag)
-            Circ.set(I0)
-            Circ.simulate()
-            Circ.construct(processor=self.process)
-            Gamma = self.Store.hf_rdm-Circ.rdm
-            e0 = self.Store.evaluate(self.Store.hf_rdm)
-            e1 = self.Store.evaluate(Circ.rdm)
-            et = e1-e0
-            print('Energies: ')
-            print('E0 (HF): {:.8f}'.format(np.real(e0)))
-            print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
-            print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
-            print('- - - -')
-            for d in range(1,total.d):
-                print('Depth: {}'.format(d))
-                S0 = copy(total)
-                S1 = copy(total)
-                S0.truncate(d)
-                S1.truncate(d+1)
-                for f in S1.A[-1]:
-                    f.c*= 0.000001
-                print('Adjusted operator 0: ')
-                print(S0)
-                print('Adjusted operator 1: ')
-                print(S1)
                 I0=self.Instruct(
-                        operator=S0,
+                        operator=s1,
                         Nq=self.QuantStore.Nq,
                         quantstore=self.QuantStore,
                         depth=self.S_trotter,
                         )
-                I1=self.Instruct(
-                        operator=S1,
-                        Nq=self.QuantStore.Nq,
-                        quantstore=self.QuantStore,
-                        depth=self.S_trotter,
-                        )
-                Circ0= StandardTomography(
+                Circ= StandardTomography(
                         QuantStore=self.QuantStore,
                         preset=self.tomo_preset,
                         Tomo=self.tomo_Psi,
@@ -406,43 +361,139 @@ class RunACSE(QuantumRun):
                         verbose=False,
                         )
                 if not self.tomo_preset:
-                    Circ0.generate(
+                    Circ.generate(
                             real=self.Store.H.real,
                             imag=self.Store.H.imag)
-                Circ0.set(I0)
-                Circ0.simulate()
-                Circ0.construct(processor=self.process)
-                Circ1= StandardTomography(
-                        QuantStore=self.QuantStore,
-                        preset=self.tomo_preset,
-                        Tomo=self.tomo_Psi,
-                        #verbose=self.verbose,
-                        verbose=False,
-                        )
-                if not self.tomo_preset:
-                    Circ1.generate(
-                            real=self.Store.H.real,
-                            imag=self.Store.H.imag)
-                Circ1.set(I1)
-                Circ1.simulate()
-                Circ1.construct(processor=self.process)
-                Gamma+= (Circ0.rdm-Circ1.rdm)
-                e0 = self.Store.evaluate(Circ0.rdm)
-                e1 = self.Store.evaluate(Circ1.rdm)
+                Circ.set(I0)
+                Circ.simulate()
+                Circ.construct(processor=self.process)
+                Gamma = self.Store.hf_rdm-Circ.rdm
+                e0 = self.Store.evaluate(self.Store.hf_rdm)
+                e1 = self.Store.evaluate(Circ.rdm)
+                et = e1-e0
                 print('Energies: ')
-                print('E0 (qc): {:.8f}'.format(np.real(e0)))
-                print('E1 (qc): {:.8f}'.format(np.real(e1)))
+                print('E0 (HF): {:.8f}'.format(np.real(e0)))
+                print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
                 print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
                 print('- - - -')
-                et+= (e1-e0)
-            print('Total Gamma: ')
-            Gamma.analysis()
-            print('----------------------------------')
-            print('Total energy shift: {:.8f}'.format(np.real(et)))
-            print('----------------------------------')
-            self.QuantStore.Gamma = Gamma
-            if self.log:
-                self.log_Gamma.append(Gamma)
+                for d in range(1,total.d):
+                    print('Depth: {}'.format(d))
+                    S0 = copy(total)
+                    S1 = copy(total)
+                    S0.truncate(d)
+                    S1.truncate(d+1)
+                    for f in S1.A[-1]:
+                        f.c*= 0.000001
+                    print('Adjusted operator 0: ')
+                    print(S0)
+                    print('Adjusted operator 1: ')
+                    print(S1)
+                    I0=self.Instruct(
+                            operator=S0,
+                            Nq=self.QuantStore.Nq,
+                            quantstore=self.QuantStore,
+                            depth=self.S_trotter,
+                            )
+                    I1=self.Instruct(
+                            operator=S1,
+                            Nq=self.QuantStore.Nq,
+                            quantstore=self.QuantStore,
+                            depth=self.S_trotter,
+                            )
+                    Circ0= StandardTomography(
+                            QuantStore=self.QuantStore,
+                            preset=self.tomo_preset,
+                            Tomo=self.tomo_Psi,
+                            #verbose=self.verbose,
+                            verbose=False,
+                            )
+                    if not self.tomo_preset:
+                        Circ0.generate(
+                                real=self.Store.H.real,
+                                imag=self.Store.H.imag)
+                    Circ0.set(I0)
+                    Circ0.simulate()
+                    Circ0.construct(processor=self.process)
+                    Circ1= StandardTomography(
+                            QuantStore=self.QuantStore,
+                            preset=self.tomo_preset,
+                            Tomo=self.tomo_Psi,
+                            #verbose=self.verbose,
+                            verbose=False,
+                            )
+                    if not self.tomo_preset:
+                        Circ1.generate(
+                                real=self.Store.H.real,
+                                imag=self.Store.H.imag)
+                    Circ1.set(I1)
+                    Circ1.simulate()
+                    Circ1.construct(processor=self.process)
+                    Gamma+= (Circ0.rdm-Circ1.rdm)
+                    e0 = self.Store.evaluate(Circ0.rdm)
+                    e1 = self.Store.evaluate(Circ1.rdm)
+                    print('Energies: ')
+                    print('E0 (qc): {:.8f}'.format(np.real(e0)))
+                    print('E1 (qc): {:.8f}'.format(np.real(e1)))
+                    print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
+                    print('- - - -')
+                    et+= (e1-e0)
+                print('Total Gamma: ')
+                Gamma.analysis()
+                print('----------------------------------')
+                print('Total energy shift: {:.8f}'.format(np.real(et)))
+                print('----------------------------------')
+                self.QuantStore.Gamma = Gamma
+                if self.log:
+                    self.log_Gamma.append(Gamma)
+            else:
+                self.QuantStore.Gamma = None
+                testS = copy(self.A)
+                currS = copy(self.S)
+                total = currS+testS
+                s1 = copy(total)
+                # s1.truncate(1) # 
+                for f in s1:
+                    f.c*=0.0001
+                    print(f)
+                print('Setting shift to H0:')
+                print(s1)
+
+                I0=self.Instruct(
+                        operator=s1,
+                        Nq=self.QuantStore.Nq,
+                        quantstore=self.QuantStore,
+                        depth=self.S_trotter,
+                        )
+                Circ= StandardTomography(
+                        QuantStore=self.QuantStore,
+                        preset=self.tomo_preset,
+                        Tomo=self.tomo_Psi,
+                        verbose=False,
+                        )
+                if not self.tomo_preset:
+                    Circ.generate(
+                            real=self.Store.H.real,
+                            imag=self.Store.H.imag)
+                Circ.set(I0)
+                Circ.simulate()
+                Circ.construct(processor=self.process)
+                Gamma = self.Store.hf_rdm-Circ.rdm
+                e0 = self.Store.evaluate(self.Store.hf_rdm)
+                e1 = self.Store.evaluate(Circ.rdm)
+                et = e1-e0
+                print('Energies: ')
+                print('E0 (HF): {:.8f}'.format(np.real(e0)))
+                print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
+                print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
+                print('- - - -')
+                print('Total Gamma: ')
+                Gamma.analysis()
+                print('----------------------------------')
+                print('Total energy shift: {:.8f}'.format(np.real(et)))
+                print('----------------------------------')
+                self.QuantStore.Gamma = Gamma
+                if self.log:
+                    self.log_Gamma.append(Gamma)
 
     def _check_norm(self,testS):
         '''
@@ -493,10 +544,7 @@ class RunACSE(QuantumRun):
         function of Store.build_trial_ansatz
         '''
         testS = copy(self.A)
-        # where is step size from? 
-        # test procedure
         for s in testS:
-            #s.qCo*=self.delta
             s.c*=self.delta
         self.S = self.S+testS
         ins = self.Instruct(
@@ -516,31 +564,15 @@ class RunACSE(QuantumRun):
         circ.set(ins)
         circ.simulate()
         circ.construct(processor=self.process)
-        if self.stats==False:
-            pass
-        else:
-            if self.stats=='N':
-                self.ci = circ.evaluate_error(
-                        numberOfSamples=256,
-                        sample_size=2048,
-                        f=self._particle_number)
-            elif self.stats in ['E','en']:
-                self.ci = circ.evaluate_error(
-                        numberOfSamples=256,
-                        sample_size=2048,
-                        f=self.Store.evaluate)
-            print('Variance in {}: {:.6f} (CLT)'.format(
-                self.stats,np.real(self.ci)))
-            print('')
         en = np.real(self.Store.evaluate(circ.rdm))
         self.Store.update(circ.rdm)
         if self.total.iter==0:
             if en<self.e0:
                 pass
             elif en>self.e0:
+                print('Euler step caused an increase in energy....switching.')
                 self.delta*=-1
                 for s in testS:
-                    #s.qCo*=-2
                     s.c*=-2
                 self.S+= testS
                 ins = self.Instruct(operator=self.S,
@@ -620,22 +652,6 @@ class RunACSE(QuantumRun):
         tCirc.set(tIns)
         tCirc.simulate()
         tCirc.construct(processor=self.process)
-        if self.stats==False:
-            pass
-        else:
-            if self.stats=='N':
-                self.ci = tCirc.evaluate_error(
-                        numberOfSamples=256,
-                        sample_size=2048,
-                        f=self._particle_number)
-            elif self.stats in ['E','en']:
-                self.ci = tCirc.evaluate_error(
-                        numberOfSamples=256,
-                        sample_size=2048,
-                        f=self.Store.evaluate)
-            print('Variance in {}: {:.6f} (CLT)'.format(
-                self.stats,np.real(self.ci)))
-            print('')
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self.circ = tCirc
         return en,tCirc.rdm
@@ -775,7 +791,7 @@ class RunACSE(QuantumRun):
                     )
             if not self.tomo_preset:
                 Psi.generate(real=True,imag=False)
-            Psi.set(tIns)
+            Psi.set(Ins)
             Psi.simulate()
             Psi.construct(processor=self.process)
             self.Store.update(Psi.rdm)
@@ -956,6 +972,7 @@ class RunACSE(QuantumRun):
 
     def save(self,
             name,
+            description=None
             ):
         try:
             self.log_A
@@ -966,9 +983,29 @@ class RunACSE(QuantumRun):
                 'log-D':self.log_rdm,
                 'log-S':self.log_S,
                 'H':self.Store.H.matrix,
-                'config':{
-
+                'run_config':{
+                    'method':self.acse_method,
+                    'verbose':self.verbose,
+                    'S_thresh_rel':self.S_thresh_rel,
+                    'S_min':self.S_min,
+                    'S_num_terms':self.S_num_terms,
+                    'update':self.acse_update,
+                    'opt_threshold':self.crit,
+                    'max_depth':self.max_depth,
+                    'H size':self.hamiltonian_step_size,
+                    'separate hamiltonian':self.sep_hamiltonian,
+                    'convergence type':self._conv_type,
+                    'optimizer':self._optimizer,
+                    'optimizer_threshold':self._opt_thresh,
                     },
+                'quantum_storage':{
+                    'backend':self.QuantStore.backend,
+                    'provider':self.QuantStore.provider,
+                    'number of qubits':self.QuantStore.Nq,
+                    'number of shots':self.QuantStore.Ns,
+                    'stabilizers':self.QuantStore.method,
+                    },
+                'description':description,
                 }
         try:
             data['log-Gamma']=self.log_Gamma

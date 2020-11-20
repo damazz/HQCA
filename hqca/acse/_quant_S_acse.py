@@ -2,6 +2,7 @@ import numpy as np
 import sys
 from hqca.tools import *
 from hqca.state_tomography import *
+import traceback
 
 '''
 /hqca/acse/_quant_S_acse.py
@@ -27,31 +28,33 @@ def _findFermionicSQuantum(
         store=None,
         quantstore=None,
         verbose=False,
-        separate=False,
         trotter_steps=1,
-        qS_thresh_rel=0.1,
-        qS_max=1e-10,
-        qS_screen=0.1,
+        S_min=1e-10,
         hamiltonian_step_size=1.0,
         separate_hamiltonian=False,
         ordering='default',
         depth=1,
+        parallel=False,
         commutative=True,
         tomo=None,
-        piecewise=False,
         transform=None,
         **kw
         ):
     '''
     need to do following:
         3. find S from resulting matrix
+
     '''
     if verbose:
         print('Generating new S pairs with Hamiltonian step.')
     if separate_hamiltonian:
+        '''
+        going to try and run systems in parallele
+        '''
         try:
-            #store.H._qubOp_sep
+            #print(store.H._qubOp_sep)
             rdm = np.zeros(store.rdm.rdm.shape)
+            tomo_list = []
             for opH in store.H._qubOp_sep:
                 newPsi = instruct(
                         operator=operator,
@@ -77,28 +80,39 @@ def _findFermionicSQuantum(
                             verbose=verbose,
                             )
                 newCirc.set(newPsi)
-                if verbose:
-                    print('Running circuits...')
-                newCirc.simulate(verbose=verbose)
-                if verbose:
-                    print('Constructing the RDMs...')
-                newCirc.construct(processor=process)
-                #rdm = newCirc.rdm.rdm-store.rdm.rdm
-                rdm+= np.imag(newCirc.rdm.rdm)
-                temp= np.transpose(np.nonzero(newCirc.rdm.rdm))
-                hss = (1/hamiltonian_step_size)
-                max_val = 0
-                if verbose:
-                    print('Contributions from H_i - ')
-                    print('H_i: ')
+                if not parallel:
+                    print('Running Hi...')
                     print(opH)
-                    print('S_i')
-                    for inds in temp:
-                        val = newCirc.rdm.rdm[tuple(inds)]*hss
-                        if abs(val)>1e-5:
-                            print(val,inds)
+                    newCirc.simulate()
+                    newCirc.construct(processor=process)
+                    rdm+= np.imag(newCirc.rdm.rdm)
+                    new = np.transpose(np.nonzero(newCirc.rdm.rdm))
+                    hss = (1/hamiltonian_step_size)
+                    if verbose:
+                        print('Elements of S from quantum generation: ')
+                        newF = Operator()
+                        for index in new:
+                            ind = tuple(index)
+                            val = np.imag(newCirc.rdm.rdm[ind])*hss
+                            if abs(val)>S_min:
+                                l = len(ind)
+                                sop = l//2*'+'+l//2*'-'
+                                newF+= FermiString(
+                                        -val,
+                                        indices=list(ind),
+                                        ops=sop,
+                                        N=quantstore.dim,
+                                        )
+                        print(newF.transform(quantstore.transform))
+            if parallel:
+                print('Running circuits...')
+                run_multiple(tomo_list,quantstore,verbose=verbose)
+                for t,o in zip(tomo_list,store.H._qubOp_sep):
+                    t.construct(processor=process)
+                    rdm+= np.imag(t.rdm.rdm)
+            hss = (1/hamiltonian_step_size)
         except Exception as e:
-            print(e)
+            traceback.print_exc(e)
             sys.exit('Error in Hamiltonian separation.')
     else:
         newPsi = instruct(
@@ -135,40 +149,28 @@ def _findFermionicSQuantum(
         rdm = np.imag(newCirc.rdm.rdm)
     new = np.transpose(np.nonzero(rdm))
     hss = (1/hamiltonian_step_size)
-    max_val = 0
-    for inds in new:
-        ind = tuple(inds)
-        v = abs(rdm[ind])*hss
-        if v>max_val:
-            max_val = v
     if verbose:
         print('Elements of S from quantum generation: ')
     newF = Operator()
     for index in new:
         ind = tuple(index)
         val = rdm[ind]*hss
-        if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
+        if abs(val)>S_min:
             if quantstore.op_type=='fermionic':
                 l = len(ind)
                 sop = l//2*'+'+l//2*'-'
-                newEl = FermiString(
+                newF+= FermiString(
                         -val,
                         indices=list(ind),
                         ops=sop,
                         N=quantstore.dim,
                         )
-                newF+= newEl
-    newS = newF.transform(quantstore.transform)
+    fullS = newF.transform(quantstore.transform)
     if verbose:
+        print('S operator (pre-truncated)...')
         print('Fermionic S operator:')
         print(newF)
-        print('Qubit S operator: ')
-        print(newS)
-    if commutative:
-        newS.ca=True
-    else:
-        newS.ca=False
-    return newS
+    return fullS
 
 def _findQubitSQuantum(
         operator,
@@ -273,23 +275,12 @@ def _findQubitSQuantum(
         c = 2
     elif quantstore.Nq==2:
         c = 4
-    max_val = 0
-    for inds in newRe:
-        ind = tuple(inds)
-        v = abs(rdmRe[ind])*hss
-        if v>max_val:
-            max_val = v
-    for inds in newIm:
-        ind = tuple(inds)
-        v = abs(rdmIm[ind])*hss*c
-        if v>max_val:
-            max_val = v
     print('Elements of S from quantum generation: ')
     newS = Operator()
     for index in newRho:
         ind = tuple(index)
         val = RDM.rdm[ind]*hss*c
-        if abs(val)>qS_thresh_rel*max_val and abs(val)>qS_max:
+        if abs(val)>=S_min:
             i = RDM.mapping[ind[0]]
             sq = RDM.sq_map[tuple(ind[1:])]
             newEl = QubitOperator(
