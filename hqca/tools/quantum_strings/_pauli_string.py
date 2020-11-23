@@ -32,8 +32,11 @@ class PauliString(QuantumString):
     def __eq__(self,obj):
         return self.s==obj.s
 
+    def __ne__(self,obj):
+        return self.s==obj.s and self.c==obj.c
+
     def symm(self,P):
-        val = 0 
+        val = 0
         for i in range(self.n):
             val+= self.r[i]*P.r[i+self.n]
             val+= P.r[i]*P.r[i+self.n]

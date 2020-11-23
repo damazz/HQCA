@@ -53,9 +53,14 @@ class FermiString(QuantumString):
             sys.exit('Huh?')
         return new
 
+    def iszero(self):
+        return abs(self.c)<=1e-15
 
     def __eq__(self,A):
         return A.s==self.s
+
+    def __ne__(self,A):
+        return A.s==self.s and A.c ==self.c
 
     def inds(self):
         return [n for n in range(len(self.s)) if not self.s[n]=='i']

@@ -28,7 +28,6 @@ class ConRDMElement:
             self.ind = op.op[0].inds()
 
 class ReducedTomography(StandardTomography):
-
     def _generate_1rdme(self,
             real=True,
             imag=False,
@@ -195,8 +194,13 @@ class ReducedTomography(StandardTomography):
                 else:
                     paulis.append(new)
         if simplify==True:
+            if self.imag:
+                rz=False
+            else:
+                rz=True
             self.op,self.mapping = simplify_tomography(
                     paulis,
+                    reassign_z=rz,
                     **kw)
         elif simplify=='comparison':
             self.op,self.mapping = compare_tomography(

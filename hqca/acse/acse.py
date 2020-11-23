@@ -18,6 +18,7 @@ from hqca.acse._quant_S_acse import *
 from hqca.tools import *
 from optss import *
 
+
 class RunACSE(QuantumRun):
     '''
     '''
@@ -141,8 +142,6 @@ class RunACSE(QuantumRun):
         print('optimizer threshold: {}'.format(optimizer_threshold))
         self._optimizer = optimizer
         self._opt_thresh = optimizer_threshold
-
-
 
     def _update_acse_newton(self,
             use_trust_region=False,
@@ -325,6 +324,8 @@ class RunACSE(QuantumRun):
             self.log_S.append(copy(self.S))
 
     def _check_length(self,full=True):
+        '''
+        '''
         qsp = self.QuantStore.post
         try:
             met = 'shift' in self.QuantStore.method 

@@ -33,7 +33,6 @@ class FermionicHamiltonian(Hamiltonian):
         self._model='fermionic'
         self.real=True
         self.imag=False
-        self.C = np.identity(ints_1e.shape[0])
         self._order = 2
         if Ne_active_space=='default':
             self.Ne_as = proxy_mol.nelec[0]+proxy_mol.nelec[1]
@@ -44,8 +43,10 @@ class FermionicHamiltonian(Hamiltonian):
         self.Ne_alp = proxy_mol.nelec[0]-self.Ne_core//2
         self.Ne_bet = proxy_mol.nelec[1]-self.Ne_core//2
         if No_active_space=='default':
+            self.C = np.identity(ints_1e.shape[0])
             self.No_as = self.C.shape[0]
         else:
+            self.C = np.identity(No_active_space)
             self.No_as = int(No_active_space)
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
@@ -87,15 +88,19 @@ class FermionicHamiltonian(Hamiltonian):
                     )
             if verbose:
                 print('Done!')
-            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            if self.verbose:
-                print('Transforming molecular integrals...')
-            for i in range(0,self.r):
-                for j in range(0,self.r):
-                    temp = 0.5*self.ints_2e[i,:,j,:]
-                    for k in range(0,self.r):
-                        temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                    self.K2[i,:,j,:]+= temp[:,:]
+        else:
+            self.ints_1e = ints_1e
+            self.ints_2e = ints_2e
+        self.K2 = np.zeros((self.r,self.r,self.r,self.r))
+        if self.verbose:
+            print('Transforming molecular integrals...')
+        for i in range(0,self.r):
+            for j in range(0,self.r):
+                temp = 0.5*self.ints_2e[i,:,j,:]
+                for k in range(0,self.r):
+                    temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
+                self.K2[i,:,j,:]+= temp[:,:]
+
         if self.verbose:
             print('... Done!')
         self._matrix = contract(self.K2)

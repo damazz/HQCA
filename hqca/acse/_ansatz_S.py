@@ -4,13 +4,14 @@ import sys
 
 class Ansatz:
     def __init__(self,
+
             depth_to_add=1,
             **kw):
         '''
         Close to an operator class, but really an operator of operator? Yeah.
         Addition, mulptiplication are defined differently though
 
-        need to update ACSE as well :( o.o o.p O.D 
+        need to update ACSE as well :( o.o o.p O.D
         '''
         self.A = [] #instead of strings, holds operators at each place
         self.depth=  depth_to_add #if 1, will go back 1 step
@@ -19,6 +20,7 @@ class Ansatz:
     def truncate(self,d=0):
         self.A = self.A[:d]
         self.d = d
+
 
     def __getitem__(self,k):
         return self.A[k]

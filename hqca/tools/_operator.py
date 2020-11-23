@@ -86,6 +86,7 @@ class Operator:
         new.clean()
         return new
 
+
     def __mul__(self,A):
         new = Operator()
         if isinstance(A,type(QuantumString())):

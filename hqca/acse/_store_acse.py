@@ -9,7 +9,7 @@ from hqca.acse._ansatz_S import *
 
 class StorageACSE(Storage):
     '''
-    Storage object for use in ACSE calculation. In general, needs only a 
+    Storage object for use in ACSE calculation. In general, needs a Hamiltonian
 
     modified Storage object, more well suited for containing the ACSE related
     objets, such as the 2S matrix

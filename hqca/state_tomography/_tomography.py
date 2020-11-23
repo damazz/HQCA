@@ -567,12 +567,18 @@ class StandardTomography(Tomography):
                 else:
                     paulis.append(j.s)
         if simplify==True:
+            if self.imag:
+                rz=False
+            else:
+                rz=True
             self.op,self.mapping = simplify_tomography(
                     paulis,
+                    reassign_z=rz,
                     **kw)
         elif simplify=='comparison':
             self.op,self.mapping = compare_tomography(
                     paulis,
+                    reassign_z=rz,
                     **kw)
         else:
             self.op = paulis

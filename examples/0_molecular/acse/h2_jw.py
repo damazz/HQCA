@@ -24,7 +24,6 @@ qs = QuantumStorage()
 qs.set_algorithm(st)
 qs.set_backend(
         backend='statevector_simulator',
-        #backend='qasm_simulator',
         Nq=4,
         provider='Aer')
 tomoRe = StandardTomography(qs)
