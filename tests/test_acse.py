@@ -24,13 +24,14 @@ def test_ansatz():
                 Pauli('ZY',-1j)
                 ]
             )
-    Sc+= op1
-    Sc+= op2
-    Sc+= op2
-    da.expect(len(S)==2)
-    print(S)
-    print(len(S))
-    for i in S:
+    So+= op1
+    So+= op2
+    So+= op1
+    So+= op1
+    da.expect(len(Sc)==2)
+    print(Sc)
+    print(len(Sc))
+    for i in Sc:
         print(i)
     da.assert_expectations()
 

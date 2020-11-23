@@ -4,7 +4,7 @@ import sys
 
 class Ansatz:
     def __init__(self,
-            closed=False,
+            closed=True,
             ):
         '''
         Compilation of operators. Designed for iterative ansatz, where different layers
@@ -14,12 +14,7 @@ class Ansatz:
         I.e., it is non commutative with respect to addition. 
         '''
         self.A = [] #instead of strings, holds operators at each place
-        if closed==False:
-            self.depth= 0
-        elif closed:
-            self.depth= len(self)
-        else:
-            self.depth = int(closed)
+        self.closed = closed
         self.d = 0
 
     def truncate(self,d='default'):
@@ -79,19 +74,21 @@ class Ansatz:
                 new.d+=1
                 return new
             newOp = Operator(commutative_addition=True)
-            O.ca=True
-            for o in O:
-                added=False
-                for d in range(min(self.depth,self.d)):
-                    if o in self.A[-d-1]:
-                        new.A[-d-1]+= o
-                        added=True
-                        break
-                if not added:
-                    newOp+= o
-            if len(newOp)>0:
-                new.A.append(newOp)
-                new.d+=1
+            if closed:
+                new.A.append(O)
+            else:
+                for o in O:
+                    added=False
+                    for d in range(min(self.closed,self.d)):
+                        if o in self.A[-d-1]:
+                            new.A[-d-1]+= o
+                            added=True
+                            break
+                    if not added:
+                        newOp+= o
+                if len(newOp)>0:
+                    new.A.append(newOp)
+                    new.d+=1
         else:
             pass
             sys.exit(r'Can\'t add non-Operator to S. ')
