@@ -30,6 +30,14 @@ class Operator:
                 new+= o
             self.op = new.op
 
+    def norm(self):
+        '''
+        calculates the l2 norm of operator in the respective basis
+        '''
+        n = 0
+        for o in self:
+            n+= o.c*np.conj(o.c)
+        return np.sqrt(n.real)
 
     def __str__(self):
         z = ''
@@ -99,6 +107,9 @@ class Operator:
             for a in A:
                 for s in self:
                     new+= s*a
+        elif isinstance(A,float):
+            for o in self:
+                new+= o*A
         else:
             raise TypeError
         new.clean()

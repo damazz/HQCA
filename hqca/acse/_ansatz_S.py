@@ -4,23 +4,35 @@ import sys
 
 class Ansatz:
     def __init__(self,
-
-            depth_to_add=1,
-            **kw):
+            closed=False,
+            ):
         '''
-        Close to an operator class, but really an operator of operator? Yeah.
-        Addition, mulptiplication are defined differently though
+        Compilation of operators. Designed for iterative ansatz, where different layers
+        of ansatz terms can be defined. 
 
-        need to update ACSE as well :( o.o o.p O.D
+        A closed ansatz is one in which the inner layers of the ansatz cannot be accessed.
+        I.e., it is non commutative with respect to addition. 
         '''
+        if closed==False:
+            self.depth= 0
+        elif closed:
+            self.depth= len(self)
+        else:
+            self.depth = int(closed)
         self.A = [] #instead of strings, holds operators at each place
-        self.depth=  depth_to_add #if 1, will go back 1 step
         self.d = 0
 
-    def truncate(self,d=0):
+    def truncate(self,d='default'):
+        '''
+        return truncated form of the ansatz with depth d
+        '''
+        if d =='default':
+            d = len(self)
         self.A = self.A[:d]
         self.d = d
 
+    def norm(self):
+        return [a.norm for a in self]
 
     def __getitem__(self,k):
         return self.A[k]
@@ -29,10 +41,10 @@ class Ansatz:
         return [p for o in self.A for p in o]
 
     def __iter__(self):
-        return self._op_form().__iter__()
+        return self.A.__iter__()
 
     def __next__(self):
-        return self._op_form().__next__()
+        return self.A.__next__()
 
     def __contains__(self,A):
         for n in range(self.d):
@@ -41,7 +53,7 @@ class Ansatz:
         return False
 
     def __len__(self):
-        return [len(o) for o in self.A]
+        return len(self.A)
 
     def __str__(self):
         z = '- - -'

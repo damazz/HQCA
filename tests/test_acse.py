@@ -5,9 +5,35 @@ from hqca.instructions import *
 from delayed_assert import delayed_assert as da
 from hqca.acse._ansatz_S import *
 from _generic import *
+from hqca.tools.quantum_strings import PauliString as Pauli
+from hqca.tools.quantum_strings import FermiString as Fermi
+from hqca.tools.quantum_strings import QubitString as Qubit
+from hqca.tools._operator import Operator as Op
 
 def test_ansatz():
-    pass
+    Sc = Ansatz(closed=True)
+    So = Ansatz(closed=False)
+    op1 = Operator(
+            [
+                Pauli('XY',1j),
+                Pauli('YX',1j),
+        ])
+    op2 = Operator(
+            [
+                Pauli('YZ',1j),
+                Pauli('ZY',-1j)
+                ]
+            )
+    Sc+= op1
+    Sc+= op2
+    Sc+= op2
+    da.expect(len(S)==2)
+    print(S)
+    print(len(S))
+    for i in S:
+        print(i)
+    da.assert_expectations()
+
 
 def test_acse():
     st,qs,ins,proc,tR,tI = generic_acse_objects()
@@ -35,4 +61,5 @@ def test_acse():
     da.assert_expectations()
     print(acse.e0)
 
+test_ansatz()
 #test_acse()
