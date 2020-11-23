@@ -13,13 +13,13 @@ class Ansatz:
         A closed ansatz is one in which the inner layers of the ansatz cannot be accessed.
         I.e., it is non commutative with respect to addition. 
         '''
+        self.A = [] #instead of strings, holds operators at each place
         if closed==False:
             self.depth= 0
         elif closed:
             self.depth= len(self)
         else:
             self.depth = int(closed)
-        self.A = [] #instead of strings, holds operators at each place
         self.d = 0
 
     def truncate(self,d='default'):
