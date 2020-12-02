@@ -20,7 +20,7 @@ class StorageACSE(Storage):
             use_initial=False,
             initial='hartree-fock',
             second_quant=False,
-            S_depth=1,
+            closed_ansatz=True,
             **kwargs):
         self.H = Hamiltonian
         self.p = Hamiltonian.order
@@ -50,13 +50,13 @@ class StorageACSE(Storage):
                 self._set_overlap()
             self.ei = self.H.hf.e_tot
             #self.S = Operator()
-            self.S = Ansatz(depth_to_add=S_depth)
+            self.S = Ansatz(closed=closed_ansatz)
         elif self.H.model in ['sq','single-qubit']:
             if use_initial:
                 # only the +, ++, +++ states are non-zero
                 # what is the ordering like? 
                 #self.S = Operator(ops=[])
-                self.S = Ansatz(depth_to_add=S_depth)
+                self.S = Ansatz(closed=closed_ansatz)
                 if len(initial)==0:
                     pass
                 elif not second_quant:
@@ -96,7 +96,7 @@ class StorageACSE(Storage):
                 self.S = copy(initial)
             else:
                 #self.S = Operator()
-                self.S = Ansatz(depth_to_add=S_depth)
+                self.S = Ansatz(closed=closed_ansatz)
                 # use input state
         elif self.H.model in ['tq','two-qubit']:
             if use_initial:

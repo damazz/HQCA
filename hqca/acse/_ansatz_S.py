@@ -15,25 +15,30 @@ class Ansatz:
         '''
         self.A = [] #instead of strings, holds operators at each place
         self.closed = closed
-        self.d = 0
+        self._store = []
+        if closed>1:
+            sys.exit('Need to specify closed <=1')
 
     def truncate(self,d='default'):
         '''
         return truncated form of the ansatz with depth d
+         
+        from initial to final (i.e., first to last)
         '''
         if d =='default':
             d = len(self)
         self.A = self.A[:d]
-        self.d = d
+        self._store = self._store[:d]
+
 
     def norm(self):
-        return [a.norm for a in self]
+        return [a.norm() for a in self]
 
     def __getitem__(self,k):
         return self.A[k]
 
-    def _op_form(self):
-        return [p for o in self.A for p in o]
+    def op_form(self):
+        return Operator([p for o in self.A for p in o])
 
     def __iter__(self):
         return self.A.__iter__()
@@ -41,18 +46,12 @@ class Ansatz:
     def __next__(self):
         return self.A.__next__()
 
-    def __contains__(self,A):
-        for n in range(self.d):
-            if A in self.op:
-                return True
-        return False
-
     def __len__(self):
         return len(self.A)
 
     def __str__(self):
         z = '- - -'
-        for i in range(self.d):
+        for i in range(len(self)):
             z+= '\nS_{}:\n'.format(i)
             z+= self.A[i].__str__()
         z+= '\n- - -'
@@ -61,9 +60,20 @@ class Ansatz:
     def clean(self):
         for a in self.A:
             a.clean()
+        for a in reversed(range(len(self.A))):
+            if len(self.A[a])==0:
+                self.A.pop(a)
 
     def __mul__(self,A):
         sys.exit('Multiplication not defined for Ansatz Class')
+
+    def get_lim(self):
+        if self.closed==0: 
+            return -1*(len(self.A))
+        elif self.closed==1:
+            return 0
+        else:
+            return max(self.closed,-1*len(self))
 
     def __add__(self,O):
         # rawr
@@ -71,27 +81,38 @@ class Ansatz:
         if isinstance(O,type(Operator())):
             if len(self.A)==0:
                 new.A.append(O)
-                new.d+=1
                 return new
-            newOp = Operator(commutative_addition=True)
-            if closed:
+            newOp = Operator()
+            if self.closed==1:
                 new.A.append(O)
             else:
                 for o in O:
                     added=False
-                    for d in range(min(self.closed,self.d)):
-                        if o in self.A[-d-1]:
-                            new.A[-d-1]+= o
+                    if self.closed==0: 
+                        # false, set to length of ansatz
+                        lim = -1*(len(self.A))
+                    else:
+                        lim = max(self.closed,-1*len(self))
+                        # set minimum of self.closed, len of ansatz
+                    for d in reversed(range(lim,0)):
+                        if o in self.A[d]:
+                            new.A[d]+= o
                             added=True
                             break
                     if not added:
                         newOp+= o
                 if len(newOp)>0:
                     new.A.append(newOp)
-                    new.d+=1
         else:
             pass
             sys.exit(r'Can\'t add non-Operator to S. ')
         new.clean()
         return new
 
+    def __sub__(self,A):
+        new = Operator()
+        for o in A:
+            O = copy(o)
+            O.c = O.c*(-1)
+            new+= O
+        return self+new

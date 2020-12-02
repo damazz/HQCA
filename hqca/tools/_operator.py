@@ -16,10 +16,8 @@ class Operator:
     '''
     def __init__(self,
             op=None,
-            commutative_addition=True
             ):
         self.op = []
-        self.ca = commutative_addition
         if type(op)==type(None):
             pass
         elif isinstance(op, type(QuantumString())):
@@ -36,8 +34,8 @@ class Operator:
         '''
         n = 0
         for o in self:
-            n+= o.c*np.conj(o.c)
-        return np.sqrt(n.real)
+            n+= (o.c.real+1j*o.c.imag)*(o.c.real-1j*o.c.imag)
+        return (n.real)**(0.5)
 
     def __str__(self):
         z = ''
@@ -65,35 +63,27 @@ class Operator:
         new = copy(self)
         if isinstance(A ,type(QuantumString())):
             # we are adding a string
-            if not self.ca:
-                add=True
-            else:
-                add=True
-                for n,i in enumerate(self):
-                    if i==A:
-                        new.op[n]+=A
-                        add=False
-                        break
+            add=True
+            for n,i in enumerate(self):
+                if i==A:
+                    new.op[n]+=A
+                    add=False
+                    break
             if add:
                 new.op.append(A)
             return new
-
         elif isinstance(A,type(Operator())):
             for o in A:
-                if not self.ca or not A.ca:
-                    add=True
-                else:
-                    add=True
-                    for n,i in enumerate(self):
-                        if i==o:
-                            new.op[n]+=o
-                            add=False
-                            break
+                add=True
+                for n,i in enumerate(self):
+                    if i==o:
+                        new.op[n]+=o
+                        add=False
+                        break
                 if add:
                     new.op.append(o)
         new.clean()
         return new
-
 
     def __mul__(self,A):
         new = Operator()
@@ -136,30 +126,24 @@ class Operator:
         if isinstance(A ,type(QuantumString())):
             A.c *=-1
             # we are adding a string
-            if not self.ca:
-                add=True
-            else:
-                add=True
-                for n,i in enumerate(self):
-                    if i==A:
-                        new.op[n]+=A
-                        add=False
-                        break
+            add=True
+            for n,i in enumerate(self):
+                if i==A:
+                    new.op[n]+=A
+                    add=False
+                    break
             if add:
                 new.op.append(A)
             return new
         elif isinstance(A,type(Operator())):
             for n,o in enumerate(A):
                 A[n].c*=-1
-                if not self.ca or not A.ca:
-                    add=True
-                else:
-                    add=True
-                    for n,i in enumerate(self):
-                        if i==o:
-                            new.op[n]+=o
-                            add=False
-                            break
+                add=True
+                for n,i in enumerate(self):
+                    if i==o:
+                        new.op[n]+=o
+                        add=False
+                        break
                 if add:
                     new.op.append(o)
         new.clean()

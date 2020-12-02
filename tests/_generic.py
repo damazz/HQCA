@@ -94,5 +94,5 @@ def generic_acse_objects():
     tomoIm = StandardTomography(qs)
     tomoIm.generate(real=False,imag=True,transform=JordanWigner)
     proc = StandardProcess()
-    return st,qs,ins,proc,tomoRe,tomoIm
+    return ham,st,qs,ins,proc,tomoRe,tomoIm
 

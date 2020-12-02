@@ -2,6 +2,8 @@ from copy import deepcopy as copy
 import sys
 from hqca.tools._operator import *
 from hqca.tools.quantum_strings import *
+from functools import partial
+import numpy as np
 
 def trim_operator(ops,
         qubits=[],
@@ -33,3 +35,109 @@ def change_basis(op,
         Ut = copy(U)
     return (U*op)*Ut
 
+def modify(ops,
+        fermi,
+        U,Ut,
+        qubits,
+        paulis,
+        eigvals,
+        initial=False):
+    T = fermi(ops,initial=initial)
+    # initialize
+    T = change_basis(T,U,Ut)
+    # apply Pauli change of basis
+    T = trim_operator(T,
+            qubits=qubits,
+            paulis=paulis,
+            null=int(initial),
+            eigvals=eigvals)
+    # perform trimming
+    return T
+
+def clifford(ops,
+        fermi,
+        U,
+        **kw
+        ):
+    new = fermi(ops,**kw)
+    return new.clifford(U)
+
+def get_transform_from_symmetries(
+        Transform,
+        symmetries,
+        qubits,
+        eigvals,
+        ):
+    cTr = copy(Transform)
+    for i in range(len(symmetries)):
+        x = 'I'*len(symmetries[i])
+        ind = qubits[i]
+        x = x[:ind] + 'X' + x[ind+1:]
+        op = Operator([
+            PauliString(symmetries[i],1/np.sqrt(2)),
+            PauliString(x,1/np.sqrt(2))
+                ])
+        print(op)
+        cTr = partial(
+                modify,
+                fermi=copy(cTr),
+                U=op,Ut=op,
+                qubits=[qubits[i]],
+                eigvals=[eigvals[i]],
+                paulis=['X'],
+                )
+    ciTr = partial(cTr,initial=True)
+    return cTr, ciTr
+
+'''
+def find_initial_symmetries(fermi):
+    # what is the quickest way......hrm. 
+    rho  = Op([fermi])
+
+def tapered_transform(Transform,hamiltonian,
+        initial_state,
+        verbose=False,
+        ):
+
+    print(stab)
+    rho  = initial_state
+    cH = hamiltonian.transform(Transform)
+    def _remaining_symmetries(stab):
+        return len(cstab.null_basis)
+
+    cstab = Stabilizer(cH,verbose=False)
+    cstab.gaussian_elmination()
+    cstab.find_symmetry_generators()
+    cTr = copy(Transform)
+    appended_symmetries = []
+    while _remaining_symmetries(cstab)>0:
+        for S in cstab.null_basis:
+            # check compatibility with previous
+            use = False
+            if len(appended_symmetries)==0:
+                appended_symmetries.append(S)
+            else:
+                for a in appended_symmetries:
+                    pass
+            if use:
+                cTr = partial(
+                        modify,
+                        fermi=copy(cTr),
+                        U=U,
+                        qubits=[]
+                        paulis=[]
+                        eigvals=[]
+        cH = hamiltonian.tranform(cTr)
+        cstab = Stabilizer(cH,verbose=False)
+        cstab.gaussian_elmination()
+        cstab.find_symmetry_generators()
+
+
+
+
+        pass
+
+    nTr= None
+    iTr= None
+    return nTr,iTr
+'''

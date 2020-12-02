@@ -15,12 +15,16 @@ from hqca.core import *
 from hqca.acse._class_S_acse import *
 from hqca.acse._ansatz_S import *
 from hqca.acse._quant_S_acse import *
+from hqca.acse._newton_acse import _newton_step
+from hqca.acse._euler_acse import _euler_step
+from hqca.acse._opt_acse import _opt_step
+from hqca.acse._mitigation import *
+from hqca.acse._check_acse import check_routine
 from hqca.tools import *
-from optss import *
-
 
 class RunACSE(QuantumRun):
     '''
+    Quantum ACSE method.
     '''
     def __init__(self,
             Storage, #instance
@@ -38,7 +42,6 @@ class RunACSE(QuantumRun):
             update='quantum',
             opt_thresh=1e-8,
             max_iter=100,
-            trotter=1,
             pr_a=1,
             ansatz_depth=1,
             commutative_ansatz=False,
@@ -49,7 +52,6 @@ class RunACSE(QuantumRun):
             convergence_type='default',
             hamiltonian_step_size=0.1,
             restrict_S_size=0.5,
-            propagation='trotter',
             separate_hamiltonian=False,
             verbose=True,
             tomo_S=None,
@@ -73,9 +75,7 @@ class RunACSE(QuantumRun):
         self.verbose=verbose
         self.stats=statistics
         self.acse_method = method
-        self.S_trotter= ansatz_depth
         self.S_commutative = commutative_ansatz
-        self.N_trotter = trotter
         self.max_iter = max_iter
         self.max_depth = max_depth
         self.max_constant_depth = max_constant_depth
@@ -86,7 +86,6 @@ class RunACSE(QuantumRun):
         self.S_min = S_min
         self.S_num_terms = S_num_terms
         self.delta = restrict_S_size
-        self.propagate_method=propagation
         self.S_ordering = S_ordering
         self._conv_type = convergence_type
         self.tomo_S=tomo_S
@@ -112,7 +111,6 @@ class RunACSE(QuantumRun):
         print('ACSE solution')
         print('-- -- -- --')
         if self.acse_update=='q':
-            print('trotter-H: {}'.format(trotter))
             print('hamiltonian delta: {}'.format(hamiltonian_step_size))
         print('S rel threshold: {}'.format(S_thresh_rel))
         print('S max threshold: {}'.format(S_min))
@@ -120,7 +118,6 @@ class RunACSE(QuantumRun):
         print('ansatz')
         print('-- -- -- --')
         print('S epsilon: {}'.format(self.delta))
-        print('trotter-S: {}'.format(ansatz_depth))
         print('-- -- -- --')
         print('optimization')
         print('-- -- -- --')
@@ -131,6 +128,7 @@ class RunACSE(QuantumRun):
             self._update_acse_newton(**kw)
         elif self.acse_method in ['line','opt']:
             self._update_acse_opt(**kw)
+        self._update_experimental(**kw)
         self.grad=0
 
     def _update_acse_opt(self,
@@ -142,6 +140,14 @@ class RunACSE(QuantumRun):
         print('optimizer threshold: {}'.format(optimizer_threshold))
         self._optimizer = optimizer
         self._opt_thresh = optimizer_threshold
+
+    def _update_experimental(self,
+            split_ansatz=False,
+            split_threshold=1.0,
+            **kw
+            ):
+        self.split_ansatz=split_ansatz
+        self.split_threshold = split_threshold
 
     def _update_acse_newton(self,
             use_trust_region=False,
@@ -170,6 +176,25 @@ class RunACSE(QuantumRun):
         self.tr_taylor = 1
         self.tr_object = 1
 
+    def __generate_real_circuit(self,op):
+        if isinstance(op,type(Ansatz())):
+            op = op.op_form()
+        ins = self.Instruct(
+                operator=oo,
+                Nq=self.QuantStore.Nq,
+                quantstore=self.QuantStore,)
+        circ = StandardTomography(
+                QuantStore=self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo_Psi,
+                verbose=self.verbose,
+                )
+        if not self.tomo_preset:
+            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
+        circ.set(ins)
+        circ.simulate()
+        circ.construct(processor=self.process)
+        return circ
 
     def build(self,log=False):
         if self.verbose:
@@ -177,7 +202,6 @@ class RunACSE(QuantumRun):
             print('-- -- -- -- -- -- -- -- -- -- --')
             print('building the ACSE run')
             print('-- -- -- -- -- -- -- -- -- -- --')
-
         try:
             self.Store.H
             self.QuantStore.Nq
@@ -188,24 +212,8 @@ class RunACSE(QuantumRun):
         if self.Store.use_initial:
             self.S = copy(self.Store.S)
             for s in self.S:
-                #s.qCo*=self.delta
                 s.c*=self.delta
-            ins = self.Instruct(
-                    operator=self.S,
-                    Nq=self.QuantStore.Nq,
-                    depth=self.S_trotter,
-                    quantstore=self.QuantStore,)
-            circ = StandardTomography(
-                    QuantStore=self.QuantStore,
-                    preset=self.tomo_preset,
-                    Tomo=self.tomo_Psi,
-                    verbose=self.verbose,
-                    )
-            if not self.tomo_preset:
-                circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
-            circ.set(ins)
-            circ.simulate()
-            circ.construct(processor=self.process)
+            circ = self.__generate_real_circuit(self.S)
             en = np.real(self.Store.evaluate(circ.rdm))
             self.e0 = np.real(en)
             self.ei = np.real(en)
@@ -224,7 +232,6 @@ class RunACSE(QuantumRun):
             print('initial energy: {:.8f}'.format(np.real(self.e0)))
         self.best = self.e0
         self.best_avg = self.e0
-
         self.log = log
         self.log_depth = []
         if self.log:
@@ -234,35 +241,43 @@ class RunACSE(QuantumRun):
             self.log_S  = []
         self.log_norm = []
         self.log_E = [self.e0]
+        self.log_E_best=  [self.e0]
         self.log_G = []
         try:
             self.log_ci = [self.ci]
         except Exception: 
             pass
         self.total=Cache()
+        self.accept_previous_step=True
         self.__get_S()
         if self.log:
             self.log_A.append(copy(self.A))
         print('||A||: {:.10f}'.format(np.real(self.norm)))
         print('-- -- -- -- -- -- -- -- -- -- --')
+        # 
+        #
+        # run checks
+        #
+        check_routine(self)
         self.built=True
-
+    
 
     def __get_S(self):
+        if not self.accept_previous_step:
+            print('Rejecting previous step. No recalculation of A.')
+            return
+            # 
         if self.acse_update=='q':
             A_sq = findSPairsQuantum(
                     self.QuantStore.op_type,
-                    operator=self.S,
+                    operator=self.S.op_form(),
                     process=self.process,
                     instruct=self.Instruct,
                     store=self.Store,
                     quantstore=self.QuantStore,
                     S_min=self.S_min,
                     ordering=self.S_ordering,
-                    trotter_steps=self.N_trotter,
                     hamiltonian_step_size=self.hamiltonian_step_size,
-                    propagate_method=self.propagate_method,
-                    depth=self.S_trotter,
                     separate_hamiltonian=self.sep_hamiltonian,
                     verbose=self.verbose,
                     tomo=self.tomo_S,
@@ -289,11 +304,37 @@ class RunACSE(QuantumRun):
             new.ca=False
         self.norm = norm**(0.5)
         self.A = new
+        # check if operator is split #
+        inc = Operator()
+        exc = Operator()
+        #   #
+        for n in new:
+            added=False
+            for m in reversed(range(self.S.get_lim(),0)):
+                ai = self.S[m]
+                for o in ai:
+                    if n==o:
+                        inc+= n
+                        added = True
+            if not added:
+                exc+= n
+        print('--------------')
+        print('Included:')
+        print(inc)
+        print('Excluded:')
+        print(exc)
+        print('--------------')
+        if self.split_ansatz:
+            if inc.norm()==0 or exc.norm()==0:
+                pass
+            elif inc.norm()/exc.norm()<self.split_threshold:
+                self.A = copy(inc)
+            else:
+                self.A = copy(exc)
         if self.verbose:
             print('qubit A operator: ')
             print(self.A)
         print('-- -- -- -- -- -- -- -- -- -- --')
-
 
     def _run_acse(self):
         '''
@@ -304,17 +345,17 @@ class RunACSE(QuantumRun):
         '''
         if self.verbose:
             print('\n\n')
-        self._check_length()
+        check_mitigation(self)
         try:
             self.built
         except AttributeError:
             sys.exit('Not built! Run acse.build()')
         if self.acse_method in ['NR','newton']:
-            self.__newton_acse()
+            _newton_step(self)
         elif self.acse_method in ['default','em','EM','euler']:
-            self.__euler_acse()
-        elif self.acse_method in ['line']:
-            self.__opt_line_acse()
+            _euler_step(self)
+        elif self.acse_method in ['line','opt']:
+            _opt_step(self)
         self.__get_S()
         #self._check_norm(self.A)
         # check if ansatz will change length
@@ -323,178 +364,6 @@ class RunACSE(QuantumRun):
             self.log_A.append(copy(self.A))
             self.log_S.append(copy(self.S))
 
-    def _check_length(self,full=True):
-        '''
-        '''
-        qsp = self.QuantStore.post
-        try:
-            met = 'shift' in self.QuantStore.method 
-        except Exception:
-            met = False
-        if full and qsp and met:
-            print('-- -- -- -- -- -- -- -- -- -- --')
-            print('checking ansatz length')
-            print('--------------')
-            print('recalculating Gamma error mitigation.')
-            if not self.QuantStore.set_to_D0:
-                self.QuantStore.Gamma = None
-                testS = copy(self.A)
-                currS = copy(self.S)
-                total = currS+testS
-                s1 = copy(total)
-                s1.truncate(1)
-                for f in s1.A[-1]:
-                    f.c*=0.000001
-                print('initial step: ')
-                print(s1)
-
-                I0=self.Instruct(
-                        operator=s1,
-                        Nq=self.QuantStore.Nq,
-                        quantstore=self.QuantStore,
-                        depth=self.S_trotter,
-                        )
-                Circ= StandardTomography(
-                        QuantStore=self.QuantStore,
-                        preset=self.tomo_preset,
-                        Tomo=self.tomo_Psi,
-                        #verbose=self.verbose,
-                        verbose=False,
-                        )
-                if not self.tomo_preset:
-                    Circ.generate(
-                            real=self.Store.H.real,
-                            imag=self.Store.H.imag)
-                Circ.set(I0)
-                Circ.simulate()
-                Circ.construct(processor=self.process)
-                Gamma = self.Store.hf_rdm-Circ.rdm
-                e0 = self.Store.evaluate(self.Store.hf_rdm)
-                e1 = self.Store.evaluate(Circ.rdm)
-                et = e1-e0
-                print('Energies: ')
-                print('E0 (HF): {:.8f}'.format(np.real(e0)))
-                print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
-                print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
-                print('- - - -')
-                for d in range(1,total.d):
-                    print('Depth: {}'.format(d))
-                    S0 = copy(total)
-                    S1 = copy(total)
-                    S0.truncate(d)
-                    S1.truncate(d+1)
-                    for f in S1.A[-1]:
-                        f.c*= 0.000001
-                    print('Adjusted operator 0: ')
-                    print(S0)
-                    print('Adjusted operator 1: ')
-                    print(S1)
-                    I0=self.Instruct(
-                            operator=S0,
-                            Nq=self.QuantStore.Nq,
-                            quantstore=self.QuantStore,
-                            depth=self.S_trotter,
-                            )
-                    I1=self.Instruct(
-                            operator=S1,
-                            Nq=self.QuantStore.Nq,
-                            quantstore=self.QuantStore,
-                            depth=self.S_trotter,
-                            )
-                    Circ0= StandardTomography(
-                            QuantStore=self.QuantStore,
-                            preset=self.tomo_preset,
-                            Tomo=self.tomo_Psi,
-                            #verbose=self.verbose,
-                            verbose=False,
-                            )
-                    if not self.tomo_preset:
-                        Circ0.generate(
-                                real=self.Store.H.real,
-                                imag=self.Store.H.imag)
-                    Circ0.set(I0)
-                    Circ0.simulate()
-                    Circ0.construct(processor=self.process)
-                    Circ1= StandardTomography(
-                            QuantStore=self.QuantStore,
-                            preset=self.tomo_preset,
-                            Tomo=self.tomo_Psi,
-                            #verbose=self.verbose,
-                            verbose=False,
-                            )
-                    if not self.tomo_preset:
-                        Circ1.generate(
-                                real=self.Store.H.real,
-                                imag=self.Store.H.imag)
-                    Circ1.set(I1)
-                    Circ1.simulate()
-                    Circ1.construct(processor=self.process)
-                    Gamma+= (Circ0.rdm-Circ1.rdm)
-                    e0 = self.Store.evaluate(Circ0.rdm)
-                    e1 = self.Store.evaluate(Circ1.rdm)
-                    print('Energies: ')
-                    print('E0 (qc): {:.8f}'.format(np.real(e0)))
-                    print('E1 (qc): {:.8f}'.format(np.real(e1)))
-                    print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
-                    print('- - - -')
-                    et+= (e1-e0)
-                print('Total Gamma: ')
-                Gamma.analysis()
-                print('----------------------------------')
-                print('Total energy shift: {:.8f}'.format(np.real(et)))
-                print('----------------------------------')
-                self.QuantStore.Gamma = Gamma
-                if self.log:
-                    self.log_Gamma.append(Gamma)
-            else:
-                self.QuantStore.Gamma = None
-                testS = copy(self.A)
-                currS = copy(self.S)
-                total = currS+testS
-                s1 = copy(total)
-                # s1.truncate(1) # 
-                for f in s1:
-                    f.c*=0.0001
-                    print(f)
-                print('Setting shift to H0:')
-                print(s1)
-
-                I0=self.Instruct(
-                        operator=s1,
-                        Nq=self.QuantStore.Nq,
-                        quantstore=self.QuantStore,
-                        depth=self.S_trotter,
-                        )
-                Circ= StandardTomography(
-                        QuantStore=self.QuantStore,
-                        preset=self.tomo_preset,
-                        Tomo=self.tomo_Psi,
-                        verbose=False,
-                        )
-                if not self.tomo_preset:
-                    Circ.generate(
-                            real=self.Store.H.real,
-                            imag=self.Store.H.imag)
-                Circ.set(I0)
-                Circ.simulate()
-                Circ.construct(processor=self.process)
-                Gamma = self.Store.hf_rdm-Circ.rdm
-                e0 = self.Store.evaluate(self.Store.hf_rdm)
-                e1 = self.Store.evaluate(Circ.rdm)
-                et = e1-e0
-                print('Energies: ')
-                print('E0 (HF): {:.8f}'.format(np.real(e0)))
-                print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
-                print('Energy shift: {:.8f}'.format(np.real(e1-e0)))
-                print('- - - -')
-                print('Total Gamma: ')
-                Gamma.analysis()
-                print('----------------------------------')
-                print('Total energy shift: {:.8f}'.format(np.real(et)))
-                print('----------------------------------')
-                self.QuantStore.Gamma = Gamma
-                if self.log:
-                    self.log_Gamma.append(Gamma)
 
     def _check_norm(self,testS):
         '''
@@ -505,154 +374,26 @@ class RunACSE(QuantumRun):
             self.norm+= item.norm
         self.norm = self.norm**(0.5)
 
-    def __opt_line_acse(self):
-        '''
-        '''
-        testS = copy(self.A)
-        self._opt_log = []
-        self._opt_en  = []
-        func = partial(self.__opt_acse_function,newS=testS)
-        if self._opt_thresh=='default':
-            thresh = self.delta/4
-        else:
-            thresh = self._opt_thresh
-        opt = Optimizer(self._optimizer,
-                function=func,
-                verbose=True,
-                shift= -1.01*self.delta,
-                initial_conditions='old',
-                unity=self.delta,
-                conv_threshold=thresh,
-                diagnostic=True,
-                )
-        opt.initialize([self.delta])
-        # use if nelder mead
-        print('Initial Simplex: ')
-        for x,e in zip(opt.opt.simp_x,opt.opt.simp_f):
-            print(x,e)
-        opt.run()
-        # run optimization, then choose best run
-        for r,e in zip(self._opt_log,self._opt_en):
-            if abs(e-opt.opt.best_f)<=1e-5:
-                self.Store.update(r.rdm)
-        for s in testS:
-            s.c*=opt.opt.best_x[0]
-        self.S = self.S + testS
-        print(self.S)
 
-    def __euler_acse(self):
-        '''
-        function of Store.build_trial_ansatz
-        '''
-        testS = copy(self.A)
-        for s in testS:
-            s.c*=self.delta
-        self.S = self.S+testS
-        ins = self.Instruct(
-                operator=self.S,
-                Nq=self.QuantStore.Nq,
-                depth=self.S_trotter,
-                quantstore=self.QuantStore,
-                )
-        circ = StandardTomography(
-                QuantStore=self.QuantStore,
-                preset=self.tomo_preset,
-                Tomo=self.tomo_Psi,
-                verbose=self.verbose,
-                )
-        if not self.tomo_preset:
-            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
-        circ.set(ins)
-        circ.simulate()
-        circ.construct(processor=self.process)
-        en = np.real(self.Store.evaluate(circ.rdm))
-        self.Store.update(circ.rdm)
-        if self.total.iter==0:
-            if en<self.e0:
-                pass
-            elif en>self.e0:
-                print('Euler step caused an increase in energy....switching.')
-                self.delta*=-1
-                for s in testS:
-                    s.c*=-2
-                self.S+= testS
-                ins = self.Instruct(operator=self.S,
-                        Nq=self.QuantStore.Nq,
-                        depth=self.S_trotter,
-                        quantstore=self.QuantStore,
-                        )
-                circ = StandardTomography(
-                        QuantStore=self.QuantStore,
-                        preset=self.tomo_preset,
-                        Tomo=self.tomo_Psi,
-                        verbose=self.verbose,
-                        )
-                if not self.tomo_preset:
-                    circ.generate(
-                            real=self.Store.H.real,
-                            imag=self.Store.H.imag)
-                circ.set(ins)
-                circ.simulate()
-                circ.construct(processor=self.process)
-                en = np.real(self.Store.evaluate(circ.rdm))
-                self.Store.update(circ.rdm)
-        self.circ = circ
-
-    def __opt_acse_function(self,parameter,newS=None,verbose=False):
+    def _opt_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
         currS = copy(self.S)
         for f in testS:
             f.c*= parameter[0]
         temp = currS+testS
-        tIns =self.Instruct(
-                operator=temp,
-                Nq=self.QuantStore.Nq,
-                quantstore=self.QuantStore,
-                depth=self.S_trotter,
-                )
-        tCirc= StandardTomography(
-                QuantStore=self.QuantStore,
-                preset=self.tomo_preset,
-                Tomo=self.tomo_Psi,
-                verbose=self.verbose,
-                )
-        if not self.tomo_preset:
-            tCirc.generate(
-                    real=self.Store.H.real,
-                    imag=self.Store.H.imag)
-        tCirc.set(tIns)
-        tCirc.simulate()
-        tCirc.construct(processor=self.process)
+        tCirc = self.__generate_real_circuit(temp)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self._opt_log.append(tCirc)
         self._opt_en.append(en)
         return en
 
-    def __test_acse_function(self,parameter,newS=None,verbose=False):
+    def _test_acse_function(self,parameter,newS=None,verbose=False):
         testS = copy(newS)
         currS = copy(self.S)
         for f in testS:
             f.c*= parameter[0]
         temp = currS+testS
-        tIns =self.Instruct(
-                operator=temp,
-                Nq=self.QuantStore.Nq,
-                quantstore=self.QuantStore,
-                depth=self.S_trotter,
-                )
-        tCirc= StandardTomography(
-                QuantStore=self.QuantStore,
-                preset=self.tomo_preset,
-                Tomo=self.tomo_Psi,
-                verbose=self.verbose,
-                )
-        if not self.tomo_preset:
-            tCirc.generate(
-                    real=self.Store.H.real,
-                    imag=self.Store.H.imag)
-        tCirc.set(tIns)
-        tCirc.simulate()
-        tCirc.construct(processor=self.process)
+        tCirc = self.__generate_real_circuit(temp)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self.circ = tCirc
         return en,tCirc.rdm
@@ -660,146 +401,6 @@ class RunACSE(QuantumRun):
     def _particle_number(self,rdm):
         return rdm.trace()
 
-    def __newton_acse(self):
-        testS =  copy(self.A)
-        max_val = 0
-        for s in testS.op:
-            if abs(s.c)>abs(max_val):
-                max_val = copy(s.c)
-        print('Maximum value: {:+.10f}'.format(max_val))
-        print('Running first point...')
-        e1,rdm1 = self.__test_acse_function([self.delta],testS)
-        print('Running second point...')
-        e2,rdm2 = self.__test_acse_function([self.d*self.delta],testS)
-        print('Energies: ',self.e0,e1,e2)
-        g1,g2= e1-self.e0,e2-self.e0
-        d2D = (2*g2-2*self.d*g1)/(self.d*self.delta*self.delta*(self.d-1))
-        d1D = (g1*self.d**2-g2)/(self.d*self.delta*(self.d-1))
-        if abs(d2D)<1e-16:
-            d2D=1e-16
-        elif abs(d1D)<1e-16:
-            d1D = 1e-16
-        print('')
-        print('--- Newton Step --- ')
-        print('dE(d1): {:.10f},  dE(d2): {:.10f}'.format(
-            np.real(g1),np.real(g2)))
-        print('dE\'(0): {:.10f}, dE\'\'(0): {:.10f}'.format(
-            np.real(d1D),np.real(d2D)))
-        print('Step: {:.6f}, Largest: {:.6f}'.format(
-            np.real(-d1D/d2D),
-            np.real(max_val*d1D/d2D))
-            )
-        self.grad = d1D
-        self.hess = d2D
-        if self.use_trust_region:
-            print('Carrying out trust region step:')
-            if self.hess<0:
-                print('Hessian non-positive. Taking Euler step.')
-                if e2<e1:
-                    coeff = self.delta*self.d
-                    self.Store.update(rdm2)
-                else:
-                    coeff = self.delta
-                    self.Store.update(rdm1)
-            else:
-                trust = False
-                nv = self.tr_nv
-                ns = self.tr_ns
-                gi = self.tr_gi
-                gd = self.tr_gd
-                trust_iter = 0
-                while not trust: # perform sub routine
-                    if abs(self.grad/self.hess)<self.tr_Del:
-                        print('Within trust region.')
-                        # found ok answer! 
-                        coeff = -self.grad/self.hess
-                        lamb=1
-                    else:
-                        print('Outside trust region.')
-                        #lamb = -self.grad/self.tr_Del-self.hess
-                        #print('Lambda: {}'.format(lamb))
-                        #coeff = -self.grad/(self.hess+lamb)
-                        if -self.grad/self.hess<0:
-                            coeff = self.tr_Del*(-1)
-                        else:
-                            coeff = self.tr_Del
-
-                    ef,df = self.__test_acse_function([coeff],testS)
-                    print('Current: {:.10f}'.format(np.real(ef)))
-                    def m_qk(s):
-                        return self.e0 + s*self.grad+0.5*s*self.hess*s
-                    self.tr_taylor =  self.e0-m_qk(coeff)
-                    self.tr_object = self.e0-ef
-                    print('Coefficient: {}'.format(coeff))
-                    print('Taylor series step: {:.14f}'.format(
-                        np.real(self.tr_taylor)))
-                    print('Objective fxn step: {:.14f}'.format(
-                        np.real(self.tr_object)))
-                    if abs(self.tr_object)<=self.tr_obj_crit:
-                        trust=True
-                        print('Convergence in objective function.')
-                    elif abs(self.tr_taylor)<=self.tr_ts_crit:
-                        trust=True
-                        print('Convergence in Taylor series model.')
-                    else:
-                        rho = self.tr_object/self.tr_taylor
-                        if rho>=nv:
-                            print('Result in trust region. Increasing TR.')
-                            trust = True
-                            self.tr_Del*=gi
-                        elif rho>=ns:
-                            print('Trust region held. Continuing.')
-                            trust = True
-                        else:
-                            self.tr_Del*=gd
-                            print('Trust region did not hold. Shrinking.')
-                            print('Trial energy: {:.10f}'.format(ef))
-                    print('Current trust region: {:.14f}'.format(
-                        np.real(self.tr_Del)))
-                    #print('Rho: {:.10f},Num: {:.16f}, Den: {:.16f}'.format(
-                    #    np.real(rho),
-                    #    np.real(self.e0-ef),
-                    #    np.real(self.e0-m_qk(coeff))))
-                    #print('Lamb: {:.12f}, Coeff: {:.12f}'.format(
-                    #    np.real(lamb),
-                    #    np.real(coeff)))
-                    self.Store.update(df)
-                    trust_iter+=1
-                    if trust_iter>=2:
-                        trust=True
-            for f in testS:
-                #f.qCo*= coeff
-                f.c*= coeff
-            self.S = self.S+testS
-        else:
-            for f in testS:
-                #f.qCo*= -(d1D/d2D)
-                f.c*= -(d1D/d2D)
-            self.S = self.S+testS
-        if not self.use_trust_region:
-            self.S = self.S+testS
-            # eval energy is in check step
-            Ins = self.Instruct(
-                    operator=self.S,
-                    Nq=self.QuantStore.Nq,
-                    quantstore=self.QuantStore,
-                    depth=self.S_trotter)
-            Psi= StandardTomography(
-                    QuantStore=self.QuantStore,
-                    preset=self.tomo_preset,
-                    Tomo=self.tomo_Psi,
-                    verbose=self.verbose,
-                    )
-            if not self.tomo_preset:
-                Psi.generate(real=True,imag=False)
-            Psi.set(Ins)
-            Psi.simulate()
-            Psi.construct(processor=self.process)
-            self.Store.update(Psi.rdm)
-            Psi.rdm.switch()
-            self.circ = Psi
-        print('Current S: ')
-        print(self.S)
 
     def next_step(self):
         if self.built:
@@ -838,7 +439,7 @@ class RunACSE(QuantumRun):
                 pass
             except AttributeError:
                 pass
-        self.save
+
 
     def _check(self,full=True):
         '''
@@ -851,14 +452,13 @@ class RunACSE(QuantumRun):
         if self.total.iter==self.max_iter:
             print('Max number of iterations met. Ending optimization.')
             self.total.done=True
-        elif self.S.d==self.max_depth:
+        elif len(self.S)==self.max_depth:
             if copy(self.S)+copy(self.A)>self.max_depth:
                 self.total.done=True
         self.log_E.append(en)
-        self.log_depth.append(self.S.d)
+        self.log_depth.append(len(self.S))
         self.log_norm.append(self.norm)
         self.log_G.append(self.grad)
-
         try:
             self.log_ci.append(self.ci)
         except:
@@ -901,6 +501,7 @@ class RunACSE(QuantumRun):
         else:
             if en<self.best:
                 self.best = np.real(en)
+        self.log_E_best.append(self.best)
         #
         if self._conv_type=='default':
             if std_En<self.crit and self.norm<0.05:
@@ -983,6 +584,8 @@ class RunACSE(QuantumRun):
                 'log-A':self.log_A,
                 'log-D':self.log_rdm,
                 'log-S':self.log_S,
+                'log-E':self.log_E,
+                'log-Ee':self.log_E_best,
                 'H':self.Store.H.matrix,
                 'run_config':{
                     'method':self.acse_method,

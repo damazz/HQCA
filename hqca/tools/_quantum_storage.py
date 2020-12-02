@@ -216,17 +216,25 @@ class QuantumStorage:
         self.post = True
         pass
 
-    def _set_ansatz_shift(self,coeff=1,D0=False,**kw):
+    def _set_ansatz_shift(self,coeff=1,protocol='full'**kw):
         '''
-        after measuring a 2-RDM, we shift it
+        after measuring a 2-RDM, we apply a correction so that the new result yields the same energy as the previous through 
+        an additive ;shift;. 
 
-        but when do we measure the 2-RDM?
+        Options are:
+        full (scales O(d) with depth d )
+        current (scales O(1))
+        zero (scales O(1))
+
         '''
         if self.verbose:
             print('shift coefficient: {}'.format(coeff))
         self.post=True
         self.method.append('shift')
-        self.set_to_D0 = D0
+        self.shift_protocol = protocol
+        # 
+        # for internal check
+        #
         self.add_Gamma =True
         self.Gamma = None
         self.Gam_coeff = coeff
@@ -282,7 +290,6 @@ class QuantumStorage:
             self._get_hyper_para()
             self.hyper_alp = np.asarray(vertices[0])
             self.hyper_bet = np.asarray(vertices[1])
-
 
     def _get_hyper_para(self,expand=False):
         if self.method=='carlson-keller':

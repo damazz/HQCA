@@ -56,5 +56,4 @@ def test_compare_constructions():
     da.expect(abs(d01.rdm.trace())<1e-10)
     da.assert_expectations()
 
-test_compare_constructions()
 

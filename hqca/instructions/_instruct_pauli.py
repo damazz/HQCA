@@ -44,6 +44,10 @@ class PauliSet(Instructions):
             operator,Nq,depth=1,
             **kw):
         for d in range(depth):
+            try:
+                operator = operator.op_form()
+            except Exception as e:
+                pass
             for item in operator:
                 if item.sym:
                     if abs(im(item.c))<1e-10:

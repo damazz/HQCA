@@ -10,7 +10,13 @@ class Stabilizer:
     def __init__(self,paulis,verbose=False,**kw):
         '''
         Given a Pauli operator (i.e., Operator class composed of Pauli strings),
-        we are trying to construct the parity check matrix.  If hthere 
+        we can represent the check sum representation of the Pauli matrix, and then
+        attempt to find and potential symmetry generators. 
+
+        In particular, run:
+        zed = Stabilizer(paulis)
+        zed.gaussian_elimination()
+        zed.find_symmetry_generators()
 
         '''
         self.verbose = verbose
