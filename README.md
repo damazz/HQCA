@@ -22,11 +22,11 @@ The following features are included:
 
 ## Examples and Tests 
 
-Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. 
+Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. From the main directory:
 
-
-`cd tests`
-`pytest .`
+```
+pytest tests
+```
 
 
 ## Getting Started 

@@ -7,7 +7,7 @@ from hqca.hamiltonian import *
 from hqca.instructions import *
 from hqca.acse import *
 from hqca.vqe import *
-from optss import *
+from opts import *
 from pyscf import gto
 from functools import partial
 mol = gto.Mole()

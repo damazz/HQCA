@@ -16,7 +16,7 @@ def test_number_projection():
                 Fermi(coeff=1,ops='+-',indices=[1,0],N=2),
                 ])
 
-    #N = number([0,1],N=2).transform(JordanWigner)
+    N = number([0,1],N=2).transform(JordanWigner)
     Nm = operator_to_matrix(N)
     symmetry_projection(a,JordanWigner,N)
 

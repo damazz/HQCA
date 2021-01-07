@@ -3,7 +3,6 @@ import pickle
 import subprocess
 import traceback
 
-
 def switch(mat):
     size = len(mat.shape)
     L = mat.shape[0]
@@ -308,43 +307,4 @@ def increase(criteria,num_shots,tolerance='default'):
     return num_shots
 
 
-def get_reading_material(startover=False):
-    '''
-    Silly function to get reading material and print it out while waiting for
-    the IBM machine to run.
-
-    '''
-    loc = '/home/scott/Documents/research/3_vqa/hqca/doc/reading.txt'
-    ind = '/home/scott/Documents/research/3_vqa/hqca/doc/track.txt'
-    try:
-        with open(ind,'r') as fp:
-            for line in fp:
-                skip_to = int(line)
-    except Exception:
-        skip_to = 38
-    with open(loc,'r') as fp:
-        index = 0 
-        verses = 0 
-        for line in fp:
-            if index<skip_to:
-                index+=1 
-                continue
-            else:
-                pass
-            if verses<11:
-                pass
-            else:
-                with open(ind,'w') as fi:
-                    if startover:
-                        fi.write(str(38))
-                    else:
-                        fi.write(str(index))
-                break
-            if line[0]=='\n':
-                verses +=1 
-                print('')
-            else:
-                print(line[:-1])
-            index+=1 
-            continue
 
