@@ -20,15 +20,6 @@ The following features are included:
 - A couple of error mitigation techniques, mostly based in post processing RDMs 
 - General tools for dealing with quantum operators, fermionic operators, transformations, and matrix representations 
 
-## Examples and Tests 
-
-Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. From the main directory:
-
-```
-pytest tests
-```
-
-
 ## Getting Started 
 
 ### Prerequisites 
@@ -37,9 +28,9 @@ qiskit >= 0.15.1
 pyscf (and prerequisite packs) >= 1.7.4
 
 Optionally:
-optss (simple optimization program for different ACSE or VQE optimizations)
+opts (simple optimization program for different ACSE or VQE protocols involving classical optimization)
 graph_tool >= 2.35
-Maple 20xx, with QuantumChemistry module for SDP purification
+Maple 202x, with QuantumChemistry module for SDP purification
  
 ### Installing:
 Nothing too important besides having python3 and the corresponding modules. Using the quantum
@@ -50,13 +41,17 @@ ibmq-provider should be obtained for running results on the actual quantum
 computer. qiskit is inclusive of terra, aqua, and ibmq-provider, although the 
 latter two are optional. 
 
-### Running tests
+## Examples and Tests 
 
-Tests are located in the test directory, which has some simple examples for a
-variety of different calculations that can be done. 
+Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. From the main directory:
 
+```
+pytest tests
+```
 
 ## References 
+
+The software was utilized in various forms to obtain results listed in the publications below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. 
 
 Smart, S. E., Schuster, D. I., & Mazziotti, D. A. (2019). Experimental data from a quantum computer verifies the generalized Pauli exclusion principle. Communications Physics, 2(1). https://doi.org/10.1038/s42005-019-0110-3 
 
@@ -72,7 +67,7 @@ Smart, S. E., & Mazziotti, D. A. (2020). Lowering Tomography Costs in Quantum Si
 # Authors
 
 Scott E. Smart
-David A. Mazziotti
+David A. Mazziotti (advisor)
 
 # License
 
@@ -80,9 +75,7 @@ Project licensed under the MIT License. See LICENSE.txt for more details.
 
 # Acknowledgements
 
-A very big thank you to David Mazziotti, for supporting the work and myself through
-graduate school. Additionally to IBMQ for the support and development of open-access 
-quantum computers, without which the extent of the current work would be impossible. 
+A very big thank you to David Mazziotti, for supporting the work and myself through graduate school. Also would like to thank the IBMQ team for the support and development of open-access quantum computers, without which much of my graduate work from 2018 and onward would be very different in nature. 
 
 
 
