@@ -48,30 +48,76 @@ latter two are optional.
 The hqca module contains many useful tools for analyzing and handling basic quantum operations, which in general are centered on the Operator class (/hqca/tools/). An Operator can be initialized as an empty class, and then can hold certain types of strings, including QubitStrings, PauliStrings, or FermiStrings (creation and annihilation operators). Each string has a string.s and string.c attribute, indicating the string representation and coefficient.
 
 ```
->>>from hqca.tools import *
->>>A = Operator()
->>>A+= PauliString('XX',0.5j)
->>>A+= PauliString('YY',+0.5j)
+>>> from hqca.tools import *
+>>> A = Operator()
+>>> A+= PauliString('XX',0.5j)
+>>> A+= PauliString('YY',+0.5j)
 ```
 
 The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing a normal ordered representation, while produce a string representation, using the anticommmutation relations. Note `p` and `h` represent the particle and hole operators. 
 
 ```
-A = Operator()
-a+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
-print(a)
+>>> Af = Operator()
+>>> Af+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
+>>> print(Af)
 pi-+: -1
 ```
 
+From /hqca/transforms/ one can find common transformations between these operators, including the Jordan-Wigner transformation, the Bravyi-Kitaev tranformation, the Parity mapping, and some Qubit mappings as well. /hqca/quantum_tools/ serves as a tool for exploring common aspects of quantum computation and quantum chemistry. 
 
-/hqca/tools holds the Operator class, which gives a way to describe quantum operators, and holds a number of strings. 
+```
+>>> from hqca.transforms import *
+>>> print(Af.transform(JordanWigner))
+IIYX: +0.12500000j
+ZIYX: -0.12500000j
+IIXX: 0.12500000
+ZIXX: -0.12500000
+IIYY: 0.12500000
+ZIYY: -0.12500000
+IIXY: -0.12500000j
+ZIXY: +0.12500000j
+```
 
-###
 
 ### Molecular Simulation
 
-The varied examples in the /examples/ directory cover many different applications. In general, there are the 
+To perform a molecualr simulation, a few objects are first required. /hqca/tests/_generic.py contains some basic objects which can be used as a guideline. 
 
+Simulations do not require a molecule, though it is often used, but instead require a Hamiltonian object (/hqca/hamiltonian). These generate a matrix and operator form of the Hamiltonian, which is the same dimension as the appropriate RDM (either 1- or 2-RDM), or can be a qubit Hamiltonian as well.  
+
+The Storage class, either StorageACSE or StorageVQE, builds off the Hamiltonian and stores and records certain aspects of the calculation. It handles energy evaluation, molecluar proerties and other parameters not related to the quantum computer. 
+
+The QuantumStorage class on the other hand, relates properties of the quantum algorithm, and contains details related to performing an actual quantum simulation. Error mitigation methods are included here, as well as device specifications and options, the number of qubits, and other details pertaining to the quantum computer. 
+
+Two seperate classes, Instructions and Process, can be selected, and provide a why for the algorithm to communicate how the ansatz should be interpreted, and then once results are obtained, how to processes them. 
+
+With all of these, one can construct a Tomography object, which will ascertain the scale of the problem, the type of tomography (1-/2-/3-RDM, real or imaginary, etc.), and the circuits required for the quantum computer. The tomography class uses the Instructions and Process to generate an RDM, which then is fed into the algorithm in question to 
+
+All of these culminate in the QuantumRun class, of which there currently are the RunACSE and RunVQE are built upon. RunACSE takes these inputs and will perform an ACSE calculation. 
+
+
+Summary and Attributes:
+
+1. Hamiltonian, H
+    - H.matrix, H.qubit_operator, H.fermi_operator (optional)
+    - may need a mol object from pyscf 
+2. Storage, S
+    - S.evaluate, S.analysis, S.update
+    - Contains molecular information and stores information on the run 
+3. QuantumStorage, qs
+    - qs.set_backend, qs.set_algorithm, qs.set_noise_model, qs.set_error_mitigation
+    - Contains information relevant to the quantum computation 
+4. Instructions, I
+    - Should not be instantiated, can be passed along to other objects
+    - Ansatz or operator is fed into this, and then parsed into the language of quantum operations
+    - All circuit simplifications or modifications are implemented here
+5. Process
+    - Default processor is usually okay, but if post correction or projection techniques are used, they would be included here. 
+6. Tomography, T
+    - T.set, T.generate, T.simulate, T.construct
+    - Outputs an RDM object, actually interfaces with the quantum computer with the QuantumStorage object
+7. QuantumRun
+    - Object for running a molecular simulation in order to find ground state energies. 
 
 ### Examples and Tests 
 
@@ -80,7 +126,6 @@ Examples are included in the /examples/ directory. Tests are included in the /te
 ```
 pytest tests
 ```
-
 
 
 ## References 
