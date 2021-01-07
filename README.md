@@ -6,7 +6,7 @@
 This python module is a compilation of relatively simple programs developed along the course of my doctoral studies with Prof. David A. Mazziotti at the 
 University of Chicago to run quantum chemistry calculations on a quantum computer. The focus is on approaches which incorporate reduced density matrix (RDM) theories, either simply in variationally modifying the 2-RDM, or in specific RDM methods, such as the quantum anti-Hermitian contracted Schroedinger Equation method (qACSE). 
 
-Additionally, while there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is not suitable for large calculations (with the exception of generating lists of required tomographies) and is instead optimized around practical calculations of smaller systems at a high accuracy, and for method development. The module utilizes qiskit for interacting and constructing quantum circuits, and interacting with the IBM backends, which can be accessed at https://quantum-computing.ibm.com/.
+Additionally, while there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is not suitable for large calculations (with the exception of generating lists of required tomographies) and is instead optimized around practical calculations of smaller systems at a high accuracy, and for method development. The module utilizes qiskit for interacting and constructing quantum circuits, and interacting with the IBM backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). Information on Qiskit can be found on [their web site](https://qiskit.org/).
 
 ## Features  
 
@@ -25,9 +25,8 @@ The following features are included:
 Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. 
 
 
-`cd tests
-
-pytest .`
+`cd tests`
+`pytest .`
 
 
 ## Getting Started 
@@ -36,7 +35,6 @@ pytest .`
 python >= 3.7
 qiskit >= 0.15.1
 pyscf (and prerequisite packs) >= 1.7.4
-
 
 Optionally:
 optss (simple optimization program for different ACSE or VQE optimizations)
