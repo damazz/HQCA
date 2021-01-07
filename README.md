@@ -47,21 +47,21 @@ latter two are optional.
 
 The hqca module contains many useful tools for analyzing and handling basic quantum operations, which in general are centered on the Operator class (/hqca/tools/). An Operator can be initialized as an empty class, and then can hold certain types of strings, including QubitStrings, PauliStrings, or FermiStrings (creation and annihilation operators). Each string has a string.s and string.c attribute, indicating the string representation and coefficient.
 
-'''
+```
 >>>from hqca.tools import *
 >>>A = Operator()
 >>>A+= PauliString('XX',0.5j)
 >>>A+= PauliString('YY',+0.5j)
-'''
+```
 
 The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing a normal ordered representation, while produce a string representation, using the anticommmutation relations. Note `p` and `h` represent the particle and hole operators. 
 
-'''
+```
 A = Operator()
 a+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
 print(a)
 pi-+: -1
-''' 
+```
 
 
 /hqca/tools holds the Operator class, which gives a way to describe quantum operators, and holds a number of strings. 
