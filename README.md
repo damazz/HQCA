@@ -4,9 +4,9 @@
 ## Introduction
 
 This python module is a compilation of relatively simple programs developed along the course of my doctoral studies with Prof. David A. Mazziotti at the 
-University of Chicago to run quantum chemistry calculations on a quantum computer. The focus is on approaches which incorporate reduced density matrix (RDM) theories, either simply in variationally modifying the 2-RDM, or in specific RDM methods, such as the quantum anti-Hermitian contracted Schroedinger Equation method (qACSE). 
+University of Chicago to run quantum chemistry calculations on a quantum computer. The focus is on approaches which incorporate reduced density matrix (RDM) theories, either simply in variationally modifying the 2-RDM, utilziing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian contracted Schroedinger Equation method (qACSE). 
 
-Additionally, while there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is not suitable for large calculations (with the exception of generating lists of required tomographies) and is instead optimized around practical calculations of smaller systems at a high accuracy, and for method development. The module utilizes qiskit for interacting and constructing quantum circuits, and interacting with the IBM backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). Information on Qiskit can be found on [their web site](https://qiskit.org/).
+While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is not suitable for large calculations (with the exception of generating relevant circuit sizes) and is instead optimized around practical calculations of smaller systems at a higher accuracy, and method development. The module utilizes qiskit for interacting and constructing quantum circuits, and interacting with the IBM backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). Information on Qiskit can be found on [their web site](https://qiskit.org/).
 
 ## Features  
 
@@ -51,7 +51,7 @@ pytest tests
 
 ## References 
 
-The software was utilized in various forms to obtain results listed in the publications below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. 
+The software was utilized in various forms to obtain results listed in the publications below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. While the earlier works could not be directly replicated, the ideas present in them are manifest in the current iteration, and should be replicated more easily with this design. 
 
 Smart, S. E., Schuster, D. I., & Mazziotti, D. A. (2019). Experimental data from a quantum computer verifies the generalized Pauli exclusion principle. Communications Physics, 2(1). https://doi.org/10.1038/s42005-019-0110-3 
 
