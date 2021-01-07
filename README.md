@@ -8,7 +8,7 @@ University of Chicago to run quantum chemistry calculations on a quantum compute
 
 While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the code is not suitable for large calculations (with the exception of generating relevant circuit sizes) and is instead optimized around practical calculations of smaller systems at a higher accuracy, and method development. The module utilizes qiskit for interacting and constructing quantum circuits, and interacting with the IBM backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). Information on Qiskit can be found on [their web site](https://qiskit.org/).
 
-## Features  
+## Features and Overview
 
 The following features are included:
 - Implementation of the quantum-ACSE as a quantum eigensolver, with classical and quantum solutions of the ACSE condition
@@ -19,6 +19,7 @@ The following features are included:
 - Tapering of transformations to allow for qubit reduction schemes 
 - A couple of error mitigation techniques, mostly based in post processing RDMs 
 - General tools for dealing with quantum operators, fermionic operators, transformations, and matrix representations 
+
 
 ## Getting Started 
 
@@ -41,13 +42,46 @@ ibmq-provider should be obtained for running results on the actual quantum
 computer. qiskit is inclusive of terra, aqua, and ibmq-provider, although the 
 latter two are optional. 
 
-## Examples and Tests 
+
+### Operators and QuantumStrings 
+
+The hqca module contains many useful tools for analyzing and handling basic quantum operations, which in general are centered on the Operator class (/hqca/tools/). An Operator can be initialized as an empty class, and then can hold certain types of strings, including QubitStrings, PauliStrings, or FermiStrings (creation and annihilation operators). Each string has a string.s and string.c attribute, indicating the string representation and coefficient.
+
+'''
+>>>from hqca.tools import *
+>>>A = Operator()
+>>>A+= PauliString('XX',0.5j)
+>>>A+= PauliString('YY',+0.5j)
+'''
+
+The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing an ordered representation 
+
+'''
+>>> A = Operator()
+>>> a+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
+>>> print(a)
+pi-+: -1
+''' 
+
+
+/hqca/tools holds the Operator class, which gives a way to describe quantum operators, and holds a number of strings. 
+
+###
+
+### Molecular Simulation
+
+The varied examples in the /examples/ directory cover many different applications. In general, there are the 
+
+
+### Examples and Tests 
 
 Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. From the main directory:
 
 ```
 pytest tests
 ```
+
+
 
 ## References 
 
