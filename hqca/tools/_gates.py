@@ -118,6 +118,31 @@ class Circ:
 
 
 
+    def gate(self,gate=None,*args,**kwargs):
+        if type(gate)==type(None):
+            pass
+        elif gate=='i':
+            pass
+        elif gate=='cx':
+            self.Cx(*args,**kwargs)
+        elif gate=='cz':
+            self.Cz(*args,**kwargs)
+        elif gate=='sw':
+            self.Sw(*args,**kwargs)
+        elif gate=='h':
+            self.h(*args,**kwargs)
+        elif gate=='s':
+            self.s(*args,**kwargs)
+        elif gate=='si':
+            self.si(*args,**kwargs)
+        elif gate=='x':
+            self.x(*args,**kwargs)
+        elif gate=='y':
+            self.y(*args,**kwargs)
+        elif gate=='z':
+            self.z(*args,**kwargs)
+
+
     def Ch(self,i,j,nCx=2):
         '''
         Controlled Hadamard Gate: note there are actually two implementations: a
@@ -141,9 +166,10 @@ class Circ:
             self.Rz(j,-np.pi/2)
             self.ph(i,np.pi/2)
         elif nCx==1:
-            self.Cx(i,j)
             self.Ry(j,np.pi/4)
+            self.Cx(i,j)
             self.Ry(j,-np.pi/4)
+
 
     def Sw(self,i,j):
         '''
@@ -252,6 +278,22 @@ class Circ:
         ph = np.matrix([[1,0],[0,c+s]])
         self._apply_sqg(ph,i)
 
+    def particle(self,i,**kw):
+        mat = np.matrix([[0,0],[0,1]])
+        self._apply_sqg(mat,i)
+
+    def hole(self,i,**kw):
+        mat = np.matrix([[1,0],[0,0]])
+        self._apply_sqg(mat,i)
+
+    def create(self,i,**kw):
+        mat = np.matrix([[0,0],[1,0]])
+        self._apply_sqg(mat,i)
+
+    def annihilate(self,i,**kw):
+        mat = np.matrix([[0,1],[0,0]])
+        self._apply_sqg(mat,i)
+
     def s(self,i,**kw):
         self.ph(i,theta=np.pi/2)
 
@@ -276,8 +318,6 @@ class Circ:
         ph = np.matrix([[c+s,0],[0,c+s]])
         self._apply_sqg(ph,i)
 
-    def _apply_tqg(self):
-        pass
 
     def Cy(self,i,j,**kw):
         self.si(j)

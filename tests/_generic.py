@@ -47,6 +47,20 @@ def generic_mol():
     mol.build()
     return mol
 
+def advanced_mol():
+    mol = gto.Mole()
+    mol.atom=[
+            ['H',(0,0,0)],
+            ['H',(2.0,0,0)],
+            ['H',(-2.0,0,0)],
+            ]
+    mol.basis='sto-3g'
+    mol.spin=1
+    mol.verbose=0
+    mol.build()
+    return mol
+
+
 def generic_molecular_hamiltonian():
     return MolecularHamiltonian(
             mol=generic_mol(),
@@ -95,4 +109,70 @@ def generic_acse_objects():
     tomoIm.generate(real=False,imag=True,transform=JordanWigner)
     proc = StandardProcess()
     return ham,st,qs,ins,proc,tomoRe,tomoIm
+
+def advanced_mol():
+    mol = gto.Mole()
+    mol.atom=[
+            ['H',(0,0,0)],
+            ['H',(2.0,0,0)],
+            ['H',(-2.0,0,0)],
+            ]
+    mol.basis='sto-3g'
+    mol.spin=1
+    mol.verbose=0
+    mol.build()
+    return mol
+
+def expert_mol():
+    mol = gto.Mole()
+    mol.atom=[
+            ['H',(0.0,0.0,0.0)],
+            ['H',(2.0,0.0,0.0)],
+            ['H',(0.0,2.0,0.0)],
+            ['H',(2.0,2.0,0.0)],
+            ]
+    mol.basis='sto-3g'
+    mol.spin=0
+    mol.verbose=0
+    mol.build()
+    return mol
+
+def advanced_acse_objects():
+    ham =  MolecularHamiltonian(
+            mol=advanced_mol(),
+            transform=JordanWigner)
+    ins = PauliSet
+    st = StorageACSE(ham)
+    qs = QuantumStorage()
+    qs.set_algorithm(st)
+    qs.set_backend(
+            backend='statevector_simulator',
+            Nq=6,
+            provider='Aer')
+    tomoRe = ReducedTomography(qs)
+    tomoRe.generate(real=True,imag=False,transform=JordanWigner)
+    tomoIm =ReducedTomography(qs)
+    tomoIm.generate(real=False,imag=True,transform=JordanWigner)
+    proc = StandardProcess()
+    return ham,st,qs,ins,proc,tomoRe,tomoIm
+
+def expert_acse_objects():
+    ham =  MolecularHamiltonian(
+            mol=expert_mol(),
+            transform=JordanWigner)
+    ins = PauliSet
+    st = StorageACSE(ham)
+    qs = QuantumStorage()
+    qs.set_algorithm(st)
+    qs.set_backend(
+            backend='statevector_simulator',
+            Nq=8,
+            provider='Aer')
+    tomoRe = ReducedTomography(qs)
+    tomoRe.generate(real=True,imag=False,transform=JordanWigner)
+    tomoIm =ReducedTomography(qs)
+    tomoIm.generate(real=False,imag=True,transform=JordanWigner)
+    proc = StandardProcess()
+    return ham,st,qs,ins,proc,tomoRe,tomoIm
+
 

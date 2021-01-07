@@ -16,6 +16,6 @@ __all__ = [
         'change_basis',
         'Qubit',
         'modify',
-        'get_transform_from_symmetries'
+        'get_transform_from_symmetries',
         #'tapered_transform',
         ]

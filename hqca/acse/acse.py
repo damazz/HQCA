@@ -176,13 +176,15 @@ class RunACSE(QuantumRun):
         self.tr_taylor = 1
         self.tr_object = 1
 
-    def __generate_real_circuit(self,op):
+    def _generate_real_circuit(self,op):
         if isinstance(op,type(Ansatz())):
             op = op.op_form()
+        else:
+            sys.exit('Huh?')
         ins = self.Instruct(
-                operator=oo,
+                operator=op,
                 Nq=self.QuantStore.Nq,
-                quantstore=self.QuantStore,)
+                quantstore=self.QuantStore)
         circ = StandardTomography(
                 QuantStore=self.QuantStore,
                 preset=self.tomo_preset,
@@ -213,7 +215,7 @@ class RunACSE(QuantumRun):
             self.S = copy(self.Store.S)
             for s in self.S:
                 s.c*=self.delta
-            circ = self.__generate_real_circuit(self.S)
+            circ = self._generate_real_circuit(self.S)
             en = np.real(self.Store.evaluate(circ.rdm))
             self.e0 = np.real(en)
             self.ei = np.real(en)
@@ -254,13 +256,11 @@ class RunACSE(QuantumRun):
             self.log_A.append(copy(self.A))
         print('||A||: {:.10f}'.format(np.real(self.norm)))
         print('-- -- -- -- -- -- -- -- -- -- --')
-        # 
         #
         # run checks
         #
         check_routine(self)
         self.built=True
-    
 
     def __get_S(self):
         if not self.accept_previous_step:
@@ -308,29 +308,29 @@ class RunACSE(QuantumRun):
         inc = Operator()
         exc = Operator()
         #   #
-        for n in new:
-            added=False
-            for m in reversed(range(self.S.get_lim(),0)):
-                ai = self.S[m]
-                for o in ai:
-                    if n==o:
-                        inc+= n
-                        added = True
-            if not added:
-                exc+= n
-        print('--------------')
-        print('Included:')
-        print(inc)
-        print('Excluded:')
-        print(exc)
-        print('--------------')
         if self.split_ansatz:
+            for n in new:
+                added=False
+                for m in reversed(range(self.S.get_lim(),0)):
+                    ai = self.S[m]
+                    for o in ai:
+                        if n==o:
+                            inc+= n
+                            added = True
+                if not added:
+                    exc+= n
+            print('--------------')
+            print('Included:')
+            print(inc)
+            print('Excluded:')
+            print(exc)
+            print('--------------')
             if inc.norm()==0 or exc.norm()==0:
                 pass
-            elif inc.norm()/exc.norm()<self.split_threshold:
-                self.A = copy(inc)
-            else:
+            elif exc.norm()/inc.norm()>self.split_threshold:
                 self.A = copy(exc)
+            else:
+                self.A = copy(inc)
         if self.verbose:
             print('qubit A operator: ')
             print(self.A)
@@ -381,7 +381,7 @@ class RunACSE(QuantumRun):
         for f in testS:
             f.c*= parameter[0]
         temp = currS+testS
-        tCirc = self.__generate_real_circuit(temp)
+        tCirc = self._generate_real_circuit(temp)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self._opt_log.append(tCirc)
         self._opt_en.append(en)
@@ -393,14 +393,13 @@ class RunACSE(QuantumRun):
         for f in testS:
             f.c*= parameter[0]
         temp = currS+testS
-        tCirc = self.__generate_real_circuit(temp)
+        tCirc = self._generate_real_circuit(temp)
         en = np.real(self.Store.evaluate(tCirc.rdm))
         self.circ = tCirc
         return en,tCirc.rdm
 
     def _particle_number(self,rdm):
         return rdm.trace()
-
 
     def next_step(self):
         if self.built:
@@ -439,7 +438,6 @@ class RunACSE(QuantumRun):
                 pass
             except AttributeError:
                 pass
-
 
     def _check(self,full=True):
         '''

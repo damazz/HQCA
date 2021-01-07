@@ -4,6 +4,10 @@ from functools import partial
 from hqca.state_tomography import *
 
 def _newton_step(acse):
+    coeff_best = 0 
+    rdm_best = copy(acse.Store.rdm)
+    e_best = copy(acse.e0)
+
     testS =  copy(acse.A)
     max_val = 0
     for s in testS.op:
@@ -12,9 +16,19 @@ def _newton_step(acse):
     print('Maximum value: {:+.10f}'.format(max_val))
     print('Running first point...')
     e1,rdm1 = acse._test_acse_function([acse.delta],testS)
+    # 
+    if e1<e_best:
+        e_best = copy(e1)
+        coeff_best = copy(acse.delta)
+        acse.Store.update(rdm1)
+
     print('Running second point...')
     e2,rdm2 = acse._test_acse_function([acse.d*acse.delta],testS)
-    print('Energies: ',acse.e0,e1,e2)
+    if e2<e_best:
+        e_best = copy(e2)
+        coeff_best = copy(acse.delta*acse.d)
+        acse.Store.update(rdm2)
+    print('Energies: ',acse.e0.real,e1,e2)
     g1,g2= e1-acse.e0,e2-acse.e0
     d2D = (2*g2-2*acse.d*g1)/(acse.d*acse.delta*acse.delta*(acse.d-1))
     d1D = (g1*acse.d**2-g2)/(acse.d*acse.delta*(acse.d-1))
@@ -34,16 +48,12 @@ def _newton_step(acse):
         )
     acse.grad = d1D
     acse.hess = d2D
+    # 
     if acse.use_trust_region:
         print('Carrying out trust region step:')
         if acse.hess<0:
-            print('Hessian non-positive. Taking Euler step.')
-            if e2<e1:
-                coeff = acse.delta*acse.d
-                acse.Store.update(rdm2)
-            else:
-                coeff = acse.delta
-                acse.Store.update(rdm1)
+            print('Hessian non-positive.')
+            print('Trying again.')
         else:
             trust = False
             nv = acse.tr_nv
@@ -67,6 +77,11 @@ def _newton_step(acse):
                     else:
                         coeff = acse.tr_Del
                 ef,df = acse._test_acse_function([coeff],testS)
+                if ef<e_best and abs(coeff)>0.1:
+                    e_best = copy(ef)
+                    rdm_best = copy(df)
+                    coeff_best = copy(coeff)
+                    acse.Store.update(df)
                 print('Current: {:.10f}'.format(np.real(ef)))
                 def m_qk(s):
                     return acse.e0 + s*acse.grad+0.5*s*acse.hess*s
@@ -98,18 +113,18 @@ def _newton_step(acse):
                         print('Trial energy: {:.10f}'.format(ef))
                 print('Current trust region: {:.14f}'.format(
                     np.real(acse.tr_Del)))
-                if abs(coeff)>0.1:
-                    acse.Store.update(df)
+                #if abs(coeff)>0.1:
+                #    acse.Store.update(df)
                 trust_iter+=1
                 if trust_iter>=2:
                     trust=True
-        if abs(coeff)<0.1:
+        if abs(coeff_best)<0.1:
             acse.accept_previous_step = False
-            print('Rejecting Newton Step.')
+            print('Rejecting Newton Step...')
         else:
             acse.accept_previous_step = True
             for f in testS:
-                f.c*= coeff
+                f.c*= coeff_best
             acse.S = acse.S+testS
     else:
         acse.S = acse.S+testS

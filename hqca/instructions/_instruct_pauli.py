@@ -82,8 +82,9 @@ class PauliSet(Instructions):
                     except AttributeError:
                         sys.exit('Something wrong in instructions.')
                     except Exception as e:
+                        print('Item: ',item.c)
                         print(e)
-                        sys.exit()
+                        sys.exit('Something wrong in instructions.')
 
     def _applyH(self,
             HamiltonianOperator,

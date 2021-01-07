@@ -216,7 +216,7 @@ class QuantumStorage:
         self.post = True
         pass
 
-    def _set_ansatz_shift(self,coeff=1,protocol='full'**kw):
+    def _set_ansatz_shift(self,coeff=1,protocol='full',**kw):
         '''
         after measuring a 2-RDM, we apply a correction so that the new result yields the same energy as the previous through 
         an additive ;shift;. 

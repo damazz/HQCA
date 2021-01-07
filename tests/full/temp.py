@@ -21,7 +21,7 @@ np.set_printoptions(precision=3)
 
 class Ins(Instructions):
     def __init__(self,operator,
-            Nq,propagate=False,**kw):
+            Nq=4,propagate=False,**kw):
         try:
             operator = operator.op_form()
         except AttributeError as Exception:
@@ -110,8 +110,6 @@ class Ins(Instructions):
         Q.Rz(1,para[2])
         Q.Cx(0,1)
 
-        Q.z(0)
-        Q.s(1)
         Q.h(1)
         Q.Cx(1,0)
         Q.Ry(1,para[3])
@@ -161,9 +159,9 @@ def test_noisy():
             noise_model=nm)
     qs.initial_transform=iTr
     proc = StabilizerProcess('filter_diagonal')
-    qs.set_error_mitigation('ansatz_shift',coeff=1.0,D0=False)
+    qs.set_error_mitigation('ansatz_shift',coeff=1.0,protocol='current')
     # run 1
-    ins = PauliSet
+    ins = Line
     tomoRe = ReducedTomography(qs,verbose=False)
     tomoRe.generate(real=True,imag=True,
             simplify=True,transform=Tr,
@@ -182,7 +180,9 @@ def test_noisy():
             S_thresh_rel=1e-6,
             S_min=1e-6,
             use_trust_region=True,
-            convergence_type='norm',
+            convergence_type='trust',
+            split_ansatz=True,
+
             hamiltonian_step_size=0.5,
             max_iter=5,
             initial_trust_region=2.0,

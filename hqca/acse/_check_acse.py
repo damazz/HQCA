@@ -11,6 +11,6 @@ def check_routine(acse):
         if not acse.split_ansatz:
             print('Need to use a split ansatz for shift method. Otherwise it is not well defined.')
             raise KeywordError
-    if acse.method=='newton' and not acse._conv_type=='trust':
+    if acse.acse_method=='newton' and not acse._conv_type=='trust':
         warnings.warn('Did you mean to not use the trust region convergence criteria?')
-    
+
