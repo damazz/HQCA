@@ -1,9 +1,9 @@
 # Hybrid Quantum Classical Algorithms for Quantum Chemistry Computation
-v0.2.x
+### v0.2.x
 
 ## Introduction
 
-This python module is a compilation of tools developed along the course of a doctoral study (Scott Smart) focusing on performing quantum chemistry simulations on near term quantum computers, and mainly focuses on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
+This python module is a compilation of tools developed along the course of a doctoral study (by Scott Smart) focusing on performing quantum chemistry simulations on near term quantum computers, and mainly focuses on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
 
 While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the module is not suitable for things much larger than that (with the exception of generating relevant tomographies) and is instead optimized around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
 
@@ -128,7 +128,7 @@ pytest tests
 
 ## References 
 
-The software was utilized in various forms to obtain results listed in the publications below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. While the earlier works could not be directly replicated, the ideas present in them are manifest in the current iteration, and should be replicated more easily with this design. 
+The software was utilized in various forms to obtain results listed in the publications below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. While the earlier works might not be exactly replicated with this code, as this project, qiskit, and the quantum devices themselves have all changed significantly, the ideas present in them are accesible, and could be replicated with this module in a straightforward manner. When possible, these are provided as examples. 
 
 Smart, S. E., Schuster, D. I., & Mazziotti, D. A. (2019). Experimental data from a quantum computer verifies the generalized Pauli exclusion principle. Communications Physics, 2(1). https://doi.org/10.1038/s42005-019-0110-3 
 
