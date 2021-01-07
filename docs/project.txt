@@ -1,3 +1,0 @@
-Overview of the projection technique used in the quantum computer calculations.
-
-Overview of the rotation algorithm used in the quantum computer.
