@@ -2,7 +2,7 @@ from copy import copy as copy
 import numpy as np
 from functools import partial
 from hqca.state_tomography import *
-from opts import *
+from hqca.opts import *
 
 def _opt_step(acse):
     '''
