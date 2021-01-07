@@ -54,12 +54,12 @@ The hqca module contains many useful tools for analyzing and handling basic quan
 >>>A+= PauliString('YY',+0.5j)
 '''
 
-The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing an ordered representation 
+The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing a normal ordered representation, while produce a string representation, using the anticommmutation relations. Note `p` and `h` represent the particle and hole operators. 
 
 '''
->>> A = Operator()
->>> a+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
->>> print(a)
+A = Operator()
+a+= FermiString(coeff=1,indices=[0,3,2,0],ops='++--',N=4)
+print(a)
 pi-+: -1
 ''' 
 
