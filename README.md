@@ -1,4 +1,4 @@
-# Hybrid Quantum Classical Algorithms for Quantum Chemistry Computation
+# Hybrid Quantum Classical Algorithms for Quantum Chemistry
 ### v0.2.x
 
 ## Introduction
