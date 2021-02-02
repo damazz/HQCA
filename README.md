@@ -3,7 +3,7 @@
 
 ## Introduction
 
-This python module is a compilation of tools developed along the course of a doctoral study (by Scott Smart) focusing on performing quantum chemistry simulations on near term quantum computers, and mainly focuses on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
+This python module is a compilation of tools developed by Scott Smart and David Mazziotti focusing on performing quantum chemistry simulations on near term quantum computers, and mainly focuses on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
 
 While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the module is not suitable for things much larger than that (with the exception of generating relevant tomographies) and is instead optimized around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
 
@@ -148,7 +148,7 @@ David A. Mazziotti (advisor)
 
 # License
 
-Project licensed under the MIT License. See LICENSE.txt for more details. 
+Project licensed under the Apache 2.0 License. See LICENSE.txt for more details. 
 
 # Acknowledgements
 
