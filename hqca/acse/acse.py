@@ -130,6 +130,12 @@ class RunACSE(QuantumRun):
             self._update_acse_opt(**kw)
         self._update_experimental(**kw)
         self.grad=0
+        try:
+            print('-- unused general keywords:')
+            for k in kw:
+                print(k)
+        except Exception as e:
+            pass
 
     def _update_acse_opt(self,
             optimizer='nm',
@@ -175,6 +181,12 @@ class RunACSE(QuantumRun):
         print('trust region: {:.6f}'.format(initial_trust_region))
         self.tr_taylor = 1
         self.tr_object = 1
+        try:
+            print('-- unused newton keywords:')
+            for k in kw:
+                print(k)
+        except Exception as e:
+            pass
 
     def _generate_real_circuit(self,op):
         if isinstance(op,type(Ansatz())):
