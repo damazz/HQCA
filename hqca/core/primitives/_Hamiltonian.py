@@ -1,4 +1,5 @@
 from math import pi
+import sys
 '''
 takes Pauli strings from qiskit aqua package, and actually adds on Hamiltonian
 circuit
@@ -39,6 +40,8 @@ def pauliOp(Q,loc,sigma='x',inv=False):
 
 def apply_pauli_string(Q,pauli):
     if not abs(abs(pauli.c)-1)<1e-4:
+        print('Pauli operator:')
+        print(pauli)
         sys.exit('Can not implement partial Pauli operator in line.')
     for q,i in enumerate(pauli.s):
         if i=='X':
