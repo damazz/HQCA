@@ -4,7 +4,6 @@ which focuses on a quantum generation of the 2-RDM, with classical and quantum
 generation of the A matrix.
 """
 
-
 import pickle
 import warnings
 
@@ -130,11 +129,16 @@ class RunACSE(QuantumRun):
             print('-- -- -- --')
         self._optimizer = None
         self._opt_thresh = None
+
         if self.acse_method == 'newton':
-            self._update_acse_newton(**kw)
+            kw = self._update_acse_newton(**kw)
         elif self.acse_method in ['line', 'opt']:
-            self._update_acse_opt(**kw)
-        self._update_experimental(**kw)
+            kw = self._update_acse_opt(**kw)
+        kw = self._update_experimental(**kw)
+        if len(kw)>0:
+            print('Unused or improper keywords: ')
+            for k in kw:
+                print(k)
         self.grad = 0
 
     def _update_acse_opt(self,
@@ -147,6 +151,7 @@ class RunACSE(QuantumRun):
             print('optimizer threshold: {}'.format(optimizer_threshold))
         self._optimizer = optimizer
         self._opt_thresh = optimizer_threshold
+        return kw
 
     def _update_experimental(self,
                              split_ansatz=False,
@@ -155,6 +160,7 @@ class RunACSE(QuantumRun):
                              ):
         self.split_ansatz = split_ansatz
         self.split_threshold = split_threshold
+        return kw
 
     def _update_acse_newton(self,
                             use_trust_region=False,
@@ -183,6 +189,7 @@ class RunACSE(QuantumRun):
             print('trust region: {:.6f}'.format(initial_trust_region))
         self.tr_taylor = 1
         self.tr_object = 1
+        return kw
 
 
     def _generate_real_circuit(self, op):
