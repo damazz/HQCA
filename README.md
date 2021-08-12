@@ -1,16 +1,15 @@
 # Hybrid Quantum Classical Algorithms for Quantum Chemistry
-Updated April 2nd, 2021
 
 ## Introduction
 
-This python module is a compilation of tools developed along the course of a doctoral study (by Scott Smart) focusing on performing quantum chemistry simulations on near term quantum computers, and mainly focuses on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
+This python module is a compilation of tools for performing quantum chemistry simulations on near term quantum computers, with a focus on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, and contracted quantum eigensolvers (CQE), such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
 
-While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations, the module is not suitable for things much larger than that (with the exception of generating relevant tomographies) and is instead optimized around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
+While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations on local devices (with the exception of generating relevant tomographies), much larger simulations will require more memory and the program is not optimized for these sort of runs. Instead HQCA is centered around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
 
 ## Features and Overview
 
 The following features are included:
-- Implementation of the quantum-ACSE as a quantum eigensolver, with classical and quantum solutions of the ACSE condition
+- Implementation of the quantum-ACSE as a contracted quantum eigensolver (CQE), with classical and quantum solutions of the ACSE condition
 - Implentation of basic variational quantum eigensovlers (VQE)
 - Programmable ansatz 
 - Different tomography schemes of reduced density matrices with options for traditional or clique based grouping options 
@@ -18,7 +17,6 @@ The following features are included:
 - Tapering of transformations to allow for qubit reduction schemes 
 - Error mitigation techniques, mostly based in post processing RDMs 
 - General tools for dealing with quantum operators, fermionic operators, transformations, and matrix representations 
-
 
 ## Getting Started 
 
@@ -30,16 +28,14 @@ pyscf  >= 1.7.4
 Optionally:
 graph_tool >= 2.35  
 Maple 202x, with QuantumChemistry module for SDP purification  
-multithreading  
  
 ### Installing:
-Requires python3 and the above modules. Using the quantum computer should be set up by yourself through the IBM Quantum Experience and running load_account with the appropriate password. 
+Requires python3 and the above modules. Using the quantum computer should be set up by yourself through the IBM Quantum Experience and running the load_account command. 
 
 qiskit-aer should be installed for access to the C++ qasm simulator, and
 ibmq-provider should be obtained for running results on the actual quantum
 computer. qiskit is inclusive of terra, aqua, and ibmq-provider, although the 
 latter two are optional. 
-
 
 ### Operators and QuantumStrings 
 
@@ -75,7 +71,6 @@ ZIYY: -0.12500000
 IIXY: -0.12500000j
 ZIXY: +0.12500000j
 ```
-
 
 ### Molecular Simulation
 
@@ -136,8 +131,6 @@ Mazziotti, D. A. (2007). Anti-Hermitian part of the contracted Schrödinger equa
 
 Smart, S. E., & Mazziotti, D. A. (2021). Quantum Solver of Contracted Eigenvalue Equations for Scalable Molecular Simulations on Quantum Computing Devices. Physical Review Letters, 126(7), 070504. https://doi.org/10.1103/PhysRevLett.126.070504
 
-Smart, S. E., Boyn, J.-N., & Mazziotti, D. A. (2021). Resolution of the Relative Energies of the Benzyne Isomers on a Quantum Computer Using a Contracted Schr\"odinger Equation. Retrieved from http://arxiv.org/abs/2103.06876
-
 ### Variational Quantum Eigensolvers
 
 Kandala, A., Mezzacapo, A., Temme, K., Takita, M., Brink, M., Chow, J. M., & Gambetta, J. M. (2017). Hardware-efficient variational quantum eigensolver for small molecules and quantum magnets. Nature, 549(7671), 242–246. https://doi.org/10.1038/nature23879
@@ -191,11 +184,10 @@ Smart, S. E., & Mazziotti, D. A. (2020). Efficient two-electron ansatz for bench
 Smart, S. E., Schuster, D. I., & Mazziotti, D. A. (2019). Experimental data from a quantum computer verifies the generalized Pauli exclusion principle. Communications Physics, 2(1). https://doi.org/10.1038/s42005-019-0110-3 
 
 
-
 ## Authors
 
 Scott E. Smart, 
-David A. Mazziotti (advisor)
+David A. Mazziotti
 
 # License
 
