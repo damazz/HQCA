@@ -25,6 +25,7 @@ class FermionicHamiltonian(Hamiltonian):
             verbose=True,
             en_con=None,
             en_fin=None,
+            print_transformed=True,
             ):
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
@@ -35,6 +36,10 @@ class FermionicHamiltonian(Hamiltonian):
         self.real=True
         self.imag=False
         self._order = 2
+        self._transform = transform
+        self._print_transformed=print_transformed
+        if type(transform)==type(None):
+            raise HamiltonianError('Need to specify transform for Hamiltonian.')
         if Ne_active_space=='default':
             self.Ne_as = proxy_mol.nelec[0]+proxy_mol.nelec[1]
         else:
@@ -43,18 +48,23 @@ class FermionicHamiltonian(Hamiltonian):
         self.Ne_core = self.Ne_tot - self.Ne_as
         self.Ne_alp = proxy_mol.nelec[0]-self.Ne_core//2
         self.Ne_bet = proxy_mol.nelec[1]-self.Ne_core//2
+        self.No_core = self.Ne_core//2
         if No_active_space=='default':
             self.C = np.identity(ints_1e.shape[0])
             self.No_as = self.C.shape[0]
         else:
             self.C = np.identity(No_active_space)
             self.No_as = int(No_active_space)
+        self._core = [i for i in range(self.No_core)]
+        self._active = [i+self.No_core for i in range(self.No_as)]
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
         self._generate_spin2spac_mapping()
         self.spin = proxy_mol.spin
         self.norm = normalize
         self._generate_active_space()
+        self.ints_1e_given = ints_1e
+        self.ints_2e_given = ints_2e
         if type(en_con)==type(None):
             self._en_c = 0 
         else:
@@ -63,57 +73,52 @@ class FermionicHamiltonian(Hamiltonian):
             self.ef = 0
         else:
             self.ef = en_fin
-        if ints_spatial:
-            # transforming spatial orbitals to spin :) 
-            if verbose:
-                print('Transforming 1e integrals...')
-            self.ints_1e = generate_spin_1ei(
-                    ints_1e,
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            if verbose:
-                print('Transforming 2e integrals...')
-            self.ints_2e = generate_spin_2ei_phys(
-                    ints_2e,
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            if verbose:
-                print('Done!')
-        else:
-            self.ints_1e = ints_1e
-            self.ints_2e = ints_2e
-        self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-        if self.verbose:
-            print('Transforming molecular integrals...')
+        self._gen_operators = generate_operators
+        self._int_thresh = int_thresh
+        self._update_ints(self.C,self.C)
+
+    def _update_ints(self,mo_coeff_a,mo_coeff_b):
+        self.mo_a =  mo_coeff_a
+        self.mo_b = mo_coeff_b
+        self.ints_1e = generate_spin_1ei(
+                self.ints_1e_given.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self.ints_2e = generate_spin_2ei(
+                self.ints_2e_given.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self._build_K2()
+
+
+    def _build_K2(self):
+        self.K2 = np.zeros((self.r, self.r, self.r, self.r))
         self.K2+= self.ints_2e*0.5
         for i in range(0,self.r):
             for j in range(0,self.r):
                 for k in range(self.r):
-                    self.K2[i,k,j,k]+= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
-                    self.K2[k,i,k,j]+= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
-                    self.K2[i,k,k,j]-= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
-                    self.K2[k,i,j,k]-= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
-        if self.verbose:
-            print('... Done!')
+                    self.K2[i, k, j, k] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                    self.K2[k, i, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                    self.K2[i, k, k, j] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                    self.K2[k, i, j, k] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
         self._matrix = contract(self.K2)
-        self._transform = transform
-        if generate_operators:
-            self._build_operator(int_thresh)
+        if self.verbose:
+            print('Core energy', self._en_c)
+        if self._gen_operators:
+            self._build_operator(self._int_thresh)
         else:
             self._qubOp = None
             self._ferOp = None
-        if self.verbose:
-            print('\n\n')
 
     @property
     def order(self):
@@ -154,45 +159,23 @@ class FermionicHamiltonian(Hamiltonian):
         '''
         Note, all orb references are in spatial orbitals. 
         '''
+        self.No_v = self.No_tot - self.No_core-self.No_as
         self.alpha_mo={
-                'inactive':[],
-                'active':[],
-                'virtual':[],
-                'qc':[]
+                'inactive':[i for i in range(self.No_core)],
+                'active':[i+self.No_core for i in range(self.No_as)],
+                'virtual':[self.No_tot-self.No_v+i for i in range(self.No_v)],
+                'qubit':[i for i in range(self.No_as)]
                 }
         self.beta_mo={
-                'inactive':[],
-                'active':[],
-                'virtual':[],
-                'qc':[]
+                'inactive':[i+self.No_tot for i in range(self.No_core)],
+                'active':[i+self.No_core+self.No_tot for i in range(self.No_as)],
+                'virtual':[i+2*self.No_tot-self.No_v for i in range(self.No_v)],
+                'qubit':[i+self.No_as for i in range(self.No_as)]
                 }
-        self.Ne_ia = self.Ne_tot-self.Ne_as
-        self.No_ia = self.Ne_ia//2
+        #print(self.alpha_mo)
+        #print(self.beta_mo)
         self.spin = spin_mapping
-        self.No_v  = self.No_tot-self.No_ia-self.No_as
-        if self.Ne_ia%2==1:
-            raise(SpinError)
-        if self.Ne_ia>0:
-            self.active_space_calc='CASSCF'
-        ind=0
-        for i in range(0,self.No_ia):
-            self.alpha_mo['inactive'].append(ind)
-            ind+=1
-        for i in range(0,self.No_as):
-            self.alpha_mo['active'].append(ind)
-            ind+=1
-        for i in range(0,self.No_v):
-            self.alpha_mo['virtual'].append(ind)
-            ind+=1
-        for i in range(0,self.No_ia):
-            self.beta_mo['inactive'].append(ind)
-            ind+=1
-        for i in range(0,self.No_as):
-            self.beta_mo['active'].append(ind)
-            ind+=1
-        for i in range(0,self.No_v):
-            self.beta_mo['virtual'].append(ind)
-            ind+=1
+        self.No_v  = self.No_tot-self.No_core-self.No_as
 
     def _generate_spin2spac_mapping(self):
         self.s2s = {}
@@ -226,13 +209,8 @@ class FermionicHamiltonian(Hamiltonian):
                 self._qubOp_sep.append(new)
 
 
-    def _build_operator(self,int_thresh=1e-10):
-        if self.norm:
-            Cnorm = np.max(np.abs(self.K2))/(np.pi)
-        else:
-            Cnorm=1
+    def _build_operator(self,int_thresh=1e-14,compact=False):
         if self.verbose:
-            print('Normalization: {}'.format(Cnorm))
             print('Time: ')
         t1 = timeit.default_timer()
         alp = self.alpha_mo['active']
@@ -244,6 +222,8 @@ class FermionicHamiltonian(Hamiltonian):
         qubOp = Operator()
         ferOp = Operator()
         # 1e terms
+        #
+        #
         for p in alp+bet:
             P = o2q[p]
             for q in alp+bet:
@@ -251,23 +231,24 @@ class FermionicHamiltonian(Hamiltonian):
                 if abs(self.ints_1e[p,q])<=int_thresh:
                     continue
                 newOp = FermiString(
-                        coeff=self.ints_1e[p,q]/Cnorm,
+                        N=len(alp+bet),
+                        coeff=self.ints_1e[p,q],
                         indices=[P,Q],
                         ops='+-',
-                        N = len(alp+bet),
                         )
                 ferOp+= newOp
         t2 = timeit.default_timer()
         if self.verbose:
             print('1e terms: {}'.format(t2-t1))
-
+        t_transform = 0
+        n=0
         # starting 2 electron terms
         for p in alp+bet:
             P = o2q[p]
             for r in alp+bet:
                 R = o2q[r]
                 if p==r:
-                    continue
+                     continue
                 i1 = (p==r)
                 for s in alp+bet:
                     S = o2q[s]
@@ -283,30 +264,42 @@ class FermionicHamiltonian(Hamiltonian):
                             continue
                         if abs(self.ints_2e[p,r,q,s])<=int_thresh:
                             continue
+                        #if abs(self.K2[P,R,Q,S])<=int_thresh:
+                        #    continue
                         newOp = FermiString(
-                                coeff=0.5*self.ints_2e[p,r,q,s]/Cnorm,
+                                N=len(alp+bet),
+                                coeff=0.5*self.ints_2e[p,r,q,s],
+                                #coeff=self.K2[P,R,Q,S],
                                 indices=[P,R,S,Q],
                                 ops='++--',
-                                N = len(alp+bet),
                                 )
                         ferOp+= newOp
+                        #t0 = dt()
+                        #qubOp+= self._transform(newOp)
+                        #t_transform+= dt()-t0
+                        #n+=1
+        t3 = timeit.default_timer()
+        if self.verbose:
+            print('2e terms: {}'.format(t3-t2))
         new = ferOp.transform(self._transform)
         qubOp = Operator()
         for i in new:
             if abs(i.c)>int_thresh:
                 qubOp+= i
-
         self._qubOp = qubOp
         self._ferOp = ferOp
-        t3 = timeit.default_timer()
+        t4 = timeit.default_timer()
         if self.verbose:
+            print('2e transform: {}'.format(t4-t3))
+        #print('2e transform: {}'.format(t_transform))
+        if self.verbose and self._print_transformed:
             print('2e terms: {}'.format(t3-t2))
-            print('-------------------')
-            print('Fermionic Hamiltonian')
+            print('-- -- -- -- -- -- -- -- -- -- --')
+            print('Second Quantized Hamiltonian')
             print(ferOp)
-            print('Hamiltonian in Pauli Basis:')
+            print('Pauli String Hamiltonian:')
             print(qubOp)
-            print('-------------------')
+            print('-- -- -- -- -- -- -- -- -- -- --')
 
     @property
     def model(self):
