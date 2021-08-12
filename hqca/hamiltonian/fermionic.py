@@ -66,7 +66,7 @@ class FermionicHamiltonian(Hamiltonian):
         self.ints_1e_given = ints_1e
         self.ints_2e_given = ints_2e
         if type(en_con)==type(None):
-            self._en_c = 0 
+            self._en_c = 0
         else:
             self._en_c = en_con
         if type(en_fin)==type(None):
@@ -89,7 +89,7 @@ class FermionicHamiltonian(Hamiltonian):
                 region='full',
                 spin2spac=self.s2s
                 )
-        self.ints_2e = generate_spin_2ei(
+        self.ints_2e = generate_spin_2ei_phys(
                 self.ints_2e_given.copy(),
                 mo_coeff_a.T,
                 mo_coeff_b.T,
