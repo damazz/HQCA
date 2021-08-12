@@ -1,7 +1,26 @@
 from delayed_assert import delayed_assert as da
-from hqca.state_tomography import *
+from hqca.tomography import *
 from _generic import *
 import numpy as np
+
+
+#qs = generic_quantumstorage()
+#tomoRe = QubitTomography(qs)
+#tomoRe.generate(real=True,imag=False,transform=Qubit)
+#print(tomoRe.op)
+#
+#qs.transform = Qubit
+#tomoRe = SPQubitTomography(qs)
+#tomoRe.generate(real=True,imag=False,transform=Qubit)
+#print(tomoRe.op)
+#
+#qs = tomo_quantumstorage()
+#tomoRe = QubitTomography(qs)
+#tomoRe.generate(real=True,imag=False,transform=Qubit,simplify=False)
+#print(len(tomoRe.op))
+#tomoRe = SPQubitTomography(qs)
+#tomoRe.generate(real=True,imag=False,transform=Qubit)
+#print(len(tomoRe.op))
 
 def test_tomography():
     qs = generic_quantumstorage()
@@ -9,6 +28,7 @@ def test_tomography():
     tomoRe.generate(real=True,imag=False,transform=JordanWigner)
     tomoIm = StandardTomography(qs)
     tomoIm.generate(real=False,imag=True,transform=JordanWigner)
+    print(tomoIm.op)
     temp = set([
         'XXXX','XXYY','XYYX','XYXY',
         'YYYY','YYXX','YXXY','YXYX',
@@ -30,8 +50,11 @@ def test_reduced_tomography():
     tempR = set([
         'XXZZ','YXYX','ZZXX','XXXX','ZZZZ'
         ])
+    print(tomoRe.op)
     da.expect(set(tomoRe.op) == tempR)
     da.assert_expectations()
+
+test_reduced_tomography()
 
 def test_compare_constructions():
     qs = generic_quantumstorage()
@@ -55,5 +78,4 @@ def test_compare_constructions():
     d01.contract()
     da.expect(abs(d01.rdm.trace())<1e-10)
     da.assert_expectations()
-
 

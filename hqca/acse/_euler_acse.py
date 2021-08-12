@@ -1,7 +1,8 @@
 from copy import copy as copy
 import numpy as np
 from functools import partial
-from hqca.state_tomography import *
+from hqca.tomography import *
+from hqca.operators import *
 
 def _euler_step(acse):
     '''
@@ -36,7 +37,7 @@ def _euler_step(acse):
             print('Euler step caused an increase in energy....switching.')
             acse.delta*=-1
             for s in testS:
-                s.c*=-2
+                s.c*=-1
             acse.S+= testS
             ins = acse.Instruct(operator=acse.S.op_form(),
                     Nq=acse.QuantStore.Nq,

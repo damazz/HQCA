@@ -16,7 +16,7 @@ class StandardProcess(Process):
             backend='qasm_simulator',
             Nq='default',
             **kw):
-        if backend in ['statevector_simulator']:
+        if backend in ['statevector_simulator','simulator_statevector']:
             val = 0
             N = 2**Nq
             test = ['{:0{}b}'.format(

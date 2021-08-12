@@ -6,94 +6,76 @@ import datetime
 from numpy import conj as con
 from numpy import complex_
 from functools import reduce
-from hqca.tools import _rdmfunctions as rdmf
+from hqca.tools.rdm._functions import *
 from copy import deepcopy as copy
-
+import scipy.sparse as sparse
 
 class RDM:
     '''
-    RDM class which allows for construction from Hartree-Fock state,
-    reconstruction, multiplication and addition. 
+    Spin RDM class which allows for construction from Hartree-Fock state,
+    reconstruction, multiplication and addition.
     '''
     def __init__(self,
             order=2,
             alpha=[],
             beta=[],
-            state='hf',
-            Ne=None,
-            S=0,
-            S2=0,
+            rdm='hf',
             verbose=0,
-            rdm=None,
-            rdm_type='d',
+            Ne=2,
             **kw
             ):
-        self.dqg=rdm_type
         self.p = order
         self.r = len(alpha)+len(beta) # num spin orbitals, fermionic sites
         self.R = int(self.r/2)
         self.v = verbose
         self.alp = alpha
         self.bet = beta
-        self.S=S
-        self.S2=S2
-        self.Ne=Ne
         self.s2s = {}
+        self.Ne = Ne
         for n,a in enumerate(alpha):
             self.s2s[a]=n
         for n,b in enumerate(beta):
             self.s2s[b]=n
-        self.N_alp = int(Ne+S)//2
-        self.N_bet = Ne-self.N_alp
-        if state in ['hartree','hf','scf']:
-            if self.v>0:
-                print('Making Hartree-Fock {}-RDM'.format(self.p))
-            if self.S==0:
-                self._build_hf_singlet()
-            elif self.S==1:
-                self._build_hf_doublet()
-        elif state in ['wf']:
-            pass
-        elif state in ['given','provided','spec']:
-            try:
-                self.rdm = rdm.copy()
-            except Exception:
-                self.rdm = rdm
-        elif state in ['alpha-beta']:
-            self._generate_from_ab_block(rdm)
-        elif state in ['spatial']:
-            self._generate_from_spatial(rdm)
+        if isinstance(rdm,str):
+            if rdm in ['hartree','hf','scf']:
+                if self.v>0:
+                    print('Making Hartree-Fock {}-RDM'.format(self.p))
+                self._build_hartree_fock(**kw)
+            elif rdm in ['alpha-beta']:
+                self._generate_from_ab_block(**kw)
+            elif rdm in ['pass']:
+                pass
+        elif isinstance(rdm,type(np.array([[0.0],[1.0]]))):
+            self.rdm = rdm
         else:
             self.rdm = np.zeros(
                     tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
 
-    def _generate_from_spatial(self,rdm):
-        if not self.S2==0:
-            sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
-        aa = ab - ab.transpose(1,0,2,3)
-        new = np.zeros((self.r,self.r,self.r,self.r))
+    def _build_hartree_fock(self,Sz=0,S2=0,**kw):
+        self.N_alp = int((self.Ne+2*Sz)/2)
+        self.N_bet = self.Ne-self.N_alp
+        self.Sz = Sz
+        self.S2 = S2
+        self._build_hf_spin(**kw)
+
+
+    def _generate_from_spatial(self,fragment=None):
+        rdm = copy(fragment)
+        # 
+        sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
+        aa = rdm.rdm - rdm.rdm.transpose(1,0,2,3)
+        new = np.zeros((self.R,self.R,self.R,self.R))
         for i in range(self.R):
-            I =i+self.R
             for j in range(self.R):
-                J = j+self.R
                 for k in range(self.R):
-                    K = self.R+k
                     for l in range(self.R):
-                        L = l+self.R
-                        new[i,k,j,l]+=rdm[i,k,j,l]
-                        new[I,K,J,L]+=rdm[i,k,j,l]
+                        new[i,k,j,l]+=rdm.rdm[i,k,j,l]
+        self.rdm = new
 
-                        new[i,K,j,L]+=rdm[i,k,j,l]
-                        new[I,k,J,l]+=rdm[i,k,j,l]
-
-                        new[K,i,j,L]+=rdm[i,k,j,l]
-                        new[k,I,J,l]+=rdm[i,k,j,l]
-        self.rdm =  new
-
-
-    def _generate_from_ab_block(self,rdm):
-        if not self.S2==0:
-            sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
+    def _generate_from_ab_block(self,fragment=None):
+        rdm = copy(fragment)
+        #if not self.S2==0:
+        #    sys.exit('Can not generate from alpha-beta block of non singlet state yet.')
         aa = rdm - rdm.transpose(1,0,2,3)
         new = np.zeros((self.r,self.r,self.r,self.r))
         for i in range(self.R):
@@ -135,19 +117,28 @@ class RDM:
 
         note, ordering is preserved
         '''
-        new = np.zeros((self.R,self.R,self.R,self.R),dtype=np.complex_)
-        for i in range(self.R):
-            I = self.R+i
-            for j in range(self.R):
-                J = self.R+j
-                for k in range(self.R):
-                    K = self.R+k
-                    for l in range(self.R):
-                        L = self.R+l
-                        new[i,k,j,l]+= self.rdm[i,K,j,L] #abba  
-                        new[i,k,j,l]+= self.rdm[I,k,J,l] #baab
-                        new[i,k,j,l]+= self.rdm[i,k,j,l] #aaaa
-                        new[i,k,j,l]+= self.rdm[I,K,J,L] #bbbb
+        if self.p==2:
+            new = np.zeros((self.R,self.R,self.R,self.R),dtype=np.complex_)
+            for i in range(self.R):
+                I = self.R+i
+                for j in range(self.R):
+                    J = self.R+j
+                    for k in range(self.R):
+                        K = self.R+k
+                        for l in range(self.R):
+                            L = self.R+l
+                            new[i,k,j,l]+= self.rdm[i,K,j,L] #abba  
+                            new[i,k,j,l]+= self.rdm[I,k,J,l] #baab
+                            new[i,k,j,l]+= self.rdm[i,k,j,l] #aaaa
+                            new[i,k,j,l]+= self.rdm[I,K,J,L] #bbbb
+        elif self.p==1:
+            new = np.zeros((self.R,self.R),dtype=np.complex_)
+            for i in range(self.R):
+                I = self.R+i
+                for j in range(self.R):
+                    J = self.R+j
+                    new[i,j]+= self.rdm[I,J] #baab
+                    new[i,j]+= self.rdm[i,j] #aaaa
         return new
 
     def symmetric_block(self):
@@ -225,6 +216,7 @@ class RDM:
     def analysis(self,verbose=True,print_rdms=False,split=False):
         # start with alpha alpha block
         # generate basis
+        self.expand()
         if self.p==2:
             aa_basis = []
             ab_basis = []
@@ -338,17 +330,6 @@ class RDM:
             print(np.linalg.eigvalsh(b1))
             pass
 
-    def copy(self):
-        nRDM = RDM(
-                order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
-                state=None,
-                S=self.S,
-                Ne=self.Ne,
-                )
-        nRDM.rdm = self.rdm.copy()
-        return nRDM
 
     def observable(self,H):
         self.contract()
@@ -374,11 +355,11 @@ class RDM:
         else:
             print('Trying to add a {} to a RDM, '.format(str(type(rdm))))
             sys.exit('wrong type specified.')
-        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
+        c2 = self.alp==rdm.alp
         c3, c4 = self.bet==rdm.bet,self.p==rdm.p
-        if c1+c2+c3+c4<4:
+        if c2+c3+c4<3:
             print('Checks: ')
-            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
+            print('alp: {}, bet: {}'.format(c2,c3))
             traceback.print_exc()
             print('Error in adding.')
             sys.exit('You have RDMs for different systems apparently.')
@@ -386,9 +367,7 @@ class RDM:
                 order=self.p,
                 alpha=self.alp,
                 beta=self.bet,
-                S=self.S,
-                state=None,
-                Ne=self.Ne,
+                rdm=None,
                 )
         self.expand()
         rdm.expand()
@@ -396,13 +375,12 @@ class RDM:
         return nRDM
 
     def reduce_order(self):
+        #
         nRDM = RDM(
                 order=self.p-1,
                 alpha=self.alp,
                 beta=self.bet,
-                state=None,
-                Ne=self.Ne,
-                S=self.S,
+                rdm=None,
                 )
         self.expand()
         if self.p==3:
@@ -425,33 +403,8 @@ class RDM:
         return nRDM
 
     def __sub__(self,rdm):
-        if type(rdm)==type(self):
-            pass
-        else:
-            print('Trying to sub a {} to a RDM, '.format(str(type(rdm))))
-            sys.exit('wrong type specified.')
-        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
-        c3, c4 = self.bet==rdm.bet,self.p==rdm.p
-        if c1+c2+c3+c4<4:
-            print('Checks: ')
-            print('Ne: {}, alp: {}, bet: {}'.format(c1,c2,c3))
-            print(self.S,rdm.S)
-            print('Error in subtracting.')
-            traceback.print_exc()
-            sys.exit('You have RDMs for different systems apparently.')
-        nRDM = RDM(
-                order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
-                state=None,
-                Ne=self.Ne,
-                )
-        self.expand()
-        rdm.expand()
-        nRDM.expand()
-        nRDM.rdm = self.rdm-rdm.rdm
-        return nRDM
-
+        rdm.rdm*= -1
+        return self+rdm
 
     def __mul__(self,rdm):
         if type(rdm)==type(self):
@@ -461,11 +414,11 @@ class RDM:
             return self
         self.expand()
         rdm.expand()
-        c1, c2 = self.Ne==rdm.Ne,self.alp==rdm.alp
+        c2 = self.alp==rdm.alp
         c3, c4 = self.bet==rdm.bet,self.Ne==rdm.Ne
-        if c1+c2+c3+c4<4:
+        if c2+c3+c4<3:
             print('Checks: ')
-            print(c1,c2,c3,c4)
+            print(c2,c3,c4)
             traceback.print_exc()
             print('Error in multiplication.')
             sys.exit('You have RDMs for different systems apparently.')
@@ -473,9 +426,7 @@ class RDM:
                 order=self.p+rdm.p,
                 alpha=self.alp,
                 beta=self.bet,
-                state=None,
-                Ne=self.Ne,
-                S=self.S,
+                rdm=None,
                 )
         non1 = list((np.nonzero(self.rdm)))
         non2 = list((np.nonzero(rdm.rdm)))
@@ -547,53 +498,24 @@ class RDM:
         return nRDM
         # wedge product
 
-
     def get_spin_properties(self):
         if self.p==3:
             pass
         elif self.p==2:
             rdm1 = self.reduce_order()
-            self.sz = rdmf.Sz(
+            self.sz = Sz(
                     rdm1.rdm,
                     self.alp,
                     self.bet,
                     self.s2s)
-            self.s2 = rdmf.S2(
+            self.s2 = S2(
                     self.rdm,
                     rdm1.rdm,
                     self.alp,
                     self.bet,
                     self.s2s)
 
-    def get_overlap(self,rdm):
-
-        c1, c2 = self.Ne==RDM.Ne,self.alp==RDM.alp
-        c3, c4 = self.bet==RDM.bet,self.S==RDM.S
-        if not (c1 and c2 and c3 and c4):
-            print('Hrm.')
-
-        t = self.Ne*(self.Ne-1)
-        if self.Ne%2==0:
-            coeff = 2*t*(1-self.Ne/(t*self.r**2))
-        else:
-            coeff = 2*t*(1-(self.Ne-1)/(t*self.r**2))
-        self.contract()
-        test = self.rdm-RDM.rdm
-
-        eigs = np.sqrt(
-                np.sum(
-                np.abs(
-                    np.linalg.eigvalsh(
-                        np.dot(
-                            test,test.T
-                            )
-                    )
-                    )/coeff
-                )
-                )
-        return np.real(eigs)
-
-    def _build_hf_singlet(self):
+    def _build_hf_singlet(self,**kw):
         '''
         build a p-RDM that comes from a single determinant
         '''
@@ -607,7 +529,6 @@ class RDM:
         Rec.permute()
         self.total=Rec.total
         for creInd in self.total:
-            #annInd = creInd[::-1]
             annInd = creInd[:]
             annPerm = Recursive(choices=annInd)
             annPerm.unordered_permute()
@@ -619,20 +540,19 @@ class RDM:
                     ind = tuple(c[:-1]+a[:-1])
                     self.rdm[ind]=s
 
-    def _build_hf_doublet(self):
+    def _build_hf_spin(self):
         '''
         build a p-RDM that comes from a single determinant,
-        but with S neq 0
+        but with S = 1
         '''
         self.rdm = np.zeros(
                 tuple([self.r for i in range(2*self.p)]),dtype=np.complex_)
-        occAlp = self.alp[:int((self.Ne+self.S)//2)]
-        occBet = self.bet[:int((self.Ne-self.S)//2)]
+        occAlp = self.alp[:int((self.Ne+2*self.Sz)//2)]
+        occBet = self.bet[:int((self.Ne-2*self.Sz)//2)]
         Rec = Recursive(depth=self.p,choices=occAlp+occBet)
         Rec.permute()
         self.total=Rec.total
         for creInd in self.total:
-            #annInd = creInd[::-1]
             annInd = creInd[:]
             annPerm = Recursive(choices=annInd)
             annPerm.unordered_permute()
@@ -644,71 +564,17 @@ class RDM:
                     ind = tuple(c[:-1]+a[:-1])
                     self.rdm[ind]=s#*(1/factorial(self.p))
 
+    def nat_occ(self):
+        if self.p==2:
+            rdm1 = self.reduce_order()
+            eigs = np.linalg.eigvalsh(rdm1.rdm)
+        return eigs
 
     def cumulant(self):
         if self.p==2:
             rdm1 = self.reduce_order()
             rdm2 = rdm1*rdm1
         return self-rdm2
-
-    def get_G_matrix(self):
-        if not self.p==2:
-            sys.exit('Not order 2 g matrix.')
-        if not self.dqg=='d':
-            sys.exit('Getting G from non-2RDM!.')
-        self.expand()
-        new = np.zeros(self.rdm.shape,dtype=np.complex_)
-        d1 = self.reduce_order()
-        for i in range(self.r):
-            for j in range(self.r):
-                for k in range(self.r):
-                    for l in range(self.r):
-                        delta = (k==l)
-                        new[i,l,j,k]+= -self.rdm[i,k,j,l]+delta*d1.rdm[i,j]
-        nRDM = RDM(
-                order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
-                state='given',
-                Ne=self.Ne,
-                rdm=new,
-                rdm_type='g',
-                )
-        return nRDM
-
-    def get_Q_matrix(self):
-        if not self.p==2:
-            sys.exit('Not order 2 g matrix.')
-        if not self.dqg=='d':
-            sys.exit('Getting Q from non-2RDM!.')
-        self.expand()
-        new = np.zeros(self.rdm.shape,dtype=np.complex_)
-        d1 = self.reduce_order()
-        for i in range(self.r):
-            for j in range(self.r):
-                ij = (i==j)
-                for k in range(self.r):
-                    ik,jk = (i==k),(j==k)
-                    for l in range(self.r):
-                        il,jl,kl = (i==l),(j==l),(k==l)
-                        new[j,l,i,k]+= self.rdm[i,k,j,l]
-                        new[j,l,i,k]+= -il*jk
-                        new[j,l,i,k]+= il*d1.rdm[k,j]
-                        new[j,l,i,k]+= -kl*d1.rdm[i,j]
-                        new[j,l,i,k]+= jk*d1.rdm[i,l]
-                        new[j,l,i,k]+= -ij*d1.rdm[k,l]
-                        new[j,l,i,k]+= kl*ij
-        nRDM = RDM(
-                order=self.p,
-                alpha=self.alp,
-                beta=self.bet,
-                state='given',
-                Ne=self.Ne,
-                rdm=new,
-                rdm_type='q',
-                )
-        return nRDM
-
 
     def reconstruct(self,
             approx='V',
@@ -718,9 +584,7 @@ class RDM:
                     order=self.p+1,
                     alpha=self.alp,
                     beta=self.bet,
-                    state=None,
-                    Ne=self.Ne,
-                    S=self.S,
+                    rdm=None,
                     )
             return nRDM
         if not method=='cumulant':
@@ -755,7 +619,6 @@ class RDM:
                         self.r**self.p
                         )
                     )
-    
     def expand(self):
         size = len(self.rdm.shape)
         if not self.p==1:
@@ -764,249 +627,6 @@ class RDM:
                     (tuple([self.r for i in range(2*self.p)]))
                     )
 
-class Recursive:
-    def __init__(self,
-            depth='default',
-            choices=[],
-            ):
-        if depth=='default':
-            depth=len(choices)
-        self.depth=depth
-        self.total=[]
-        self.choices = list(choices)
 
-    def choose(self,choices='default',temp=[]):
-        '''
-        recursive function to give different choices? 
-        '''
-        if choices=='default':
-            choices=self.choices
-        done=True
-        for c in choices:
-            if not len(c)==0:
-                done=False
-                break
-        if done:
-            self.total.append(temp)
-        else:
-            for n,i in enumerate(choices):
-                for m in reversed(range(len(i))):
-                    nc = copy(choices)
-                    j = nc[n].pop(m)
-                    self.choose(nc,temp=temp[:]+[j])
-        
-    def simplify(self):
-        '''
-
-        '''
-        new = []
-        for i in self.total:
-            r = ''.join(i)
-            if r in new:
-                pass
-            else:
-                new.append(r)
-        self.total = new
-
-    def permute(self,d='default',temp=[]):
-        '''
-        chooses d number of options from the choices, and returns 
-        and ordered list of choices (01,02,03,12,13,23,etc.)
-        '''
-        if d=='default':
-            d = self.depth
-        if d==0:
-            self.total.append(temp)
-        else:
-            for i in self.choices:
-                if len(temp)==0:
-                    self.permute(d-1,temp[:]+[i])
-                elif i>temp[-1]:
-                    self.permute(d-1,temp[:]+[i])
-
-    def unordered_permute(self,d='default',temp=[],choices=[1],s=1):
-        if d=='default':
-            d = self.depth
-        if d==0 and len(choices)==0:
-            temp.append(s)
-            self.total.append(temp)
-        else:
-            if len(temp)==0:
-                for n,i in enumerate(self.choices):
-                    s=(-1)**n
-                    choices = self.choices.copy()
-                    choices.pop(n)
-                    self.unordered_permute(d-1,temp[:]+[i],choices,s)
-                    temp=[]
-            else:
-                for n,j in enumerate(choices):
-                    s*=(-1)**n
-                    tempChoice = choices.copy()
-                    tempChoice.pop(n)
-                    self.unordered_permute(d-1,temp[:]+[j],tempChoice,s)
-
-
-def build_2rdm(
-        wavefunction,
-        alpha,beta,
-        region='full',
-        rdm2=None):
-    '''
-    Given a wavefunction, and the alpha beta orbitals, will construct the 2RDM
-    for a system.
-    Note, the output format is for a general two body operator, aT_i, aT_k, a_l, a_j
-    i/j are electron 1, and k/l are electron 2
-    '''
-    def phase_2e_oper(I,K,L,J,det,low=0):
-        # very general phase operator - works for ANY i,k,l,j
-        # generates new occupation as well as the sign of the phase
-        def new_det(i,k,l,j,det):
-            # transform old determinant to new
-            det=det[:j]+'0'+det[j+1:]
-            det=det[:l]+'0'+det[l+1:]
-            det=det[:k]+'1'+det[k+1:]
-            det=det[:i]+'1'+det[i+1:]
-            return det
-        def delta(a,b):
-            # delta function
-            delta =0
-            if a==b:
-                delta = 1
-            return delta
-        def det_phase(det,place,start):
-            # generate phase of a determinant based on number of occupied orbitals with index =1
-            p = 1
-            for i in range(start,place):
-                if det[i]=='1':
-                    p*=-1
-            return p
-        # conditionals for switching orbital orderings
-        a1 = (L<=J)
-        b1,b2 = (K<=L),(K<=J)
-        c1,c2,c3 = (I<=K),(I<=L),(I<=J)
-        eps1,eps2,eps3 = 1,1,1
-        if a1%2==1: #i.e., if J<L
-            eps1=-1
-        if (b1+b2)%2==1 : # if K>L, K>J
-            eps2=-1
-        if (c1+c2+c3)%2==1: # if I>K,I>L,I>J
-            eps3=-1
-        t2 = 1-delta(L,J) # making sure L/J, I/K not same orbital
-        t1 = 1-delta(I,K)
-        t7 = eps1*eps2*eps3 
-        d1 = delta(I,L) 
-        d2 = delta(I,J)
-        d3 = delta(K,L)
-        d4 = delta(K,J)
-        kI = int(det[I]) # occupation of orbitals
-        kK = int(det[K])
-        kL = int(det[L])
-        kJ = int(det[J])
-        pI = det_phase(det,I,start=low)
-        pK = det_phase(det,K,start=low)
-        pL = det_phase(det,L,start=low)
-        pJ = det_phase(det,J,start=low)
-        t6 = pJ*pL*pK*pI
-        t5 = kL*kJ # if 0, then we have a problem
-        t3 = d1+d2+1-kI # IL or IJ are the same, and I is already occupied - if I is occupied and not I=J, or I=L, then 0
-        t4 = d3+d4+1-kK # same as above, for K and K/L, K/J
-        Phase = t1*t2*t3*t4*t5*t6*t7
-        ndet = new_det(I,K,L,J,det)
-        return Phase,ndet
-    #
-    # First, alpha alpha 2-RDM, by selecting combinations only within alpha
-    #
-    wf = wavefunction
-    if region=='full':
-        norb = len(alpha['inactive']+alpha['virtual']+alpha['active'])
-        norb+= len(beta['virtual']+beta['inactive']+beta['active'])
-        alpha = alpha['inactive']+alpha['active']
-        beta = beta['inactive']+beta['active']
-        rdm2 = np.zeros((norb,norb,norb,norb),dtype=np.complex_)
-    elif region=='active':
-        ai = set(alpha['inactive'])
-        bi = set(beta['inactive'])
-        alpha = alpha['inactive']+alpha['active']
-        beta = beta['inactive']+beta['active']
-    for i in alpha:
-        for k in alpha:
-            if (i<k):
-                for l in alpha:
-                    for j in alpha:
-                        if (l<j):
-                            #low = min(i,l)
-                            low = 0 
-                            if region=='active':
-                                if set((i,j,k,l)).issubset(ai):
-                                    continue
-                                rdm2[i,k,l,j]=0
-                                rdm2[k,i,l,j]=0
-                                rdm2[k,i,j,l]=0
-                                rdm2[i,k,j,l]=0
-                            for det1 in wf:
-                                ph,check = phase_2e_oper(i,k,l,j,det1,low)
-                                if ph==0:
-                                    continue
-                                else:
-                                    if check in wf:
-                                        rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
-                                        rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
-                                        rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
-                                        rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
-
-    for i in beta:
-        for k in beta:
-            if (i<k):
-                for l in beta:
-                    for j in beta:
-                        if (l<j):
-                            low = 0
-                            if region=='active':
-                                if set((i,j,k,l)).issubset(bi):
-                                    continue
-                                rdm2[i,k,l,j]=0
-                                rdm2[k,i,l,j]=0
-                                rdm2[k,i,j,l]=0
-                                rdm2[i,k,j,l]=0
-                            for det1 in wf:
-                                ph,check = phase_2e_oper(i,k,l,j,det1,low)
-                                if ph==0:
-                                    continue
-                                else:
-                                    if check in wf:
-                                        rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
-                                        rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
-                                        rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
-                                        rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
-
-    for i in alpha:
-        for j in alpha:
-            for k in beta:
-                for l in beta:
-                    low = 0
-                    if region=='active':
-                        if set((i,j,k,l)).issubset(ai.union(bi)):
-                            continue
-                        rdm2[i,k,j,l]=0
-                        rdm2[i,k,l,j]=0
-                        rdm2[k,i,l,j]=0
-                        rdm2[k,i,j,l]=0
-                    for det1 in wf:
-                        ph,check = phase_2e_oper(i,k,l,j,det1,low)
-                        if ph==0:
-                            continue
-                        else:
-                            if check in wf:
-                                rdm2[i,k,l,j]+=-1*ph*wf[det1]*con(wf[check])
-                                rdm2[k,i,j,l]+=-1*ph*wf[det1]*con(wf[check])
-                                rdm2[i,k,j,l]+=+1*ph*wf[det1]*con(wf[check])
-                                rdm2[k,i,l,j]+=+1*ph*wf[det1]*con(wf[check])
-    return rdm2
-
-def factorial(p):
-    if p==0:
-        return 1
-    else:
-        return p*factorial(p-1)
 
 

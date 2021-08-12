@@ -46,7 +46,7 @@ class StabilizerProcess(Process):
             original,
             counts,quantstore,
             **kw):
-        #print(original)
+        print(original)
         #print('Original counts: ')
         #print(counts)
         if original=='Z'*quantstore.Nq:
@@ -56,8 +56,8 @@ class StabilizerProcess(Process):
             Sz= Operator()
             for i in range(No):
                 ph = (-1)**(i//(No/2))
-                N+=FermiString(coeff=1,indices=[i,i],ops='+-',N=No)
-                Sz+=FermiString(coeff=ph,indices=[i,i],ops='+-',N=No)
+                N  += FermiString(coeff=1,indices=[i,i],ops='+-',N=No)
+                Sz += FermiString(coeff=ph,indices=[i,i],ops='+-',N=No)
             N = N.transform(quantstore.transform)
             Sz = Sz.transform(quantstore.transform)
             new = {}
@@ -80,10 +80,11 @@ class StabilizerProcess(Process):
                 c2 = (round(sz,5)==(quantstore.Ne_alp-quantstore.Ne_bet))
                 if c1 and c2:
                     new[k]=v
-            #print('Filtered Counts: ')
-            #print(new)
+            print('Filtered Counts: ')
+            print(new)
             return new
         else:
+            print('Not filtered.')
             return counts
 
 

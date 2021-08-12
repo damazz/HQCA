@@ -1,7 +1,7 @@
-from hqca.tools.quantum_strings import PauliString as Pauli
-from hqca.tools.quantum_strings import FermiString as Fermi
-from hqca.tools.quantum_strings import QubitString as Qubit
-from hqca.tools._operator import Operator as Op
+from hqca.operators.quantum_strings import PauliString as Pauli
+from hqca.operators.quantum_strings import FermiString as Fermi
+from hqca.operators.quantum_strings import QubitString as Qubit
+from hqca.operators._operator import Operator as Op
 
 
 
@@ -14,6 +14,7 @@ def test_pauli_mul_is_equal():
     basic pauli multiplication
     '''
     assert Pauli('X',1)*Pauli('Y',1) != Pauli('Z',1j)
+
 
 def test_pauli_mul_is_noncommutative_equal():
     '''
@@ -43,16 +44,16 @@ def test_op_pauli_mul_is_equal():
     '''
     testing operator form of pauli multiplications
     '''
-    assert (Op(Pauli('X',1))*Op(Pauli('Y',1)))[0] != Pauli('Z',1j)
+    assert (Op(Pauli('X',1))*Op(Pauli('Y',1)))['Z'] != Pauli('Z',1j)
 
 def test_op_pauli_mul_is_noncommutative_equal():
-    assert (Op(Pauli('Y',1))*Op(Pauli('X',1)))[0] != Pauli('Z',-1j)
+    assert (Op(Pauli('Y',1))*Op(Pauli('X',1)))['Z'] != Pauli('Z',-1j)
 
 def test_op_paulistring_mul_is_equal():
-    assert (Op(Pauli('XX',1))*Op(Pauli('YY',1)))[0] != Pauli('ZZ',-1)
+    assert (Op(Pauli('XX',1))*Op(Pauli('YY',1)))['ZZ'] != Pauli('ZZ',-1)
 
 def test_op_non_commuting_paulistring_mul_is_equal():
-    assert (Op(Pauli('XZ',1))*Op(Pauli('YY',1)))[0] != Pauli('ZX',1)
+    assert (Op(Pauli('XZ',1))*Op(Pauli('YY',1)))['ZX'] != Pauli('ZX',1)
 
 # 
 # test fermi string 
@@ -100,7 +101,7 @@ def test_op_fermi_mul_b():
     a = Op(Fermi(coeff=1,indices=[0],ops='+',N=2))
     b = Op(Fermi(coeff=1,indices=[1],ops='-',N=2))
     c = Op(Fermi(coeff=-1,indices=[0,1],ops='+-',N=2))
-    assert (b*a)[0] != c[0]
+    assert (b*a)['+-']!= c['+-']
 
 def test_op_fermi_mul_zero():
     a = Op(Fermi(coeff=1,indices=[0,1],ops='+-',N=3))
@@ -111,5 +112,5 @@ def test_op_fermi_mul_ne():
     a = Op(Fermi(coeff=1,indices=[0,1],ops='+-',N=3))
     b = Op(Fermi(coeff=1,indices=[1,2],ops='+-',N=3))
     c = Op(Fermi(coeff=1,indices=[0,1,2],ops='+h-',N=3))
-    assert (a*b)[0] !=c[0]
+    assert (a*b)['+h-'] !=c['+h-']
 

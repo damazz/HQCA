@@ -2,6 +2,7 @@ from hqca.core import *
 from functools import reduce
 import sys
 from hqca.tools import *
+from hqca.operators import *
 import numpy as np
 from pyscf import gto,mcscf,scf
 import timeit
@@ -94,13 +95,14 @@ class FermionicHamiltonian(Hamiltonian):
         self.K2 = np.zeros((self.r,self.r,self.r,self.r))
         if self.verbose:
             print('Transforming molecular integrals...')
+        self.K2+= self.ints_2e*0.5
         for i in range(0,self.r):
             for j in range(0,self.r):
-                temp = 0.5*self.ints_2e[i,:,j,:]
-                for k in range(0,self.r):
-                    temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                self.K2[i,:,j,:]+= temp[:,:]
-
+                for k in range(self.r):
+                    self.K2[i,k,j,k]+= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
+                    self.K2[k,i,k,j]+= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
+                    self.K2[i,k,k,j]-= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
+                    self.K2[k,i,j,k]-= self.ints_1e[i,j]*0.25/(self.Ne_tot-1)
         if self.verbose:
             print('... Done!')
         self._matrix = contract(self.K2)

@@ -1,23 +1,26 @@
 from hqca.core import *
 from functools import reduce
 import sys
+from copy import deepcopy as copy
 from hqca.tools import *
+from hqca.operators import *
 import numpy as np
 from pyscf import gto,mcscf,scf
 import timeit
-
+from timeit import default_timer as dt
 
 class MolecularHamiltonian(Hamiltonian):
     def __init__(self,
             mol,
             transform=None,
-            int_thresh=1e-10,
-            Ne_active_space='default',
-            No_active_space='default',
+            int_thresh=1e-14,
+            active_space=None,
             integral_basis='hf',
             generate_operators=True,
             verbose=True,
             en_c=None,
+            solver='casci',
+            print_transformed=True,
             ):
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
@@ -33,6 +36,10 @@ class MolecularHamiltonian(Hamiltonian):
         self.ints_2e_ao = mol.intor('int2e')
         self.real=True
         self.imag=False
+        self._print_transformed=print_transformed
+        self._transform = transform
+        if type(transform)==type(None):
+            raise HamiltonianError('Need to specify transform for Hamiltonian.')
         self.hf = scf.ROHF(mol)
         self.hf.kernel()
         self.hf.analyze()
@@ -40,198 +47,164 @@ class MolecularHamiltonian(Hamiltonian):
         self.C = self.hf.mo_coeff
         self.f = self.hf.get_fock()
         self._order = 2
-        if Ne_active_space=='default':
-            self.Ne_as = mol.nelec[0]+mol.nelec[1]
+        self.mol = mol
+        if isinstance(active_space,tuple) or isinstance(active_space,list):
+            self._use_active_space = True
+            self.Ne_as = int(active_space[0])
+            self.No_as = int(active_space[1])
         else:
-            self.Ne_as = int(Ne_active_space)
+            self.No_as = self.C.shape[0]
+            self._use_active_space = False
+            self.Ne_as = mol.nelec[0]+mol.nelec[1]
         self.Ne_tot = mol.nelec[0]+mol.nelec[1]
         self.Ne_core = self.Ne_tot - self.Ne_as
         self.Ne_alp = mol.nelec[0]-self.Ne_core//2
         self.Ne_bet = mol.nelec[1]-self.Ne_core//2
+        self.No_core = self.Ne_core//2
+        self._core = [i for i in range(self.No_core)]
+        self._active = [i+self.No_core for i in range(self.No_as)]
         if self.verbose:
             print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
-        if No_active_space=='default':
-            self.No_as = self.C.shape[0]
-        else:
-            self.No_as = int(No_active_space)
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
+        if self.verbose:
+            print('N electrons total: {}'.format(self.Ne_tot))
+            print('N electrons active: {}'.format(self.Ne_as))
+            print('N core orbitals: {}'.format(self.No_core))
+            print('N active orbitals: {}'.format(self.No_as))
+
         self._generate_spin2spac_mapping()
-        if self.No_as<=4:
+        if solver in ['casci','fci','ci'] and self.No_as<=8:
             self.mc = mcscf.CASCI(
                     self.hf,
                     self.No_as,
                     self.Ne_as)
+            self.mc.fcisolver.nroots = 4
+            self.mc.kernel()
+            if abs(self.mc.e_tot[1]-self.mc.e_tot[0])<0.01:
+                print('Energy gaps:')
+                for i in range(self.mc.fcisolver.nroots-1):
+                    print(self.mc.e_tot[i+1]-self.mc.e_tot[i])
+                print('Ground excited state energy gap less than 10 mH')
+            self.ef  = self.mc.e_tot[0]
+            self.mc_coeff = self.mc.mo_coeff
+            if self.verbose:
+                print('CASCI Energy: {:.8f}'.format(float(self.ef)))
+
+        elif solver in ['casscf']:
+            n_states = 2
+            weights = np.ones(n_states)/n_states
+            self.mc = mcscf.CASSCF(
+                    self.hf,
+                    self.No_as,
+                    self.Ne_as).state_average_((1,0,0))
             self.mc.kernel()
             self.ef  = self.mc.e_tot
             self.mc_coeff = self.mc.mo_coeff
+            if self.verbose:
+                print('CASSCF Energy: {:.8f}'.format(float(self.ef)))
         else:
-            self.ef =  0
-        if self.verbose:
-            print('CASCI Energy: {:.8f}'.format(float(self.ef)))
+            self.ef = 0
         self.spin = mol.spin
         self.Ci = np.linalg.inv(self.C)
         self._generate_active_space()
-        if type(en_c)==type(None):
-            self._en_c = mol.energy_nuc()
+        if self._mo_basis in ['default','hf']:
+            mo_coeff_a,mo_coeff_b = copy(self.C),copy(self.C)
+        elif self._mo_basis in ['no','natural','canonical']:
+            print('Stating with natural orbital.... ')
+            mo_coeff_a,mo_coeff_b = self.mc_coeff,self.mc_coeff
+        if verbose:
+            print('Transforming 1e integrals...')
+        self.energy_nuclear = mol.energy_nuc()
+        self._gen_operators = generate_operators
+        self._int_thresh = int_thresh
+        self._update_ints(mo_coeff_a,mo_coeff_b)
+
+    def _update_ints(self,mo_coeff_a,mo_coeff_b):
+        self.mo_a =  mo_coeff_a
+        self.mo_b = mo_coeff_b
+        self.ints_1e = generate_spin_1ei(
+                self.ints_1e_ao.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self.ints_2e = generate_spin_2ei(
+                self.ints_2e_ao.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self._build_K2()
+
+
+    def _build_K2(self):
+        self.K2 = np.zeros((self.r, self.r, self.r, self.r))
+        if self._use_active_space:
+            active = self.alpha_mo['active']+self.beta_mo['active']
+            core = self.alpha_mo['inactive'] + self.beta_mo['inactive']
+            core_1e = np.zeros((self.r,self.r))
+            for i in range(0,self.r):
+                I = active[i]
+                for j in range(0,self.r):
+                    J = active[j]
+                    core_1e[i,j]+= self.ints_1e[I,J]
+                    for k in range(0,self.No_core*2):
+                        # active-core electrons
+                        K = core[k]
+                        core_1e[i,j]+= self.ints_2e[I,K,J,K]
+                        core_1e[i,j]-= self.ints_2e[I,K,K,J]
+                    for k in range(0,self.r):
+                        # active active 1e
+                        K = active[k]
+                        self.K2[i,k,j,k]+= core_1e[i,j]/(4*(self.Ne_as-1))
+                        self.K2[k,i,k,j]+= core_1e[i,j]/(4*(self.Ne_as-1))
+                        self.K2[i,k,k,j]-= core_1e[i,j]/(4*(self.Ne_as-1))
+                        self.K2[k,i,j,k]-= core_1e[i,j]/(4*(self.Ne_as-1))
+                        for l in range(0,self.r):
+                            # active active 2e
+                            L = active[l]
+                            self.K2[i,k,j,l]+= 0.5*self.ints_2e[I,K,J,L]
         else:
-            self._en_c = en_c
-        if self._mo_basis in ['default','hf','active','as']:
-            if verbose:
-                print('Transforming 1e integrals...')
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            if verbose:
-                print('Transforming 2e integrals...')
-            self.ints_2e = generate_spin_2ei(
-                    self.ints_2e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            if verbose:
-                print('Done!')
-            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            if self.verbose:
-                print('Transforming molecular integrals...')
-            if self._mo_basis in ['active','as']:
-                active = self.alpha_mo['active']+self.beta_mo['active']
-                for i in range(0,self.r):
-                    I = active[i]
-                    for j in range(0,self.r):
-                        J = active[j]
-                        for k in range(0,self.r):
-                            K = active[k]
-                            self.K2[i,k,j,k]+=(
-                                    1/(self.Ne_tot-1)
-                                    )*self.ints_1e[I,J]
-                            for l in range(0,self.r):
-                                L = active[l]
-                                self.K2[i,k,j,l]+= 0.5*self.ints_2e[I,K,J,L]
-                print('Done!')
-            else:
-                for i in range(0,self.r):
-                    for j in range(0,self.r):
-                        temp = 0.5*self.ints_2e[i,:,j,:]
-                        for k in range(0,self.r):
-                            temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                        self.K2[i,:,j,:]+= temp[:,:]
-        elif self._mo_basis=='no':
-            if self.verbose:
-                print('Obtaining natural orbitals.')
-            d1 = self.mc.fcisolver.make_rdm1s(
-                    self.mc.ci,
-                    self.No_as,
-                    self.Ne_as,
-                    )
-            def reorder(rdm1,orbit):
-                '''
-                Finds the transformation to obtain the Aufbau ordering 
-                for spatial orbitals: the spatial orbitals according 
-                to the eigenvalues of the 1-RDM (sometimes, 
-                diagonalization procedure will swap the orbital 
-                ordering). 
-                '''
-                ordered=False
-                T = np.identity(orbit)
-                for i in range(0,orbit):
-                    for j in range(i+1,orbit):
-                        if rdm1[i,i]>=rdm1[j,j]:
-                            continue
-                        else:
-                            temp= np.identity(orbit)
-                            temp[i,i] = 0 
-                            temp[j,j] = 0
-                            temp[i,j] = -1
-                            temp[j,i] = 1
-                            T = np.dot(temp,T)
-                return T
-            nocca, norba = np.linalg.eig(d1[0]) # diagonalize alpha
-            noccb, norbb = np.linalg.eig(d1[1]) # diagonalize beta 
-            # reorder according to eigenvalues for alpha, beta
-            Ta = reorder(reduce(np.dot, (norba.T,d1[0],norba)),self.No_as)
-            Tb = reorder(reduce(np.dot, (norbb.T,d1[1],norbb)),self.No_as)
-            # generate proper 1-RDM in NO basis, alpha bet
-            D1_a = reduce(np.dot, (Ta.T, norba.T, d1[0], norba, Ta))
-            D1_b = reduce(np.dot, (Tb.T, norbb.T, d1[1], norbb, Tb))
-            # transformation from AO to NO for alpha, beta, using the 
-            # provided HF solution as well
-            ao2no_a = reduce(np.dot, (self.mc.mo_coeff, norba, Ta))
-            ao2no_b = reduce(np.dot, (self.mc.mo_coeff, norbb, Tb))
-            # Note, these are in (AO,NO) form, so they are: "ao to no"
-            # important function, generates the full size 1e no (NOT 
-            # in the spatial orbital basis, but in the spin basis) 
-            self.ints_2e = generate_spin_2ei(
-                    self.ints_2e_ao, 
-                    ao2no_a.T, 
-                    ao2no_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    spin2spac=self.s2s
-                    )
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao,
-                    ao2no_a.T,
-                    ao2no_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-        elif self._mo_basis=='pyscf':
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            self.ints_2e = generate_spin_2ei_pyscf(
-                    self.ints_2e_ao.copy(),
-                    self.C.T,
-                    self.C.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            self.K2 = np.zeros((self.r,self.r,self.r,self.r))
-            if self.verbose:
-                print('Transforming molecular integrals...')
+            self.K2+= self.ints_2e*0.5
             for i in range(0,self.r):
                 for j in range(0,self.r):
-                    temp = 0.5*self.ints_2e[i,j,:,:]
-                    for k in range(0,self.r):
-                        temp[k,k]+= (1/(self.Ne_tot-1))*self.ints_1e[i,j]
-                    self.K2[i,j,:,:]+= temp[:,:]
-        if self.verbose:
-            print('... Done!')
+                    for k in range(self.r):
+                        self.K2[i, k, j, k] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                        self.K2[k, i, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                        self.K2[i, k, k, j] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                        self.K2[k, i, j, k] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
         self._matrix = contract(self.K2)
         self._model = 'molecular'
-        self._transform = transform
-        if generate_operators:
-            self._build_operator(int_thresh)
+        if self._use_active_space:
+            # need to trace over the other degrees of freedom...i.e.
+            core_ab = self.alpha_mo['inactive']+self.beta_mo['inactive']
+            E_core = 0
+            for i in core_ab:
+                E_core += self.ints_1e[i,i]
+                for j in core_ab:
+                    E_core+= 0.5*self.ints_2e[i,j,i,j]
+                    E_core-= 0.5*self.ints_2e[i,j,j,i]
+            self._en_c = E_core+self.energy_nuclear
+        else:
+            self._en_c = self.energy_nuclear
+        if self.verbose:
+            print('Core energy', self._en_c)
+        if self._gen_operators:
+            self._build_operator(self._int_thresh)
         else:
             self._qubOp = None
             self._ferOp = None
 
-
     @property
     def order(self):
         return self._order
-
 
     @property
     def qubit_operator(self):
@@ -253,6 +226,10 @@ class MolecularHamiltonian(Hamiltonian):
     def matrix(self):
         return self._matrix
 
+
+    def _update_integrals(self):
+        pass
+
     def _generate_active_space(self,
             spin_mapping='default',
             **kw
@@ -260,45 +237,23 @@ class MolecularHamiltonian(Hamiltonian):
         '''
         Note, all orb references are in spatial orbitals. 
         '''
+        self.No_v = self.No_tot - self.No_core-self.No_as
         self.alpha_mo={
-                'inactive':[],
-                'active':[],
-                'virtual':[],
-                'qc':[]
+                'inactive':[i for i in range(self.No_core)],
+                'active':[i+self.No_core for i in range(self.No_as)],
+                'virtual':[self.No_tot-self.No_v+i for i in range(self.No_v)],
+                'qubit':[i for i in range(self.No_as)]
                 }
         self.beta_mo={
-                'inactive':[],
-                'active':[],
-                'virtual':[],
-                'qc':[]
+                'inactive':[i+self.No_tot for i in range(self.No_core)],
+                'active':[i+self.No_core+self.No_tot for i in range(self.No_as)],
+                'virtual':[i+2*self.No_tot-self.No_v for i in range(self.No_v)],
+                'qubit':[i+self.No_as for i in range(self.No_as)]
                 }
-        self.Ne_ia = self.Ne_tot-self.Ne_as
-        self.No_ia = self.Ne_ia//2
+        #print(self.alpha_mo)
+        #print(self.beta_mo)
         self.spin = spin_mapping
-        self.No_v  = self.No_tot-self.No_ia-self.No_as
-        if self.Ne_ia%2==1:
-            raise(SpinError)
-        if self.Ne_ia>0:
-            self.active_space_calc='CASSCF'
-        ind=0
-        for i in range(0,self.No_ia):
-            self.alpha_mo['inactive'].append(ind)
-            ind+=1
-        for i in range(0,self.No_as):
-            self.alpha_mo['active'].append(ind)
-            ind+=1
-        for i in range(0,self.No_v):
-            self.alpha_mo['virtual'].append(ind)
-            ind+=1
-        for i in range(0,self.No_ia):
-            self.beta_mo['inactive'].append(ind)
-            ind+=1
-        for i in range(0,self.No_as):
-            self.beta_mo['active'].append(ind)
-            ind+=1
-        for i in range(0,self.No_v):
-            self.beta_mo['virtual'].append(ind)
-            ind+=1
+        self.No_v  = self.No_tot-self.No_core-self.No_as
 
     def _generate_spin2spac_mapping(self):
         self.s2s = {}
@@ -308,7 +263,8 @@ class MolecularHamiltonian(Hamiltonian):
             self.s2s[i]=i-self.No_tot
 
 
-    def _build_operator(self,int_thresh=1e-14):
+
+    def _build_operator(self,int_thresh=1e-14,compact=False):
         if self.verbose:
             print('Time: ')
         t1 = timeit.default_timer()
@@ -321,6 +277,8 @@ class MolecularHamiltonian(Hamiltonian):
         qubOp = Operator()
         ferOp = Operator()
         # 1e terms
+        #
+        #
         for p in alp+bet:
             P = o2q[p]
             for q in alp+bet:
@@ -337,14 +295,15 @@ class MolecularHamiltonian(Hamiltonian):
         t2 = timeit.default_timer()
         if self.verbose:
             print('1e terms: {}'.format(t2-t1))
-
+        t_transform = 0
+        n=0
         # starting 2 electron terms
         for p in alp+bet:
             P = o2q[p]
             for r in alp+bet:
                 R = o2q[r]
                 if p==r:
-                    continue
+                     continue
                 i1 = (p==r)
                 for s in alp+bet:
                     S = o2q[s]
@@ -360,13 +319,23 @@ class MolecularHamiltonian(Hamiltonian):
                             continue
                         if abs(self.ints_2e[p,r,q,s])<=int_thresh:
                             continue
+                        #if abs(self.K2[P,R,Q,S])<=int_thresh:
+                        #    continue
                         newOp = FermiString(
                                 N=len(alp+bet),
                                 coeff=0.5*self.ints_2e[p,r,q,s],
+                                #coeff=self.K2[P,R,Q,S],
                                 indices=[P,R,S,Q],
                                 ops='++--',
                                 )
                         ferOp+= newOp
+                        #t0 = dt()
+                        #qubOp+= self._transform(newOp)
+                        #t_transform+= dt()-t0
+                        #n+=1
+        t3 = timeit.default_timer()
+        if self.verbose:
+            print('2e terms: {}'.format(t3-t2))
         new = ferOp.transform(self._transform)
         qubOp = Operator()
         for i in new:
@@ -374,8 +343,11 @@ class MolecularHamiltonian(Hamiltonian):
                 qubOp+= i
         self._qubOp = qubOp
         self._ferOp = ferOp
-        t3 = timeit.default_timer()
+        t4 = timeit.default_timer()
         if self.verbose:
+            print('2e transform: {}'.format(t4-t3))
+        #print('2e transform: {}'.format(t_transform))
+        if self.verbose and self._print_transformed:
             print('2e terms: {}'.format(t3-t2))
             print('-- -- -- -- -- -- -- -- -- -- --')
             print('Second Quantized Hamiltonian')

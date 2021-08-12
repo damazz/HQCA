@@ -1,20 +1,25 @@
 from hqca.tools import *
+from hqca.operators import *
 from copy import deepcopy as copy
 import sys
+from hqca.core import *
 
 class Ansatz:
     def __init__(self,
             closed=True,
+            trotter='first',
+                 **kwargs
             ):
+
         '''
         Compilation of operators. Designed for iterative ansatz, where different layers
-        of ansatz terms can be defined. 
+        of ansatz terms can be defined.
 
-        A closed ansatz is one in which the inner layers of the ansatz cannot be accessed.
-        I.e., it is non commutative with respect to addition. 
+        A closed ansatz is one in which the inner layers of the ansatz cannot be accessed
         '''
         self.A = [] #instead of strings, holds operators at each place
         self.closed = closed
+        self.trotter = trotter
         self._store = []
         if closed>1:
             sys.exit('Need to specify closed <=1')
@@ -38,7 +43,21 @@ class Ansatz:
         return self.A[k]
 
     def op_form(self):
-        return Operator([p for o in self.A for p in o])
+        if self.trotter=='first':
+            return [p for o in self.A for p in o]
+        elif self.trotter=='second':
+            S = []
+            for a in self.A:
+                for o in a:
+                    S.append(o*0.25)
+                for o in a:
+                    S.append(o*0.5)
+                for o in a:
+                    S.append(o * 0.25)
+            return S
+        else:
+            raise QuantumRunError('Unspecified trotterization: {}'.format(self.trotter))
+
 
     def __iter__(self):
         return self.A.__iter__()
@@ -116,3 +135,4 @@ class Ansatz:
             O.c = O.c*(-1)
             new+= O
         return self+new
+

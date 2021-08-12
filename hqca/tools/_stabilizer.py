@@ -2,12 +2,11 @@ import numpy as np
 from scipy import linalg as la
 np.set_printoptions(linewidth=300)
 import sympy as sy
-from hqca.tools._operator import *
-from hqca.tools.quantum_strings import *
+from hqca.operators import *
 from hqca.core.primitives import *
 
 class Stabilizer:
-    def __init__(self,paulis,verbose=False,**kw):
+    def __init__(self,paulis,verbose=True,**kw):
         '''
         Given a Pauli operator (i.e., Operator class composed of Pauli strings),
         we can represent the check sum representation of the Pauli matrix, and then
@@ -22,19 +21,29 @@ class Stabilizer:
         self.verbose = verbose
         self.op = paulis
         if type(paulis)==type([]):
-            sys.exit('Please provide the list in Pauli operator form.')
-        else:
-            self.N = len(paulis.op[0].s)
-            self.l = len(paulis.op)
+            self.N = len(paulis[0])
+            self.l = len(paulis)
             self.G = np.zeros((2*self.N,self.l))
             iden = 'I'*self.N
             add = 0
-            for i in range(self.l):
-                if paulis.op[i].s==iden:
+            for n,i in enumerate(paulis):
+                if i==iden:
                     add = -1
                     continue
                 else:
-                    self.G[:,i+add]=self._pauli_to_check(paulis.op[i].s)
+                    self.G[:,n+add]=self._pauli_to_check(i)
+        else:
+            self.N = len(next(iter(paulis)).s)
+            self.l = len(paulis)
+            self.G = np.zeros((2*self.N,self.l))
+            iden = 'I'*self.N
+            add = 0
+            for n,i in enumerate(paulis.keys()):
+                if i==iden:
+                    add = -1
+                    continue
+                else:
+                    self.G[:,n+add]=self._pauli_to_check(i)
         if add==-1:
             self.G = self.G[:,:self.l-1]
             self.l-=1

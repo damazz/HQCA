@@ -1,7 +1,7 @@
 import sys
 from copy import deepcopy as copy
-from hqca.tools._operator import *
-from hqca.tools.quantum_strings import *
+from hqca.operators import *
+from hqca.core import *
 
 def QubitTransform(op):
     '''
@@ -10,10 +10,10 @@ def QubitTransform(op):
     Nq = len(op.s)
     pauli = ['I'*Nq]
     new = Operator()
-    new+= PauliString('I'*Nq,op.c)
+    new+= PauliString('I'*Nq,op.c,symbolic=op.sym)
     # define paulis ops
     for qi,o in enumerate(op.s[::-1]):
-        # revrersed is because of the order in which we apply cre/ann ops
+        # reversed is because of the order in which we apply cre/ann ops
         q = Nq-qi-1
         if o=='i':
             continue
@@ -26,9 +26,9 @@ def QubitTransform(op):
             s2 = 'I'*q+'Z'+(Nq-q-1)*'I'
             c1,c2 = 0.5,(o=='h')-0.5
         tem = Operator()
-        tem+= PauliString(s1,c1)
-        tem+= PauliString(s2,c2)
-        new = new*tem
+        tem+= PauliString(s1,c1,symbolic=op.sym)
+        tem+= PauliString(s2,c2,symbolic=op.sym)
+        new = tem*new
     return new
 
 
@@ -38,9 +38,5 @@ def Qubit(operator,
     if isinstance(operator,type(QuantumString())):
         return QubitTransform(operator)
     else:
-        new = Operator()
-        for op in operator:
-            new+= QubitTransform(op)
-        return new
-
+        raise TransformError("Can not feed operator into transform anymore.")
 

@@ -1,11 +1,13 @@
 from pyscf import gto
 import numpy as np
 from hqca.hamiltonian import *
+from hqca.opts import *
 from hqca.transforms import *
 from hqca.acse import *
 from hqca.tools import *
 from hqca.instructions import *
 from hqca.core import *
+from hqca.vqe import *
 from hqca.core.primitives import *
 
 class genericIns(Instructions):
@@ -60,10 +62,27 @@ def advanced_mol():
     mol.build()
     return mol
 
+def tomo_mol():
+    mol = gto.Mole()
+    mol.atom=[
+            ['H',(0,0,0)],
+            ['H',(2.0,0,0)],
+            ['H',(+2.0,1,0)],
+            ['H',(-2.0,-1,0)],
+            ['H',(+2.0,0,1)],
+            ['H',(-2.0,0,-1)],
+            ]
+    mol.basis='sto-3g'
+    mol.spin=0
+    mol.verbose=0
+    mol.build()
+    return mol
+
 
 def generic_molecular_hamiltonian():
     return MolecularHamiltonian(
             mol=generic_mol(),
+            verbose=False,
             transform=JordanWigner)
 
 def generic_fermionic_hamiltonian():
@@ -74,6 +93,7 @@ def generic_fermionic_hamiltonian():
             ints_2e=np.load('./store/ints_2e.npy'),
             ints_spatial=False,
             transform=JordanWigner,
+            verbose=False,
             Ne_active_space=2,
             No_active_space=2,
             en_con=mol.energy_nuc(),
@@ -93,6 +113,31 @@ def generic_quantumstorage():
             provider='Aer')
     return qs
 
+def generic_quantumstorage():
+    ham = generic_molecular_hamiltonian()
+    st = StorageACSE(ham)
+    qs = QuantumStorage()
+    qs.set_algorithm(st)
+    qs.set_backend(
+            backend='statevector_simulator',
+            Nq=4,
+            provider='Aer')
+    return qs
+
+def tomo_quantumstorage():
+    ham =  MolecularHamiltonian(
+            mol=tomo_mol(),
+            generate_operators=False,
+            transform=JordanWigner)
+    st = StorageACSE(ham)
+    qs = QuantumStorage()
+    qs.set_algorithm(st)
+    qs.set_backend(
+            backend='statevector_simulator',
+            Nq=12,
+            provider='Aer')
+    return qs
+
 def generic_acse_objects():
     ham = generic_molecular_hamiltonian()
     ins = PauliSet
@@ -109,6 +154,22 @@ def generic_acse_objects():
     tomoIm.generate(real=False,imag=True,transform=JordanWigner)
     proc = StandardProcess()
     return ham,st,qs,ins,proc,tomoRe,tomoIm
+
+def generic_vqe_objects():
+    ham = generic_molecular_hamiltonian()
+    ins = PauliSet
+    st = StorageVQE(ham)
+    qs = QuantumStorage()
+    qs.set_algorithm(st)
+    qs.set_backend(
+            backend='statevector_simulator',
+            Nq=4,
+            provider='Aer')
+    tomoRe = StandardTomography(qs)
+    tomoRe.generate(real=True,imag=False,transform=JordanWigner)
+    proc = StandardProcess()
+    return ham,st,qs,ins,proc,tomoRe
+
 
 def advanced_mol():
     mol = gto.Mole()

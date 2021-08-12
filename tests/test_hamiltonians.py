@@ -6,6 +6,20 @@ import pickle
 
 def test_molecular():
     ham = generic_molecular_hamiltonian()
+    print(ham.K2)
+    print(np.reshape(ham.K2,(16,16)))
+    s = ''
+    for i in range(4):
+        for j in range(4):
+            s+= '{}{} '.format(i,j)
+    print(s)
+    for i in range(4):
+        print('k2')
+        print(0,i,0,i,ham.K2[0,i,0,i])
+        print(i,0,i,0,ham.K2[i,0,i,0])
+        print('ints')
+        print(0,i,0,i,ham.ints_2e[0,i,0,i])
+        print(i,0,i,0,ham.ints_2e[i,0,i,0])
     e0 = -0.783792654277353
     da.expect(abs(ham.e0-e0)<1e-10)
     # check initializiation
@@ -43,3 +57,5 @@ def test_fermionic():
     da.assert_expectations()
 
 
+
+test_molecular()

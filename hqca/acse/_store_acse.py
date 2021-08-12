@@ -16,7 +16,6 @@ class StorageACSE(Storage):
     '''
     def __init__(self,
             Hamiltonian=None,
-            casci=False,
             use_initial=False,
             initial='hartree-fock',
             second_quant=False,
@@ -38,52 +37,9 @@ class StorageACSE(Storage):
             if not use_initial:
                 self._get_HF_rdm()
             else:
-                self.S = copy(initial)
-                self.S+= op
-                for op in initial:
-                    self.S+= op
-                self._run_initial(**kwargs)
-                # use input state
-                sys.exit()
-            if casci:
-                self.get_FCI_rdm()
-                self._set_overlap()
+                raise NotImplementedError
             self.ei = self.H.hf.e_tot
-            #self.S = Operator()
-            self.S = Ansatz(closed=closed_ansatz)
-        elif self.H.model in ['sq','single-qubit']:
-            if use_initial:
-                # only the +, ++, +++ states are non-zero
-                # what is the ordering like? 
-                #self.S = Operator(ops=[])
-                self.S = Ansatz(closed=closed_ansatz)
-                if len(initial)==0:
-                    pass
-                elif not second_quant:
-                    for p,c,a in initial:
-                        temp = PauliString(
-                                pauli=p,
-                                coeff=c,
-                                add=a)
-                        self.S+= temp
-                else:
-                    for c,i,sq,a in initial:
-                        temp = QubitOperator(
-                                coeff=c,
-                                indices=i,
-                                sqOp=sq,
-                                add=a
-                                )
-                        temp.generateOperators(Nq=1)
-                        self.S+= temp.formOperator()
-            else:
-                self.rdm = qRDM(
-                        order=1,
-                        Nq=1,
-                        )
-                self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
-                self.ei = copy(self.e0)
-                # so...generate the S operator 
+            self.S = Ansatz(closed=closed_ansatz,**kwargs)
         elif self.H.model in ['fermion','fermi','fermionic']:
             self.No_as = self.H.No_as
             self.Ne_as = self.H.Ne_as
@@ -96,43 +52,11 @@ class StorageACSE(Storage):
                 self.S = copy(initial)
             else:
                 #self.S = Operator()
-                self.S = Ansatz(closed=closed_ansatz)
+                self.S = Ansatz(closed=closed_ansatz,**kwargs)
                 # use input state
-        elif self.H.model in ['tq','two-qubit']:
-            if use_initial:
-                # only the +, ++, +++ states are non-zero
-                # what is the ordering like? 
-                #self.S = Operator(ops=[])
-                self.S = Operator(ops=[])
-                if len(initial)==0:
-                    pass
-                elif not second_quant:
-                    for p,c,a in initial:
-                        temp = PauliString(
-                                pauli=p,
-                                coeff=c,
-                                add=a)
-                        self.S+= temp
-                else:
-                    for c,i,sq in initial:
-                        temp = QubitOperator(
-                                coeff=c,
-                                indices=i,
-                                sqOp=sq
-                                )
-                        temp.generateOperators(Nq=1)
-                        self.S+= temp.formOperator()
-            else:
-                self.rdm = qRDM(
-                        order=2,
-                        Nq=2,
-                        )
-                self.e0 = self.rdm.observable(self.H.matrix)+self.H._en_c
-                print('Current energy: {}'.format(self.e0))
-                self.ei = copy(self.e0)
         else:
             print('Model: {}'.format(self.H.model))
-            sys.exit('Specify model initialization.')
+            raise NotImplementedError
 
     def update(self,rdm):
         self.rdm = rdm
@@ -161,6 +85,7 @@ class StorageACSE(Storage):
             negative=False
             for n,i in enumerate(np.linalg.eigvalsh(rdm.rdm)):
                 if abs(i)>1e-10:
+                    print(i)
                     if i<0:
                         print('Negative eigenvalue!')
                         negative=True
@@ -210,64 +135,18 @@ class StorageACSE(Storage):
             print('Density matrix:')
             print(rdm.rdm)
 
-    def _set_overlap(self):
-        self.d_hf_fci =  self.hf_rdm2.get_overlap(self.fci_rdm2)
-        print('Distance between HF, FCI: {:.8f}'.format(
-            np.real(self.d_hf_fci)))
-
     def _get_HF_rdm(self):
+        sz = (self.H.Ne_alp-self.H.Ne_bet)*0.5
+        s2 = {0:0,0.5:0.75,-0.5:0.75,1:2}
         self.hf_rdm = RDM(
                 order=2,
-                alpha = self.alpha_mo['active'],
-                beta  = self.beta_mo['active'],
-                state='scf',
+                alpha = self.alpha_mo['qubit'],
+                beta  = self.beta_mo['qubit'],
+                rdm='hf',
                 Ne=self.Ne_as,
-                S=self.H.Ne_alp-self.H.Ne_bet,
+                Sz=sz,
+                S2=s2[sz],
                 )
         self.e0 = np.real(self.evaluate(self.hf_rdm))
         self.rdm = copy(self.hf_rdm)
 
-    def _run_initial(self,op,Ins,**kwargs):
-        pass
-
-    def _get_FCI_rdm(self):
-        d1,d2 = self.mc.fcisolver.make_rdm12s(
-                self.mc.ci,self.No_as,self.Ne_as)
-        fci_rdm2 = np.zeros((
-            self.No_as*2,self.No_as*2,self.No_as*2,self.No_as*2))
-        for i in self.alpha_mo['active']:
-            for k in self.alpha_mo['active']:
-                for l in self.alpha_mo['active']:
-                    for j in self.alpha_mo['active']:
-                        p,q = self.s2s[i],self.s2s[j]
-                        r,s = self.s2s[k],self.s2s[l]
-                        fci_rdm2[i,k,j,l] = d2[0][p,q,r,s]
-        for i in self.alpha_mo['active']:
-            for k in self.beta_mo['active']:
-                for l in self.beta_mo['active']:
-                    for j in self.alpha_mo['active']:
-                        #if i>=j and k>=l:
-                        #    continue
-                        p,q = self.s2s[i],self.s2s[j]
-                        r,s = self.s2s[k],self.s2s[l]
-                        fci_rdm2[i,k,j,l]+= d2[1][p,q,r,s]
-                        fci_rdm2[k,i,j,l]+= -d2[1][p,q,r,s]
-                        fci_rdm2[i,k,l,j]+= -d2[1][p,q,r,s]
-                        fci_rdm2[k,i,l,j]+= d2[1][p,q,r,s]
-
-        for i in self.beta_mo['active']:
-            for k in self.beta_mo['active']:
-                for l in self.beta_mo['active']:
-                    for j in self.beta_mo['active']:
-                        p,q = self.s2s[i],self.s2s[j]
-                        r,s = self.s2s[k],self.s2s[l]
-                        fci_rdm2[i,k,j,l] = d2[2][p,q,r,s]
-        self.fci_rdm2 = RDM(
-                order=2,
-                alpha = self.alpha_mo['active'],
-                beta  = self.beta_mo['active'],
-                state='given',
-                rdm = fci_rdm2,
-                Ne=self.Ne_as,
-                )
-        self.fci_rdm2.contract()

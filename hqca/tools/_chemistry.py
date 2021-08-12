@@ -25,6 +25,7 @@ def reorder(rdm1,orbit):
                 T = np.dot(temp,T)
     return T
 
+
 def get_spin_ei(
         mol,
         elect,

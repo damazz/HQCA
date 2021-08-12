@@ -18,7 +18,7 @@ class Circ:
         self.n = size
         self.N = 2**self.n
         self.b = ['{:0{}b}'.format(i,self.n)[::1] for i in range(0,self.N)]
-        self.m = np.identity(self.N)
+        self.m = np.asarray(np.identity(self.N))
         self.num_sqg = 0
         self.num_cx  = 0 
         self._cN_basis()
@@ -63,13 +63,6 @@ class Circ:
         circ = Circ(nd)
         circ.m = new*(1/2**(len(qb)))
         return circ
-
-
-
-
-
-
-
 
 
     def _cN_basis(self):
@@ -257,41 +250,41 @@ class Circ:
 
     def h(self,i,**kw):
         a = 1/np.sqrt(2)
-        h = np.matrix([[a,a],[a,-a]])
+        h = np.array([[a,a],[a,-a]])
         self._apply_sqg(h,i)
 
     def z(self,i,**kw):
-        z = np.matrix([[1,0],[0,-1]])
+        z = np.array([[1,0],[0,-1]])
         self._apply_sqg(z,i)
 
     def x(self,i,**kw):
-        x = np.matrix([[0,1],[1,0]])
+        x = np.array([[0,1],[1,0]])
         self._apply_sqg(x,i)
 
     def y(self,i,**kw):
-        y = np.matrix([[0,-1j],[1j,0]])
+        y = np.array([[0,-1j],[1j,0]])
         self._apply_sqg(y,i)
 
     def ph(self,i,theta=np.pi/2,**kw):
         c = self.cos(theta)
         s = 1j*self.sin(theta)
-        ph = np.matrix([[1,0],[0,c+s]])
+        ph = np.array([[1,0],[0,c+s]])
         self._apply_sqg(ph,i)
 
     def particle(self,i,**kw):
-        mat = np.matrix([[0,0],[0,1]])
+        mat = np.array([[0,0],[0,1]])
         self._apply_sqg(mat,i)
 
     def hole(self,i,**kw):
-        mat = np.matrix([[1,0],[0,0]])
+        mat = np.array([[1,0],[0,0]])
         self._apply_sqg(mat,i)
 
     def create(self,i,**kw):
-        mat = np.matrix([[0,0],[1,0]])
+        mat = np.array([[0,0],[1,0]])
         self._apply_sqg(mat,i)
 
     def annihilate(self,i,**kw):
-        mat = np.matrix([[0,1],[0,0]])
+        mat = np.array([[0,1],[0,0]])
         self._apply_sqg(mat,i)
 
     def s(self,i,**kw):
@@ -315,7 +308,7 @@ class Circ:
     def phc(self,i,theta=np.pi/2,**kw):
         c = self.cos(theta)
         s = 1j*self.sin(theta)
-        ph = np.matrix([[c+s,0],[0,c+s]])
+        ph = np.array([[c+s,0],[0,c+s]])
         self._apply_sqg(ph,i)
 
 
@@ -373,19 +366,19 @@ class Circ:
     def Rx(self,i=0,theta=np.pi/2,**kw):
         c = self.cos(theta/2)
         s = -1j*self.sin(theta/2)
-        r = np.matrix([[c,s],[s,c]])
+        r = np.array([[c,s],[s,c]])
         self._apply_sqg(r,i)
 
     def Rz(self,i=0,theta=np.pi/2,**kw):
         c = self.cos(theta/2)
         s = 1j*self.sin(theta/2)
-        r = np.matrix([[c-s,0],[0,c+s]])
+        r = np.array([[c-s,0],[0,c+s]])
         self._apply_sqg(r,i)
 
     def Ry(self,i=0,theta=np.pi/2,**kw):
         c = self.cos(theta/2)
         s = self.sin(theta/2)
-        r = np.matrix([[c,-s],[s,c]])
+        r = np.array([[c,-s],[s,c]])
         self._apply_sqg(r,i)
 
 

@@ -5,10 +5,10 @@ from hqca.instructions import *
 from delayed_assert import delayed_assert as da
 from hqca.acse._ansatz_S import *
 from _generic import *
-from hqca.tools.quantum_strings import PauliString as Pauli
-from hqca.tools.quantum_strings import FermiString as Fermi
-from hqca.tools.quantum_strings import QubitString as Qubit
-from hqca.tools._operator import Operator as Op
+from hqca.operators.quantum_strings import PauliString as Pauli
+from hqca.operators.quantum_strings import FermiString as Fermi
+from hqca.operators.quantum_strings import QubitString as Qubit
+from hqca.operators._operator import Operator as Op
 from hqca.tools._stabilizer import Stabilizer
 from hqca.transforms import *
 from functools import partial
@@ -43,9 +43,11 @@ def test_reduce():
             eigvals=[+1],
             )
     da.expect(len(Hp.transform(Tr))==1)
-    da.expect(Hp.transform(Tr)[0]==Pauli('X',1))
+    da.expect(Hp.transform(Tr)['X']==Pauli('X',1))
     da.expect(len(Hp.transform(tr))==2)
     da.assert_expectations()
+
+test_reduce()
 
 def test_acse_reduced():
     ham = generic_molecular_hamiltonian()

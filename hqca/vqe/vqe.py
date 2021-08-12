@@ -1,10 +1,11 @@
 from hqca.core import *
 from hqca.tools import *
 from hqca.vqe._store_vqe import *
-from hqca.state_tomography import *
+from hqca.tomography import *
 from hqca.vqe._ucc import *
 from hqca.vqe._pair import *
 from copy import deepcopy as copy
+from hqca.operators import *
 
 
 class Cache:
@@ -58,13 +59,7 @@ class RunVQE(QuantumRun):
 
 
     def __test_vqe_function(self,para):
-        para_sym = copy(self.para_sym)
-        psi = copy(self.T)
-        ops = []
-        for n,op in enumerate(psi._op):
-            for m,x in enumerate(para):
-                op.c = op.c.subs(para_sym[m],x)
-            psi._op[n].c = np.complex(op.c)
+        psi = self.T.evaluate(para)
         ins = self.Instruct(psi,
                 self.QuantStore.Nq,
                 depth=self.depth,
@@ -82,6 +77,9 @@ class RunVQE(QuantumRun):
         circ.simulate()
         circ.construct()
         en = np.real(self.Store.evaluate(circ.rdm))
+        if en<self.best:
+            self.Store.update(circ.rdm)
+            self.best = copy(en)
         return en
 
     def __test_vqe_gradient(self,para,diff=0.01):
@@ -105,6 +103,7 @@ class RunVQE(QuantumRun):
         return gradient
 
     def build(self,**kw):
+        print('Building....')
         try:
             if self.built:
                 sys.exit('Building VQE again?')
@@ -112,27 +111,31 @@ class RunVQE(QuantumRun):
             pass
         self.total = Cache()
         # if criteria ...
+        print('Getting UCC...')
         if self.ansatz=='ucc':
-            self.T,self.para_sym = getUCCAnsatz(self.QuantStore)
+            self.T= getUCCAnsatz(self.QuantStore,verbose=self.verbose)
             self.para= []
             if self.Store.initial in ['hf','hartree-fock']:
-                for i in range(len(self.para_sym)):
+                for i in range(len(self.T.xi)):
                     self.para.append(0)
+        print('Starting optimizer...')
+        self.best = 0
         if self.use_gradient:
             self.Opt = self.Opt(
-                    function=self.__test_vqe_function,
-                    gradient=self.__test_vqe_gradient,
-                    **self.kw_opt)
+                function=self.__test_vqe_function,
+                gradient=self.__test_vqe_gradient,
+                **self.kw_opt)
         else:
             self.Opt = self.Opt(
-                    function=self.__test_vqe_function,
-                    **self.kw_opt)
+                function=self.__test_vqe_function,
+                **self.kw_opt)
+        print('Initializing optimizer....')
         self.Opt.initialize(self.para)
         self.ei = self.Opt.opt.best_f
         self.e0 = self.Opt.opt.best_f
 
         self.built=True
-
+        print('Done')
         # here....we should generate the ansatz
 
     def _run_vqe(self):
@@ -141,6 +144,10 @@ class RunVQE(QuantumRun):
         except AttributeError:
             sys.exit('Run not built. Run vqe.build()')
         self.Opt.next_step()
+        self.para = np.asarray(self.Opt.opt.best_x)[0]
+        print(self.para)
+        #if self.verbose:
+        #    self.Store.rdm.analysis()
 
     def _check(self):
         en = self.Opt.opt.best_f
@@ -150,9 +157,8 @@ class RunVQE(QuantumRun):
             self.total.done=True
         elif self.Opt.opt.crit<self.crit:
             self.total.done=True
-            
-
-
+        if self.verbose:
+            self.Store.analysis()
 
     def run(self,**kw):
         if self.built:

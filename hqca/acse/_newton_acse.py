@@ -1,6 +1,6 @@
 from copy import deepcopy as copy
 import numpy as np
-from hqca.state_tomography import *
+from hqca.tomography import *
 from hqca.core import *
 
 def _newton_step(acse):
@@ -22,7 +22,7 @@ def _newton_step(acse):
         e_best = copy(e1)
         coeff_best = copy(acse.delta)
         acse.Store.update(rdm1)
-        #acse.current_counts = acse.circ.operator_count
+        acse.current_counts = acse.circ.operator_count
     if acse.verbose:
         print('Running second point...')
     e2,rdm2 = acse._test_acse_function([acse.d*acse.delta],testS)
@@ -30,7 +30,7 @@ def _newton_step(acse):
         e_best = copy(e2)
         coeff_best = copy(acse.delta*acse.d)
         acse.Store.update(rdm2)
-        #acse.current_counts = acse.circ.operator_count
+        acse.current_counts = acse.circ.operator_count
 
     if acse.verbose:
         print('Energies: ',acse.e0.real,e1,e2)
@@ -92,7 +92,7 @@ def _newton_step(acse):
                     rdm_best = copy(df)
                     coeff_best = copy(coeff)
                     acse.Store.update(df)
-                    #acse.current_counts = acse.circ.operator_count
+                    acse.current_counts = acse.circ.operator_count
                 if acse.verbose:
                     print('Current: {:.10f}'.format(np.real(ef)))
                 def m_qk(s):
@@ -167,7 +167,7 @@ def _newton_step(acse):
         Psi.simulate()
         Psi.construct(processor=acse.process)
         acse.Store.update(Psi.rdm)
-        #acse.current_counts = Psi.operator_count
+        acse.current_counts = Psi.operator_count
         Psi.rdm.switch()
         acse.circ = Psi
     if acse.verbose:

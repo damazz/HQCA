@@ -4,6 +4,7 @@ import sys
 from functools import reduce
 from hqca.core import *
 from hqca.tools import * 
+from hqca.operators import *
 
 class StorageVQE(Storage):
     '''
@@ -49,13 +50,16 @@ class StorageVQE(Storage):
         return en + self.H._en_c
 
     def _get_HF_rdm(self):
+        sz = (self.H.Ne_alp-self.H.Ne_bet)*0.5
+        s2 = {0:0,0.5:0.75,-0.5:0.75,1:2}
         self.hf_rdm = RDM(
                 order=2,
                 alpha = self.alpha_mo['active'],
                 beta  = self.beta_mo['active'],
-                state='scf',
+                rdm='hf',
                 Ne=self.Ne_as,
-                S=self.H.Ne_alp-self.H.Ne_bet,
+                Sz=sz,
+                S2=s2[sz],
                 )
         self.e0 = np.real(self.evaluate(self.hf_rdm))
         self.rdm = copy(self.hf_rdm)

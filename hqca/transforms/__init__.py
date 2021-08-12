@@ -17,5 +17,6 @@ __all__ = [
         'Qubit',
         'modify',
         'get_transform_from_symmetries',
+        'parity_free',
         #'tapered_transform',
         ]

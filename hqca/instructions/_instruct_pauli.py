@@ -50,11 +50,12 @@ class PauliSet(Instructions):
                 pass
             for item in operator:
                 if item.sym:
-                    if abs(im(item.c))<1e-10:
+                    if abs(im(item.c))<1e-14:
                         c = np.real(item.c)
-                    elif abs(re(item.c))<1e-10:
+                    elif abs(re(item.c))<1e-14:
                         c =  np.imag(item.c)
-                    if abs(c)>1e-10:
+                    if abs(c)>1e-14:
+
                         self._gates.append(
                                 [(
                                     c/depth,
@@ -66,11 +67,11 @@ class PauliSet(Instructions):
                 else:
                     try:
                         item.s
-                        if abs(item.c.imag)<1e-10:
+                        if abs(item.c.imag)<1e-14:
                             c = item.c.real
-                        elif abs(item.c.real)<1e-10:
+                        elif abs(item.c.real)<1e-14:
                             c =  item.c.imag
-                        if abs(c)>1e-10:
+                        if abs(c)>1e-14:
                             self._gates.append(
                                     [(
                                         c/depth,
@@ -100,4 +101,5 @@ class PauliSet(Instructions):
                             generic_Pauli_term
                             ]
                         )
+
 

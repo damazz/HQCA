@@ -1,15 +1,12 @@
 from copy import copy as copy
-import numpy as np
 from functools import partial
-from hqca.state_tomography import *
 from hqca.opts import *
+
 
 def _opt_step(acse):
     '''
     '''
     testS = copy(acse.A)
-    acse._opt_log = []
-    acse._opt_en  = []
     func = partial(acse._opt_acse_function,newS=testS)
     if acse._opt_thresh=='default':
         thresh = acse.delta/4
@@ -33,7 +30,7 @@ def _opt_step(acse):
     # run optimization, then choose best run
     #
     #
-    if abs(opt.opt.best_x[0])<0.1:
+    if abs(opt.opt.best_x[0])<0.00001:
         acse.accept_previous_step = False
         print('Rejecting optimization step.')
     else:
@@ -48,4 +45,4 @@ def _opt_step(acse):
                 # 
                 # 
                 acse.Store.update(r.rdm)
-        print(acse.S)
+        #print(acse.S)

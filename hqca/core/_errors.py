@@ -1,26 +1,60 @@
-import warnings
+"""
+hqca errors.
+"""
+
 
 class QuantumRunError(Exception):
-    '''
-    Generic error for quantum runs. 
-    '''
+    """
+    Generic error for quantum runs.
+    """
+    pass
+
+class HamiltonianError(Exception):
     pass
 
 class DeviceConfigurationError(Exception):
-    '''
-    Raised for incompatibilities in configurations. 
-    '''
+    """
+    Raised for incompatibilities in configurations.
+    """
     pass
+
 
 class KeywordError(Exception):
+    """
+    Missing certain keyword.
+    """
     pass
+
 
 class TransformError(Exception):
+    """
+    Error in performing operator transformations.
+    """
     pass
+
+
+class OperatorError(Exception):
+    """
+    Error in handling of operators
+    """
+    pass
+
 
 class TomographyError(Exception):
+    """
+    Error in generation of tomography object.
+    """
     pass
+
 
 class PositivityError(Exception):
+    """
+    Error in the RDM
+    """
     pass
 
+class AnsatzError(Exception):
+    """
+
+    """
+    pass

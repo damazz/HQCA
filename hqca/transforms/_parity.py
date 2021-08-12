@@ -1,7 +1,6 @@
 import sys
 from copy import deepcopy as copy
-from hqca.tools.quantum_strings import *
-from hqca.tools._operator import *
+from hqca.operators import *
 
 def ParityTransform(op):
     Nq = len(op.s)

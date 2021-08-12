@@ -1,14 +1,15 @@
 from copy import deepcopy as copy
 import sys
-from hqca.tools._operator import *
-from hqca.tools.quantum_strings import *
 from functools import partial
 import numpy as np
+from hqca.operators import *
+
+
 
 def trim_operator(ops,
-        qubits=[],
-        paulis=[],
-        eigvals=[],
+        qubits,
+        paulis,
+        eigvals,
         null=0,
         ):
     new = Operator()
@@ -24,7 +25,7 @@ def trim_operator(ops,
             else:
                 c*=null
             s = s[:q]+s[q+1:]
-        new+= PauliString(s,c)
+        new+= PauliString(s,c,symbolic=op.sym)
     return new
 
 def change_basis(op,
@@ -77,7 +78,6 @@ def get_transform_from_symmetries(
             PauliString(symmetries[i],1/np.sqrt(2)),
             PauliString(x,1/np.sqrt(2))
                 ])
-        print(op)
         cTr = partial(
                 modify,
                 fermi=copy(cTr),
@@ -88,6 +88,16 @@ def get_transform_from_symmetries(
                 )
     ciTr = partial(cTr,initial=True)
     return cTr, ciTr
+
+def parity_free(Na,Nb,paritya,parityb,transform):
+    Z1 = 'Z'*(Na+Nb)
+    Z2 = 'Z'*Na + 'I'*(Nb-1)
+    Tr,iTr = get_transform_from_symmetries(
+            transform,
+            [Z1,Z2],
+            [Na+Nb-1,Na-1],
+            [paritya,parityb])
+    return Tr,iTr
 
 '''
 def find_initial_symmetries(fermi):

@@ -8,6 +8,9 @@ def check_mitigation(acse):
         _calculate_zo_correction(acse)
 
 def _calculate_zo_correction(acse):
+    '''
+    Refers to the forward-projected method
+    '''
     print('-- -- -- -- -- -- -- -- -- -- --')
     print('checking ansatz length')
     print('--------------')

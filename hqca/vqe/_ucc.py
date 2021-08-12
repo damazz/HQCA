@@ -1,14 +1,16 @@
 import numpy as np
 from sympy import symbols,numbered_symbols
 from hqca.tools import *
-
+from hqca.operators import *
+from hqca.core import *
+from hqca.vqe._ansatz import *
 
 # need a function which generates an operators 
 
 
 
 def getUCCAnsatz(
-        QuantStore,
+        quantstore,
         singles=True,
         doubles=True,
         triples=False,
@@ -19,58 +21,21 @@ def getUCCAnsatz(
     alp_vir = []
     bet_occ = []
     bet_vir = []
-    for a in QuantStore.groups[0]:
-        if a in QuantStore.initial:
+    for a in quantstore.groups[0]:
+        if a in quantstore.initial:
             alp_occ.append(a)
         else:
             alp_vir.append(a)
-    for b in QuantStore.groups[1]:
-        if b in QuantStore.initial:
+    for b in quantstore.groups[1]:
+        if b in quantstore.initial:
             bet_occ.append(b)
         else:
             bet_vir.append(b)
     # single excitations    
-    qubOp = Operator()
-    ferOp = Operator()
+    ucc = Operator()
     parameters = []
     if verbose:
         print('Preparing unitary coupled cluster operator...')
-    if singles:
-        S = numbered_symbols('s')
-        indices = []
-        for i in alp_occ:
-            for j in alp_vir:
-                indices.append([i,j])
-        for i in bet_occ:
-            for j in bet_vir:
-                indices.append([i,j])
-        for (i,j) in indices:
-            s = next(S)
-            newOp = FermionicOperator(
-                    coeff=s,
-                    indices=[i,j],
-                    sqOp='+-',
-                    symbolic=True,
-                    )
-            newOp.generateOperators(
-                    Nq=QuantStore.Nq,
-                    mapping=QuantStore.mapping,
-                    **QuantStore._kw_mapping)
-            ferOp+=newOp
-            qubOp+=newOp.formOperator()
-            newOp = FermionicOperator(
-                    coeff=s,
-                    indices=[i,j],
-                    sqOp='-+',
-                    symbolic=True,
-                    )
-            newOp.generateOperators(
-                    Nq=QuantStore.Nq,
-                    mapping=QuantStore.mapping,
-                    **QuantStore._kw_mapping)
-            ferOp+=newOp
-            qubOp+=newOp.formOperator()
-            parameters.append(s)
     if doubles:
         T = numbered_symbols('t')
         indices = []
@@ -96,39 +61,60 @@ def getUCCAnsatz(
             for k in bet_occ:
                 for l in bet_vir:
                     for j in alp_vir:
+                        if j<=i:
+                            continue
                         indices.append([i,k,l,j])
         for (i,k,l,j) in indices:
             t = next(T)
-            newOp = FermionicOperator(
+            ucc+= FermiString(
                     coeff=t,
                     indices=[i,k,l,j],
-                    sqOp='++--',
+                    ops='++--',
                     symbolic=True,
+                    N=quantstore.dim,
                     )
-            newOp.generateOperators(
-                    Nq=QuantStore.Nq,
-                    mapping=QuantStore.mapping,
-                    **QuantStore._kw_mapping)
-            ferOp+=newOp
-            qubOp+=newOp.formOperator()
-            newOp = FermionicOperator(
+            ucc+= FermiString(
                     coeff=-t,
                     indices=[i,k,l,j],
-                    sqOp='--++',
+                    ops='--++',
                     symbolic=True,
+                    N=quantstore.dim,
+
                     )
-            newOp.generateOperators(
-                    Nq=QuantStore.Nq,
-                    mapping=QuantStore.mapping,
-                    **QuantStore._kw_mapping)
-            ferOp+=newOp
-            qubOp+=newOp.formOperator()
             parameters.append(t)
+    if singles:
+        S = numbered_symbols('s')
+        indices = []
+        for i in alp_occ:
+            for j in alp_vir:
+                indices.append([i,j])
+        for i in bet_occ:
+            for j in bet_vir:
+                indices.append([i,j])
+        for (i,j) in indices:
+            s = next(S)
+            ucc+= FermiString(
+                    coeff=s,
+                    indices=[i,j],
+                    ops='+-',
+                    symbolic=True,
+                    N=quantstore.dim,
+                    )
+            ucc+= FermiString(
+                    coeff=s,
+                    indices=[i,j],
+                    ops='-+',
+                    symbolic=True,
+                    N=quantstore.dim,
+                    )
+            parameters.append(s)
     elif triples or quadruples:
-        sys.exit('Have not implemented triples or quadruples in UCC.')
-    qubOp.clean()
-    print('Unitary coupled cluster operator: ')
-    print(ferOp)
-    print(qubOp)
-    return qubOp,parameters
+        raise AnsatzError
+    if verbose:
+        print('Unitary coupled cluster operator: ')
+        print(ucc)
+        print('Transforming...')
+    qub = ucc.transform(quantstore.transform)
+    return VariationalAnsatz(qub,parameters)
+
 

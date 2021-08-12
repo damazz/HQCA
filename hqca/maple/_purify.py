@@ -6,6 +6,14 @@ from hqca.tools import *
 from copy import deepcopy as copy
 
 def purify(rdm,quantstore,verbose=False):
+    '''
+
+    Purify function takes a RDM and quantumstorage object (which needs qs.groups,
+    qs.Ne,qs.Ne_alp,qs.Ne_bet, qs.No_as, qs.spin_rdm, qs.path_to_maple
+
+    Can purify to differnt spin states, but generally only 
+
+    '''
     cdir = os.getcwd()
     rdm.save(name=cdir+'/_temp',spin=quantstore.spin_rdm)
     rdm.contract()
@@ -62,23 +70,22 @@ def purify(rdm,quantstore,verbose=False):
             alpha=quantstore.groups[0],
             beta=quantstore.groups[1],
             Ne=quantstore.Ne,
-            S=quantstore.Ne_alp-quantstore.Ne_bet,
-            S2=0,
-            state=state,
-            rdm=test,
+            rdm=state,
+            fragment=test
             )
-    pure.get_spin_properties()
-    pure.contract()
-    tr = pure.trace()
-    sz = pure.sz
-    s2 = pure.s2
-    name = copy(temp.name)
-    if quantstore.verbose:
-        print('Eigenvalues of purified 2-RDM...')
-        print(np.linalg.eigvalsh(pure.rdm))
-        print('Trace of 2-RDM: {}'.format(pure.trace()))
-        print('Projected spin: {}'.format(sz))
-        print('Total spin: {}'.format(s2))
+    if not state=='spatial':
+        pure.get_spin_properties()
+        pure.contract()
+        tr = pure.trace()
+        sz = pure.sz
+        s2 = pure.s2
+        name = copy(temp.name)
+        if quantstore.verbose:
+            print('Eigenvalues of purified 2-RDM...')
+            print(np.linalg.eigvalsh(pure.rdm))
+            print('Trace of 2-RDM: {}'.format(pure.trace()))
+            print('Projected spin: {}'.format(sz))
+            print('Total spin: {}'.format(s2))
     pure.expand()
     cn = abs(abs(tr-quantstore.Ne*(quantstore.Ne-1)))>0.01
     csz = abs(abs(sz)-abs(quantstore.Ne_alp-quantstore.Ne_bet))>0.01
@@ -148,10 +155,9 @@ def purify_rdm(name,quantstore):
             alpha=quantstore.groups[0],
             beta=quantstore.groups[1],
             Ne=quantstore.Ne,
-            S=quantstore.Ne_alp-quantstore.Ne_bet,
-            S2=0,
-            state=state,
-            rdm=test,
+            #S2=0,
+            fragment=test,
+            rdm=state,
             )
     pure.get_spin_properties()
     pure.contract()
