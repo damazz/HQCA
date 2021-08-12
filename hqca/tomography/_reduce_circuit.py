@@ -47,7 +47,7 @@ def construct_simple_graph(
         graph = gt.Graph(directed=False)
         N = len(items)
         graph.add_vertex(N)
-        j = 1
+        j = 0
         n = 0
         edges = []
         single = []
@@ -127,6 +127,7 @@ def simplify_tomography(
                 )
         t2 = timeit.default_timer()
         print('Time to make graph: {:.2f}'.format(t2-t1))
+    #
     graph.color(**kw)
     if verbose:
         t3 = timeit.default_timer()
@@ -164,8 +165,7 @@ def simplify_tomography(
                     match=False
         if not match:
             print('Measurement does not match.')
-            print(p)
-            print(meas)
+            print('M: ',meas,'P:',p)
             error = True
     if error:
         sys.exit('Error in generating graph.')

@@ -67,6 +67,7 @@ class ConstantNumberProjection:
             if len(ops[0][0])==0:
                 self.qubOp = op.transform(transform)
             else:
+                print('here!')
                 perm.simplify()
                 dimNe = len(perm.total)
                 dimCe = 2**(len(ops[0][1]))
