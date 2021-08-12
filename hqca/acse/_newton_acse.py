@@ -87,7 +87,7 @@ def _newton_step(acse):
                     else:
                         coeff = acse.tr_Del
                 ef,df = acse._test_acse_function([coeff],testS)
-                if ef<e_best and abs(coeff)>0.001:
+                if ef<e_best and abs(coeff)>0.000001:
                     e_best = copy(ef)
                     rdm_best = copy(df)
                     coeff_best = copy(coeff)
@@ -137,7 +137,7 @@ def _newton_step(acse):
                 trust_iter+=1
                 if trust_iter>=2:
                     trust=True
-        if abs(coeff_best)<0.001:
+        if abs(coeff_best)<0.000001:
             acse.accept_previous_step = False
             if acse.verbose:
                 print('Rejecting Newton Step...')
