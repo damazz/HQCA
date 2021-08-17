@@ -10,7 +10,7 @@ While there is the potential for moderate simulations, say of 6-, 8- or 10- qubi
 
 The following features are included:
 - Implementation of the quantum-ACSE as a contracted quantum eigensolver (CQE), with classical and quantum solutions of the ACSE condition
-- Implentation of basic variational quantum eigensovlers (VQE)
+- Implentation of basic variational quantum eigensolvers (VQE)
 - Programmable ansatz 
 - Different tomography schemes of reduced density matrices with options for traditional or clique based grouping options 
 - Symmetry projection of measurement operators for local qubit measurements
@@ -191,7 +191,7 @@ David A. Mazziotti
 
 # License
 
-Project licensed under the MIT License. See LICENSE.txt for more details. 
+Project licensed under the Apache License. See LICENSE.txt for more details. 
 
 
 
