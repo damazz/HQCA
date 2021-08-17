@@ -191,7 +191,7 @@ David A. Mazziotti
 
 # License
 
-Project licensed under the MIT License. See LICENSE.txt for more details. 
+Project licensed under the Apache License. See LICENSE.txt for more details. 
 
 
 
