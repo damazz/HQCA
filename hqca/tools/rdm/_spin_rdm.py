@@ -406,6 +406,11 @@ class RDM:
         return self+rdm
 
     def __mul__(self,rdm):
+        '''
+        For multiplying RDMs of order p and q, there will be (p+q)! possible upper and lower indices.
+        We sum over these using all permutations of RDM elements with these operators, and
+        then divide by the total number of permutations and normalize the new RDM so that the final RDM normalizes to a (p+q)-RDM.
+        '''
         if type(rdm)==type(self):
             pass
         elif  type(rdm) in [type(1),type(0),type(0.5)]:
