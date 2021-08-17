@@ -1,6 +1,12 @@
-import networkx as nx
-import graph_tool as gt
-from graph_tool import topology
+try:
+    import networkx as nx
+except Exception as e:
+    pass
+try: 
+    import graph_tool as gt
+    from graph_tool import topology
+except Exception as e:
+    pass
 
 class Graph:
     '''

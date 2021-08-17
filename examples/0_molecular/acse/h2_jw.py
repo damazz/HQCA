@@ -2,7 +2,8 @@
 Molecular test case of H2, and H3, with under the Newton optimization with the
 quantum ACSE method.
 '''
-
+import sys
+sys.path.append('/home/scott/Documents/research/software/HQCA/')
 
 from hqca.hamiltonian import *
 from hqca.instructions import *
@@ -12,12 +13,13 @@ mol = gto.Mole()
 
 d = 0.5
 mol.atom=[['H',(0,0,0)],['H',(d,0,0)]]
-#mol.atom=[['H',(0,0,0)],['H',(d,0,0)],['H',(-d,0,0)]]
 mol.basis='sto-3g'
 mol.spin=0
 mol.verbose=0
 mol.build()
-ham = MolecularHamiltonian(mol)
+#
+T = JordanWigner
+ham = MolecularHamiltonian(mol,transform=T)
 Ins = PauliSet
 st = StorageACSE(ham)
 qs = QuantumStorage()
@@ -28,9 +30,10 @@ qs.set_backend(
         provider='Aer')
 tomoRe = StandardTomography(qs)
 tomoIm = StandardTomography(qs)
-tomoRe.generate(real=True,imag=False)
-tomoIm.generate(real=False,imag=True)
+tomoRe.generate(real=True,imag=False,simplify=False,transform=T,)
+tomoIm.generate(real=False,imag=True,simplify=False,transform=T,)
 
+#
 acse = RunACSE(
         st,qs,Ins,
         method='newton',
@@ -39,7 +42,6 @@ acse = RunACSE(
         trotter=1,
         ansatz_depth=1,
         quantS_thresh_rel=1e-6,
-        propagation='trotter',
         use_trust_region=True,
         convergence_type='trust',
         hamiltonian_step_size=0.01,
