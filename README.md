@@ -26,8 +26,8 @@ qiskit >= 0.25
 pyscf  >= 1.7.4
 
 Optionally:
-graph_tool >= 2.35  
-Maple 202x, with QuantumChemistry module for SDP purification  
+graph_tool >= 2.35  (conda installation recommended, needed for reduced tomography schemes)
+Maple 2021, with QuantumChemistry module
  
 ### Installing:
 Requires python3 and the above modules. Using the quantum computer should be set up by yourself through the IBM Quantum Experience and running the load_account command. 
