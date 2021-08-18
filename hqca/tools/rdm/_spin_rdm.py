@@ -407,9 +407,10 @@ class RDM:
 
     def __mul__(self,rdm):
         '''
-        For multiplying RDMs of order p and q, there will be (p+q)! possible upper and lower indices.
-        We sum over these using all permutations of RDM elements with these operators, and
-        then divide by the total number of permutations and normalize the new RDM so that the final RDM normalizes to a (p+q)-RDM.
+        Peforms a wedge product multiplication between two RDMs. See following article for reference: 
+        Mazziotti, D. a. (1998). Approximate solution for electron correlation through the use of Schwinger probes. Chemical Physics Letters, 289(5–6), 419–427. https://doi.org/10.1016/S0009-2614(98)00470-9
+
+        Importantly, we adjust the definition of the wedge product to account for the proper normalization of the RDM. In the CPL, the RDMs are normalized to 1/p!, whereas RDMs here have no normalization. Thus, the wedge contains an additional factor of (p+q)!/(p!q!). 
         '''
         if type(rdm)==type(self):
             pass
@@ -440,6 +441,7 @@ class RDM:
         an2 = np.asarray(non2[len(non2)//2:])
         CreTerms = []
         AnnTerms = []
+        # TODO: update generation of creation and annihilation operator list
         for i in range(cr1.shape[1]):
             c = cr1[:,i]
             for j in range(cr2.shape[1]):
@@ -474,6 +476,7 @@ class RDM:
                 if dup:
                     continue
                 AnnTerms.append(newAnn)
+        # i,j below refer to RDM elements
         for i in CreTerms:
             antiSymmCre = Recursive(choices=i)
             antiSymmCre.unordered_permute()
@@ -482,6 +485,8 @@ class RDM:
                 antiSymmAnn.unordered_permute()
                 # need to calculate term
                 sumTerms = 0
+                # for each RDM element, now we need all the permutations
+                # and the sign of each
                 for cre in antiSymmCre.total:
                     for ann in antiSymmAnn.total:
                         ind1 = tuple(cre[:self.p]+ann[:self.p])
@@ -489,7 +494,8 @@ class RDM:
                         Term = (self.rdm[ind1]*rdm.rdm[ind2])
                         Term*= cre[-1]*ann[-1]
                         sumTerms+= Term
-                #sumTerms*=(len(antiSymmCre.total))**-1
+                # 
+                # factors here account for normalization in the wedge product
                 sumTerms*=(len(antiSymmCre.total)*len(antiSymmAnn.total))**-(1)
                 sumTerms*=((factorial(self.p+rdm.p))/(
                     factorial(self.p)*factorial(rdm.p)))
