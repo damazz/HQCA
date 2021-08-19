@@ -7,6 +7,8 @@ from tests._generic import *
 from hqca.vqe import *
 from hqca.opts import Optimizer
 from functools import partial
+import hqca.config as config
+config._use_multiprocessing=False
 
 def test_generic():
     ham, st, qs, ins, proc, tomoRe = generic_vqe_objects()

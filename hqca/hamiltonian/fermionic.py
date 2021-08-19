@@ -26,6 +26,7 @@ class FermionicHamiltonian(Hamiltonian):
             en_con=None,
             en_fin=None,
             print_transformed=True,
+            truncation=False,
             ):
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
@@ -53,11 +54,15 @@ class FermionicHamiltonian(Hamiltonian):
             self.C = np.identity(ints_1e.shape[0])
             self.No_as = self.C.shape[0]
         else:
-            self.C = np.identity(No_active_space)
             self.No_as = int(No_active_space)
+            if ints_spatial:
+                self.C = np.identity(No_active_space)
+                self.No_tot = self.C.shape[0]
+            else:
+                self.C = np.identity(No_active_space*2)
+                self.No_tot = No_active_space
         self._core = [i for i in range(self.No_core)]
         self._active = [i+self.No_core for i in range(self.No_as)]
-        self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
         self._generate_spin2spac_mapping()
         self.spin = proxy_mol.spin
@@ -75,31 +80,62 @@ class FermionicHamiltonian(Hamiltonian):
             self.ef = en_fin
         self._gen_operators = generate_operators
         self._int_thresh = int_thresh
-        self._update_ints(self.C,self.C)
+        self._update_ints(self.C,self.C,truncation,ints_spatial)
 
-    def _update_ints(self,mo_coeff_a,mo_coeff_b):
+    def _update_ints(self,mo_coeff_a,mo_coeff_b,truncation,ints_spatial):
         self.mo_a =  mo_coeff_a
         self.mo_b = mo_coeff_b
-        self.ints_1e = generate_spin_1ei(
-                self.ints_1e_given.copy(),
-                mo_coeff_a.T,
-                mo_coeff_b.T,
-                self.alpha_mo,
-                self.beta_mo,
-                region='full',
-                spin2spac=self.s2s
-                )
-        self.ints_2e = generate_spin_2ei_phys(
-                self.ints_2e_given.copy(),
-                mo_coeff_a.T,
-                mo_coeff_b.T,
-                self.alpha_mo,
-                self.beta_mo,
-                region='full',
-                spin2spac=self.s2s
-                )
-        self._build_K2()
+        if ints_spatial:
+            self.ints_1e = generate_spin_1ei(
+                    self.ints_1e_given.copy(),
+                    mo_coeff_a.T,
+                    mo_coeff_b.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+            self.ints_2e = generate_spin_2ei_phys(
+                    self.ints_2e_given.copy(),
+                    mo_coeff_a.T,
+                    mo_coeff_b.T,
+                    self.alpha_mo,
+                    self.beta_mo,
+                    region='full',
+                    spin2spac=self.s2s
+                    )
+        else:
+            self.ints_1e = self.ints_1e_given.copy()
+            self.ints_2e = self.ints_2e_given.copy()
+        if truncation:
+            self._build_projected_K2()
+        else:
+            self._build_K2()
 
+    def _build_projected_K2(self):
+        self._build_operator(self._int_thresh)
+        self.K2 = np.zeros((self.r, self.r, self.r, self.r))
+        print('discarding...')
+        for f in self._ferOp:
+            temp = Operator()+f
+            if temp.transform(self._transform).null() or abs(f.c)<self._int_thresh:
+                print(f)
+                continue
+            c,inds,ops,N = f.order_as_D_matrix()[0]
+            if len(inds)==2:
+                i,j = inds[0],inds[1]
+                for k in range(self.r):
+                    self.K2[i, k, j, k] += self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
+                    self.K2[k, i, k, j] += self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
+                    self.K2[k, i, j, k] -= self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
+                    self.K2[i, k, k, j] -= self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
+            elif len(inds)==4:
+                i,k,l,j = inds[0],inds[1],inds[2],inds[3]
+                self.K2[i, k, j, l] += 0.5*self.ints_2e[i,k,j,l]
+                self.K2[k, i, j, l] += 0.5*self.ints_2e[k,i,j,l]
+                self.K2[k, i, l, j] += 0.5*self.ints_2e[k,i,l,j]
+                self.K2[i, k, l, j] += 0.5*self.ints_2e[i,k,l,j]
+        self._matrix = contract(self.K2)
 
     def _build_K2(self):
         self.K2 = np.zeros((self.r, self.r, self.r, self.r))
@@ -111,6 +147,7 @@ class FermionicHamiltonian(Hamiltonian):
                     self.K2[k, i, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
                     self.K2[i, k, k, j] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
                     self.K2[k, i, j, k] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+        #trunc = abs(self.K2) < self._int_thresh
         self._matrix = contract(self.K2)
         if self.verbose:
             print('Core energy', self._en_c)
@@ -195,7 +232,7 @@ class FermionicHamiltonian(Hamiltonian):
         input: keywords related to modifying self._qubOp
 
         output: generates self._qubOp_sep, which is a list of separated
-        operators 
+        operators
         '''
         self._qubOp_sep = []
         if ordering in ['given','specified','default']:
@@ -222,7 +259,6 @@ class FermionicHamiltonian(Hamiltonian):
         qubOp = Operator()
         ferOp = Operator()
         # 1e terms
-        #
         #
         for p in alp+bet:
             P = o2q[p]
@@ -278,6 +314,7 @@ class FermionicHamiltonian(Hamiltonian):
                         #qubOp+= self._transform(newOp)
                         #t_transform+= dt()-t0
                         #n+=1
+        newF = Operator()
         t3 = timeit.default_timer()
         if self.verbose:
             print('2e terms: {}'.format(t3-t2))

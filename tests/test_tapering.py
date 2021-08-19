@@ -12,6 +12,8 @@ from hqca.operators._operator import Operator as Op
 from hqca.tools._stabilizer import Stabilizer
 from hqca.transforms import *
 from functools import partial
+import hqca.config as config
+config._use_multiprocessing=False
 
 
 def test_reduce():
@@ -71,9 +73,9 @@ def test_acse_reduced():
             provider='Aer')
     qs.initial_transform = iTr
     tomoRe = StandardTomography(qs)
-    tomoRe.generate(real=True,imag=False,transform=Tr)
+    tomoRe.generate(real=True,imag=False,transform=Tr,use_multiprocessing=False,)
     tomoIm = StandardTomography(qs)
-    tomoIm.generate(real=False,imag=True,transform=Tr)
+    tomoIm.generate(real=False,imag=True,transform=Tr,use_multiprocessing=False,)
     proc = StandardProcess()
     st = StorageACSE(ham,closed_ansatz=-1)
     acse = RunACSE(

@@ -1,7 +1,9 @@
 from copy import deepcopy as copy
 import sys
-from hqca.operators.quantum_strings import *
+from hqca.operators.quantum_strings import PauliString,FermiString
+from hqca.operators.quantum_strings import QubitString,QuantumString
 from hqca.core import OperatorError
+import hqca.config as config
 import multiprocessing as mp
 from collections import OrderedDict
 
@@ -44,7 +46,7 @@ class Operator:
             z += '\n'
         return z[:-1]
 
-    def items(self):
+    def tems(self):
         return self.op.items()
 
     def values(self):
@@ -130,8 +132,9 @@ class Operator:
         perform transformation on some operators
 
         TODO: add global attribute for triggering multiprocessing?
+
         """
-        if len(self)>4:
+        if len(self)>4 and config._use_multiprocessing:
             pool = mp.Pool(mp.cpu_count())
             results = pool.map(T,self.values())
             pool.close()
@@ -141,7 +144,6 @@ class Operator:
         for r in results:
             new+= r
         return new
-    
 
     def __sub__(self,A):
         if isinstance(A ,type(QuantumString())):

@@ -9,6 +9,7 @@ from hqca.tomography.__symmetry_project import *
 from hqca.tomography._qubit_tomography import QubitTomography
 from hqca.tomography._reduce_circuit import simplify_tomography, compare_tomography
 from hqca.tomography._tomography import StandardTomography
+import hqca.config as config
 
 np.set_printoptions(linewidth=200, suppress=True, precision=4)
 
@@ -95,7 +96,6 @@ class ReducedTomography(StandardTomography):
         paulis = []
         alpha = self.qs.alpha['qubit']
         beta = self.qs.beta['qubit']
-        pool = mp.Pool(mp.cpu_count())
         items = {
             'real': self.real,
             'imag': self.imag,
@@ -112,9 +112,13 @@ class ReducedTomography(StandardTomography):
                                            #    beta)
                                            **items,
                                            )
-        self.rdme = pool.map(partial_generate_sp_rdme, self.rdme)
+        if config._use_multiprocessing:
+            pool = mp.Pool(mp.cpu_count())
+            self.rdme = pool.map(partial_generate_sp_rdme, self.rdme)
+            pool.close()
+        else:
+            self.rdme = [partial_generate_sp_rdme(i) for i in self.rdme]
         self.rdme_keys = [i.ind for i in self.rdme]
-        pool.close()
 
         for fermi in self.rdme:
             for j in fermi.qubOp:
@@ -150,7 +154,6 @@ class ReducedQubitTomography(QubitTomography):
         paulis = []
         alpha = self.qs.alpha['qubit']
         beta = self.qs.beta['qubit']
-        pool = mp.Pool(mp.cpu_count())
         partial_generate_sp_qrdme = partial(generate_sp_qrdme,
                                             **{
                                                 'real': self.real,
@@ -160,9 +163,13 @@ class ReducedQubitTomography(QubitTomography):
                                                 'beta': beta,
                                             }
                                             )
-        self.rdme = pool.map(partial_generate_sp_qrdme, self.rdme)
+        if config._use_multiprocessing:
+            pool = mp.Pool(mp.cpu_count())
+            self.rdme = pool.map(partial_generate_sp_qrdme, self.rdme)
+            pool.close()
+        else:
+            self.rdme = [partial_generate_sp_qrdme(i) for i in self.rdme]
         self.rdme_keys = [i.ind for i in self.rdme]
-        pool.close()
         for fermi in self.rdme:
             for j in fermi.qubOp:
                 if j.s in paulis:

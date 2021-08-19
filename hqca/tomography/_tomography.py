@@ -27,6 +27,7 @@ from qiskit import transpile,assemble,QuantumRegister,QuantumCircuit,ClassicalRe
 from qiskit import Aer,execute
 import pickle
 import multiprocessing as mp
+import hqca.config as config
 
 class RDMElement:
     def __init__(self,op,qubOp,ind=None,**kw):
@@ -573,7 +574,6 @@ class StandardTomography(Tomography):
         paulis = []
         alpha = self.qs.alpha['qubit']
         beta = self.qs.beta['qubit']
-        pool = mp.Pool(mp.cpu_count())
         partial_generate_rdme = partial(generate_rdme,
                            # *(self.real,self.imag,
                            #    transform,
@@ -588,9 +588,13 @@ class StandardTomography(Tomography):
 
                            }
                            )
-        self.rdme = pool.map(partial_generate_rdme, self.rdme)
+        if config._use_multiprocessing:
+            pool = mp.Pool(mp.cpu_count())
+            self.rdme = pool.map(partial_generate_rdme, self.rdme)
+            pool.close()
+        else:
+            self.rdme = [partial_generate_rdme(i) for i in self.rdme]
         self.rdme_keys = [i.ind for i in self.rdme]
-        pool.close()
         for fermi in self.rdme:
             for j in fermi.qubOp:
                 if j.s in paulis:

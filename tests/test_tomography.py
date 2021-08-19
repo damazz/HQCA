@@ -2,6 +2,8 @@ from delayed_assert import delayed_assert as da
 from hqca.tomography import *
 from _generic import *
 import numpy as np
+import hqca.config as config
+config._use_multiprocessing=False
 
 
 #qs = generic_quantumstorage()

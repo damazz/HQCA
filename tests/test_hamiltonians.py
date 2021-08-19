@@ -3,6 +3,8 @@ from _generic import *
 from delayed_assert import delayed_assert as da
 import numpy as np
 import pickle
+import hqca.config as config
+config._use_multiprocessing=False
 
 def test_molecular():
     ham = generic_molecular_hamiltonian()
@@ -43,7 +45,6 @@ def test_fermionic():
     e0 = -0.783792654277353
     # check initializiation
     # check tr k1 k2 
-
     d1 = np.load('./store/d1.npy',allow_pickle=True)
     d2 = np.load('./store/d2.npy',allow_pickle=True)
 
@@ -58,4 +59,4 @@ def test_fermionic():
 
 
 
-test_molecular()
+test_fermionic()

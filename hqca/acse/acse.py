@@ -39,23 +39,20 @@ class RunACSE(QuantumRun):
                         update='quantum',
                         opt_thresh=1e-8,
                         max_iter=100,
-                        commutative_ansatz=False,
-                        propagation='first',
-                        S_ordering='default',
+                        expiH_approximation='first',
                         S_thresh_rel=0.1,
                         S_min=1e-10,
                         S_num_terms=None,
                         convergence_type='default',
                         hamiltonian_step_size=0.1,
                         restrict_S_size=0.5,
-                        separate_hamiltonian=False,
+                        separate_hamiltonian=None,
                         verbose=True,
                         tomo_S=None,
                         tomo_Psi=None,
                         statistics=False,
                         processor=None,
                         max_depth=None,
-                        max_constant_depth=None,
                         output=0,
                         **kw):
         '''
@@ -64,7 +61,6 @@ class RunACSE(QuantumRun):
         self._output = output
         if update in ['quantum', 'Q', 'q', 'qso', 'qfo']:
             self.acse_update = 'q'
-            self._propagate = propagation
         elif update in ['class', 'classical', 'c', 'C']:
             self.acse_update = 'c'
         elif update in ['para', 'p']:
@@ -79,18 +75,16 @@ class RunACSE(QuantumRun):
         self.verbose = verbose
         self.stats = statistics
         self.acse_method = method
-        self.S_commutative = commutative_ansatz
         self.max_iter = max_iter
         self.max_depth = max_depth
-        self.max_constant_depth = max_constant_depth
         self.crit = opt_thresh
         self.hamiltonian_step_size = hamiltonian_step_size
         self.sep_hamiltonian = separate_hamiltonian
+        self.S_expiH_approx = expiH_approximation
         self.S_thresh_rel = S_thresh_rel
         self.S_min = S_min
         self.S_num_terms = S_num_terms
         self.delta = restrict_S_size
-        self.S_ordering = S_ordering
         self._conv_type = convergence_type
         self.tomo_S = tomo_S
         self.tomo_Psi = tomo_Psi
@@ -129,7 +123,6 @@ class RunACSE(QuantumRun):
             print('-- -- -- --')
         self._optimizer = None
         self._opt_thresh = None
-
         if self.acse_method == 'newton':
             kw = self._update_acse_newton(**kw)
         elif self.acse_method in ['line', 'opt']:
@@ -208,7 +201,7 @@ class RunACSE(QuantumRun):
             verbose=self.verbose,
         )
         if not self.tomo_preset:
-            circ.generate(real=self.Store.H.real, imag=self.Store.H.imag)
+            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
         circ.set(ins)
         circ.simulate()
         circ.construct(processor=self.process)
@@ -267,7 +260,6 @@ class RunACSE(QuantumRun):
         self.log_G = []
         self.total = Cache()
         self.accept_previous_step = True
-
         self._get_S()
 
         if self.log:
@@ -291,22 +283,24 @@ class RunACSE(QuantumRun):
             return
             # 
         if self.acse_update == 'q':
-            A_sq = findSPairsQuantum(
-                self.QuantStore.op_type,
+            if type(self.sep_hamiltonian)==type(None):
+                H = self.Store.H.qubit_operator
+            else:
+                H = self.sep_hamiltonian
+            A_sq = solveqACSE(
+                H=H,
                 operator=self.S.op_form(),
                 process=self.process,
                 instruct=self.Instruct,
                 store=self.Store,
                 quantstore=self.QuantStore,
                 S_min=self.S_min,
-                ordering=self.S_ordering,
                 hamiltonian_step_size=self.hamiltonian_step_size,
-                separate_hamiltonian=self.sep_hamiltonian,
+                expiH_approx=self.S_expiH_approx,
                 verbose=self.verbose,
                 tomo=self.tomo_S,
-                propagate=self._propagate,
                 matrix=self._A_as_matrix,
-            )
+                )
         elif self.acse_update == 'c':
             A_sq = findSPairs(
                 self.Store,
@@ -315,6 +309,11 @@ class RunACSE(QuantumRun):
                 verbose=self.verbose,
             )
         elif self.acse_update == 'p':
+            # TODO: need to update
+            if type(self.sep_hamiltonian)==type(None):
+                H = store.H.qubit_operator
+            else:
+                H = self.sep_hamiltonian
             A_sq = findQubitAQuantum(
                 operator=self.S.op_form(),
                 process=self.process,
@@ -356,10 +355,6 @@ class RunACSE(QuantumRun):
             for op in A_sq:
                 if abs(op.c) >= abs(self.S_thresh_rel * max_val):
                     new += op
-            if self.S_commutative:
-                new.ca = True
-            else:
-                new.ca = False
             t0 = dt()
             if self.acse_update in ['c','q']:
                 self.A = new.transform(self.QuantStore.transform)
@@ -367,6 +362,9 @@ class RunACSE(QuantumRun):
                 self.A = new.transform(self.QuantStore.qubit_transform)
             elif self.acse_update in ['u']:
                 self.A = new
+            norm = 0
+            for op in self.A:
+                norm += op.norm()**2
             #print('Time to transform A: {}'.format(dt() - t0))
             # self.A = new
             self.norm = norm ** (0.5)

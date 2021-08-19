@@ -79,20 +79,85 @@ class FermiString(QuantumString):
     def N(self):
         return len(self.s)
 
-    def inds_rdm(self):
-        sign = 1
+    def order_as_D_matrix(self):
+        '''
+        generate ordering, indices, and coefficient for a particle D matrix
+        '''
+        # 
+        temp = []
+        def subroutine(op):
+            c = copy(op.c)
+            s = copy(op.s)
+            N = len(s)
+            ops,inds = [],[]
+            for n,i in enumerate(s):
+                if i in ['p','h']:
+                    if i=='p':
+                        ops += ['+','-']
+                    elif i=='h':
+                        ops += ['-','+']
+                    inds+= [n,n]
+                elif i in ['+','-']:
+                    ops.append(i)
+                    inds.append(n)
+            if len(inds)==0 and len(ops)==0:
+                done = True
+            else:
+                done = False
+            while not done:
+                # check cre-ann order
+                # evaluate number of times we switch charactes
+                # this should only happen once
+                switch = 0
+                for i in range(len(ops)-1):
+                    if not ops[i]==ops[i+1]:
+                        switch+=1 
+                if switch==1 and ops[0]=='+':
+                    done = True
+                    break
+                #
+                #
+                for i in range(len(ops)-1):
+                    if not ops[i]==ops[i+1] and ops[i]=='-':
+                        if inds[i]==inds[i+1]:
+
+                            nind = inds[:i]+inds[i+2:]
+                            nops = ''.join(ops[:i]+ops[i+2:])
+                            new = FermiString(coeff=copy(c),
+                                    indices=nind,
+                                    ops=nops,
+                                    N=N
+                                    )
+                            subroutine(new)
+
+                            c*= - 1
+                            ops[i],ops[i+1]=ops[i+1],ops[i]
+                        else:
+                            ops[i],ops[i+1]=ops[i+1],ops[i]
+                            inds[i],inds[i+1]=inds[i+1],inds[i]
+                        c*= -1
+                        done = False
+                        break
+            temp.append([c,inds,ops,N])
+        subroutine(self)
+        return temp
+
+
+
+
+
 
     def __rmul__(self,A):
         # A * self
         if not isinstance(A,type(FermiString)):
-            try:
+           try:
                 new = FermiString(
                         coeff=self.c*A,
                         s=self.s)
                 return new
-            except Exception as e:
-                print(e)
-                sys.exit()
+           except Exception as e:
+               print(e)
+               sys.exit()
 
     def __mul__(self,A):
         # self * A
@@ -124,54 +189,58 @@ class FermiString(QuantumString):
 
     def _generate_from_sq(self,coeff=1,inds=[],sqop='',N=10):
         sort = False
-        while not sort:
-            #print(coeff,inds,sqop)
-            sort=True
-            for i in range(len(sqop)-1):
-                if inds[i]>inds[i+1]:
-                    if self.fermi:
-                        if sqop[i] in ['p','h']:
-                            pass
-                        elif sqop[i+1] in ['p','h']:
-                            pass
-                        else:
-                            coeff*=-1
-                    inds = inds[:i]+[inds[i+1]]+[inds[i]]+inds[i+2:]
-                    sqop = sqop[:i]+sqop[i+1]+sqop[i]+sqop[i+2:]
-                    sort=False
-                    break
-        #print(sqop,inds)
-        if len(set(copy(inds)))==len(sqop):
-            pass
+        if len(inds)==0 and sqop=='':
+            self.s = 'i'*N
+            self.c = coeff
         else:
-            zeros = ['h+','-h','p-','+p','++','--','ph','hp']
-            simple = {
-                    'h-':'-','+h':'+','p+':'+','-p':'-',
-                    'pp':'p','hh':'h','+-':'p','-+':'h',}
-            done = False
-            while not done:
-                done=True
-                for i in range(len(inds)-1):
-                    if inds[i]==inds[i+1]:
-                        inds.pop(i+1)
-                        if sqop[i:i+2] in zeros:
-                            coeff=0
-                            sqop= ''
-                            break
-                        else:
-                            key = simple[sqop[i:i+2]]
-                            sqop = sqop[0:i]+key+sqop[i+2:]
-                        done=False
+            while not sort:
+                #print(coeff,inds,sqop)
+                sort=True
+                for i in range(len(sqop)-1):
+                    if inds[i]>inds[i+1]:
+                        if self.fermi:
+                            if sqop[i] in ['p','h']:
+                                pass
+                            elif sqop[i+1] in ['p','h']:
+                                pass
+                            else:
+                                coeff*=-1
+                        inds = inds[:i]+[inds[i+1]]+[inds[i]]+inds[i+2:]
+                        sqop = sqop[:i]+sqop[i+1]+sqop[i]+sqop[i+2:]
+                        sort=False
                         break
-        if coeff==0:
-            s = 'i'*N
-        else:
-            s = 'i'*inds[0]
-            #print(sqop,inds,s)
-            for i in range(len(inds)-1):
-                s+= sqop[i]
-                s+='i'*(inds[i+1]-inds[i]-1)
-            s+= sqop[-1]+'i'*(N-inds[-1]-1)
-        self.s = s
-        self.c = coeff
+            #print(sqop,inds)
+            if len(set(copy(inds)))==len(sqop):
+                pass
+            else:
+                zeros = ['h+','-h','p-','+p','++','--','ph','hp']
+                simple = {
+                        'h-':'-','+h':'+','p+':'+','-p':'-',
+                        'pp':'p','hh':'h','+-':'p','-+':'h',}
+                done = False
+                while not done:
+                    done=True
+                    for i in range(len(inds)-1):
+                        if inds[i]==inds[i+1]:
+                            inds.pop(i+1)
+                            if sqop[i:i+2] in zeros:
+                                coeff=0
+                                sqop= ''
+                                break
+                            else:
+                                key = simple[sqop[i:i+2]]
+                                sqop = sqop[0:i]+key+sqop[i+2:]
+                            done=False
+                            break
+            if coeff==0:
+                s = 'i'*N
+            else:
+                s = 'i'*inds[0]
+                #print(sqop,inds,s)
+                for i in range(len(inds)-1):
+                    s+= sqop[i]
+                    s+='i'*(inds[i+1]-inds[i]-1)
+                s+= sqop[-1]+'i'*(N-inds[-1]-1)
+            self.s = s
+            self.c = coeff
 

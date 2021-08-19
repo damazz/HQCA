@@ -6,6 +6,8 @@ from hqca.operators.quantum_strings import QubitString as QubitString
 from hqca.operators._operator import Operator as Op
 from hqca.transforms import *
 import numpy as np
+import hqca.config as config
+config._use_multiprocessing=False
 
 from hqca.tomography.__symmetry_project import *
 

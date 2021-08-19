@@ -2,6 +2,8 @@ from hqca.maple import *
 import sys
 import numpy as np
 import pickle
+import hqca.config as config
+config._use_multiprocessing=False
 
 
 class QuantStore:

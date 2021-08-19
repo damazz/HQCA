@@ -1,7 +1,11 @@
 from delayed_assert import delayed_assert as da
-from _generic import *
 from hqca.acse._ansatz_S import *
 from hqca.operators.quantum_strings import PauliString as Pauli
+from copy import deepcopy as copy
+
+import hqca.config as config
+config._use_multiprocessing=False
+from _generic import *
 
 def test_ansatz():
     # test addition
@@ -161,6 +165,8 @@ def test_quantum_classical_acse():
     da.assert_expectations()
 
 def test_quantum_classical_acse_moderate():
+    
+    _no_multiprocessing = True
     ham,st,qs,ins,proc,tR,tI = advanced_acse_objects()
     st = StorageACSE(ham,closed_ansatz=-1)
     qacse = RunACSE(
@@ -179,7 +185,7 @@ def test_quantum_classical_acse_moderate():
             restrict_S_size=0.5,
             tomo_S = tI,
             tomo_Psi = tR,
-            verbose=True,
+            verbose=False,
             )
     qacse.build()
     da.expect(abs(qacse.e0+1.210100865453)<=1e-8)
@@ -210,7 +216,7 @@ def test_quantum_classical_acse_moderate():
 
     print('Energy: ',qc_acse.e0.real)
 
-    diff = qacse.S[0]-qc_acse.S[0]
+    diff = copy(qacse.S[0])-copy(qc_acse.S[0])
     print(qacse.S[0])
     print('')
     print(qc_acse.S[0])
@@ -221,3 +227,4 @@ def test_quantum_classical_acse_moderate():
     da.expect(abs(diff.norm())<1e-8)
     da.assert_expectations()
 
+test_quantum_classical_acse_moderate()
