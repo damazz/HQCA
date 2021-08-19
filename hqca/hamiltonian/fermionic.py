@@ -53,6 +53,7 @@ class FermionicHamiltonian(Hamiltonian):
         if No_active_space=='default':
             self.C = np.identity(ints_1e.shape[0])
             self.No_as = self.C.shape[0]
+            self.No_tot = self.C.shape[0]
         else:
             self.No_as = int(No_active_space)
             if ints_spatial:
