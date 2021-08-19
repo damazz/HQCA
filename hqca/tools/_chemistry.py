@@ -308,10 +308,14 @@ def generate_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_a.T[b,Q]*temp1[P,b,:,:]
             for k in alpha:
+                if i==k:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_a[R,c]*temp2[P,Q,c,:]
                 for l in alpha:
+                    if j==l:
+                        continue
                     #new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
@@ -372,10 +376,14 @@ def generate_spin_2ei(
             for b in range(0,N):
                 temp2[P,Q,:,:] += U_b.T[b,Q]*temp1[P,b,:,:]
             for k in beta:
+                if k==i:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,Q,R,:] += U_b[R,c]*temp2[P,Q,c,:]
                 for l in beta:
+                    if l==j:
+                        continue
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
@@ -425,10 +433,14 @@ def generate_spin_2ei_phys(
             for b in range(0,N):
                 temp2[P,:,Q,:] += U_a.T[b,Q]*temp1[P,:,b,:]
             for k in alpha:
+                if i==k:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,R,Q,:] += U_a[R,c]*temp2[P,c,Q,:]
                 for l in alpha:
+                    if j==l:
+                        continue
                     #new_ei[i,k,j,l]=0
                     S = spin2spac[l]
                     for d in range(0,N):
@@ -455,7 +467,7 @@ def generate_spin_2ei_phys(
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
                         new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,R,Q,d]
-    # beta alpha block
+    # beta alpha block 
     temp1 = np.zeros((N,N,N,N))
     temp2 = np.zeros((N,N,N,N))
     temp3 = np.zeros((N,N,N,N))
@@ -489,16 +501,19 @@ def generate_spin_2ei_phys(
             for b in range(0,N):
                 temp2[P,:,Q,:] += U_b.T[b,Q]*temp1[P,:,b,:]
             for k in beta:
+                if i==k:
+                    continue
                 R = spin2spac[k]
                 for c in range(0,N):
                     temp3[P,R,Q,:] += U_b[R,c]*temp2[P,c,Q,:]
                 for l in beta:
+                    if l==j:
+                        continue
                     S = spin2spac[l]
                     for d in range(0,N):
                         #new_ei[i,j,k,l]+= U_b[S,d]*temp3[P,Q,R,d]
                         new_ei[i,k,j,l]+= U_b.T[d,S]*temp3[P,R,Q,d]
     return new_ei #, temp0
-
 
 def gen_spin_2ei_QISKit(
         ei2,
