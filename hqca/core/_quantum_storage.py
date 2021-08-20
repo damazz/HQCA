@@ -106,6 +106,10 @@ class QuantumStorage:
             get_gate_count=False,
             transpiler_keywords={},
             provider='Aer',
+            hub=None,
+            group=None,
+            project='main',
+
             **kwargs):
         if self.check==0:
             print('Error in setting backend, ')
@@ -151,29 +155,14 @@ class QuantumStorage:
         self.Nq_anc = Nq_ancilla
         self.Nq_tot = self.Nq_anc+self.Nq
         self.Ns = num_shots
-        self.provider = provider
-        if self.provider=='IBMQ':
-            try:
-                prov = IBMQ.load_account()
-            except AttributeError:
-                pass
+        if provider=='IBMQ':
+            IBMQ.load_account()
+            provider = IBMQ.get_provider(hub=hub,group=group,project=project)
         else:
-            prov = Aer
+            provider = Aer
+        self.provider = provider
         self.backend=backend
-        try:
-            self.beo = prov.get_backend(backend)
-            hub = 'main'
-        except Exception:
-            self.provider = IBMQ.get_provider(hub='ibm-q-university',
-                    group='uchicago',project='main')
-            hub = 'uchicago'
-            try:
-                self.beo = self.provider.get_backend(backend)
-            except Exception:
-                self.provider = IBMQ.get_provider(hub='ibm-q-research',
-                        group='Scott-Smart',project='main')
-                hub = 'ibm-q-research'
-                self.beo = self.provider.get_backend(backend)
+        self.beo = provider.get_backend(backend)
         self.use_noise=False
         if self.verbose:
             print('\n\n')
@@ -203,6 +192,7 @@ class QuantumStorage:
             self._get_noise_model(**kw)
         if self.verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
+        self.be_type = 'nm'
 
 
     def set_error_mitigation(self,
