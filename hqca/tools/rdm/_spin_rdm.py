@@ -349,9 +349,7 @@ class RDM:
         # get trace of RDM
 
     def __add__(self,rdm):
-        if type(rdm)==type(self):
-            pass
-        else:
+        if not type(rdm)==type(self):
             print('Trying to add a {} to a RDM, '.format(str(type(rdm))))
             sys.exit('wrong type specified.')
         c2 = self.alp==rdm.alp
@@ -367,10 +365,11 @@ class RDM:
                 alpha=self.alp,
                 beta=self.bet,
                 rdm=None,
+                Ne=self.Ne,
                 )
         self.expand()
         rdm.expand()
-        nRDM.rdm = self.rdm+rdm.rdm
+        nRDM.rdm = copy(self.rdm)+copy(rdm.rdm)
         return nRDM
 
     def reduce_order(self):
@@ -380,6 +379,7 @@ class RDM:
                 alpha=self.alp,
                 beta=self.bet,
                 rdm=None,
+                Ne = self.Ne,
                 )
         self.expand()
         if self.p==3:
@@ -402,8 +402,28 @@ class RDM:
         return nRDM
 
     def __sub__(self,rdm):
-        rdm.rdm*= -1
-        return self+rdm
+        if not type(rdm)==type(self):
+            print('Trying to add a {} to a RDM, '.format(str(type(rdm))))
+            sys.exit('wrong type specified.')
+        c2 = self.alp==rdm.alp
+        c3, c4 = self.bet==rdm.bet,self.p==rdm.p
+        if c2+c3+c4<3:
+            print('Checks: ')
+            print('alp: {}, bet: {}'.format(c2,c3))
+            traceback.print_exc()
+            print('Error in adding.')
+            sys.exit('You have RDMs for different systems apparently.')
+        nRDM = RDM(
+                order=self.p,
+                alpha=self.alp,
+                beta=self.bet,
+                rdm=None,
+                Ne=self.Ne,
+                )
+        self.expand()
+        rdm.expand()
+        nRDM.rdm = copy(self.rdm)-copy(rdm.rdm)
+        return nRDM
 
     def __mul__(self,rdm):
         '''
@@ -415,8 +435,15 @@ class RDM:
         if type(rdm)==type(self):
             pass
         elif  type(rdm) in [type(1),type(0),type(0.5)]:
-            self.rdm = self.rdm*rdm
-            return self
+            nRDM = RDM(
+                    order=self.p,
+                    alpha=self.alp,
+                    beta=self.bet,
+                    rdm=None,
+                    Ne=self.Ne,
+                    )
+            nRDM.rdm = copy(self.rdm)*rdm
+            return nRDM
         self.expand()
         rdm.expand()
         c2 = self.alp==rdm.alp
@@ -432,6 +459,7 @@ class RDM:
                 alpha=self.alp,
                 beta=self.bet,
                 rdm=None,
+                Ne=self.Ne,
                 )
         non1 = list((np.nonzero(self.rdm)))
         non2 = list((np.nonzero(rdm.rdm)))

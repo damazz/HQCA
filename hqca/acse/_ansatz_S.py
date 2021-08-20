@@ -95,7 +95,6 @@ class Ansatz:
             return max(self.closed,-1*len(self))
 
     def __add__(self,O):
-        # rawr
         new = copy(self)
         if isinstance(O,type(Operator())):
             if len(self.A)==0:

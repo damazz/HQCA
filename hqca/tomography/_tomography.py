@@ -232,7 +232,7 @@ class StandardTomography(Tomography):
                     if type(self.qs.Gamma)==type(None):
                         pass
                     else:
-                        self.rdm+= self.qs.Gamma*self.qs.Gam_coeff
+                        self.rdm = self.rdm + self.qs.Gamma*self.qs.Gam_coeff
                 if 'sdp' in self.qs.method:
                     try:
                         if type(self.qs.Gamma)==type(None):

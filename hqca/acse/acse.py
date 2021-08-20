@@ -244,7 +244,6 @@ class RunACSE(QuantumRun):
         self.best_avg = self.e0
         self.log = log
         self.log_depth = []
-        self.log_norm = []
         if self.log:
             self.log_rdm = [self.Store.rdm]
             self.log_A = []
@@ -257,10 +256,10 @@ class RunACSE(QuantumRun):
         self.log_E = [self.e0]
         self.log_E_best = [self.e0]
         self.current_counts = {'cx':0}
-        self.log_G = []
         self.total = Cache()
         self.accept_previous_step = True
         self._get_S()
+
 
         if self.log:
             self.log_A.append(copy(self.A))
@@ -268,6 +267,7 @@ class RunACSE(QuantumRun):
             print('||A||: {:.10f}'.format(np.real(self.norm)))
             print('-- -- -- -- -- -- -- -- -- -- --')
         # run checks
+        self.log_norm = [self.norm]
         check_routine(self)
         self.built = True
         if self._output:
@@ -277,10 +277,6 @@ class RunACSE(QuantumRun):
                 np.real(self.norm)))
 
     def _get_S(self):
-        if not self.accept_previous_step:
-            if self.verbose:
-                print('Rejecting previous step. No recalculation of A.')
-            return
             # 
         if self.acse_update == 'q':
             if type(self.sep_hamiltonian)==type(None):
@@ -302,6 +298,10 @@ class RunACSE(QuantumRun):
                 matrix=self._A_as_matrix,
                 )
         elif self.acse_update == 'c':
+            if not self.accept_previous_step:
+                if self.verbose:
+                    print('Rejecting previous step. No recalculation of A.')
+                return
             A_sq = findSPairs(
                 self.Store,
                 self.QuantStore,
@@ -372,23 +372,33 @@ class RunACSE(QuantumRun):
             inc = Operator()
             exc = Operator()
             #   #
+            print('A operator (pre-truncated)')
+            print(self.A)
+
             if self.split_ansatz:
-                for n in new:
+                for n in self.A:
                     added = False
                     for m in reversed(range(self.S.get_lim(), 0)):
+                        # now, we check if in previous ansatz
                         ai = self.S[m]
                         for o in ai:
                             if n == o:
                                 inc += n
                                 added = True
+                                # 
                     if not added:
                         exc += n
                 if self.verbose:
                     print('--------------')
-                    print('Included:')
+                    print('Included in previous ansatz: ')
                     print(inc)
-                    print('Excluded:')
+                    print('New exterior terms: ')
                     print(exc)
+                    print('Added terms:')
+                    if added:
+                        print(inc)
+                    if not added:
+                        print(exc)
                     print('--------------')
                 if inc.norm() == 0 or exc.norm() == 0:
                     pass
@@ -529,26 +539,27 @@ class RunACSE(QuantumRun):
             self.total.done = True
         elif len(self.S) == self.max_depth:
             if copy(self.S) + copy(self.A) > self.max_depth:
+                print('Max ansatz depth reached. Ending optimization.')
                 self.total.done = True
+
+        # updating logs...
         self.log_E.append(np.real(en))
         self.log_depth.append(len(self.S))
         self.log_norm.append(self.norm)
-        self.log_G.append(self.grad)
         self.log_counts.append(self.current_counts)
+        #
         i = 1
         temp_std_En = []
         temp_std_S = []
         temp_std_G = []
-        while i <= min(3, self.total.iter):
+        while i <= min(3, self.total.iter+1):
             temp_std_En.append(self.log_E[-i])
             temp_std_S.append(self.log_norm[-i])
-            temp_std_G.append(self.log_G[-i])
             i += 1
         avg_En = np.real(np.average(np.asarray(temp_std_En)))
         avg_S = np.real(np.average(np.asarray(temp_std_S)))
         std_En = np.real(np.std(np.asarray(temp_std_En)))
         std_S = np.real(np.std(np.asarray(temp_std_S)))
-        std_G = np.abs(np.real(np.average(np.asarray(temp_std_G))))
         if self.verbose:
             self.Store.analysis()
             print('')
@@ -561,49 +572,23 @@ class RunACSE(QuantumRun):
             print('Average energy: {:+.12f}'.format(avg_En))
             print('Standard deviation in S: {:.12f}'.format(std_S))
             print('Average S: {:.12f}'.format(avg_S))
+
+        if avg_En <= en:
+            # increasing energy? 
+            print(self.log_E)
+            print(temp_std_En,avg_En,en)
+            print('Average energy increasing!')
+            self.total.done=True
         if self._output == 1:
             print('Step {:02}, E: {:.12f}, S: {:.12f}'.format(
                 self.total.iter,
                 np.real(en),
                 np.real(self.norm)))
-        if self.QuantStore.be_type=='sv':
-            if en < self.best:
-                self.best = np.real(en)
-            if self._conv_type == 'default':
-                if avg_En > self.best_avg and self.total.iter >= 20:
-                    print('Average energy is increasing!')
-                    print('Ending optimization.')
-                    self.total.done = True
-            else:
-                self.best_avg = copy(avg_En)
-        else:
-            if en < self.best:
-                self.best = np.real(en)
+        if en < self.best:
+            self.best = np.real(en)
         self.log_E_best.append(self.best)
         #
-        if self._conv_type == 'default':
-            if std_En < self.crit and self.norm < 0.05:
-                print('Criteria met. Ending optimization.')
-                self.total.done = True
-        elif self._conv_type in ['gradient', 'gradient_norm']:
-            if self._conv_type == 'gradient_norm':
-                print('Normed gradient: {:.14f}'.format(
-                    np.real(self.grad / self.norm)))
-            print('Gradient size: {:.14f}'.format(np.real(self.grad)))
-            if abs(self.grad) < self.crit:
-                self.total.done = True
-                print('Criteria met in gradient. Ending optimization.')
-            if self.acse_method == 'newton' and self.use_trust_region:
-                if self.tr_Del < self.crit:
-                    self.total.done = True
-                    print('Trust region met criteria!')
-                    print('Ending optimization')
-            if avg_En > self.best_avg:
-                print('Optimization status 2')
-                print('Average energy is increasing!')
-                print('Ending optimization.')
-                self.total.done = True
-        elif self._conv_type in ['trust']:
+        if self._conv_type in ['trust']:
             if not self.verbose and self._output > 0:
                 print('Taylor: {:.10f}, Objective: {:.10f}'.format(
                     self.tr_taylor.real, self.tr_object.real))
@@ -616,8 +601,6 @@ class RunACSE(QuantumRun):
                 self.total.done = True
                 print('Criteria met in objective function.')
                 print('Ending optimization.')
-        elif self._conv_type == 'iterations':
-            pass
         elif self._conv_type in ['S-norm', 'norm']:
             if self.norm < self.crit:
                 self.total.done = True

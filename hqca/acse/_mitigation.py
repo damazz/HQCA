@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 from copy import deepcopy as copy
 
 def check_mitigation(acse):
@@ -10,6 +11,13 @@ def check_mitigation(acse):
 def _calculate_zo_correction(acse):
     '''
     Refers to the forward-projected method
+
+    Full issues a complete recalculation of each iterative point.
+
+    Current only calculates the next point.
+
+    Zero sets the shift to the Hartree Fock point by setting all terms to 0. 
+    This is the fastest method but is limited.
     '''
     print('-- -- -- -- -- -- -- -- -- -- --')
     print('checking ansatz length')
@@ -94,7 +102,6 @@ def _find_zo_current(acse):
         e0 = acse.Store.evaluate(acse.Store.hf_rdm)
         e1 = acse.Store.evaluate(Circ.rdm)
         et = e1-e0
-            # initial
         acse.QuantStore.Gamma = Gamma
         acse.S._store.append(Gamma)
         print('Energies: ')
@@ -102,18 +109,18 @@ def _find_zo_current(acse):
         print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
         print('Energy shift: {:.8f}'.format(np.real(et)))
         print('- - - -')
-        Gamma.analysis()
+        #Gamma.analysis()
     else:
-        testS = copy(acse.A)
+        testA = copy(acse.A)
         currS = copy(acse.S)
-        S = currS+testS
-        for f in S.A[-1]:
-            f.c*= 0.0001
+        S = currS+testA
         if len(S)==len(currS):
             # if we are not changing depth....than we do not need to change Gamma
             # need to replace gamma on last step
             print('Gamma is sufficient. Continuing calculation.')
         else:
+            for f in S.A[-1]:
+                f.c*= 0.0001
             #  we added one.....new one will be zero
             Circ = acse._generate_real_circuit(S)
             # actually...gamma should be the same...ish? 
@@ -125,7 +132,7 @@ def _find_zo_current(acse):
             print('E0 (qc): {:.8f}'.format(np.real(e0)))
             print('E1 (qc): {:.8f}'.format(np.real(e1)))
             print('Gamma shift: {:.8f}'.format(np.real(e0-e1)))
-            nGamma.analysis()
+            #nGamma.analysis()
             acse.QuantStore.Gamma+= nGamma
             #print('- - - -')
             #print('Total energy: {:.8f}'.format(

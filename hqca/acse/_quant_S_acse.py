@@ -58,8 +58,8 @@ def solveqACSE(
         return rdm
     else:
         # form fermionic operator
-        if verbose:
-            print('Elements of S from quantum generation: ')
+        #if verbose:
+        #    print('Elements of S from quantum generation: ')
         newF = Operator()
         nz = np.transpose(np.nonzero(rdm))
         for index in nz:
@@ -74,10 +74,10 @@ def solveqACSE(
                         ops=sop,
                         N=rdm.shape[0],
                         )
-        if verbose:
-            print('S operator (pre-truncated)...')
-            print('Fermionic S operator:')
-            print(newF)
+        #if verbose:
+        #    print('S operator (pre-truncated)...')
+        #    print('Fermionic S operator:')
+        #    print(newF)
         return newF
 
 def _runexpiH(

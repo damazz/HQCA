@@ -21,7 +21,7 @@ def _newton_step(acse):
     if e1<e_best:
         e_best = copy(e1)
         coeff_best = copy(acse.delta)
-        acse.Store.update(rdm1)
+        rdm_best = copy(rdm1)
         acse.current_counts = acse.circ.operator_count
     if acse.verbose:
         print('Running second point...')
@@ -29,7 +29,7 @@ def _newton_step(acse):
     if e2<e_best:
         e_best = copy(e2)
         coeff_best = copy(acse.delta*acse.d)
-        acse.Store.update(rdm2)
+        rdm_best = copy(rdm2)
         acse.current_counts = acse.circ.operator_count
 
     if acse.verbose:
@@ -55,6 +55,11 @@ def _newton_step(acse):
     acse.grad = d1D
     acse.hess = d2D
     # 
+    # setting limit for experimental and theoretical newton step coeff
+    if acse.QuantStore.be_type in ['sv','qasm']:
+        lim=1e-6
+    else:
+        lim= 0.1
     if acse.use_trust_region:
         if acse.verbose:
             print('Carrying out trust region step:')
@@ -79,19 +84,15 @@ def _newton_step(acse):
                 else:
                     if acse.verbose:
                         print('Outside trust region.')
-                    #lamb = -acse.grad/acse.tr_Del-acse.hess
-                    #print('Lambda: {}'.format(lamb))
-                    #coeff = -acse.grad/(acse.hess+lamb)
                     if -acse.grad/acse.hess<0:
                         coeff = acse.tr_Del*(-1)
                     else:
                         coeff = acse.tr_Del
                 ef,df = acse._test_acse_function([coeff],testS)
-                if ef<e_best and abs(coeff)>0.000001:
+                if ef<e_best:
                     e_best = copy(ef)
                     rdm_best = copy(df)
                     coeff_best = copy(coeff)
-                    acse.Store.update(df)
                     acse.current_counts = acse.circ.operator_count
                 if acse.verbose:
                     print('Current: {:.10f}'.format(np.real(ef)))
@@ -114,6 +115,7 @@ def _newton_step(acse):
                     if acse.verbose:
                         print('Convergence in Taylor series model.')
                 else:
+                    # now, adjusting trust region for future steps
                     rho = acse.tr_object/acse.tr_taylor
                     if rho>=nv:
                         if acse.verbose:
@@ -135,9 +137,14 @@ def _newton_step(acse):
                 #if abs(coeff)>0.1:
                 #    acse.Store.update(df)
                 trust_iter+=1
-                if trust_iter>=2:
-                    trust=True
-        if abs(coeff_best)<0.000001:
+                if acse.QuantStore.be_type in ['nm','qc']:
+                    if trust_iter>=1:
+                        trust=True
+                else:
+                    if trust_iter>=2:
+                        trust=True
+                    #
+        if abs(coeff_best)<lim and acse.QuantStore.be_type in ['nm','qc']:
             acse.accept_previous_step = False
             if acse.verbose:
                 print('Rejecting Newton Step...')
@@ -146,6 +153,7 @@ def _newton_step(acse):
             for f in testS:
                 f.c*= coeff_best
             acse.S = acse.S+testS
+            acse.Store.update(rdm_best)
     else:
         raise QuantumRunError('Why are you not using the trust region? \nSet use_trust_region=True')
         acse.S = acse.S+testS
@@ -170,7 +178,4 @@ def _newton_step(acse):
         acse.current_counts = Psi.operator_count
         Psi.rdm.switch()
         acse.circ = Psi
-    if acse.verbose:
-        pass
-    #    print('Current S: ')
-    #    print(acse.S)
+
