@@ -1,1 +1,12 @@
-
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Smart"
+  given-names: "Scott E."
+  orcid: "https://orcid.org/0000-0000-0000-0000"
+- family-names: "Mazziotti"
+  given-names: "David A."
+  orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "hqca - hybrid quantum computing algorithms for quantum chemistry"
+version: 21.08.24
+url: "https://github.com/damazz/HQCA"
