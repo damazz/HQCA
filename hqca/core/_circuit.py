@@ -2,6 +2,7 @@ from qiskit import execute
 from abc import ABC,abstractmethod
 from qiskit.circuit import Parameter
 from qiskit import QuantumRegister,ClassicalRegister,QuantumCircuit
+from math import pi
 
 
 class Circuit(ABC):
@@ -36,6 +37,7 @@ class Circuit(ABC):
 
 
 class GenericCircuit(Circuit):
+
     def __init__(self,**kwargs):
         Circuit.__init__(self,**kwargs)
         self.swap = {i:i for i in range(self.Nq)}
@@ -45,13 +47,19 @@ class GenericCircuit(Circuit):
         Circuit.apply(self,**kwargs)
 
     def h(self,q):
-        self.qc.h(self.q[q])
-
-    def s(self,q):
+        self.qc.s(self.q[q])
+        self.qc.sx(self.q[q])
         self.qc.s(self.q[q])
 
+    def s(self,q):
+        self.qc.rz(pi/2,self.q[q])
+
+    def sx(self,q):
+        # square root of X gate
+        self.qc.sx(self.q[q])
+
     def si(self,q):
-        self.qc.sdg(self.q[q])
+        self.qc.rz(-pi/2,self.q[q])
 
     def Cx(self,q,p):
         self.qc.cx(self.q[q],self.q[p])
@@ -75,10 +83,12 @@ class GenericCircuit(Circuit):
         self.qc.x(self.q[q])
 
     def y(self,q):
-        self.qc.y(self.q[q])
+        self.qc.rz(-pi/2,self.q[q])
+        self.qc.x(self.q[q])
+        self.qc.rz(+pi/2,self.q[q])
 
     def z(self,q):
-        self.qc.z(self.q[q])
+        self.qc.rz(pi,self.q[q])
 
     def U3(self,q,theta,phi,lamb):
         self.qc.u3(theta,phi,lamb,self.q[q])
