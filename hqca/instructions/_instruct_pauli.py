@@ -43,19 +43,34 @@ class PauliSet(Instructions):
     def _applyOp(self,
             operator,Nq,depth=1,
             **kw):
-        for d in range(depth):
-            try:
-                operator = operator.op_form()
-            except Exception as e:
-                pass
-            for item in operator:
-                if item.sym:
-                    if abs(im(item.c))<1e-14:
-                        c = np.real(item.c)
-                    elif abs(re(item.c))<1e-14:
-                        c =  np.imag(item.c)
-                    if abs(c)>1e-14:
+        if isinstance(operator,list):
+            pass
+        else:
+             operator = operator.op_form() #from the ansatz
+        for item in operator:
+            if item.sym:
+                if abs(im(item.c))<1e-14:
+                    c = np.real(item.c)
+                elif abs(re(item.c))<1e-14:
+                    c =  np.imag(item.c)
+                if abs(c)>1e-14:
 
+                    self._gates.append(
+                            [(
+                                c/depth,
+                                item.s,
+                                ),
+                                generic_Pauli_term
+                                ]
+                            )
+            else:
+                try:
+                    item.s
+                    if abs(item.c.imag)<1e-14:
+                        c = item.c.real
+                    elif abs(item.c.real)<1e-14:
+                        c =  item.c.imag
+                    if abs(c)>1e-14:
                         self._gates.append(
                                 [(
                                     c/depth,
@@ -64,28 +79,12 @@ class PauliSet(Instructions):
                                     generic_Pauli_term
                                     ]
                                 )
-                else:
-                    try:
-                        item.s
-                        if abs(item.c.imag)<1e-14:
-                            c = item.c.real
-                        elif abs(item.c.real)<1e-14:
-                            c =  item.c.imag
-                        if abs(c)>1e-14:
-                            self._gates.append(
-                                    [(
-                                        c/depth,
-                                        item.s,
-                                        ),
-                                        generic_Pauli_term
-                                        ]
-                                    )
-                    except AttributeError:
-                        sys.exit('Something wrong in instructions.')
-                    except Exception as e:
-                        print('Item: ',item.c)
-                        print(e)
-                        sys.exit('Something wrong in instructions.')
+                except AttributeError:
+                    sys.exit('Something wrong in instructions.')
+                except Exception as e:
+                    print('Item: ',item.c)
+                    print(e)
+                    sys.exit('Something wrong in instructions.')
 
     def _applyH(self,
             HamiltonianOperator,

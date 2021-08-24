@@ -191,6 +191,8 @@ class Circ:
         self.Cx(j,i)
 
 
+
+
     def Toff4(self,i,j,k,l):
         hold = np.identity(self.N)
         for x in range(0,self.N):
@@ -252,6 +254,13 @@ class Circ:
         a = 1/np.sqrt(2)
         h = np.array([[a,a],[a,-a]])
         self._apply_sqg(h,i)
+
+    def sx(self,i,**kw):
+        a = 1/2
+        sx = a*np.array([[1+1j, 1-1j],[1-1j,1+1j]])
+        self._apply_sqg(sx,i)
+
+        # square root x
 
     def z(self,i,**kw):
         z = np.array([[1,0],[0,-1]])

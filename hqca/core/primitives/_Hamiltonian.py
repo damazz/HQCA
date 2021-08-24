@@ -25,18 +25,21 @@ def pauliOp(Q,loc,sigma='x',inv=False):
     if sigma in ['Z','z']:
         pass
     elif sigma in ['X','x']:
-        Q.qc.h(Q.q[loc])
+        Q.qc.rz(pi/2,Q.q[loc])
+        Q.qc.sx(Q.q[loc])
+        Q.qc.rz(pi/2,Q.q[loc])
     elif sigma in ['I','i']:
         pass
     elif sigma in ['Y','y']:
         if inv:
-            Q.qc.h(Q.q[loc])
-            Q.qc.s(Q.q[loc])
+            Q.qc.rz(pi/2,Q.q[loc])
+            Q.qc.sx(Q.q[loc])
+            Q.qc.rz(pi,Q.q[loc])
             #Q.qc.rx(-pi/2,Q.q[loc])
         else:
             #Q.qc.rx(pi/2,Q.q[loc])
-            Q.qc.sdg(Q.q[loc])
-            Q.qc.h(Q.q[loc])
+            Q.qc.sx(Q.q[loc])
+            Q.qc.rz(pi/2,Q.q[loc])
 
 def apply_pauli_string(Q,pauli):
     if not abs(abs(pauli.c)-1)<1e-4:
@@ -47,9 +50,11 @@ def apply_pauli_string(Q,pauli):
         if i=='X':
             Q.qc.x(Q.q[q])
         elif i=='Y':
-            Q.qc.y(Q.q[q])
+            Q.qc.rz(pi/2,Q.q[q])
+            Q.qc.x(Q.q[q])
+            Q.qc.rz(pi/2,Q.q[q])
         elif i=='Z':
-            Q.qc.z(Q.q[q])
+            Q.qc.rz(pi,Q.q[q])
 
 def generic_Pauli_term(Q,val,pauli,scaling=1.0):
     s,c = pauli,val

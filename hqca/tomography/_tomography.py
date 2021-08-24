@@ -761,17 +761,22 @@ class StandardTomography(Tomography):
                     qc = QuantumCircuit(qr,cr)
                     for n,i in enumerate(c0):
                        if i == 'X':
-                           qc.h(qr[n])
-                       elif i == 'Y':
-                           qc.h(qr[n])
                            qc.s(qr[n])
+                           qc.sx(qr[n])
+                           qc.s(qr[n])
+                       elif i == 'Y':
+                           qc.s(qr[n])
+                           qc.sx(qr[n])
+                           qc.z(qr[n])
                     if ni>0:
                         for n, i in enumerate(c):
                             if i == 'X':
-                                qc.h(qr[n])
+                                qc.s(qr[n])
+                                qc.sx(qr[n])
+                                qc.s(qr[n])
                             elif i == 'Y':
-                                qc.sdg(qr[n])
-                                qc.h(qr[n])
+                                qc.sx(qr[n])
+                                qc.s(qr[n])
                     unitary_circs.append(qc)
                 us = Aer.get_backend('unitary_simulator')
                 job = execute(unitary_circs,us,shots=1).result().results

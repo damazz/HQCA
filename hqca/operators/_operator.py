@@ -46,7 +46,7 @@ class Operator:
             z += '\n'
         return z[:-1]
 
-    def tems(self):
+    def items(self):
         return self.op.items()
 
     def values(self):
@@ -165,6 +165,13 @@ class Operator:
                     remove.append(n)
         for n in remove:
             del self.op[n.s]
+
+    def remove(self,key):
+        try:
+            del self.op[key]
+        except Exception as e:
+            pass
+
 
         #L =len(self)
         #for n,i in enumerate(reversed(self)):
