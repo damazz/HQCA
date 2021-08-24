@@ -381,7 +381,7 @@ class RunACSE(QuantumRun):
                 nexc = Operator()
                 max_inc, max_exc = 0,0
                 if self.verbose:
-                print(A)
+                    print(A)
                 for op in inc:
                     if abs(op.c) >= abs(max_inc):
                         max_inc = copy(op.c)
