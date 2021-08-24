@@ -75,10 +75,10 @@ def findSPairs(
                     N = quantstore.dim,
                     )
     #fullS = new.transform(quantstore.transform)
-    if verbose:
-        print('fermionic A operator:')
-        print(new)
-        print('')
+    #if verbose:
+    #    print('fermionic A operator:')
+    #    print(new)
+    #    print('')
     return new
 
 
