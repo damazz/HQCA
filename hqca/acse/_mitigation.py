@@ -97,10 +97,13 @@ def _find_zo_current(acse):
             f.c*= 0.0001
         print('initial step: ')
         print(S)
-        Circ = acse._generate_real_circuit(S)
-        Gamma = acse.Store.hf_rdm-Circ.rdm
+        Circ1 = acse._generate_real_circuit(S)
+        Circ2 = acse._generate_real_circuit(S)
+        gam = (Circ1.rdm+Circ2.rdm)*0.5
+        Gamma = acse.Store.hf_rdm-gam
+
         e0 = acse.Store.evaluate(acse.Store.hf_rdm)
-        e1 = acse.Store.evaluate(Circ.rdm)
+        e1 = acse.Store.evaluate(gam)
         et = e1-e0
         acse.QuantStore.Gamma = Gamma
         acse.S._store.append(Gamma)
@@ -108,6 +111,7 @@ def _find_zo_current(acse):
         print('E0 (HF): {:.8f}'.format(np.real(e0)))
         print('E1 (HF-qc): {:.8f}'.format(np.real(e1)))
         print('Energy shift: {:.8f}'.format(np.real(et)))
+        print('Norm: {}'.format(np.linalg.norm(Gamma.rdm)))
         print('- - - -')
         #Gamma.analysis()
     else:
@@ -121,23 +125,29 @@ def _find_zo_current(acse):
         else:
             for f in S.A[-1]:
                 f.c*= 0.0001
+            print('current S: ')
+            print(S)
             #  we added one.....new one will be zero
-            Circ = acse._generate_real_circuit(S)
+            Circ1 = acse._generate_real_circuit(S)
+            Circ2 = acse._generate_real_circuit(S)
             # actually...gamma should be the same...ish? 
-            nGamma = (acse.Store.rdm-Circ.rdm)#-acse.QuantStore.Gamma-acse.QuantStore.Gamma)
+            gam = (Circ1.rdm+Circ2.rdm)*0.5
+            nGamma = copy(acse.Store.rdm)-gam #-acse.QuantStore.Gamma-acse.QuantStore.Gamma)
             # 
             e0 = copy(acse.Store.evaluate(acse.Store.rdm))
-            e1 = acse.Store.evaluate(Circ.rdm)
+            e1 = acse.Store.evaluate(gam)
             print('Energies: ')
-            print('E0 (qc): {:.8f}'.format(np.real(e0)))
-            print('E1 (qc): {:.8f}'.format(np.real(e1)))
-            print('Gamma shift: {:.8f}'.format(np.real(e0-e1)))
+            print('E_n(e_n) (qc): {:.8f}'.format(np.real(e0)))
+            print('E_n+1(0) (qc): {:.8f}'.format(np.real(e1)))
+            print('Gamma shift: {:.8f}'.format(np.real(e1-e0)))
+            print('Norm: {}'.format(np.linalg.norm(nGamma.rdm)))
             #nGamma.analysis()
             acse.QuantStore.Gamma+= nGamma
-            #print('- - - -')
-            #print('Total energy: {:.8f}'.format(
-            #    acse.Store.evaluate(acse.QuantStore.Gamma).real))
-            #print('- - - -')
+            print('- - - -')
+            print('Total energy: {:.8f}'.format(
+                acse.Store.evaluate(acse.QuantStore.Gamma).real))
+            print('Norm: {}'.format(np.linalg.norm(acse.QuantStore.Gamma.rdm)))
+            print('- - - -')
 
 def _find_zo_zero(acse):
     acse.QuantStore.Gamma = None

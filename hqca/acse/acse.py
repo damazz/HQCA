@@ -186,10 +186,10 @@ class RunACSE(QuantumRun):
 
 
     def _generate_real_circuit(self, op):
-        if isinstance(op, type(Ansatz())):
-            op = op.op_form()
-        else:
-            raise QuantumRunError('Problem with input to generate real circuit.')
+        #if isinstance(op, type(Ansatz())):
+        #    op = op.op_form()
+        #else:
+        #    raise QuantumRunError('Problem with input to generate real circuit.')
         ins = self.Instruct(
             operator=op,
             Nq=self.QuantStore.Nq,
@@ -285,7 +285,7 @@ class RunACSE(QuantumRun):
                 H = self.sep_hamiltonian
             A_sq = solveqACSE(
                 H=H,
-                operator=self.S.op_form(),
+                operator=self.S,
                 process=self.process,
                 instruct=self.Instruct,
                 store=self.Store,
@@ -315,7 +315,7 @@ class RunACSE(QuantumRun):
             else:
                 H = self.sep_hamiltonian
             A_sq = findQubitAQuantum(
-                operator=self.S.op_form(),
+                operator=self.S,
                 process=self.process,
                 instruct=self.Instruct,
                 store=self.Store,
@@ -346,37 +346,26 @@ class RunACSE(QuantumRun):
             self.norm = np.linalg.norm(A_sq)
             self.A = A_sq
         else:
-            max_val, norm = 0, 0
-            new = Operator()
-            for op in A_sq:
-                norm += op.norm()**2
-                if abs(op.c) >= abs(max_val):
-                    max_val = copy(op.c)
-            for op in A_sq:
-                if abs(op.c) >= abs(self.S_thresh_rel * max_val):
-                    new += op
-            t0 = dt()
-            if self.acse_update in ['c','q']:
-                self.A = new.transform(self.QuantStore.transform)
-            elif self.acse_update in ['p']:
-                self.A = new.transform(self.QuantStore.qubit_transform)
-            elif self.acse_update in ['u']:
-                self.A = new
-            norm = 0
-            for op in self.A:
-                norm += op.norm()**2
-            #print('Time to transform A: {}'.format(dt() - t0))
-            # self.A = new
-            self.norm = norm ** (0.5)
-            # check if operator is split #
-            inc = Operator()
-            exc = Operator()
-            #   #
-            print('A operator (pre-truncated)')
-            print(self.A)
 
             if self.split_ansatz:
-                for n in self.A:
+                max_v, norm = 0, 0
+                new = Operator()
+                for op in A_sq:
+                    if abs(op.c) >= abs(max_v):
+                        max_v = copy(op.c)
+                for op in A_sq:
+                    if abs(op.c) >= abs(self.S_thresh_rel * max_v):
+                        new += op
+                if self.acse_update in ['c','q']:
+                    A = A_sq.transform(self.QuantStore.transform)
+                    #A = new.transform(self.QuantStore.transform)
+                elif self.acse_update in ['p']:
+                    A = A_sq.transform(self.QuantStore.qubit_transform)
+                    #A = new.transform(self.QuantStore.qubit_transform)
+                #
+                inc = Operator()
+                exc = Operator()
+                for n in A:
                     added = False
                     for m in reversed(range(self.S.get_lim(), 0)):
                         # now, we check if in previous ansatz
@@ -388,28 +377,80 @@ class RunACSE(QuantumRun):
                                 # 
                     if not added:
                         exc += n
+                ninc = Operator()
+                nexc = Operator()
+                max_inc, max_exc = 0,0
+                if self.verbose:
+                print(A)
+                for op in inc:
+                    if abs(op.c) >= abs(max_inc):
+                        max_inc = copy(op.c)
+                for op in inc:
+                    if abs(op.c) >= abs(self.S_thresh_rel * max_inc):
+                        ninc += op
+                for op in exc:
+                    if abs(op.c) >= abs(max_exc):
+                        max_exc = copy(op.c)
+                for op in exc:
+                    if abs(op.c) >= abs(self.S_thresh_rel * max_exc):
+                        nexc += op
+                #
                 if self.verbose:
                     print('--------------')
                     print('Included in previous ansatz: ')
-                    print(inc)
+                    print(ninc)
                     print('New exterior terms: ')
-                    print(exc)
-                    print('Added terms:')
-                    if added:
-                        print(inc)
-                    if not added:
-                        print(exc)
-                    print('--------------')
-                if inc.norm() == 0 or exc.norm() == 0:
-                    pass
+                    print(nexc)
+                    max_val = 0
+                if ninc.norm() == 0 or nexc.norm() == 0:
+                    new = Operator()
+                    for op in A:
+                        norm += op.norm()**2
+                        if abs(op.c) >= abs(max_val):
+                            max_val = copy(op.c)
+                    for op in A:
+                        if abs(op.c) >= abs(self.S_thresh_rel * max_val):
+                            new += op
+                    self.A = copy(new)
                 elif exc.norm() / inc.norm() > self.split_threshold:
-                    self.A = copy(exc)
+                    print('Exc > Inc * thresh')
+                    print('Added terms:')
+                    # 
+                    self.A = copy(nexc)
                 else:
-                    self.A = copy(inc)
-            if self.verbose:
-                print('qubit A operator: ')
+                    print('Exc < Inc * thresh')
+                    self.A = copy(ninc)
+                norm = 0
+                for op in self.A:
+                    norm += op.norm()**2
+                self.norm = norm ** (0.5)
+            else:
+                max_val, norm = 0, 0
+                new = Operator()
+                for op in A_sq:
+                    norm += op.norm()**2
+                    if abs(op.c) >= abs(max_val):
+                        max_val = copy(op.c)
+                for op in A_sq:
+                    if abs(op.c) >= abs(self.S_thresh_rel * max_val):
+                        new += op
+                t0 = dt()
+                if self.acse_update in ['c','q']:
+                    self.A = new.transform(self.QuantStore.transform)
+                elif self.acse_update in ['p']:
+                    self.A = new.transform(self.QuantStore.qubit_transform)
+                norm = 0
+                for op in self.A:
+                    norm += op.norm()**2
+                self.norm = norm ** (0.5)
+                # check if operator is split #
+                #   #
+                print('A operator (pre-truncated)')
                 print(self.A)
-                print('-- -- -- -- -- -- -- -- -- -- --')
+                if self.verbose:
+                    print('qubit A operator: ')
+                    print(self.A)
+                    print('-- -- -- -- -- -- -- -- -- -- --')
 
     def _run_acse(self):
         '''
