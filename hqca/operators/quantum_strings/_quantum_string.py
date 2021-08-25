@@ -8,4 +8,5 @@ class QuantumString:
         self.c = 1.0j
 
     def norm(self):
-        return (self.c*(self.c.real-self.c.imag))**(0.5)
+        t = ((self.c.real + 1j*self.c.imag)*(self.c.real-1j*self.c.imag))**(0.5)
+        return t.real

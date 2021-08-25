@@ -260,7 +260,6 @@ class RunACSE(QuantumRun):
         self.accept_previous_step = True
         self._get_S()
 
-
         if self.log:
             self.log_A.append(copy(self.A))
         if self.verbose:
@@ -425,6 +424,7 @@ class RunACSE(QuantumRun):
                     norm += op.norm()**2
                 self.norm = norm ** (0.5)
             else:
+                #
                 max_val, norm = 0, 0
                 new = Operator()
                 for op in A_sq:
@@ -447,6 +447,7 @@ class RunACSE(QuantumRun):
                 #   #
                 print('A operator (pre-truncated)')
                 print(self.A)
+                print('Norm: {}'.format(self.norm))
                 if self.verbose:
                     print('qubit A operator: ')
                     print(self.A)
