@@ -46,7 +46,10 @@ class PauliSet(Instructions):
         if isinstance(operator,list):
             pass
         else:
-             operator = operator.op_form() #from the ansatz
+            try: 
+                operator = operator.op_form() #from the ansatz
+            except AttributeError:
+                pass
         for item in operator:
             if item.sym:
                 if abs(im(item.c))<1e-14:
