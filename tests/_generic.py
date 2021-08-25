@@ -113,17 +113,6 @@ def generic_quantumstorage():
             provider='Aer')
     return qs
 
-def generic_quantumstorage():
-    ham = generic_molecular_hamiltonian()
-    st = StorageACSE(ham)
-    qs = QuantumStorage()
-    qs.set_algorithm(st)
-    qs.set_backend(
-            backend='statevector_simulator',
-            Nq=4,
-            provider='Aer')
-    return qs
-
 def tomo_quantumstorage():
     ham =  MolecularHamiltonian(
             mol=tomo_mol(),
