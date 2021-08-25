@@ -1,6 +1,0 @@
-
-Several examples of single qubit Hamiltonians. Note that the instructions 
-differ for some of the cases. The euler example uses the Pauli Instructions, and
-the others use the SingleQubitExponential.
-
-

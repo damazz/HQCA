@@ -13,7 +13,7 @@ def _euler_step(acse):
         s.c*=acse.delta
     acse.S = acse.S+testS
     ins = acse.Instruct(
-            operator=acse.S.op_form(),
+            operator=acse.S,
             Nq=acse.QuantStore.Nq,
             quantstore=acse.QuantStore,
             )
@@ -39,7 +39,7 @@ def _euler_step(acse):
             for s in testS:
                 s.c*=-1
             acse.S+= testS
-            ins = acse.Instruct(operator=acse.S.op_form(),
+            ins = acse.Instruct(operator=acse.S,
                     Nq=acse.QuantStore.Nq,
                     quantstore=acse.QuantStore,
                     )
