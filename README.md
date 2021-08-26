@@ -22,10 +22,11 @@ The following features are included:
 
 ### Prerequisites 
 python >= 3.7  
-qiskit >= 0.25
+qiskit >= 0.17
 pyscf  >= 1.7.4
 
 Optionally:
+pytest, delayed_assert (running test suite) 
 graph_tool >= 2.35  (conda installation recommended, needed for reduced tomography schemes)
 Maple 2021, with QuantumChemistry module
  
