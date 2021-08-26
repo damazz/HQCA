@@ -8,7 +8,7 @@ config._use_multiprocessing=False
 
 class QuantStore:
     def __init__(self):
-        self.path_to_maple = '/home/scott/maple2020/bin/maple'
+        #self.path_to_maple = '/home/scott/maple2020/bin/maple'
         self.spin_rdm = True
         self.groups = [[0,1,2,3],[4,5,6,7]]
         self.Ne = 4

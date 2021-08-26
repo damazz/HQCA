@@ -2,6 +2,7 @@ from hqca.operators.quantum_strings import PauliString as Pauli
 from hqca.operators.quantum_strings import FermiString as Fermi
 from hqca.operators.quantum_strings import QubitString as Qubit
 from hqca.operators._operator import Operator as Op
+from math import sqrt, pi
 import hqca.config as config
 config._use_multiprocessing=False
 
@@ -61,6 +62,7 @@ def test_op_non_commuting_paulistring_mul_is_equal():
 # test fermi string 
 #
 
+
 def test_fermi_anti_symm():
     assert Fermi(coeff=1,indices=[1,0],ops='+-') == Fermi(coeff=-1,indices=[0,1],ops='-+')
 
@@ -88,7 +90,30 @@ def test_fermi_mul_ne():
     assert a*b !=c
 
 
+def test_fermi_norm1():
+    o = Fermi(coeff=1/sqrt(2),indices=[0,1],ops='+-',N=3)
+    assert abs(o.norm()-1/sqrt(2))<1e-10
+
+def test_fermi_norm2():
+    o = Fermi(coeff=1j/sqrt(2),indices=[1,2],ops='+-',N=3)
+    assert abs(o.norm()-1/sqrt(2))<1e-10
+
+def test_fermi_norm3():
+    o = Fermi(coeff=(0.5-0.5j),indices=[1,2],ops='+-',N=3)
+    assert abs(o.norm()-1/sqrt(2))<1e-10
 # op form
+
+def test_Pauli_norm1():
+    o = Pauli('XXZ',1/sqrt(2))
+    assert abs(o.norm()-1/sqrt(2))<1e-10
+
+def test_Pauli_norm2():
+    o = Pauli('XXZ',1j/sqrt(2))
+    assert abs(o.norm()-1/sqrt(2))<1e-10
+
+def test_Pauli_norm2():
+    o = Pauli('XXZ',(0.5-0.5j))
+    assert abs(o.norm()-1/sqrt(2))<1e-10
 
 def test_op_fermi_anti_symm():
     assert Fermi(coeff=1,indices=[1,0],ops='+-') == Fermi(coeff=-1,indices=[0,1],ops='-+')

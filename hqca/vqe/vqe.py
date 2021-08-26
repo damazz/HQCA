@@ -57,7 +57,6 @@ class RunVQE(QuantumRun):
             self.tomo_preset=True
         self.kw_opt=kw_opt
 
-
     def __test_vqe_function(self,para):
         psi = self.T.evaluate(para)
         ins = self.Instruct(psi,
