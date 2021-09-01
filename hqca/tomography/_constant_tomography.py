@@ -126,6 +126,17 @@ class ReducedTomography(StandardTomography):
                     pass
                 else:
                     paulis.append(j.s)
+
+        def ztype(pauli_string):
+            for p in pauli_string:
+                if not p in ['I','Z']:
+                    return False
+            return True
+        zpauli = []
+        for n in reversed(range(len(paulis))):
+            if ztype(paulis[n]):
+                zpauli.append(paulis.pop(n))
+
         if simplify == True:
             if self.imag and not self.real:
                 rz = False
@@ -142,6 +153,9 @@ class ReducedTomography(StandardTomography):
         else:
             self.op = paulis
             self.mapping = {p: p for p in paulis}
+        for z in zpauli:
+            self.mapping[z]='Z'*self.qs.Nq
+        self.op+= zpauli
 
 class ReducedQubitTomography(QubitTomography):
     def _generate_pauli_from_qrdm(self,

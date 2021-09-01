@@ -23,4 +23,5 @@ __all__ = [
         'PauliString',
         'QuantumString',
         'QubitString',
+        'QuantumStorage',
         ]

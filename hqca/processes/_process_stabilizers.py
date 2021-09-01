@@ -1,6 +1,7 @@
 from hqca.core import *
 from functools import partial
 from hqca.tools import *
+from hqca.operators import *
 import numpy as np
 import sys
 
@@ -46,10 +47,11 @@ class StabilizerProcess(Process):
             original,
             counts,quantstore,
             **kw):
-        print(original)
-        #print('Original counts: ')
-        #print(counts)
+        #print(original)
         if original=='Z'*quantstore.Nq:
+            #print('Filtering...')
+            #print('Original counts: ')
+            #print(counts)
             # then, need to do N filtering
             No = quantstore.No_as*2
             N = Operator()
@@ -80,11 +82,10 @@ class StabilizerProcess(Process):
                 c2 = (round(sz,5)==(quantstore.Ne_alp-quantstore.Ne_bet))
                 if c1 and c2:
                     new[k]=v
-            print('Filtered Counts: ')
-            print(new)
+            #print('Filtered Counts: ')
+            #print(new)
             return new
         else:
-            print('Not filtered.')
             return counts
 
 
@@ -176,19 +177,19 @@ class StabilizerProcess(Process):
             ):
         # target is pauli string
         stab_circ = quantstore.stabilizer_map[original]
-        #print(original,pauli_string)
-        #print(stab_circ.paulis)
+        print(original,pauli_string)
+        print(stab_circ.paulis)
         generators = stab_circ.paulis[pauli_string]
         msr = 1
-        #print('Generators')
-        #print(generators)
-        #print(stab_circ.T_M)
+        print('Generators')
+        print(generators)
+        print(stab_circ.T_M)
         fetch = Operator()+PauliString('I'*quantstore.Nq,1)
         for g in generators[0]:
             fetch*= PauliString(stab_circ.T_M[g],1)
-        #print('Gen: ',g)
-        #print('Fetch: ')
-        #print(fetch)
+        print('Gen: ',g)
+        print('Fetch: ')
+        print(fetch)
         msr*=self.__measure_z_string(
                 counts=counts,
                 pauli_string=fetch[0].s,

@@ -10,7 +10,7 @@ from copy import deepcopy as copy
 # Add location for the HQCA module
 #
 import sys
-sys.path.append('/home/scott/Documents/research/software/HQCA')
+sys.path.append('')
 #
 # include HQCA directory 
 #
@@ -68,7 +68,7 @@ qubits = int(qubits)
 act = int(act)
 
 
-run = 'statevector'
+run = 'noisy'
 acse_sol = 'classical'
 
 if run=='ibm':
@@ -77,6 +77,9 @@ if run=='ibm':
 elif run=='statevector':
     provider = 'Aer'
     backend = 'statevector_simulator'
+elif run=='noisy':
+    provider = 'Aer'
+    backend = 'qasm_simulator'
 else:
     raise InputError('Incorrect backend selected.')
 
@@ -217,10 +220,13 @@ qs.initial_transform = tr_init
 # error mitigation strategies 
 # we also have a custom noise model based on the device paramters to use if necessary
 #
-proc = StabilizerProcess(stabilizer='filter_diagonal')
+if run in ['noisy','ibm']:
+    proc = StabilizerProcess(stabilizer='filter_diagonal')
+else:
+    proc = StandardProcess
 if run in ['noisy']:
-    error =1
-    nm = noise_model_from_ibmq(scaling=error)
+    error =0.25
+    nm = noisy_model_from_ibmq(scaling=error)
     qs.set_noise_model(custom=True,
             noise_model=nm)
 if run in  ['ibm','noisy']:
@@ -258,6 +264,7 @@ if qubits in [1]:
             'convergence_type':'norm',
             'max_iter':5,
             'restrict_S_size':0.5,
+            'processor':proc,
             'hamiltonian_step_size':0.1,
             }
     tomoIm = ReducedTomography(qs)
@@ -278,6 +285,7 @@ else:
                 'use_trust_region':True,
                 'max_iter':6,
                 'newton_step':-1,
+                'processor':proc,
                 'initial_trust_region':1,
                 'restrict_S_size':1.5,
                 }
@@ -292,6 +300,7 @@ else:
                 'S_min':1e-6,
                 'convergence_type':'norm',
                 'use_trust_region':True,
+                'processor':proc,
                 'max_iter':7,
                 'newton_step':-1,
                 'initial_trust_region':2,

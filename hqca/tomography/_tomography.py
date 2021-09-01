@@ -258,6 +258,7 @@ class StandardTomography(Tomography):
                 if op.s=='I'*len(op.s):
                     temp+= op.c
                     continue
+                # 
                 get = self.mapping[op.s] #self.mapping gets appropriate pauli
                 # property to get the right pauli
                 zMeas = processor.process(
@@ -595,17 +596,26 @@ class StandardTomography(Tomography):
         else:
             self.rdme = [partial_generate_rdme(i) for i in self.rdme]
         self.rdme_keys = [i.ind for i in self.rdme]
+
+
         for fermi in self.rdme:
             for j in fermi.qubOp:
                 if j.s in paulis:
                     pass
                 else:
                     paulis.append(j.s)
+
+        def ztype(pauli_string):
+            for p in pauli_string:
+                if not p in ['I','Z']:
+                    return False
+            return True
+        zpauli = []
+        for n in reversed(range(len(paulis))):
+            if ztype(paulis[n]):
+                zpauli.append(paulis.pop(n))
+
         if simplify==True:
-            if self.imag:
-                rz=False
-            else:
-                rz=True
             self.op,self.mapping = simplify_tomography(
                     paulis,
                     **kw)
@@ -616,6 +626,9 @@ class StandardTomography(Tomography):
         else:
             self.op = paulis
             self.mapping = {p:p for p in paulis}
+        for z in zpauli:
+            self.mapping[z]='Z'*self.qs.Nq
+        self.op+= zpauli
 
 
     def simulate(self,verbose=False):
