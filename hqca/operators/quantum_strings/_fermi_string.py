@@ -5,6 +5,19 @@ from sympy import symbols
 from sympy import re,im
 import sys
 
+
+def conj_transpose(s):
+    n = ''
+    for i in s:
+        if i in ['p','h','i']:
+            n+=i
+        elif i=='+':
+            n+='-'
+        elif i=='-':
+            n+='+'
+    return n
+
+
 class FermiString(QuantumString):
     '''
     Class of operators, obeys simple fermionic statistics.
@@ -34,6 +47,18 @@ class FermiString(QuantumString):
         self.sym = symbolic
         self.add = add
 
+    def H(self):
+        '''
+        return conjugate transpose of the string)
+        '''
+        return FermiString(
+                coeff=self.c.real-1j*self.c.imag,
+                indices=self.inds()[::-1],
+                N=self.N(),
+                ops=''.join(conj_transpose(self.ops()))[::-1],
+                )
+
+
     def __str__(self):
         if self.sym:
             z = '{}: {}'.format( self.s,self.c.__str__())
@@ -43,6 +68,7 @@ class FermiString(QuantumString):
 
     def __len__(self):
         return len(self.ops())
+
 
     def rank(self):
         l = 0
