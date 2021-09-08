@@ -56,7 +56,6 @@ def generate_qrdme(
     return RDMElement(op,qubOp,ind=ind)
 
 
-
 class QubitTomography(StandardTomography):
     '''
     Tomography
