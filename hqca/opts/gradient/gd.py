@@ -45,3 +45,4 @@ class GradientDescent(OptimizerInstance):
         self.best_x = self.f1_x[:]
         self.best_y = self.f1_x[:]
 
+

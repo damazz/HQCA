@@ -57,7 +57,7 @@ class Optimizer:
                 }
         elif optimizer in grad:
             methods = {
-                'ls':LineSearch,
+                'ls':BacktrackingLineSearch,
                 'gd':GradientDescent,
                 'bfgs':BFGS,
                 }

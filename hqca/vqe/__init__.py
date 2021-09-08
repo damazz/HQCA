@@ -3,6 +3,7 @@ from hqca.vqe._store_vqe import *
 from hqca.tomography import *
 from hqca.tools import *
 from hqca.core import *
+from hqca.vqe.adapt import *
 
 __all__ = [
         'RunVQE',
@@ -10,4 +11,5 @@ __all__ = [
         'StandardTomography',
         'ReducedTomography',
         'QuantumStorage',
+        'RunADAPTVQE',
         ]

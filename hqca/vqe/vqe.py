@@ -31,6 +31,7 @@ class RunVQE(QuantumRun):
         self._update_vqe_kw(**kw)
 
     def _update_vqe_kw(self,
+            #
             method='noft',
             ansatz='ucc',
             initial='hf',
@@ -56,50 +57,6 @@ class RunVQE(QuantumRun):
         else:
             self.tomo_preset=True
         self.kw_opt=kw_opt
-
-    def __test_vqe_function(self,para):
-        psi = self.T.evaluate(para)
-        ins = self.Instruct(psi,
-                self.QuantStore.Nq,
-                depth=self.depth,
-                )
-        circ = StandardTomography(
-                self.QuantStore,
-                preset=self.tomo_preset,
-                Tomo=self.tomo,
-                verbose=False,
-                #erbose=self.verbose)
-                )
-        if not self.tomo_preset:
-            circ.generate(real=self.Store.H.real)
-        circ.set(ins)
-        circ.simulate()
-        circ.construct()
-        en = np.real(self.Store.evaluate(circ.rdm))
-        if en<self.best:
-            self.Store.update(circ.rdm)
-            self.best = copy(en)
-        return en
-
-    def __test_vqe_gradient(self,para,diff=0.01):
-        gradient = []
-        for i in range(len(para)):
-            tpara = []
-            for j in range(len(para)):
-                c = para[j]
-                if i==j:
-                    c-=diff
-                tpara.append(c)
-            e_m = self.__test_vqe_function(tpara)
-            tpara = []
-            for j in range(len(para)):
-                c = para[j]
-                if i==j:
-                    c+=diff
-                tpara.append(c)
-            e_p = self.__test_vqe_function(tpara)
-            gradient.append((e_p-e_m)/(2*diff))
-        return gradient
 
     def build(self,**kw):
         print('Building....')
@@ -136,6 +93,51 @@ class RunVQE(QuantumRun):
         self.built=True
         print('Done')
         # here....we should generate the ansatz
+
+    def __test_vqe_function(self,para):
+        psi = self.T.evaluate(para,self.QuantStore.transform)
+
+        ins = self.Instruct(psi,
+                self.QuantStore.Nq,
+                depth=self.depth,
+                )
+        circ = StandardTomography(
+                self.QuantStore,
+                preset=self.tomo_preset,
+                Tomo=self.tomo,
+                verbose=False,
+                )
+        if not self.tomo_preset:
+            circ.generate(real=self.Store.H.real)
+        circ.set(ins)
+        circ.simulate()
+        circ.construct()
+        en = np.real(self.Store.evaluate(circ.rdm))
+        if en<self.best:
+            self.Store.update(circ.rdm)
+            self.best = copy(en)
+        return en
+
+    def __test_vqe_gradient(self,para,diff=0.01):
+        gradient = []
+        for i in range(len(para)):
+            tpara = []
+            for j in range(len(para)):
+                c = para[j]
+                if i==j:
+                    c-=diff
+                tpara.append(c)
+            e_m = self.__test_vqe_function(tpara)
+            tpara = []
+            for j in range(len(para)):
+                c = para[j]
+                if i==j:
+                    c+=diff
+                tpara.append(c)
+            e_p = self.__test_vqe_function(tpara)
+            gradient.append((e_p-e_m)/(2*diff))
+        return gradient
+
 
     def _run_vqe(self):
         try:

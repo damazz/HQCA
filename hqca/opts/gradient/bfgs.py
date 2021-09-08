@@ -3,8 +3,17 @@ import numpy as np
 from functools import reduce
 from copy import deepcopy as copy
 from math import pi
+from hqca.opts.gradient.linesearch import BacktrackingLineSearch
+
+def para(xs):
+    # row vector to 
+    return xs.tolist()[0]
 
 class BFGS(OptimizerInstance):
+    '''
+    See Nocedal & Wright, chapter 6, for more information on the 
+    implementation of the BFGS algorithm.
+    '''
     def __init__(self,**kwargs):
         OptimizerInstance.__init__(self,**kwargs)
         OptimizerInstance._gradient_keywords(self,**kwargs)
@@ -13,17 +22,17 @@ class BFGS(OptimizerInstance):
         OptimizerInstance.initialize(self,start)
         # find approximate hessian
         self.x0 = np.asmatrix(start) # row vec?
-        self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:])) # row  vec
-
+        #self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:])) # row  vec
+        self.g0 = np.asmatrix(self.g(para(self.x0)))
         if self.verbose:
             print('Step: -01 ')
             print('G0: ',self.g0)
-        #self.B0 = np.dot(self.g0.T,self.g0) #
-        #print(self.B0)
-        #self.B0i = np.linalg.inv(self.B0)
+
+        # set initial Hessian and inverse to identity
         self.B0 = np.identity(self.N)
         self.B0i = np.identity(self.N)
         self.p0 = -1*np.dot(self.B0i,self.g0.T).T # row vec
+        # set initial search direction
         if self.verbose:
             print('Starting line search...')
         self._line_search()
@@ -31,7 +40,9 @@ class BFGS(OptimizerInstance):
             print('LS: ',self.f_avg)
         self.s0 = self.p0*self.alp
         self.x1 = self.x0+self.s0
-        self.y0 = np.asmatrix(self.g(np.asarray(self.x1)[0,:]))-self.g0
+        self.g1 = np.asmatrix(self.g(para(self.x1)))
+        self.y0 = self.g1 - self.g0 
+        #self.y0 = np.asmatrix(self.g(para(self.x1)))-self.g0
         if self.verbose:
             print('Y: ',self.y0)
         Bn =  np.dot(self.y0.T,self.y0)
@@ -64,17 +75,17 @@ class BFGS(OptimizerInstance):
         self.B1i  = reduce(np.dot, (L,self.B0i,R))+S*(1/yTs)
         # reassign 
         self.x0 = self.x1.copy()
-        self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:]))
+        #self.g0 = np.asmatrix(self.g(np.asarray(self.x0)[0,:]))
+        self.g0 = self.g1.copy()
         if self.verbose:
             print('G: ',self.g0)
         self.B0 = self.B1.copy()
         self.B0i = self.B1i.copy()
         self.best_x = self.x0.copy()
         self.best_f = self.f(np.asarray(self.x0)[0,:])
-        if self._conv_crit=='default':
-            self.crit = np.sqrt(np.sum(np.square(self.g0)))
-        else:
-            self.crit = np.sqrt(np.sum(np.square(self.g0)))
+        #
+        self.crit = np.linalg.norm(self.g0)
+        #
         self.stuck = np.zeros((3,self.N))
         self.stuck_ind = 0
 
@@ -152,6 +163,120 @@ class BFGS(OptimizerInstance):
             self.crit = np.sqrt(np.sum(np.square(self.g0)))
 
     def _line_search(self):
+        '''
+        algorithm 3.5,3.6 from Nocedal & Wright
+        attempting to find alpha that satisfies Wolfe conditions
+        '''
+        self.f_evals = 0
+        self.g_evals = 0
+        c1,c2 = 0.6,0.9  #0 < c1 <  c2 < 1
+        try:
+            f_zed = self.best_f
+        except AttributeError as e:
+            f_zed = self.f(para(self.x0))
+            self.f_evals+=1 
+
+        p = self.p0
+        x = self.x0
+        g_zed = np.dot(self.g0,p.T)[0,0]
+
+        def phi(alpha):
+            self.f_evals +=1 
+            a = para(x+alpha*p)
+            return self.f(a)
+
+        def dphi(alpha):
+            a = para(x+alpha*p)
+            self.g_evals +=1 
+            return np.dot(self.g(a),p.T)[0,0]
+
+        def zoom(alp_l,alp_h,f_l,f_h):
+            # biset low and high
+            done = False
+            iters = 0
+            while not done:
+                #print(alp_l,alp_h)
+                alp_j = 0.5*(alp_l+alp_h)
+                f_j = phi(alp_j)
+                if f_j > f_zed + c1*alp_j*g_zed or f_j >= f_l:
+                    alp_h = alp_j
+                    f_h = f_j
+                else:
+                    gj = dphi(alp_j)
+                    if abs(gj)<= -c2* g_zed:
+                        done = True
+                        alp_star = alp_j
+                    if gj*(alp_h-alp_l)>=0:
+                        alp_h = alp_l
+                    alp_l = alp_j
+                    f_l = copy(f_j)
+                iters+=1
+                if iters>20:
+                    done = True
+                    raise OptimizerError
+            return alp_star,f_j
+
+        alp_0,alp_max = 0,5
+        alp_1 = 1
+        done = False
+        iters = 1
+        f0 = copy(f_zed) #actual alp=0, not alp=alp_0
+        g0 = copy(g_zed) #same
+        while not done:
+            f1 = phi(alp_1)
+            if f1>f_zed+c1*alp_1*g_zed or (f1>= f0 and iters>1):
+                alp_star,f_star = zoom(alp_0,alp_1,f0,f1)
+                done = True
+                continue
+            g1 = dphi(alp_1)
+            if abs(g1)<= -c2*g_zed:
+                alp_star = alp_1
+                f_star = f1
+                done = True
+                continue
+            if g1>= 0 :
+                alp_star,f_star = zoom(alp_0,alp_1,f0,f1)
+                done = True
+                continue
+            alp_0 = copy(alp_1)
+            f0 = copy(f1)
+            alp_1 = 0.5*(alp_1+alp_max) #bisect 
+        
+        self.alp = alp_star
+        self.f_avg = f_star
+        if self.verbose:
+            print('f_calls = ({}),g_calls = ({}),alpha = {}'.format(self.f_evals,self.g_evals,alp_star))
+
+    
+    def _line_search_backtracking(self):
+        '''
+        uses backtracking linesearch
+        '''
+        f_evals = 0
+        try:
+            f = self.best_f
+        except AttributeError as e:
+            f = self.f(para(self.x0))
+            f_evals+=1 
+
+        c,rho,alpha = 0.5,0.75,1
+        temp = self.x0+alpha*self.p0
+        f1 = self.f(para(temp))
+        f_evals+=1
+
+        y = np.dot(self.g0,self.p0.T)[0,0]
+        while not f1<= f+c*alpha*y:
+            alpha*= rho
+            temp = self.x0 + alpha*self.p0
+            f1  = self.f(para(temp))
+            f_evals+=1
+        if self.verbose:
+            print('f_calls = ({}),alpha = {}'.format(f_evals,alpha))
+        self.alp = alpha
+        self.f_avg = f1
+
+    def _line_search_old(self):
+
         '''
         uses self.p0, and some others stuff
         '''

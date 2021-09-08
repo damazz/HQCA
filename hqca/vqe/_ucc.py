@@ -7,8 +7,6 @@ from hqca.vqe._ansatz import *
 
 # need a function which generates an operators 
 
-
-
 def getUCCAnsatz(
         quantstore,
         singles=True,
@@ -113,8 +111,6 @@ def getUCCAnsatz(
     if verbose:
         print('Unitary coupled cluster operator: ')
         print(ucc)
-        print('Transforming...')
-    qub = ucc.transform(quantstore.transform)
-    return VariationalAnsatz(qub,parameters)
+    return VariationalAnsatz(ucc,parameters)
 
 

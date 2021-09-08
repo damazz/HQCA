@@ -4,7 +4,71 @@ from functools import reduce
 from copy import deepcopy as copy
 from math import pi
 
-class LineSearch(OptimizerInstance):
+
+class BacktrackingLineSearch(OptimizerInstance):
+    '''
+    Optimizer that attempts contracts the step size.
+    
+    See Nocedal & Wright, algorithm 3.1
+    '''
+    def __init__(self,
+            *args,
+            rho=0.75,
+            c=0.5,
+            alpha_bar=1,
+            **kwargs
+            ):
+        '''
+        Evaluate function and gradient values
+        '''
+        OptimizerInstance.__init__(self,*args,**kwargs)
+        OptimizerInstance._gradient_keywords(self,**kwargs)
+        # set x_0 
+        self._rho = rho
+        self._c = c
+        self._alpha_bar =1
+        self._conv_thresh = 0.0
+
+    def initialize(self,start,p_k,f0=None,g0=None):
+        def para(xs):
+            # row vector to 
+            return xs.tolist()[0]
+        OptimizerInstance.initialize(self,start) #set potential shift, self.N
+        #
+        self.x0 = start
+        print(start,p_k)
+        if type(f0)==type(None):
+            self.f0 = self.f(para(self.x0))
+        else:
+            self.f0 = f0
+        if type(g0)==type(None):
+            self.g0 = self.g(para(self.x0))
+        else:
+            self.g0 = g0
+        self.p = p_k
+        self.y = np.dot(self.g0,self.p.T)
+        p = self.x0+self._alpha_bar * np.asarray(p_k)
+        self.f1 = self.f(para(p))
+        if self.f1 <= self.f0 + self._c*self._alpha_bar*self.y:
+            self.crit=0 #
+        else:
+            self.crit =1 
+            self._alpha_bar*= self._rho #shrink alpha by factor of rho
+
+    def next_step(self):
+        def para(xs):
+            # row vector to 
+            return xs.tolist()[0]
+        p = self.x0+self._alpha_bar * np.asarray(self.p)
+        self.f1 = self.f(para(p))
+        if self.f1 <= self.f0 + self._c*self._alpha_bar*self.y:
+            self.crit=0 #
+        else:
+            self.crit =1 
+            self._alpha_bar*= self._rho #shrink alpha by factor of rho
+
+
+class BisectingLineSearch(OptimizerInstance):
     def __init__(self,initial_left_bound=None,**kwargs):
         OptimizerInstance.__init__(self,**kwargs)
         OptimizerInstance._gradient_keywords(self,**kwargs)
@@ -33,7 +97,7 @@ class LineSearch(OptimizerInstance):
             if f_r<f_l:
                 a_l = copy(a_r)
                 f_l = copy(f_r)
-                a_r*=2 
+                a_r*=2
             else:
                 bound=True
         self.a_r = a_r
