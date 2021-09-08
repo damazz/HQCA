@@ -45,19 +45,8 @@ class Ansatz:
     def op_form(self):
         if self.trotter=='first':
             return [p for o in self.A for p in o]
-        elif self.trotter=='second':
-            S = []
-            for a in self.A:
-                for o in a:
-                    S.append(o*0.25)
-                for o in a:
-                    S.append(o*0.5)
-                for o in a:
-                    S.append(o * 0.25)
-            return S
         else:
             raise QuantumRunError('Unspecified trotterization: {}'.format(self.trotter))
-
 
     def __iter__(self):
         return self.A.__iter__()
@@ -106,7 +95,7 @@ class Ansatz:
             else:
                 for o in O:
                     added=False
-                    if self.closed==0: 
+                    if self.closed==0:
                         # false, set to length of ansatz
                         lim = -1*(len(self.A))
                     else:
