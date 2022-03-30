@@ -7,7 +7,6 @@ from hqca.vqe._pair import *
 from copy import deepcopy as copy
 from hqca.operators import *
 
-
 class Cache:
     def __init__(self):
         self.use=True
@@ -15,6 +14,7 @@ class Cache:
         self.msg=None
         self.iter=0
         self.done=False
+    
 
 class RunVQE(QuantumRun):
     def __init__(self,
@@ -39,7 +39,7 @@ class RunVQE(QuantumRun):
             max_iter=50,
             trotter=1,
             ansatz_depth=1,
-            tomography=None,
+            tomo_Psi=None,
             verbose=True,
             gradient=False,
             kw_opt={},
@@ -49,7 +49,7 @@ class RunVQE(QuantumRun):
         self.max_iter=50
         self.use_gradient = gradient
         self.crit = opt_thresh
-        self.tomo = tomography
+        self.tomo = tomo_Psi
         self.depth = ansatz_depth
         self.verbose= verbose
         if type(self.tomo)==type(None):
@@ -70,10 +70,12 @@ class RunVQE(QuantumRun):
         print('Getting UCC...')
         if self.ansatz=='ucc':
             self.T= getUCCAnsatz(self.QuantStore,verbose=self.verbose)
+
             self.para= []
             if self.Store.initial in ['hf','hartree-fock']:
-                for i in range(len(self.T.xi)):
+                for i in range(len(self.T.T)):
                     self.para.append(0)
+            print('VQE has {} variables'.format(len(self.T.T)))
         print('Starting optimizer...')
         self.best = 0
         if self.use_gradient:
@@ -89,14 +91,15 @@ class RunVQE(QuantumRun):
         self.Opt.initialize(self.para)
         self.ei = self.Opt.opt.best_f
         self.e0 = self.Opt.opt.best_f
+        self.log_E = [self.ei]
+        self.log_S = [self.Opt.opt.crit]
 
         self.built=True
-        print('Done')
         # here....we should generate the ansatz
 
     def __test_vqe_function(self,para):
-        psi = self.T.evaluate(para,self.QuantStore.transform)
-
+        psi = self.T.assign(para,self.QuantStore.transform,
+                N=self.QuantStore.dim)
         ins = self.Instruct(psi,
                 self.QuantStore.Nq,
                 depth=self.depth,
@@ -118,35 +121,64 @@ class RunVQE(QuantumRun):
             self.best = copy(en)
         return en
 
-    def __test_vqe_gradient(self,para,diff=0.01):
+    def __test_vqe_gradient(self,para,forward=True,diff=0.0000001):
         gradient = []
-        for i in range(len(para)):
-            tpara = []
-            for j in range(len(para)):
-                c = para[j]
-                if i==j:
-                    c-=diff
-                tpara.append(c)
-            e_m = self.__test_vqe_function(tpara)
-            tpara = []
-            for j in range(len(para)):
-                c = para[j]
-                if i==j:
-                    c+=diff
-                tpara.append(c)
-            e_p = self.__test_vqe_function(tpara)
-            gradient.append((e_p-e_m)/(2*diff))
-        return gradient
+        if forward:
+            e_0 = self.__test_vqe_function(para)
+            for i in range(len(para)):
+                tpara = []
+                for j in range(len(para)):
+                    c = para[j]
+                    if i==j:
+                        c+=diff
+                    tpara.append(c)
+                e_p = self.__test_vqe_function(tpara)
+                gradient.append((e_p-e_0)/(diff))
+        else:
+            for i in range(len(para)):
+                tpara = []
+                for j in range(len(para)):
+                    c = para[j]
+                    if i==j:
+                        c-=diff
+                    tpara.append(c)
+                e_m = self.__test_vqe_function(tpara)
+                tpara = []
+                for j in range(len(para)):
+                    c = para[j]
+                    if i==j:
+                        c+=diff
+                    tpara.append(c)
+                e_p = self.__test_vqe_function(tpara)
+                gradient.append((e_p-e_m)/(2*diff))
+        return np.asarray([gradient])
 
+    def next_step(self):
+        if self.built:
+            self._run_vqe()
+            self._check()
+            if self.verbose:
+                print('E,init: {:+.12f} U'.format(np.real(self.ei)))
+                print('E, run: {:+.12f} U'.format(np.real(self.best)))
+                try:
+                    diff = 1000 * (self.best - self.Store.H.ef)
+                    print('E, fin: {:+.12f} U'.format(self.Store.H.ef))
+                    print('E, dif: {:.12f} mU'.format(diff))
+                except KeyError:
+                    pass
+                except AttributeError:
+                    pass
 
     def _run_vqe(self):
         try:
             self.built
         except AttributeError:
-            sys.exit('Run not built. Run vqe.build()')
+            raise QuantumRunError('Run VQE.build()')
         self.Opt.next_step()
         self.para = np.asarray(self.Opt.opt.best_x)[0]
-        print(self.para)
+        print('para',self.para)
+        self.log_E.append(self.Opt.opt.best_f)
+        self.log_S.append(self.Opt.opt.crit)
         #if self.verbose:
         #    self.Store.rdm.analysis()
 

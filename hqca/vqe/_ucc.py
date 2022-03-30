@@ -1,5 +1,4 @@
 import numpy as np
-from sympy import symbols,numbered_symbols
 from hqca.tools import *
 from hqca.operators import *
 from hqca.core import *
@@ -34,9 +33,17 @@ def getUCCAnsatz(
     parameters = []
     if verbose:
         print('Preparing unitary coupled cluster operator...')
+    indices = []
+    if singles:
+        for i in alp_occ:
+            for j in alp_vir:
+                indices.append([i,j])
+        for i in bet_occ:
+            for j in bet_vir:
+                indices.append([i,j])
+    elif triples or quadruples:
+        raise AnsatzError
     if doubles:
-        T = numbered_symbols('t')
-        indices = []
         for i in alp_occ:
             for k in alp_occ:
                 if k<=i:
@@ -62,55 +69,6 @@ def getUCCAnsatz(
                         if j<=i:
                             continue
                         indices.append([i,k,l,j])
-        for (i,k,l,j) in indices:
-            t = next(T)
-            ucc+= FermiString(
-                    coeff=t,
-                    indices=[i,k,l,j],
-                    ops='++--',
-                    symbolic=True,
-                    N=quantstore.dim,
-                    )
-            ucc+= FermiString(
-                    coeff=-t,
-                    indices=[i,k,l,j],
-                    ops='--++',
-                    symbolic=True,
-                    N=quantstore.dim,
-
-                    )
-            parameters.append(t)
-    if singles:
-        S = numbered_symbols('s')
-        indices = []
-        for i in alp_occ:
-            for j in alp_vir:
-                indices.append([i,j])
-        for i in bet_occ:
-            for j in bet_vir:
-                indices.append([i,j])
-        for (i,j) in indices:
-            s = next(S)
-            ucc+= FermiString(
-                    coeff=s,
-                    indices=[i,j],
-                    ops='+-',
-                    symbolic=True,
-                    N=quantstore.dim,
-                    )
-            ucc+= FermiString(
-                    coeff=s,
-                    indices=[i,j],
-                    ops='-+',
-                    symbolic=True,
-                    N=quantstore.dim,
-                    )
-            parameters.append(s)
-    elif triples or quadruples:
-        raise AnsatzError
-    if verbose:
-        print('Unitary coupled cluster operator: ')
-        print(ucc)
-    return VariationalAnsatz(ucc,parameters)
+    return VariationalAnsatz(indices=indices)
 
 

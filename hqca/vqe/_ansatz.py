@@ -7,23 +7,35 @@ from hqca.operators import *
 class VariationalAnsatz:
     # T is a qubit operator (ordered)
     def __init__(self,
-                 T,variables
+            indices=None,
                  ):
-        self.T = T
-        self.xi = variables
+        self.T = indices
 
     def __str__(self):
         return self.T.__str__()
 
-    def evaluate(self,parameters,T):
-        psi = copy(self.T)
-        var = self.xi
-        for n in psi.keys():
-            psi[n].c = psi[n].c.subs([(x,v) for x,v in zip(var,parameters)])
-            psi[n].c = np.complex(psi[n].c)
-            psi[n].sym=False
-        psi.clean()
-        return psi.transform(T)
+    def assign(self,parameters,T,N=4):
+        psi = []
+        for t,p in zip(self.T,parameters):
+            dim = len(t)//2
+            new = Operator()
+            if abs(p)<1e-10:
+                continue
+            new += FermiString(
+                p,
+                indices=t,
+                ops='+'*dim+'-'*dim,
+                N=N,
+                )
+            new -= FermiString(
+                p,
+                indices=t[::-1],
+                ops='+'*dim+'-'*dim,
+                N=N,
+                )
+            for op in new.transform(T):
+                psi.append(op)
+        return psi
 
 class ADAPTAnsatz(Ansatz):
     '''
@@ -33,32 +45,56 @@ class ADAPTAnsatz(Ansatz):
 
     - ansatz is an operator, need it to be variable?
     '''
+    def __init__(self,*args,**kwargs):
+        Ansatz.__init__(self,*args,**kwargs)
+        self.A_ind = []
 
     def add_term(self,
-            indices=None):
+            indices=None,
+            ind_key = 0):
         self.A.append(indices)
-
+        self.A_ind.append(ind_key)
 
     def assign_variables(self,parameters,T=None,fermi=True,N=4):
         '''
         adds parameters to list?
         '''
         ansatz = []
-        for a,p in zip(self.A,parameters):
-            new = Operator()
-            new += FermiString(
-                p,
-                indices=a,
-                ops='++--',
-                N=N,
-                )
-            new -= FermiString(
-                p,
-                indices=a[::-1],
-                ops='++--',
-                N=N,
-                )
-            for op in new.transform(T):
-                ansatz.append(op)
+        if fermi:
+            for a,p in zip(self.A,parameters):
+                new = Operator()
+                new += FermiString(
+                    p,
+                    indices=a,
+                    ops='++--',
+                    N=N,
+                    )
+                new -= FermiString(
+                    p,
+                    indices=a[::-1],
+                    ops='++--',
+                    N=N,
+                    )
+                nop = new.transform(T)
+                for op in nop:
+                    ansatz.append(op)
+        else:
+            for a,p in zip(self.A,parameters):
+                new = Operator()
+                new += QubitString(
+                    p,
+                    indices=a,
+                    ops='++--',
+                    N=N,
+                    )
+                new -= QubitString(
+                    p,
+                    indices=a[::-1],
+                    ops='++--',
+                    N=N,
+                    )
+                nop = new.transform(T)
+                for op in nop:
+                    ansatz.append(op)
         return ansatz
 
