@@ -21,6 +21,7 @@ class MolecularHamiltonian(Hamiltonian):
             en_c=None,
             solver='casci',
             print_transformed=True,
+            compact_K2=False,
             ):
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
@@ -37,6 +38,7 @@ class MolecularHamiltonian(Hamiltonian):
         self.real=True
         self.imag=False
         self._print_transformed=print_transformed
+        self._compact = compact_K2
         self._transform = transform
         if type(transform)==type(None):
             raise HamiltonianError('Need to specify transform for Hamiltonian.')
@@ -64,7 +66,7 @@ class MolecularHamiltonian(Hamiltonian):
         self._core = [i for i in range(self.No_core)]
         self._active = [i+self.No_core for i in range(self.No_as)]
         if self.verbose:
-            print('Hartree-Fock Energy: {:.8f}'.format(float(self.hf.e_tot)))
+            print('Hartree-Fock Energy: {:.12f}'.format(float(self.hf.e_tot)))
         self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
         if self.verbose:
@@ -89,7 +91,7 @@ class MolecularHamiltonian(Hamiltonian):
             self.ef  = self.mc.e_tot[0]
             self.mc_coeff = self.mc.mo_coeff
             if self.verbose:
-                print('CASCI Energy: {:.8f}'.format(float(self.ef)))
+                print('CASCI Energy: {:.12f}'.format(float(self.ef)))
 
         elif solver in ['casscf']:
             n_states = 2
@@ -142,6 +144,11 @@ class MolecularHamiltonian(Hamiltonian):
                 spin2spac=self.s2s
                 )
         self._build_K2()
+        if self._gen_operators:
+            self._build_operator(self._int_thresh)
+        else:
+            self._qubOp = None
+            self._ferOp = None
 
 
     def _build_K2(self):
@@ -180,6 +187,8 @@ class MolecularHamiltonian(Hamiltonian):
                         self.K2[k, i, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
                         self.K2[i, k, k, j] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
                         self.K2[k, i, j, k] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                        #self.K2[i, k, j, k]+= self.ints_1e[i, j] / (2 * (self.Ne_tot - 1))
+                        #self.K2[k, i, k, j]+= self.ints_1e[i, j] / (2 * (self.Ne_tot - 1))
         self._matrix = contract(self.K2)
         self._model = 'molecular'
         if self._use_active_space:
@@ -196,11 +205,8 @@ class MolecularHamiltonian(Hamiltonian):
             self._en_c = self.energy_nuclear
         if self.verbose:
             print('Core energy', self._en_c)
-        if self._gen_operators:
-            self._build_operator(self._int_thresh)
-        else:
-            self._qubOp = None
-            self._ferOp = None
+
+
 
     @property
     def order(self):
@@ -334,6 +340,11 @@ class MolecularHamiltonian(Hamiltonian):
                         #t_transform+= dt()-t0
                         #n+=1
         t3 = timeit.default_timer()
+        #ferOp += FermiString(
+        #                s = 'i'*len(alp+bet),
+        #                coeff=copy(self._en_c)
+        #                )
+        #self._en_c = 0 
         if self.verbose:
             print('2e terms: {}'.format(t3-t2))
         new = ferOp.transform(self._transform)
@@ -341,20 +352,247 @@ class MolecularHamiltonian(Hamiltonian):
         for i in new:
             if abs(i.c)>int_thresh:
                 qubOp+= i
+        qubOp.clean(1e-8)
+        ferOp.clean(1e-8)
         self._qubOp = qubOp
         self._ferOp = ferOp
         t4 = timeit.default_timer()
         if self.verbose:
             print('2e transform: {}'.format(t4-t3))
-        #print('2e transform: {}'.format(t_transform))
-        if self.verbose and self._print_transformed:
-            print('2e terms: {}'.format(t3-t2))
-            print('-- -- -- -- -- -- -- -- -- -- --')
-            print('Second Quantized Hamiltonian')
-            print(ferOp)
-            print('Pauli String Hamiltonian:')
-            print(qubOp)
-            print('-- -- -- -- -- -- -- -- -- -- --')
+        print('2e transform: {}'.format(t_transform))
+        # adding identitiy
+        try:
+            lq = len(next(iter(qubOp)).s)
+        except StopIteration:
+            fer = Operator()+FermiString(s='i'*len(alp+bet),coeff=1)
+            qub = fer.transform(self._transform)
+            lq = len(next(iter(qub)).s)
+        iden = PauliString(coeff=copy(self._en_c),pauli='I'*lq)
+        qubOp += iden
+        #if self.verbose and self._print_transformed:
+        print('2e terms: {}'.format(t3-t2))
+        print('-- -- -- -- -- -- -- -- -- -- --')
+        #    print('Second Quantized Hamiltonian')
+        #    print(ferOp)
+        #    print('Pauli String Hamiltonian:')
+        #    print(qubOp)
+        #    print('-- -- -- -- -- -- -- -- -- -- --')
+
+
+
+    def pivoted_chol(self, M='max',err_tol = 1e-6):
+        """
+    #  pivoted_chol.py Author "Nathan Wycoff <nathanbrwycoff@gmail.com>" Date 01.14.2020
+    
+    ## A pivoted cholesky function for kernel functions
+        A simple python function which computes the Pivoted Cholesky decomposition/approximation of positive semi-definite operator. Only diagonal elements and select rows of that operator's matrix represenation are required.
+        get_diag - A function which takes no arguments and returns the diagonal of the matrix when called.
+        get_row - A function which takes 1 integer argument and returns the desired row (zero indexed).
+        M - The maximum rank of the approximate decomposition; an integer.
+        err_tol - The maximum error tolerance, that is difference between the approximate decomposition and true matrix, allowed. Note that this is in the Trace norm, not the spectral or frobenius norm.
+        Returns: R, an upper triangular matrix of column dimension equal to the target matrix. It's row dimension will be at most M, but may be less if the termination condition was acceptably low error rather than max iters reached.
+        """
+        #temp = 1e-8 *np.identity(self.No_as**2)
+        ints_2e = rotate_spatial_ei2(self.ints_2e_ao.copy(),self.C.T)
+        V = np.reshape(ints_2e,(self.No_as**2,self.No_as**2))
+
+        def get_diag():
+            diag = np.diagonal(V)
+            diag.flags.writeable=True
+            return diag
+
+        def get_row(i):
+            return V[i,:]
+        if M=='max':
+            M = self.No_as**2
+
+    
+        d = np.copy(get_diag())
+        N = len(d)
+        n = int(N**(0.5))
+    
+        pi = list(range(N))
+    
+        R = np.zeros([M,N])
+   
+        err = np.sum(np.abs(d))
+    
+        m = 0
+        while (m < M) and (err > err_tol):
+    
+            i = m + np.argmax([d[pi[j]] for j in range(m,N)])
+    
+            tmp = pi[m]
+            pi[m] = pi[i]
+            pi[i] = tmp
+
+            R[m,pi[m]] = np.sqrt(d[pi[m]])
+            Apim = get_row(pi[m])
+            for i in range(m+1, N):
+                if m > 0:
+                    ip = np.inner(R[:m,pi[m]], R[:m,pi[i]])
+                else:
+                    ip = 0
+                R[m,pi[i]] = (Apim[pi[i]] - ip) / R[m,pi[m]]
+                d[pi[i]] -= pow(R[m,pi[i]],2)
+    
+            err = np.sum([d[pi[i]] for i in range(m+1,N)])
+            m += 1
+    
+        R = R[:m,:]
+        if self.verbose:
+            print('Final rank: {}'.format(m))
+            print('Error: {}'.format(err))
+        self.ints_2e_chol = R
+
+        self.chol_H1 = self.build_cholesky_operator_Hp()
+        self.chol_H2 = []
+        for i in range(m):
+            Li = np.zeros((n,n))
+            for j in range(N):
+                a,b = j//n,j%n
+                Li[a,b] = R[i,j]
+            #print(Li)
+            #print(np.linalg.eigvalsh(Li))
+            Up,Np = self.build_cholesky_operator_Vp(Li)
+            self.chol_H2.append([Up,Np])
+
+
+    def build_cholesky_operator_Hp(self):
+        alp = self.alpha_mo['active']
+        bet = self.beta_mo['active']
+        n= len(alp)
+        H = Operator()
+        for i in alp:
+            for j in alp:
+                for k in alp+bet:
+                    if abs(self.ints_2e[i,k,j,k])<1e-8:
+                        continue
+                    H+= FermiString(
+                        N=2*n,
+                        coeff=0.5*self.ints_2e[i,k,j,k],
+                        indices=[i,j],
+                        ops='+-',
+                        )
+                    if abs(self.ints_2e[i,k,j,k])<1e-8:
+                        continue
+        for i in bet:
+            for j in bet:
+                for k in alp+bet:
+                    H+= FermiString(
+                        N=2*n,
+                        coeff=0.5*self.ints_2e[i,k,j,k],
+                        indices=[i,j],
+                        ops='+-',
+                        )
+        for i in alp+bet:
+            for j in alp+bet:
+                if abs(self.ints_1e[i,j])<1e-8:
+                    continue
+                H+= FermiString(
+                    N=2*n,
+                    coeff=0.5*self.ints_1e[i,j],
+                    indices=[i,j],
+                    ops='+-',
+                    )
+        Hp = H.transform(self._transform)
+        Hp.clean(1e-8)
+        return Hp
+
+    def build_cholesky_operator_Vp(self,Li):
+        eigval, U = np.linalg.eig(Li)
+        # QR decomposition
+        done = False
+        n = len(eigval)
+        temp = np.copy(U)
+        #print(U)
+        Uf = Operator()
+        for c in range(0,n):
+            for r in reversed(range(c+1,n)):
+                #print(r,c)
+                if abs(temp[r,c])<1e-8:
+                    # already 0 
+                    continue
+                elif abs(temp[r-1,c])<1e-8:
+                    # swap circuit
+                    theta = np.pi/2
+                else:
+                    tan  = temp[r,c]/temp[r-1,c]
+
+                    theta = np.arctan(tan)
+                givens = np.identity(n)
+                givens[r,r]=np.cos(theta)
+                givens[r-1,r-1]=np.cos(theta)
+                givens[r-1,r]= + np.sin(theta)
+                givens[r,r-1]= - np.sin(theta)
+
+                temp = np.dot(givens,temp)
+                Uf+= FermiString(
+                        N=2*n, 
+                        coeff=theta,
+                        indices=[r,r-1],
+                        ops='+-',
+                        )
+                Uf+= FermiString(
+                        N=2*n, 
+                        coeff=-theta,
+                        indices=[r-1,r],
+                        ops='+-',
+                        )
+                Uf+= FermiString(
+                        N=2*n, 
+                        coeff=theta,
+                        indices=[r+n,r+n-1],
+                        ops='+-',
+                        )
+                Uf+= FermiString(
+                        N=2*n, 
+                        coeff=-theta,
+                        indices=[r+n-1,r+n],
+                        ops='+-',
+                        )
+        Nf = Operator()
+        for i in range(n):
+            if abs(eigval[i])<1e-6:
+                continue
+            for j in range(n):
+                if abs(eigval[j])<1e-6:
+                    continue
+                Nf+= FermiString( #aa
+                        N=2*n,
+                        coeff=eigval[i]*eigval[j]*0.5,
+                        ops='+-+-',
+                        indices=[i,i,j,j]
+                        )
+                Nf+= FermiString( #ab
+                        N=2*n,
+                        coeff=eigval[i]*eigval[j]*0.5,
+                        ops='+-+-',
+                        indices=[i+n,i+n,j,j]
+                        )
+                Nf+= FermiString( #ab
+                        N=2*n,
+                        coeff=eigval[i]*eigval[j]*0.5,
+                        ops='+-+-',
+                        indices=[i,i,j+n,j+n]
+                        )
+                Nf+= FermiString( #ab
+                        N=2*n,
+                        coeff=eigval[i]*eigval[j]*0.5,
+                        ops='+-+-',
+                        indices=[i+n,i+n,j+n,j+n]
+                        )
+        Up = Uf.transform(self._transform)
+        Up.clean(1e-8)
+        Np = Nf.transform(self._transform)
+        Np.clean(1e-8)
+        return Up, Np
+
+
+
+
+
+
 
     @property
     def model(self):
@@ -363,3 +601,4 @@ class MolecularHamiltonian(Hamiltonian):
     @model.setter
     def model(self,mod):
         self._model = mod
+

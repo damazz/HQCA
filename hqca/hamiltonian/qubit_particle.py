@@ -1,142 +1,154 @@
 from hqca.core import *
 from functools import reduce
 import sys
+from copy import deepcopy as copy
 from hqca.tools import *
 from hqca.operators import *
 import numpy as np
 from pyscf import gto,mcscf,scf
 import timeit
-from copy import deepcopy as copy
+from timeit import default_timer as dt
+from hqca.hamiltonian.molecular import MolecularHamiltonian
 
-
-class FermionicHamiltonian(Hamiltonian):
+class QubitParticleHamiltonian(MolecularHamiltonian):
     def __init__(self,
-            proxy_mol,
-            ints_1e,
-            ints_2e,
-            ints_spatial=True,
+            mol,
             transform=None,
-            int_thresh=1e-10,
-            Ne_active_space='default',
-            No_active_space='default',
+            int_thresh=1e-14,
+            active_space=None,
             integral_basis='hf',
             generate_operators=True,
-            normalize=True,
             verbose=True,
-            en_con=None,
-            en_fin=None,
+            en_c=None,
+            solver='casci',
             print_transformed=True,
-            truncation=False,
+            compact_K2=False,
             ):
+        '''
+        Qubit particle version of the Hamiltonian
+        '''
         if verbose:
             print('-- -- -- -- -- -- -- -- -- -- --')
             print('      -- HAMILTONIAN --  ')
             print('-- -- -- -- -- -- -- -- -- -- --')
+        self._mo_basis = integral_basis
         self.verbose = verbose
-        self._model='fermionic'
+        self.S = mol.intor('int1e_ovlp')
+        self.T_1e = mol.intor('int1e_kin')
+        self.V_1e = mol.intor('int1e_nuc')
+        self.ints_1e_ao = self.V_1e+self.T_1e
+        self._model='molecule'
+        self.ints_2e_ao = mol.intor('int2e')
         self.real=True
         self.imag=False
-        self._order = 2
-        self._transform = transform
         self._print_transformed=print_transformed
+        self._compact = compact_K2
+        self._transform = transform
         if type(transform)==type(None):
             raise HamiltonianError('Need to specify transform for Hamiltonian.')
-        if Ne_active_space=='default':
-            self.Ne_as = proxy_mol.nelec[0]+proxy_mol.nelec[1]
+        self.hf = scf.ROHF(mol)
+        self.hf.kernel()
+        self.hf.analyze()
+        self.e0 = self.hf.e_tot
+        self.C = self.hf.mo_coeff
+        self.f = self.hf.get_fock()
+        self._order = 2
+        self.mol = mol
+        if isinstance(active_space,tuple) or isinstance(active_space,list):
+            self._use_active_space = True
+            self.Ne_as = int(active_space[0])
+            self.No_as = int(active_space[1])
         else:
-            self.Ne_as = int(Ne_active_space)
-        self.Ne_tot = proxy_mol.nelec[0]+proxy_mol.nelec[1]
-        self.Ne_core = self.Ne_tot - self.Ne_as
-        self.Ne_alp = proxy_mol.nelec[0]-self.Ne_core//2
-        self.Ne_bet = proxy_mol.nelec[1]-self.Ne_core//2
-        self.No_core = self.Ne_core//2
-        if No_active_space=='default':
-            self.C = np.identity(ints_1e.shape[0])
             self.No_as = self.C.shape[0]
-            self.No_tot = self.C.shape[0]
-        else:
-            self.No_as = int(No_active_space)
-            if ints_spatial:
-                self.C = np.identity(No_active_space)
-                self.No_tot = self.C.shape[0]
-            else:
-                self.C = np.identity(No_active_space*2)
-                self.No_tot = No_active_space
+            self._use_active_space = False
+            self.Ne_as = mol.nelec[0]+mol.nelec[1]
+        self.Ne_tot = mol.nelec[0]+mol.nelec[1]
+        self.Ne_core = self.Ne_tot - self.Ne_as
+        self.Ne_alp = mol.nelec[0]-self.Ne_core//2
+        self.Ne_bet = mol.nelec[1]-self.Ne_core//2
+        self.No_core = self.Ne_core//2
         self._core = [i for i in range(self.No_core)]
         self._active = [i+self.No_core for i in range(self.No_as)]
+        if self.verbose:
+            print('Hartree-Fock Energy: {:.12f}'.format(float(self.hf.e_tot)))
+        self.No_tot = self.C.shape[0]
         self.r = 2*self.No_as
+        if self.verbose:
+            print('N electrons total: {}'.format(self.Ne_tot))
+            print('N electrons active: {}'.format(self.Ne_as))
+            print('N core orbitals: {}'.format(self.No_core))
+            print('N active orbitals: {}'.format(self.No_as))
+
         self._generate_spin2spac_mapping()
-        self.spin = proxy_mol.spin
-        self.norm = normalize
-        self._generate_active_space()
-        self.ints_1e_given = ints_1e
-        self.ints_2e_given = ints_2e
-        if type(en_con)==type(None):
-            self._en_c = 0
+        if solver in ['casci','fci','ci'] and self.No_as<=8:
+            self.mc = mcscf.CASCI(
+                    self.hf,
+                    self.No_as,
+                    self.Ne_as)
+            self.mc.fcisolver.nroots = 4
+            self.mc.kernel()
+            if abs(self.mc.e_tot[1]-self.mc.e_tot[0])<0.01:
+                print('Energy gaps:')
+                for i in range(self.mc.fcisolver.nroots-1):
+                    print(self.mc.e_tot[i+1]-self.mc.e_tot[i])
+                print('Ground excited state energy gap less than 10 mH')
+            self.ef  = self.mc.e_tot[0]
+            self.mc_coeff = self.mc.mo_coeff
+            if self.verbose:
+                print('CASCI Energy: {:.12f}'.format(float(self.ef)))
+
+        elif solver in ['casscf']:
+            n_states = 2
+            weights = np.ones(n_states)/n_states
+            self.mc = mcscf.CASSCF(
+                    self.hf,
+                    self.No_as,
+                    self.Ne_as).state_average_((1,0,0))
+            self.mc.kernel()
+            self.ef  = self.mc.e_tot
+            self.mc_coeff = self.mc.mo_coeff
+            if self.verbose:
+                print('CASSCF Energy: {:.8f}'.format(float(self.ef)))
         else:
-            self._en_c = en_con
-        if type(en_fin)==type(None):
             self.ef = 0
-        else:
-            self.ef = en_fin
+        self.spin = mol.spin
+        self.Ci = np.linalg.inv(self.C)
+        self._generate_active_space()
+        if self._mo_basis in ['default','hf']:
+            mo_coeff_a,mo_coeff_b = copy(self.C),copy(self.C)
+        elif self._mo_basis in ['no','natural','canonical']:
+            print('Stating with natural orbital.... ')
+            mo_coeff_a,mo_coeff_b = self.mc_coeff,self.mc_coeff
+        if verbose:
+            print('Transforming 1e integrals...')
+        self.energy_nuclear = mol.energy_nuc()
         self._gen_operators = generate_operators
         self._int_thresh = int_thresh
-        self._update_ints(self.C,self.C,truncation,ints_spatial)
+        self._update_ints(mo_coeff_a,mo_coeff_b)
 
-    def _update_ints(self,mo_coeff_a,mo_coeff_b,truncation,ints_spatial):
+    def _update_ints(self,mo_coeff_a,mo_coeff_b):
         self.mo_a =  mo_coeff_a
         self.mo_b = mo_coeff_b
-        if ints_spatial:
-            self.ints_1e = generate_spin_1ei(
-                    self.ints_1e_given.copy(),
-                    mo_coeff_a.T,
-                    mo_coeff_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-            self.ints_2e = generate_spin_2ei_phys(
-                    self.ints_2e_given.copy(),
-                    mo_coeff_a.T,
-                    mo_coeff_b.T,
-                    self.alpha_mo,
-                    self.beta_mo,
-                    region='full',
-                    spin2spac=self.s2s
-                    )
-        else:
-            self.ints_1e = self.ints_1e_given.copy()
-            self.ints_2e = self.ints_2e_given.copy()
-        if truncation:
-            self._build_projected_K2()
-        else:
-            self._build_K2()
+        self.ints_1e = generate_spin_1ei(
+                self.ints_1e_ao.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self.ints_2e = generate_spin_2ei(
+                self.ints_2e_ao.copy(),
+                mo_coeff_a.T,
+                mo_coeff_b.T,
+                self.alpha_mo,
+                self.beta_mo,
+                region='full',
+                spin2spac=self.s2s
+                )
+        self._build_K2()
 
-    def _build_projected_K2(self):
-        self._build_operator(self._int_thresh)
-        self.K2 = np.zeros((self.r, self.r, self.r, self.r))
-        print('discarding...')
-        for f in self._ferOp:
-            temp = Operator()+f
-            if temp.transform(self._transform).null() or abs(f.c)<self._int_thresh:
-                print(f)
-                continue
-            c,inds,ops,N = f.order_as_D_matrix()[0]
-            if len(inds)==2:
-                i,j = inds[0],inds[1]
-                for k in range(self.r):
-                    self.K2[i, k, j, k] += self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
-                    self.K2[k, i, k, j] += self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
-                    self.K2[k, i, j, k] -= self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
-                    self.K2[i, k, k, j] -= self.ints_1e[i,j] / (4 * (self.Ne_tot - 1))
-            elif len(inds)==4:
-                i,k,l,j = inds[0],inds[1],inds[2],inds[3]
-                self.K2[i, k, j, l] += 0.5*self.ints_2e[i,k,j,l]
-                self.K2[k, i, j, l] += 0.5*self.ints_2e[k,i,j,l]
-                self.K2[k, i, l, j] += 0.5*self.ints_2e[k,i,l,j]
-                self.K2[i, k, l, j] += 0.5*self.ints_2e[i,k,l,j]
-        self._matrix = contract(self.K2)
 
     def _build_K2(self):
         self.K2 = np.zeros((self.r, self.r, self.r, self.r))
@@ -146,10 +158,11 @@ class FermionicHamiltonian(Hamiltonian):
                 for k in range(self.r):
                     self.K2[i, k, j, k] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
                     self.K2[k, i, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
-                    self.K2[i, k, k, j] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
-                    self.K2[k, i, j, k] -= self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
-        #trunc = abs(self.K2) < self._int_thresh
+                    self.K2[i, k, k, j] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
+                    self.K2[k, i, j, k] += self.ints_1e[i, j] / (4 * (self.Ne_tot - 1))
         self._matrix = contract(self.K2)
+        self._model = 'molecular'
+        self._en_c = self.energy_nuclear
         if self.verbose:
             print('Core energy', self._en_c)
         if self._gen_operators:
@@ -158,17 +171,11 @@ class FermionicHamiltonian(Hamiltonian):
             self._qubOp = None
             self._ferOp = None
 
+
+
     @property
     def order(self):
         return self._order
-
-    @property
-    def mapping(self):
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self,a):
-        self._mapping = a
 
     @property
     def qubit_operator(self):
@@ -189,6 +196,10 @@ class FermionicHamiltonian(Hamiltonian):
     @property
     def matrix(self):
         return self._matrix
+
+
+    def _update_integrals(self):
+        pass
 
     def _generate_active_space(self,
             spin_mapping='default',
@@ -223,29 +234,6 @@ class FermionicHamiltonian(Hamiltonian):
             self.s2s[i]=i-self.No_tot
 
 
-    def build_separable_operator(self,
-            ordering='default',  #ordering of H to use
-            threshold=1e-5,   #cut off for ints
-            specific_grouping=[], #not used for most
-            ):
-        '''
-        takes the self._qubOp representation and generates
-        input: keywords related to modifying self._qubOp
-
-        output: generates self._qubOp_sep, which is a list of separated
-        operators
-        '''
-        self._qubOp_sep = []
-        if ordering in ['given','specified','default']:
-            for group in specific_grouping:
-                new = Operator()
-                for item in group:
-                    for op in self._qubOp:
-                        if op.s==item:
-                            new+= copy(op)
-                            break
-                self._qubOp_sep.append(new)
-
 
     def _build_operator(self,int_thresh=1e-14,compact=False):
         if self.verbose:
@@ -261,13 +249,14 @@ class FermionicHamiltonian(Hamiltonian):
         ferOp = Operator()
         # 1e terms
         #
+        #
         for p in alp+bet:
             P = o2q[p]
             for q in alp+bet:
                 Q = o2q[q]
                 if abs(self.ints_1e[p,q])<=int_thresh:
                     continue
-                newOp = FermiString(
+                newOp = QubitString(
                         N=len(alp+bet),
                         coeff=self.ints_1e[p,q],
                         indices=[P,Q],
@@ -303,7 +292,7 @@ class FermionicHamiltonian(Hamiltonian):
                             continue
                         #if abs(self.K2[P,R,Q,S])<=int_thresh:
                         #    continue
-                        newOp = FermiString(
+                        newOp = QubitString(
                                 N=len(alp+bet),
                                 coeff=0.5*self.ints_2e[p,r,q,s],
                                 #coeff=self.K2[P,R,Q,S],
@@ -315,15 +304,14 @@ class FermionicHamiltonian(Hamiltonian):
                         #qubOp+= self._transform(newOp)
                         #t_transform+= dt()-t0
                         #n+=1
-        newF = Operator()
         t3 = timeit.default_timer()
         if self.verbose:
             print('2e terms: {}'.format(t3-t2))
         new = ferOp.transform(self._transform)
         qubOp = Operator()
         for i in new:
-            #if abs(i.c)>int_thresh:
-            qubOp+= i
+            if abs(i.c)>int_thresh:
+                qubOp+= i
         self._qubOp = qubOp
         self._ferOp = ferOp
         t4 = timeit.default_timer()
@@ -346,3 +334,4 @@ class FermionicHamiltonian(Hamiltonian):
     @model.setter
     def model(self,mod):
         self._model = mod
+

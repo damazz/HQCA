@@ -4,6 +4,7 @@ from hqca.hamiltonian.single_qubit import *
 from hqca.hamiltonian.two_qubit import *
 from hqca.hamiltonian.three_qubit import *
 from hqca.hamiltonian.qubit import *
+from hqca.hamiltonian.qubit_particle import *
 
 __all__ =[
         'FermionicHamiltonian',
@@ -12,5 +13,6 @@ __all__ =[
         'TwoQubitHamiltonian',
         'ThreeQubitHamiltonian',
         'QubitHamiltonian',
+        'QubitParticleHamiltonian',
         ]
 
