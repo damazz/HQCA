@@ -6,7 +6,7 @@ from hqca.core import *
 def _newton_step(acse):
     coeff_best = 0.0
     rdm_best = copy(acse.Store.rdm)
-    e_best = copy(acse.e0)
+    e_best = copy(acse.e_k)
 
     testS =  copy(acse.A)
     max_val = 0.0
@@ -33,8 +33,8 @@ def _newton_step(acse):
         acse.current_counts = acse.circ.operator_count
 
     if acse.verbose:
-        print('Energies: ',acse.e0.real,e1,e2)
-    g1,g2= e1-acse.e0,e2-acse.e0
+        print('Energies: ',acse.e_k.real,e1,e2)
+    g1,g2= e1-acse.e_k,e2-acse.e_k
     d2D = (2*g2-2*acse.d*g1)/(acse.d*acse.delta*acse.delta*(acse.d-1))
     d1D = (g1*acse.d**2-g2)/(acse.d*acse.delta*(acse.d-1))
     if abs(d2D)<1e-16:
@@ -97,9 +97,9 @@ def _newton_step(acse):
                 if acse.verbose:
                     print('Current: {:.10f}'.format(np.real(ef)))
                 def m_qk(s):
-                    return acse.e0 + s*acse.grad+0.5*s*acse.hess*s
-                acse.tr_taylor =  acse.e0-m_qk(coeff)
-                acse.tr_object = acse.e0-ef
+                    return acse.e_k + s*acse.grad+0.5*s*acse.hess*s
+                acse.tr_taylor =  acse.e_k-m_qk(coeff)
+                acse.tr_object = acse.e_k-ef
                 if acse.verbose:
                     print('Coefficient: {}'.format(coeff))
                     print('Taylor series step: {:.14f}'.format(

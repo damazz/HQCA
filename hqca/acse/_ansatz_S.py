@@ -8,7 +8,6 @@ class Ansatz:
     def __init__(self,
             closed=True,
             trotter='first',
-                 **kwargs
             ):
 
         '''
@@ -87,25 +86,29 @@ class Ansatz:
         new = copy(self)
         if isinstance(O,type(Operator())):
             if len(self.A)==0:
+                # if first step, append new operator O
                 new.A.append(O)
                 return new
             newOp = Operator()
-            if self.closed==1:
+            if self.closed==1: 
+                # if closed==True, also just append new operator
                 new.A.append(O)
             else:
+                if self.closed==0:
+                    # false, set to length of ansatz
+                    lim = -1*(len(self.A))
+                else:
+                    lim = max(self.closed,-1*len(self))
+                    # set minimum of self.closed, len of ansatz
+                #print([i for i in range(lim,0)])
                 for o in O:
+                    # for each operator in O, search previous steps in self
                     added=False
-                    if self.closed==0:
-                        # false, set to length of ansatz
-                        lim = -1*(len(self.A))
-                    else:
-                        lim = max(self.closed,-1*len(self))
-                        # set minimum of self.closed, len of ansatz
                     for d in reversed(range(lim,0)):
                         if o in self.A[d]:
                             new.A[d]+= o
                             added=True
-                            break
+                            break #move on to next operator o 
                     if not added:
                         newOp+= o
                 if len(newOp)>0:

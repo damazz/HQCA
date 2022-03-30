@@ -1,4 +1,5 @@
 import numpy as np
+from hqca.core import *
 import sys
 from hqca.tools import *
 from hqca.operators import *
@@ -8,13 +9,13 @@ from timeit import default_timer as dt
 from copy import deepcopy as copy
 import warnings
 
-
 def solveqACSE(
         H=None,
         S_min=1e-6,
         expiH_approx='first',
         matrix=False,
         verbose=False,
+        norm='fro',
         **kw
         ):
     '''
@@ -54,18 +55,24 @@ def solveqACSE(
             for h in H[1:]:
                 rdm2 += _runexpiH(HamiltonianOperator=h,**kw)
             rdm = (rdm1-rdm2)/2
+    else:
+        raise QuantumRunError(print(type(H)))
+    #
+    #
     if matrix:
-        return rdm
+        return -rdm
     else:
         # form fermionic operator
         #if verbose:
         #    print('Elements of S from quantum generation: ')
         newF = Operator()
         nz = np.transpose(np.nonzero(rdm))
+        norm = 0
         for index in nz:
             ind = tuple(index)
             val = rdm[ind]
             if abs(val)>S_min:
+                #print(ind,val)
                 l = len(ind)
                 sop = l//2*'+'+l//2*'-'
                 newF+= FermiString(
@@ -74,11 +81,13 @@ def solveqACSE(
                         ops=sop,
                         N=rdm.shape[0],
                         )
+                norm+= np.real(np.conj(val)*val)
+        #print(newF)
         #if verbose:
         #    print('S operator (pre-truncated)...')
         #    print('Fermionic S operator:')
         #    print(newF)
-        return newF
+        return newF,np.sqrt(norm)
 
 def _runexpiH(
         operator=None,
@@ -109,29 +118,21 @@ def _runexpiH(
             **kw
             )
     t0 = dt()
-    if type(tomo)==type(None):
-        print('Recalculating tomography....')
-        newCirc = StandardTomography(
-                quantstore,
-                verbose=verbose,
-                )
-        newCirc.generate(real=False,imag=True)
-    else:
-        newCirc = StandardTomography(
-                quantstore,
-                preset=True,
-                Tomo=tomo,
-                verbose=verbose,
-                )
+    newCirc = StandardTomography(
+            quantstore,
+            preset=True,
+            Tomo=tomo,
+            verbose=verbose,
+            )
     newCirc.set(newPsi)
     newCirc.simulate(verbose=verbose)
     hss = (1 / hamiltonian_step_size)
     if matrix:
         newCirc.construct(processor=process,compact=True)
-        rdm = np.imag(newCirc.rdm) * hss
+        rdm = np.imag(newCirc.rdm.rdm) * hss
     else:
         newCirc.construct(processor=process)
         rdm = np.imag(newCirc.rdm.rdm) * hss
-    return rdm
+    return -rdm
 
 

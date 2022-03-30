@@ -5,7 +5,7 @@ import sys
 from functools import reduce
 from hqca.core import *
 from hqca.tools import *
-from hqca.acse._ansatz_S import *
+from hqca.cqe._pauli_ansatz import *
 
 class StorageACSE(Storage):
     '''
@@ -20,6 +20,7 @@ class StorageACSE(Storage):
             initial='hartree-fock',
             second_quant=False,
             closed_ansatz=True,
+            ansatz=None,
             **kwargs):
         self.H = Hamiltonian
         self.p = Hamiltonian.order
@@ -27,6 +28,8 @@ class StorageACSE(Storage):
             self.r = self.H.No_tot*2 # spin orbitals
         except:
             pass
+        if type(ansatz)==type(None):
+            ansatz = PauliAnsatz
         self.ansatz = []
         self.use_initial=use_initial
         if self.H.model in ['mol','molecular','molecule']:
@@ -39,7 +42,7 @@ class StorageACSE(Storage):
             else:
                 raise NotImplementedError
             self.ei = self.H.hf.e_tot
-            self.S = Ansatz(closed=closed_ansatz,**kwargs)
+            self.S = ansatz(closed=closed_ansatz,**kwargs)
         elif self.H.model in ['fermion','fermi','fermionic']:
             self.No_as = self.H.No_as
             self.Ne_as = self.H.Ne_as
@@ -134,6 +137,7 @@ class StorageACSE(Storage):
         else:
             print('Density matrix:')
             print(rdm.rdm)
+
 
     def _get_HF_rdm(self):
         sz = (self.H.Ne_alp-self.H.Ne_bet)*0.5

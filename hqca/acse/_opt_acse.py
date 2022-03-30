@@ -7,6 +7,8 @@ def _opt_step(acse):
     '''
     '''
     testS = copy(acse.A)
+    acse._opt_log = []
+    acse._opt_en = []
     func = partial(acse._opt_acse_function,newS=testS)
     if acse._opt_thresh=='default':
         thresh = acse.delta/4
