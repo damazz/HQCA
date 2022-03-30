@@ -1,4 +1,5 @@
 from hqca.core.primitives import *
+
 import sys
 from hqca.core import *
 from sympy import re,im
@@ -20,10 +21,13 @@ class PauliSet(Instructions):
             initial_state=[],
             **kw
             ):
+        self.Nq = Nq
         self._gates = []
         self._applyOp(operator,Nq,**kw)
-        if propagate:
+        if propagate==True or propagate=='real':
             self._applyH(**kw)
+        elif propagate=='imag':
+            self._applyexpH(**kw)
 
     def clear(self):
         self._gates = []
@@ -57,7 +61,6 @@ class PauliSet(Instructions):
                 elif abs(re(item.c))<1e-14:
                     c =  np.imag(item.c)
                 if abs(c)>1e-14:
-
                     self._gates.append(
                             [(
                                 c/depth,
@@ -103,5 +106,22 @@ class PauliSet(Instructions):
                             generic_Pauli_term
                             ]
                         )
+
+    def _applyexpH(self,
+            HamiltonianOperator,
+            scaleH=0.5,
+            **kw):
+        # this is for no-unitary evolution
+        for item in HamiltonianOperator:
+            self._gates.append(
+                    [(
+                        scaleH*item.c.real,
+                        item.s,
+                        ),
+                        generic_Pauli_term
+                        ]
+                    )
+
+
 
 
