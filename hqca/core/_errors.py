@@ -2,12 +2,24 @@
 hqca errors.
 """
 
+class OptimizationError(Exception):
+    pass
 
 class QuantumRunError(Exception):
     """
     Generic error for quantum runs.
     """
     pass
+
+class QuantumRunBuildError(Exception):
+    '''
+    Error in building QuantumRun object. 
+    '''
+    pass
+
+class ResidualError(Exception):
+    '''
+    '''
 
 class HamiltonianError(Exception):
     pass
@@ -58,3 +70,5 @@ class AnsatzError(Exception):
 
     """
     pass
+
+

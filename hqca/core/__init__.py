@@ -12,7 +12,6 @@ from hqca.core._instructions import *
 from hqca.core._storage import *
 from hqca.core._tomography import *
 from hqca.core._errors import *
-from hqca.core._quantum_storage import *
 
 __all__ = [
         'Cache',
@@ -24,13 +23,16 @@ __all__ = [
         'GenericCircuit',
         'Storage',
         'Tomography',
+        #
+        'ResidualError',
         'HamiltonianError',
         'QuantumRunError',
-        'QuantumStorage',
         'OperatorError',
         'DeviceConfigurationError',
         'KeywordError',
+        'OptimizationError',
         'TransformError',
         'TomographyError',
-        'AnsatzError'
+        'AnsatzError',
+        'QuantumRunBuildError',
         ]

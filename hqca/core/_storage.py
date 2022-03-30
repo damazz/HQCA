@@ -32,3 +32,4 @@ class Storage(ABC):
     def analysis(self,**kw):
         pass
 
+

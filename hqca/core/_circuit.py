@@ -9,10 +9,14 @@ class Circuit(ABC):
     @abstractmethod
     def __init__(self,
             QuantStore,
+            Nq=None,
             _name=False,
             ):
         self.qs = QuantStore
-        self.Nq = QuantStore.Nq_tot
+        if type(Nq)==type(None):
+            self.Nq = QuantStore.Nq_tot
+        else:
+            self.Nq = Nq
         self.q = QuantumRegister(self.Nq,name='q')
         self.c = ClassicalRegister(self.Nq,name='c')
         self.name = _name
