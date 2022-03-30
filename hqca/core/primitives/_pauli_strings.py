@@ -18,6 +18,8 @@ def apply_clifford_operation(Q,U):
             'V':V,
             }
     for n,u in enumerate(U):
+        if u in ['I','i']:
+            continue
         op = cliff[u]
         op(n)
 
@@ -25,21 +27,31 @@ def pauliOp(Q,loc,sigma='x',inv=False):
     if sigma in ['Z','z']:
         pass
     elif sigma in ['X','x']:
-        Q.qc.rz(pi/2,Q.q[loc])
-        Q.qc.sx(Q.q[loc])
-        Q.qc.rz(pi/2,Q.q[loc])
+        #Q.qc.rz(pi/2,Q.q[loc])
+        #Q.qc.sx(Q.q[loc])
+        #Q.qc.rz(pi/2,Q.q[loc])
+         
+        #
+        Q.qc.h(Q.q[loc])
     elif sigma in ['I','i']:
         pass
     elif sigma in ['Y','y']:
-        if inv:
-            Q.qc.rz(pi/2,Q.q[loc])
-            Q.qc.sx(Q.q[loc])
-            Q.qc.rz(pi,Q.q[loc])
+        if inv: # S gate
+            Q.qc.h(Q.q[loc])
+            Q.qc.s(Q.q[loc])
+            #
+            #Q.qc.rz(pi/2,Q.q[loc])
+            #Q.qc.sx(Q.q[loc])
+            #Q.qc.rz(pi,Q.q[loc])
+            # #
             #Q.qc.rx(-pi/2,Q.q[loc])
         else:
+            Q.qc.sdg(Q.q[loc])
+            Q.qc.h(Q.q[loc])
             #Q.qc.rx(pi/2,Q.q[loc])
-            Q.qc.sx(Q.q[loc])
-            Q.qc.rz(pi/2,Q.q[loc])
+            # #
+            #Q.qc.sx(Q.q[loc])
+            #Q.qc.rz(pi/2,Q.q[loc])
 
 def apply_pauli_string(Q,pauli):
     if not abs(abs(pauli.c)-1)<1e-4:
@@ -58,13 +70,11 @@ def apply_pauli_string(Q,pauli):
 
 def generic_Pauli_term(Q,val,pauli,scaling=1.0):
     s,c = pauli,val
+    val*= -1
+    # the Rz is actually exp -i theta/2 Z; we are correcting here
     if len(s)==1:
         if s=='I':
             pass
-            #Q.qc.u1(val,Q.q[0])
-            #Q.qc.x(Q.q[0])
-            #Q.qc.u1(val,Q.q[0])
-            #Q.qc.x(Q.q[0])
         elif s=='X':
             Q.qc.rx(val*scaling,Q.q[0])
         elif s=='Y':
@@ -100,43 +110,4 @@ def generic_Pauli_term(Q,val,pauli,scaling=1.0):
             # inv. basis
             for n,p in zip(ind,terms):
                 pauliOp(Q,n,p,inv=True)
-
-def _generic_Pauli_term_qiskit(Q,term,scaling=1):
-    '''
-
-    note input should be from qiskit
-    entry 1 is value, entry to is a Pauli object
-    '''
-    val = term[0]
-    pauliStr = term[1].to_label()[::-1]
-    pauliTerms=0
-    ind = [] 
-    terms = []
-    for n,i in enumerate(pauliStr):
-        if not i in ['I','i']:
-            pauliTerms+=1
-            ind.append(n)
-            terms.append(i)
-    if pauliTerms==0:
-        #Q.qc.ph(val*scaling,Q.q[0])
-        Q.qc.u1(val,Q.q[0])
-        Q.qc.x(Q.q[0])
-        Q.qc.u1(val,Q.q[0])
-        Q.qc.x(Q.q[0])
-    else:
-        # basis
-        for n,p in zip(ind,terms):
-            pauliOp(Q,n,p)
-        # exp cnot
-        for n in range(0,pauliTerms-1):
-            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
-        # parameter
-        Q.qc.rz(val*scaling,Q.q[ind[-1]])
-        # exp cnot
-        for n in reversed(range(pauliTerms-1)):
-            Q.qc.cx(Q.q[ind[n]],Q.q[ind[n+1]])
-        # inv. basis
-        for n,p in zip(ind,terms):
-            pauliOp(Q,n,p,inv=True)
-
 
