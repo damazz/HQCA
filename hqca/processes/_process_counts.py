@@ -16,7 +16,7 @@ class StandardProcess(Process):
             backend='qasm_simulator',
             Nq='default',
             **kw):
-        if backend in ['statevector_simulator','simulator_statevector']:
+        if backend in ['statevector_simulator','simulator_statevector','unitary_simulator']:
             val = 0
             N = 2**Nq
             test = ['{:0{}b}'.format(
@@ -25,7 +25,7 @@ class StandardProcess(Process):
                 if abs(counts[n])<1e-14:
                     continue
                 sgn = 1
-                for i in range(len(b)):
+                for i in range(min(len(b),len(pauli_string))):
                     if pauli_string[i]=='I':
                         pass
                     else:
