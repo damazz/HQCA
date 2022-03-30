@@ -55,7 +55,48 @@ def symplectic_product(l1,r1,l2,r2,c1,c2):
 def JordanWigner(operator,
         **kw
         ):
-    if isinstance(operator,type(QuantumString())):
+    if isinstance(operator,type(FermiString())):
         return JordanWignerTransform(operator)
+    elif isinstance(operator,type(Operator())):
+        new = Operator()
+        for op in operator:
+            new+= JordanWignerTransform(op)
+        return new
+    elif isinstance(operator,type(QuantumString())):
+        print('type: {}'.format(type(operator)))
+        raise TransformError("Can not feed non-FermiString into JordanWigner transform.")
+    else:
+        raise TransformError("Can not feed operator into transform anymore.")
+
+
+def PartialJordanWignerTransform(op):
+    '''
+    transforms a fermistrings into a operators of qubit z strings
+    '''
+    Nq = len(op.s)
+    pauli = ['I'*Nq]
+    new = QubitZString(s='i'*Nq,coeff=op.c)
+    # define paulis ops
+    for qi,o in enumerate(op.s[::-1]):
+        # reversed is because of the order in which we apply cre/ann ops
+        q = Nq-qi-1
+        if o=='i':
+            continue
+        if o in ['+','-']:
+            s = 'z'*q+o+(Nq-q-1)*'i'
+        elif o in ['p','h']:
+            s = 'i'*q+o+(Nq-q-1)*'i'
+        else:
+            message = 'Not recognized string {} in op: {}'.format(o,op.s)
+            raise TransformError(message)
+        tem = QubitZString(s=s,coeff=1,symbolic=op.sym)
+        new = tem*new
+    return new
+
+def PartialJordanWigner(operator,
+        **kw
+        ):
+    if isinstance(operator,type(FermiString())):
+        return PartialJordanWignerTransform(operator)
     else:
         raise TransformError("Can not feed operator into transform anymore.")

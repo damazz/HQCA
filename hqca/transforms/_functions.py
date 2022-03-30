@@ -6,6 +6,9 @@ from hqca.operators import *
 
 
 
+
+
+
 def trim_operator(ops,
         qubits,
         paulis,
@@ -15,7 +18,9 @@ def trim_operator(ops,
     new = Operator()
     if not qubits==sorted(qubits)[::-1]:
         sys.exit('Reorder your trimming operations to ensure qubit ordering.')
+    #print('here')
     for op in ops:
+        #print(op)
         s,c = op.s,op.c
         for q,p,e in zip(qubits,paulis,eigvals):
             if s[q]==p:
@@ -26,6 +31,8 @@ def trim_operator(ops,
                 c*=null
             s = s[:q]+s[q+1:]
         new+= PauliString(s,c,symbolic=op.sym)
+    #print('new')
+    #print(new)
     return new
 
 def change_basis(op,
@@ -45,8 +52,12 @@ def modify(ops,
         initial=False):
     T = fermi(ops,initial=initial)
     # initialize
+    #print('t1')
+    #print(T)
     T = change_basis(T,U,Ut)
     # apply Pauli change of basis
+    #print('t2')
+    #print(T)
     T = trim_operator(T,
             qubits=qubits,
             paulis=paulis,
@@ -90,13 +101,13 @@ def get_transform_from_symmetries(
     return cTr, ciTr
 
 def parity_free(Na,Nb,paritya,parityb,transform):
-    Z1 = 'Z'*(Na+Nb)
+    Z1 = 'I'*Na + 'Z'*(Nb)
     Z2 = 'Z'*Na + 'I'*(Nb-1)
     Tr,iTr = get_transform_from_symmetries(
             transform,
             [Z1,Z2],
             [Na+Nb-1,Na-1],
-            [paritya,parityb])
+            [parityb,paritya])
     return Tr,iTr
 
 '''

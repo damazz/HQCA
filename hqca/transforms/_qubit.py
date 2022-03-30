@@ -17,6 +17,11 @@ def QubitTransform(op):
         q = Nq-qi-1
         if o=='i':
             continue
+        elif o=='z':
+            s = 'I'*q+'Z'+(Nq-q-1)*'I'
+            tem = Operator()+PauliString(s,1,symbolic=op.sym)
+            new = tem*new
+            continue
         if o in ['+','-']:
             s1 = 'I'*q+'X'+(Nq-q-1)*'I'
             s2 = 'I'*q+'Y'+(Nq-q-1)*'I'
@@ -35,8 +40,17 @@ def QubitTransform(op):
 def Qubit(operator,
         **kw
         ):
-    if isinstance(operator,type(QuantumString())):
+    if isinstance(operator,type(QubitString())):
         return QubitTransform(operator)
+    elif isinstance(operator,type(QubitZString())):
+        return QubitTransform(operator)
+    elif isinstance(operator,type(QuantumString())):
+        raise TransformError('Cannot apply qubit operator to non-qubit strings.')
+    elif isinstance(operator,type(Operator())):
+        new = Operator()
+        for op in operator:
+            new+= QubitTransform(op)
+        return new
     else:
         raise TransformError("Can not feed operator into transform anymore.")
 
