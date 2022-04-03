@@ -58,8 +58,8 @@ def test_acse_reduced():
     s.find_symmetry_generators()
     Tr,iTr = get_transform_from_symmetries(
             Transform=JordanWigner,
-            symmetries=['ZZII','ZZI','ZZ'],
-            qubits=[1,1,1],
+            symmetries=['ZIIZ','ZIZ','ZZ'],
+            qubits=[3,2,1],
             eigvals=[-1,+1,-1],
             )
     ham = MolecularHamiltonian(mol=generic_mol(),transform=Tr)
@@ -89,17 +89,17 @@ def test_acse_reduced():
             convergence_type='norm',
             hamiltonian_step_size=0.000001,
             max_iter=1,
-            initial_trust_region=1.5,
             newton_step=-1,
-            restrict_S_size=0.5,
-            tomo_S = tomoIm,
-            tomo_Psi = tomoRe,
+            epsilon=1.0,
+            tomo_A = tomoIm,
+            tomo_psi = tomoRe,
             verbose=False,
             )
     acse.build()
     da.expect(abs(acse.e0+0.783792654277353)<=1e-10)
     acse.run()
-    da.expect(abs(acse.e0+0.846147736093)<=1e-8)
+    e1 = -0.831285219165
+    da.expect(abs(acse.e0-e1)<=1e-8)
     da.assert_expectations()
 
 

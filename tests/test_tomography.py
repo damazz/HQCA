@@ -4,25 +4,29 @@ from _generic import *
 import numpy as np
 import hqca.config as config
 config._use_multiprocessing=False
+from hqca.transforms import *
+import pytest
+from hqca.tomography._mixed_tomography import MixedTomography
 
+@pytest.mark.skip('Mixed tomography likely not needed.')
+def test_mixed():
+    '''
+    test mixed tomography for a fermionic qubit-particle matrix 
+    '''
+    #qs = tomo_quantumstorage()
+    qs = generic_quantumstorage()
+    tomoRe = MixedTomography(qs,
+            lorder=1,
+            rorder=1)
+    tomoRe.generate(real=True,imag=False,transform=Qubit)
+    print(tomoRe.op)
 
-#qs = generic_quantumstorage()
-#tomoRe = QubitTomography(qs)
-#tomoRe.generate(real=True,imag=False,transform=Qubit)
-#print(tomoRe.op)
-#
-#qs.transform = Qubit
-#tomoRe = SPQubitTomography(qs)
-#tomoRe.generate(real=True,imag=False,transform=Qubit)
-#print(tomoRe.op)
-#
-#qs = tomo_quantumstorage()
-#tomoRe = QubitTomography(qs)
-#tomoRe.generate(real=True,imag=False,transform=Qubit,simplify=False)
-#print(len(tomoRe.op))
-#tomoRe = SPQubitTomography(qs)
-#tomoRe.generate(real=True,imag=False,transform=Qubit)
-#print(len(tomoRe.op))
+    tomo2 = ReducedMixedTomography(
+            qs,
+            lorder=2,
+            rorder=2)
+    tomo2.generate(real=False,imag=True,transform=Qubit)
+    print(tomo2.op)
 
 def test_tomography():
     qs = generic_quantumstorage()
@@ -56,7 +60,6 @@ def test_reduced_tomography():
     da.expect(set(tomoRe.op) == tempR)
     da.assert_expectations()
 
-test_reduced_tomography()
 
 def test_compare_constructions():
     qs = generic_quantumstorage()
@@ -80,4 +83,6 @@ def test_compare_constructions():
     d01.contract()
     da.expect(abs(d01.rdm.trace())<1e-10)
     da.assert_expectations()
+
+
 

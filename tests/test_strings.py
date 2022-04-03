@@ -1,7 +1,9 @@
 from hqca.operators.quantum_strings import PauliString as Pauli
 from hqca.operators.quantum_strings import FermiString as Fermi
-from hqca.operators.quantum_strings import QubitString as Qubit
+from hqca.operators.quantum_strings import QubitString as QubitString
+from hqca.operators.quantum_strings import QubitZString as QubitZ
 from hqca.operators._operator import Operator as Op
+from hqca.transforms import *
 from math import sqrt, pi
 import hqca.config as config
 config._use_multiprocessing=False
@@ -61,6 +63,7 @@ def test_op_non_commuting_paulistring_mul_is_equal():
 # 
 # test fermi string 
 #
+
 
 
 def test_fermi_anti_symm():
@@ -140,4 +143,38 @@ def test_op_fermi_mul_ne():
     b = Op(Fermi(coeff=1,indices=[1,2],ops='+-',N=3))
     c = Op(Fermi(coeff=1,indices=[0,1,2],ops='+h-',N=3))
     assert (a*b)['+h-'] !=c['+h-']
+
+# qubit tests
+
+
+# qubit z tests
+
+
+def test_op_qubitz():
+    a = Op(QubitZ(coeff=1,indices=[0,1,2,3],ops='+-zz'))
+
+def test_op_qubitz2():
+    a = Op()
+    b= QubitString(coeff=1,indices=[0,1,2,3],ops='+-+-')
+    #b= PartialJordanWigner(Fermi(coeff=1,indices=[0,1,2,3],ops='+-+-'))
+    b*= QubitString(coeff=1,indices=[4,5,3,2],ops='+-+-')
+    #b*= PartialJordanWigner(Fermi(coeff=1,indices=[4,5,6,7],ops='+-+-'))
+
+    c = QubitString(coeff=1,indices=[4,5,3,2],ops='+-+-')
+    #c*= PartialJordanWigner(Fermi(coeff=-1,indices=[0,1,2,3],ops='+-+-'))
+    c*= QubitString(coeff=-1,indices=[0,1,2,3],ops='+-+-')
+    #c*= PartialJordanWigner(Fermi(coeff=1,indices=[0,1,2,3],ops='+-+-'))
+    print(b)
+    print(c)
+    a+= b
+    a+= c
+
+    print(a.transform(Qubit))
+
+
+test_op_qubitz()
+test_op_qubitz2()
+
+
+
 

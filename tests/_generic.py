@@ -6,6 +6,7 @@ from hqca.transforms import *
 from hqca.acse import *
 from hqca.tools import *
 from hqca.instructions import *
+from hqca.storage import *
 from hqca.core import *
 from hqca.vqe import *
 from hqca.core.primitives import *
@@ -58,6 +59,20 @@ def advanced_mol():
             ]
     mol.basis='sto-3g'
     mol.spin=1
+    mol.verbose=0
+    mol.build()
+    return mol
+
+def large_mol():
+    mol = gto.Mole()
+    mol.atom=[
+            ['H',(0,0,0)],
+            ['H',(2.0,0,0)],
+            ['H',(-2.0,0,0)],
+            ['H',(-4.0,0,0)],
+            ]
+    mol.basis='sto-3g'
+    mol.spin=0
     mol.verbose=0
     mol.build()
     return mol
@@ -158,7 +173,6 @@ def generic_vqe_objects():
     tomoRe.generate(real=True,imag=False,transform=JordanWigner)
     proc = StandardProcess()
     return ham,st,qs,ins,proc,tomoRe
-
 
 def advanced_mol():
     mol = gto.Mole()
