@@ -45,7 +45,7 @@ def test_uacse_h2():
     tomoIm.generate(real=False,imag=True,transform=qTr,use_multiprocessing=False,)
     proc = StandardProcess()
     norm = []
-    for method in ['newton','euler','bfgs','cg']:
+    for method in ['newton','euler','bfgs','cg','lbfgs',]:
         st = StorageACSE(ham,closed_ansatz=-1)
         acse = RunACSE(
                 st,qs,ins,processor=proc,
@@ -76,7 +76,7 @@ def test_uacse_h2():
 
 test_uacse_h2()
 
-@pytest.mark.skip('Longer test!')
+#@pytest.mark.skip('Longer test!')
 def test_uacse_h3():
     Tr,iTr = get_transform_from_symmetries(
             Transform=JordanWigner,
@@ -105,7 +105,7 @@ def test_uacse_h3():
     tomoIm = QubitTomography(qs)
     tomoIm.generate(real=False,imag=True,transform=qTr,use_multiprocessing=False,)
     proc = StandardProcess()
-    for method in ['newton','euler','bfgs','cg']:
+    for method in ['newton','euler','bfgs','cg','lbfgs']:
         st = StorageACSE(ham)
         acse = RunACSE(
                 st,qs,ins,processor=proc,
@@ -121,6 +121,7 @@ def test_uacse_h3():
                 epsilon=0.15,
                 tomo_A = tomoIm,
                 tomo_psi = tomoRe,
+                bfgs_limited=3,
                 transform_psi = qTr,
                 verbose=True,
                 )

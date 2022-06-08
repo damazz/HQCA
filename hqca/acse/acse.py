@@ -9,36 +9,49 @@ import warnings
 
 from hqca.acse._ansatz_S import *
 from hqca.acse._check_acse import check_routine
-from hqca.acse._class_S_acse import *
+from hqca.acse._class_A_acse import *
 from hqca.acse._bfgs_acse import _bfgs_step
 from hqca.acse._conjugate_acse import _conjugate_gradient_step
 from hqca.acse._euler_acse import _euler_step
 from hqca.acse._mitigation import *
 from hqca.acse._newton_acse import _newton_step
-from hqca.acse._opt_acse import _opt_step
-from hqca.acse._quant_S_acse import *
-from hqca.acse._user_A import *
+from hqca.acse._quant_A_acse import *
+from hqca.processes import IterativeUnitarySimulator
 from hqca.acse._qubit_A import *
-from hqca.acse._tools_qacse import Log
+from hqca.acse._tools_acse import Log
 from hqca.core import *
 import scipy.sparse as sparse
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class RunACSE(QuantumRun):
-    """
-    Quantum ACSE method.
+    """Generates a anti-hermitian Contracted Schrodinger Equation run object. 
+
+    The ACSE CQE attempts to find a solution to the anti-hermitian component 
+    of the contracted Schrodinger equation. Principly, we do this by finding
+    a solution of the A matrix, and then obtaining a new wavefunction. 
+
+    Attributes:
+        en (float): current energy
+        norm (float): current norm of the 2A matrix 
+        var (float): current variance
+        psi (Ansatz): entire ansatz
+        S (list): given residual vector at a particular iteration
+        qs (QuantumStorage): relevant quantumstorage
+        store (Storage): relevant storage
+        ins (insions): relevant instructions
+        process (None or StandardProcess): relevant process
     """
 
     def __init__(self, storage, quantstore, instructions, **kw):
         super().__init__(**kw)
-        self.Store = storage
-        self.QuantStore = quantstore
-        self.Instruct = instructions
+        self.store = storage
+        self.qs = quantstore
+        self.ins = instructions
         self._update_acse_kw(**kw)
 
     def _update_acse_kw(self,
-                        method='newton',
+                        method='euler',
                         update='quantum',
                         opt_thresh=1e-8,
                         max_iter=100,
@@ -48,16 +61,17 @@ class RunACSE(QuantumRun):
                         S_num_terms=None,
                         convergence_type='default',
                         hamiltonian_step_size=0.1,
-                        restrict_S_size=1.0,
+                        epsilon=1.0,
                         separate_hamiltonian=None,
-                        truncation=['abs'],
+                        trunc_method='delta',
+                        trunc_include=False,
                         verbose=True,
-                        tomo_S=None,
-                        tomo_Psi=None,
-                        tomo_Sq=None,
+                        tomo_A=None,
+                        tomo_psi=None,
                         statistics=False,
                         processor=None,
                         max_depth=None,
+                        transform_psi =None,
                         A_norm=None, #numpy keyword corresponding to numpy.linalg.norm
                         output=0,
                         **kw):
@@ -78,8 +92,8 @@ class RunACSE(QuantumRun):
         else:
             raise QuantumRunError
         if not method in [
-                'opt', 'newton',
-                'euler', 'line','bfgs',
+                'newton',
+                'euler','bfgs','lbfgs',
                 'cg',
                 ]:
             raise QuantumRunError('Specified method not valid. Update acse_kw: \'method\'')
@@ -93,6 +107,7 @@ class RunACSE(QuantumRun):
         self.max_iter = max_iter
         self.max_depth = max_depth
         self.crit = opt_thresh
+        self.psi,self.S = None,None
         self.hamiltonian_step_size = hamiltonian_step_size
         self.sep_hamiltonian = separate_hamiltonian
         self.S_expiH_approx = expiH_approximation
@@ -100,15 +115,18 @@ class RunACSE(QuantumRun):
         self.S_min = S_min
         self.A_norm = A_norm
         self.S_num_terms = S_num_terms
-        self.S_trunc = truncation
-        self.delta = restrict_S_size
-        self.epsilon = restrict_S_size
+        self.trunc_method = trunc_method
+        self.trunc_include = trunc_include
+        self.epsilon = epsilon
         self._conv_type = convergence_type
-        self.tomo_S = tomo_S
-        self.tomo_Sq = tomo_Sq
-        self.tomo_Psi = tomo_Psi
+        self.tomo_A = tomo_A
+        self.tomo_psi = tomo_psi
+        self.transform_psi = transform_psi
+        assert not type(tomo_psi)==type(None), 'Need to specify tomography of psi!'
+        assert not type(tomo_A)==type(None), 'Need to specify tomography of the A matrix!'
+        self.rho = None
         self._A_as_matrix = False
-        if type(self.tomo_Psi) == type(None):
+        if type(self.tomo_psi) == type(None):
             self.tomo_preset = False
         else:
             self.tomo_preset = True
@@ -136,7 +154,7 @@ class RunACSE(QuantumRun):
             print('-- -- -- --')
             print('ansatz')
             print('-- -- -- --')
-            print('S epsilon: {}'.format(self.delta))
+            print('S epsilon: {}'.format(self.epsilon))
             print('-- -- -- --')
             print('optimization')
             print('-- -- -- --')
@@ -144,9 +162,9 @@ class RunACSE(QuantumRun):
         self._opt_thresh = None
         if self.acse_method == 'newton':
             kw = self._update_acse_newton(**kw)
-        elif self.acse_method in ['line', 'opt']:
+        elif self.acse_method in ['line',]:
             kw = self._update_acse_opt(**kw)
-        elif self.acse_method in ['bfgs']:
+        elif self.acse_method in ['bfgs','lbfgs']:
             kw = self._update_acse_bfgs(**kw)
         elif self.acse_method in ['cg']:
             kw = self._update_acse_cg(**kw)
@@ -163,18 +181,6 @@ class RunACSE(QuantumRun):
         self.tomo_D3 = D3
         return kw
 
-    def _update_acse_opt(self,
-                         optimizer='nm',
-                         optimizer_threshold='default',
-                         **kw,
-                         ):
-        if self.verbose:
-            print('optimizer : {}'.format(optimizer))
-            print('optimizer threshold: {}'.format(optimizer_threshold))
-        self._optimizer = optimizer
-        self._opt_thresh = optimizer_threshold
-        return kw
-
     def _update_experimental(self,
                              split_ansatz=False,
                              split_threshold=1.0,
@@ -185,31 +191,42 @@ class RunACSE(QuantumRun):
         return kw
 
     def _update_acse_cg(self,
-            cg_update='FP',
+            cg_update='PR+',
             cg_reset_beta=False,
             **kw):
         self._A_as_matrix = True
-        self._log_p = []
-        if cg_update in ['FR','HS','PRP','HZ']:
+        self._log_psi = [] #used for p-depth tracking
+        self.log_A = []
+        self.log_p = []
+        if cg_update in ['FR','HS','PR','PR+','HZ']:
             self._cg_update = cg_update
+            print('CG Update: {}'.format(cg_update))
+        else:
+            raise QuantumRunError('Unspecified update.')
 
         return kw
 
     def _update_acse_bfgs(self,
                           optimizer_threshold=0.01,
-                          bfgs_limited=False,
+                          bfgs_limited=3,
                           bfgs_update='',
+                          bfgs_restart=False,
                           **kw):
+        if self.acse_method=='lbfgs':
+            print('L-BFGS with {} steps... '.format(bfgs_limited))
         self._A_as_matrix = True
         self._limited = bfgs_limited
         self._opt_thresh = optimizer_threshold
+        self._bfgs_restart = bfgs_restart
         self._update_step = None
-        self._log_p = []
+        self._log_psi = [] #used for p-depth tracking
+        self.log_A = []
+        self.log_p = []
         return kw
 
     def _update_acse_newton(self,
                             use_trust_region=False,
-                            newton_step=-1,
+                            newton_step=+2,
                             initial_trust_region=np.pi / 2,
                             tr_taylor_criteria=1e-10,
                             tr_objective_criteria=1e-10,
@@ -228,6 +245,7 @@ class RunACSE(QuantumRun):
         self.tr_gd = tr_gamma_dec
         self.tr_nv = tr_nu_accept  # very good?
         self.tr_ns = tr_nu_reject  # shrink
+        self.epsilon = self.epsilon*-1
         if self.verbose:
             print('newton step: {}'.format(newton_step))
             print('newton trust region: {}'.format(use_trust_region))
@@ -237,27 +255,76 @@ class RunACSE(QuantumRun):
         return kw
 
 
-    def _generate_real_circuit(self, op):
-        #if isinstance(op, type(Ansatz())):
-        #    op = op.op_form()
-        #else:
-        #    raise QuantumRunError('Problem with input to generate real circuit.')
-        ins = self.Instruct(
-            operator=op,
-            Nq=self.QuantStore.Nq,
-            quantstore=self.QuantStore)
-        circ = StandardTomography(
-            QuantStore=self.QuantStore,
-            preset=self.tomo_preset,
-            Tomo=self.tomo_Psi,
-            verbose=self.verbose,
-        )
-        if not self.tomo_preset:
-            circ.generate(real=self.Store.H.real,imag=self.Store.H.imag)
-        circ.set(ins)
-        circ.simulate()
-        circ.construct(processor=self.process)
+    def _generate_circuit(self, op=None,
+            tomo=None,
+            order=2,
+            compact=False,
+            ins_kwargs={},
+            initial=False):
+        if type(op)==type(None):
+            op = self.psi
+        if type(tomo)==type(None):
+            tomo = self.tomo_psi
+        if isinstance(tomo,type(QubitTomography())):
+            circ = QubitTomography(
+                quantstore=self.qs,
+                preset=self.tomo_preset,
+                tomo=tomo,
+                verbose=self.verbose,
+            )
+        elif isinstance(tomo,type(StandardTomography())):
+            circ = StandardTomography(
+                quantstore=self.qs,
+                preset=self.tomo_preset,
+                tomo=tomo,
+                verbose=self.verbose,
+            )
+        if self.qs.be_type=='rho':
+            if len(op)>0 and self.psi.p==0:
+                op = op[-1]
+            elif len(op)>0 and self.psi.p>0:
+                pass
+
+            op = op.transform(self.transform_psi)
+            ins = self.ins(
+                operator=op,
+                Nq=self.qs.Nq,
+                quantstore=self.qs,
+                order=order,
+                **ins_kwargs)
+            sim = IterativeUnitarySimulator()
+            sim.set(
+                    quantstore=self.qs,
+                    initial=initial,
+                    instruct=ins,
+                    )
+            sim.simulate(
+                    tomo=circ,
+                    rho_i=self.rho)
+        else:
+            op = op.transform(self.transform_psi)
+            ins = self.ins(
+                operator=op,
+                Nq=self.qs.Nq,
+                quantstore=self.qs,
+                order=order,
+                **ins_kwargs)
+            circ.set(ins)
+            circ.simulate()
+            circ.rho = None
+        circ.construct(processor=self.process,compact=compact)
         return circ
+
+    @property
+    def S(self):
+        try: 
+            return self.psi
+        except AttributeError:
+            return self.S
+
+    @S.setter
+    def S(self,a):
+        self.psi = a
 
     def build(self):
         if self.verbose:
@@ -265,33 +332,46 @@ class RunACSE(QuantumRun):
             print('-- -- -- -- -- -- -- -- -- -- --')
             print('building the ACSE run')
             print('-- -- -- -- -- -- -- -- -- -- --')
-        if self.Store.use_initial:
+        if self.store.use_initial:
             try:
-                self.S = copy(self.S)
-                en = np.real(self.Store.evaluate(self.Store.rdm))
+                self.psi = copy(self.psi)
+                en = np.real(self.store.evaluate(self.store.rdm))
             except Exception as e:
                 print(e)
-                self.QuantStore = copy(self.Store.S)
-                circ = self._generate_real_circuit(self.S)
-                self.Store.rdm = circ.rdm
-                en = np.real(self.Store.evaluate(circ.rdm))
+                self.qs = copy(self.store.psi)
+                circ = self._generate_circuit(self.psi)
+                self.store.rdm = circ.rdm
+                en = np.real(self.store.evaluate(circ.rdm))
             self.e_k = np.real(en)
             self.ei = np.real(en)
             if self.verbose:
                 print('Initial energy: {:.8f}'.format(self.ei))
             if self.verbose:
                 print('S: ')
-                print(self.S)
+                print(self.psi)
                 print('Initial density matrix.')
-                self.Store.rdm.contract()
-                print(np.real(self.Store.rdm.rdm))
+                self.store.rdm.contract()
+                print(np.real(self.store.rdm.rdm))
         else:
-            self.S = copy(self.Store.S)
-            self.e_k = self.Store.e0
-            self.ei = self.Store.ei
+            self.psi = copy(self.store.psi)
+            self.e_k = self.store.e0
+            self.ei = self.store.ei
             if self.verbose:
                 print('taking energy from storage')
                 print('initial energy: {:.8f}'.format(np.real(self.e_k)))
+        if self.qs.be_type=='rho':
+            print('Attempting a iterative solution of the ACSE -  ')
+            print('Checking if run is compatible...')
+            #assert self.psi.closed==1
+            print('Continuing...')
+            self.rho = np.zeros(
+                    (2**self.qs.Nq_tot,2**self.qs.Nq_tot),
+                        dtype=np.complex_)
+            self.rho[0,0] = 1
+            circ = self._generate_circuit(op=self.psi,initial=True)
+            self.rho = copy(circ.rho)
+            self.store.update(circ.rdm)
+        self._psi_old = copy(self.psi)
         self.best,self.grad = self.e_k,0
         self.best_avg = self.e_k
 
@@ -299,35 +379,30 @@ class RunACSE(QuantumRun):
         self.total = Cache()
         self.accept_previous_step = True
         #
-        self.rdme = None
+        self.rdme = self.tomo_psi.rdme_keys[:]
+        self.rdme_mapping = {}
+        for i in range(len(self.rdme)):
+            str_form = ' '.join([str(k) for k in self.rdme[i]])
+            self.rdme_mapping[str_form]=i
         if self.acse_method=='bfgs':
-            self.rdme = self.tomo_S.rdme_keys[:]
-            if not self._limited:
-                if self.acse_update=='u':
-                    dim = len(self.rdme)
-                    self.B_k0 = sparse.identity(dim)*self.epsilon**2
-                    self.Bi_k0 = sparse.identity(dim)*self.epsilon**2
-                else:
-                    dim = len(self.rdme)
-                    self.B_k0 = np.identity(dim)#*self.epsilon**2
-                    self.Bi_k0 = np.identity(dim)#/self.epsilon**2
-            else:
-                # using limited bfgs method
-                self._lbfgs_sk = []
-                self._lbfgs_yk = []
-                self._lbfgs_rk = []
-                self._lbfgs_r = []
-        if self.acse_method=='cg':
-            self.rdme = self.tomo_S.rdme_keys
+            dim = len(self.rdme)
+            self.Bi_k0 = np.identity(1*dim)
+        if self.acse_method=='lbfgs':
+            self._lbfgs_yk = []
+            self._lbfgs_rk = []
+            self._lbfgs_r = []
+            self._lbfgs_sk = []
         #
         # update norms 
         #
-        self._get_S()
-        if self.acse_method in ['bfgs','cg']:
-            self.A = self.A*self.epsilon
+        if type(self.transform_psi)==type(None):
+            self.transform_psi = copy(self.store.H._transform)
+        self._get_A()
+        if self.acse_method in ['bfgs','cg','lbfgs',]:
             self.p = -np.asmatrix([self.A]).T
         self.log_E = [self.e_k]
         self.log_norm = [self.norm]
+
 
         if self.verbose:
             print('||A||: {:.10f}'.format(np.real(self.norm)))
@@ -341,25 +416,22 @@ class RunACSE(QuantumRun):
                 np.real(self.e_k),
                 np.real(self.norm)))
 
-    def _get_S(self):
+    def _get_A(self):
             # 
         if self.acse_update == 'q':
             if type(self.sep_hamiltonian)==type(None):
-                H = self.Store.H.qubit_operator
+                H = self.store.H.qubit_operator
             else:
                 H = self.sep_hamiltonian
             A_sq = solveqACSE(
+                self,
                 H=H,
-                operator=self.S,
-                process=self.process,
-                instruct=self.Instruct,
-                store=self.Store,
-                quantstore=self.QuantStore,
+                operator=self.psi,
                 S_min=self.S_min,
                 hamiltonian_step_size=self.hamiltonian_step_size,
                 expiH_approx=self.S_expiH_approx,
                 verbose=self.verbose,
-                tomo=self.tomo_S,
+                tomo=self.tomo_A,
                 matrix=self._A_as_matrix,
                 norm=self.A_norm,
                 )
@@ -368,67 +440,51 @@ class RunACSE(QuantumRun):
                 if self.verbose:
                     print('Rejecting previous step. No recalculation of A.')
                 return
-            #
             A_sq = solvecACSE(
-                self.Store,
-                self.QuantStore,
+                self,
                 S_min=self.S_min,
                 verbose=self.verbose,
                 matrix=self._A_as_matrix,
                 keys=self.rdme,
                 norm=self.A_norm,
-                D3=self.tomo_D3,
-                operator=self.S,
-                process=self.process,
-                instruct=self.Instruct,
+                tomo=self.tomo_A,
+                operator=self.psi,
             )
         elif self.acse_update == 'p':
             # TODO: need to update
             if type(self.sep_hamiltonian)==type(None):
-                H = self.Store.H.qubit_operator
+                H = self.store.H.qubit_operator
             else:
                 H = self.sep_hamiltonian
             A_sq = solvepACSE(
+                self,
                 H=H,
-                operator=self.S,
-                process=self.process,
-                instruct=self.Instruct,
-                store=self.Store,
-                quantstore=self.QuantStore,
+                operator=self.psi,
                 S_min=self.S_min,
                 hamiltonian_step_size=self.hamiltonian_step_size,
-                expiH_approx=self.S_expiH_approx,
                 verbose=self.verbose,
-                tomo=self.tomo_S,
+                tomo=self.tomo_A,
                 matrix=self._A_as_matrix,
                 norm=self.A_norm,
                 )
-        elif self.acse_update =='u': #user specified
-            A_sq = findUserA(
-                operator=self.S.op_form(),
-                process=self.process,
-                instruct=self.Instruct,
-                store=self.Store,
-                quantstore=self.QuantStore,
-                hamiltonian_step_size=self.hamiltonian_step_size,
-                verbose=self.verbose,
-                tomo=self.tomo_S,
-                matrix=self._A_as_matrix,
-            )
         else:
             raise QuantumRunError
         if self._A_as_matrix:
             # used in BFGS implementation
             self.norm = np.linalg.norm(A_sq,ord=self.A_norm)
-            # factor of sqrt(8) accounts for 
+            # factor of sqrt(4) accounts for quadruple counting of symmetries
             self.A = A_sq
         else:
+            ## ## TODO: need to redo 
+            # we use the actual 2A matrix, no need to renormalize
             A_sq, norm = A_sq[0],A_sq[1]
-            self.norm = norm/np.sqrt(4)
+            print('norm...',norm)
+            self.norm = norm
             if self._output==2:
-                print('Fermi operator')
+                print('Particle operator')
                 print(A_sq)
             if self.split_ansatz:
+                raise QuantumRunError('Split ansatz needs update.')
                 max_v, norm = 0, 0
                 new = Operator()
                 for op in A_sq:
@@ -438,19 +494,18 @@ class RunACSE(QuantumRun):
                     if abs(op.c) >= abs(self.S_thresh_rel * max_v):
                         new += op
                 if self.acse_update in ['c','q']:
-                    A = A_sq.transform(self.QuantStore.transform)
-                    #A = new.transform(self.QuantStore.transform)
+                    A = A_sq.transform(self.qs.transform)
+                    A = A_sq
                 elif self.acse_update in ['p']:
-                    A = A_sq.transform(self.QuantStore.qubit_transform)
-                    #A = new.transform(self.QuantStore.qubit_transform)
+                    A = A_sq.transform(self.qs.qubit_transform)
                 #
                 inc = Operator()
                 exc = Operator()
                 for n in A:
                     added = False
-                    for m in reversed(range(self.S.get_lim(), 0)):
+                    for m in reversed(range(self.psi.get_lim(), 0)):
                         # now, we check if in previous ansatz
-                        ai = self.S[m]
+                        ai = self.psi[m]
                         for o in ai:
                             if n == o:
                                 inc += n
@@ -514,23 +569,15 @@ class RunACSE(QuantumRun):
                     if abs(op.c) >= abs(self.S_thresh_rel * max_val):
                         new += op
                 t0 = dt()
-                if self.acse_update in ['c','q']:
-                    self.A = new.transform(self.QuantStore.transform)
-                elif self.acse_update in ['p']:
-                    self.A = new.transform(self.QuantStore.qubit_transform)
-                norm = 0
-                #for op in self.A:
-                #    norm += op.norm()**2
-                #self.norm = norm ** (0.5)
-                # check if operator is split #
-                #   #
+                #self.A = new.transform(self.transform_psi)
+                self.A = new
+                pauli = new.transform(self.transform_psi)
+
                 if self.verbose:
                     print('A operator (fermi)')
                     print(new)
                     print('A operator (pauli')
-                    print(self.A)
-                #    print('Norm: {}'.format(self.norm))
-                #    print('-- -- -- -- -- -- -- -- -- -- --')
+                    print(pauli)
 
     def _run_acse(self):
         '''
@@ -548,47 +595,38 @@ class RunACSE(QuantumRun):
             sys.exit('Not built! Run acse.build()')
         if self.acse_method in ['NR', 'newton']:
             _newton_step(self)
-            self._get_S()
+            self._get_A()
         elif self.acse_method in ['default', 'em', 'EM', 'euler']:
             _euler_step(self)
-            self._get_S()
+            self._get_A()
         elif self.acse_method in ['line', 'opt']:
             _opt_step(self)
-            self._get_S()
+            self._get_A()
         elif self.acse_method in ['bfgs']:
             _bfgs_step(self)
+        elif self.acse_method in ['lbfgs']:
+            _bfgs_step(self,limited=True)
         elif self.acse_method in ['cg']:
             _conjugate_gradient_step(self)
         else:
             raise QuantumRunError('Incorrect acse_method.')
-        # self._check_norm(self.A)
-        # check if ansatz will change length
+        # 
+        if self.qs.be_type=='rho':
+            if self.psi.p==0:
+                self.rho  = copy(self.circ.rho)
+            elif self.psi.p>0:
+                if len(self.psi)>self.psi.p:
+                    #print('Psi increased! Updating rho')
+                    self.circ = self._generate_circuit(self.psi.A[0])
+                    self.rho = copy(self.circ.rho)
+                    self._psi_old+= self.psi.A.pop(0)
+                    #del self.psi.A[0]
 
 
-    def _opt_acse_function(self, parameter, newS=None, verbose=False):
-        testS = copy(newS)
-        currS = copy(self.S)
-        for f in testS:
-            f.c *= parameter[0]
-        temp = currS + testS
-        tCirc = self._generate_real_circuit(temp)
-        en = np.real(self.Store.evaluate(tCirc.rdm))
-        self._opt_log.append(tCirc)
-        self._opt_en.append(en)
-        #
 
-        return en
 
-    def _test_acse_function(self, parameter, newS=None, verbose=False):
-        testS = copy(newS)
-        currS = copy(self.S)
-        for f in testS:
-            f.c *= parameter[0]
-        temp = currS + testS
-        tCirc = self._generate_real_circuit(temp)
-        en = np.real(self.Store.evaluate(tCirc.rdm))
-        self.circ = tCirc
-        return en, tCirc.rdm
+
+            # check to see if len(psi) increased
 
     def _particle_number(self, rdm):
         return rdm.trace()
@@ -601,8 +639,8 @@ class RunACSE(QuantumRun):
                 #print('E,init: {:+.12f} U'.format(np.real(self.ei)))
                 print('E,iter: {:+.12f} U'.format(np.real(self.best)))
                 try:
-                    diff = 1000 * (self.best - self.Store.H.ef)
-                    print('E, fin: {:+.12f} U'.format(self.Store.H.ef))
+                    diff = 1000 * (self.best - self.store.H.ef)
+                    print('E, fin: {:+.12f} U'.format(self.store.H.ef))
                     print('E,diff: {:.12f} mU'.format(diff))
                 except KeyError:
                     pass
@@ -611,10 +649,10 @@ class RunACSE(QuantumRun):
 
     def reset(self,full=False):
         if not full:
-            self.Store.use_initial=True
+            self.store.use_initial=True
             self.build()
         else:
-            self.Store.use_initial=False
+            self.store.use_initial=False
             self.build()
 
     def run(self):
@@ -629,11 +667,11 @@ class RunACSE(QuantumRun):
                 self._run_acse()
                 self._check()
             print('')
-            print('E init: {:+.12f} U'.format(np.real(self.ei)))
+            #print('E init: {:+.12f} U'.format(np.real(self.ei)))
             print('E run : {:+.12f} U'.format(np.real(self.best)))
             try:
-                diff = 1000 * (self.best - self.Store.H.ef)
-                print('E goal: {:+.12f} U'.format(self.Store.H.ef))
+                diff = 1000 * (self.best - self.store.H.ef)
+                print('E goal: {:+.12f} U'.format(self.store.H.ef))
                 print('Energy difference from goal: {:.12f} mU'.format(diff))
             except KeyError:
                 pass
@@ -644,15 +682,15 @@ class RunACSE(QuantumRun):
         '''
         Internal check on the energy as well as norm of the S matrix
         '''
-        en = self.Store.evaluate(self.Store.rdm)
+        en = self.store.evaluate(self.store.rdm)
         if self.total.iter == 0:
             self.best = copy(self.e_k)
         self.total.iter += 1
         if self.total.iter == self.max_iter:
             print('Max number of iterations met. Ending optimization.')
             self.total.done = True
-        elif len(self.S) == self.max_depth:
-            if copy(self.S) + copy(self.A) > self.max_depth:
+        elif len(self.psi) == self.max_depth:
+            if copy(self.psi) + copy(self.A) > self.max_depth:
                 print('Max ansatz depth reached. Ending optimization.')
                 self.total.done = True
 
@@ -672,7 +710,7 @@ class RunACSE(QuantumRun):
         std_En = np.real(np.std(np.asarray(temp_std_En)))
         std_S = np.real(np.std(np.asarray(temp_std_S)))
         if self.verbose:
-            #self.Store.analysis()
+            #self.store.analysis()
             print('')
             print('---------------------------------------------')
             print('Step {:02}, E: {:.12f}, S: {:.12f}'.format(
@@ -737,7 +775,7 @@ class RunACSE(QuantumRun):
         except AttributeError:
             sys.exit('Forgot to turn logging on!')
         data = {
-            'H': self.Store.H.matrix,
+            'H': self.store.H.matrix,
             'run_config': {
                 'method': self.acse_method,
                 'verbose': self.verbose,
@@ -754,11 +792,11 @@ class RunACSE(QuantumRun):
                 'optimizer_threshold': self._opt_thresh,
             },
             'quantum_storage': {
-                'backend': self.QuantStore.backend,
-                'provider': self.QuantStore.provider,
-                'number of qubits': self.QuantStore.Nq,
-                'number of shots': self.QuantStore.Ns,
-                'stabilizers': self.QuantStore.method,
+                'backend': self.qs.backend,
+                'provider': self.qs.provider,
+                'number of qubits': self.qs.Nq,
+                'number of shots': self.qs.Ns,
+                'stabilizers': self.qs.method,
             },
             'description': description,
         }
@@ -768,3 +806,18 @@ class RunACSE(QuantumRun):
             pass
         with open(name + '.log', 'wb') as fp:
             pickle.dump(data, fp, pickle.HIGHEST_PROTOCOL)
+
+    def check_variance(self,H):
+        try:
+            self.rho
+        except AttributeError as e:
+            return None
+        E = np.dot(self.rho,H).trace()
+        v1 = np.dot(self.rho,np.dot(H,H)).trace()
+        print('    -> Var: {}'.format(-E**2+v1))
+        return np.real(v1-E**2)
+
+
+
+
+

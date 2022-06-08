@@ -68,10 +68,21 @@ def apply_pauli_string(Q,pauli):
         elif i=='Z':
             Q.qc.rz(pi,Q.q[q])
 
-def generic_Pauli_term(Q,val,pauli,scaling=1.0):
+
+def generic_Pauli_term(*args):
+    pauli_gadget(*args)
+
+
+def pauli_gadget(Q,val,pauli): 
+    ''' implements exp val * pauli
+
+    Given ZZ val, implement exp i val* ZZ as 
+    cx(0,1) Rz(-val*2,1) cx(0,1)
+
+    which generalizes to more complicated pauli strings
+    '''
     s,c = pauli,val
-    val*= -1
-    # the Rz is actually exp -i theta/2 Z; we are correcting here
+    scaling = -2.0
     if len(s)==1:
         if s=='I':
             pass
@@ -91,10 +102,9 @@ def generic_Pauli_term(Q,val,pauli,scaling=1.0):
                 ind.append(n)
                 terms.append(i)
         if pauliTerms==0:
-            Q.qc.u1(val,Q.q[0])
-            Q.qc.x(Q.q[0])
-            Q.qc.u1(val,Q.q[0])
-            Q.qc.x(Q.q[0])
+            # applying a global phase here...not necessary
+
+            pass
         else:
             # basis
             for n,p in zip(ind,terms):

@@ -6,6 +6,7 @@ from functools import reduce
 from hqca.core import *
 from hqca.tools import *
 from hqca.cqe._pauli_ansatz import *
+from hqca.acse._ansatz_S import *
 
 class StorageACSE(Storage):
     '''
@@ -29,7 +30,7 @@ class StorageACSE(Storage):
         except:
             pass
         if type(ansatz)==type(None):
-            ansatz = PauliAnsatz
+            ansatz = Ansatz
         self.ansatz = []
         self.use_initial=use_initial
         if self.H.model in ['mol','molecular','molecule']:
@@ -42,7 +43,7 @@ class StorageACSE(Storage):
             else:
                 raise NotImplementedError
             self.ei = self.H.hf.e_tot
-            self.S = ansatz(closed=closed_ansatz,**kwargs)
+            self.psi = ansatz(closed=closed_ansatz,**kwargs)
         elif self.H.model in ['fermion','fermi','fermionic']:
             self.No_as = self.H.No_as
             self.Ne_as = self.H.Ne_as
@@ -52,10 +53,10 @@ class StorageACSE(Storage):
             self.e0 = self.hf_rdm.observable(self.H.matrix)+self.H._en_c
             self.ei = copy(self.e0)
             if use_initial:
-                self.S = copy(initial)
+                self.psi = copy(initial)
             else:
                 #self.S = Operator()
-                self.S = Ansatz(closed=closed_ansatz,**kwargs)
+                self.psi = Ansatz(closed=closed_ansatz,**kwargs)
                 # use input state
         else:
             print('Model: {}'.format(self.H.model))
@@ -94,37 +95,6 @@ class StorageACSE(Storage):
                         negative=True
                         print(i)
                         neg_ind = copy(n)
-            '''
-            if negative:
-                rdm.expand()
-                zed = np.nonzero(rdm.rdm)
-                alpalp = np.zeros(rdm.rdm.shape)
-                alpbet = np.zeros(rdm.rdm.shape)
-                betbet = np.zeros(rdm.rdm.shape)
-                for i,j,k,l in zip(zed[0],zed[1],zed[2],zed[3]):
-                    if abs(rdm.rdm[i,j,k,l])>1e-8:
-                        print(i,j,k,l,rdm.rdm[i,j,k,l])
-                        c1 = i in self.alpha_mo['active']
-                        c2 = j in self.alpha_mo['active']
-                        c3 = k in self.alpha_mo['active']
-                        c4 = l in self.alpha_mo['active']
-                        val = rdm.rdm[i,j,k,l]
-                        if c1+c2+c3+c4==0:
-                            betbet[i,j,k,l]=val
-                        elif c1+c2+c3+c4==2:
-                            alpbet[i,j,k,l]=val
-                        elif c1+c2+c3+c4==4:
-                            alpalp[i,j,k,l]=val
-                rdm.contract()
-                for lab,mat in zip(['aa','ab','bb'],[alpalp,alpbet,betbet]):
-                    mat = np.reshape(mat,(rdm.rdm.shape))
-                    print('EIGVALS OF {} matrix'.format(lab))
-                    for n,i in enumerate(np.linalg.eigvalsh(mat)):
-                        if abs(i)>1e-10:
-                            if i<0:
-                                print(i)
-                #sys.exit('Negative eigenvalue?')
-            '''
             rdm.expand()
             rdm1 = rdm.reduce_order()
             print('1-RDM: ')
@@ -138,6 +108,14 @@ class StorageACSE(Storage):
             print('Density matrix:')
             print(rdm.rdm)
 
+    @property
+    def S(self):
+        try: 
+            return self.psi
+        except AttributeError:
+            return self.S
+        except Exception:
+            return None
 
     def _get_HF_rdm(self):
         sz = (self.H.Ne_alp-self.H.Ne_bet)*0.5

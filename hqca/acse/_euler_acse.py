@@ -5,29 +5,19 @@ from hqca.tomography import *
 from hqca.operators import *
 
 def _euler_step(acse):
-    '''
-    function of Store.build_trial_ansatz
+    ''' carries out the Euler step for the ACSE
+
+    Euler step following the gradient direction (-A, where A
+    is the gradient or residuals of the ACSE)
+
     '''
     testS = copy(acse.A)
     for s in testS:
-        s.c*=acse.delta
-    acse.S = acse.S+testS
-    ins = acse.Instruct(
-            operator=acse.S,
-            Nq=acse.QuantStore.Nq,
-            quantstore=acse.QuantStore,
-            )
-    circ = StandardTomography(
-            QuantStore=acse.QuantStore,
-            preset=acse.tomo_preset,
-            Tomo=acse.tomo_Psi,
-            verbose=acse.verbose,
-            )
-    if not acse.tomo_preset:
-        circ.generate(real=acse.Store.H.real,imag=acse.Store.H.imag)
-    circ.set(ins)
-    circ.simulate()
-    circ.construct(processor=acse.process)
-    en = np.real(acse.Store.evaluate(circ.rdm))
-    acse.Store.update(circ.rdm)
+        s.c*= -1*acse.epsilon
+    acse.psi = acse.psi+testS
+    circ = acse._generate_circuit()
+    #
+    en = np.real(acse.store.evaluate(circ.rdm))
+    acse.store.update(circ.rdm)
     acse.circ = circ
+    nz = np.nonzero(circ.rdm.rdm)

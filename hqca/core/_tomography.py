@@ -10,14 +10,14 @@ from abc import ABC, abstractmethod
 
 class Tomography(ABC):
     def __init__(self,
-            QuantStore,
-            Instructions=None,
+            quantstore,
+            instruct=None,
             verbose=True,
             order=2):
-        self.qs = QuantStore
+        self.qs = quantstore
         self.order = order
         self.verbose=True
-        self.ins = Instructions
+        self.ins = instruct
         self.circuit_list = []
         self.circuits = []
 

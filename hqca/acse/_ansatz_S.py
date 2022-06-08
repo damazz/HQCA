@@ -7,7 +7,9 @@ from hqca.core import *
 class Ansatz:
     def __init__(self,
             closed=True,
+            p_depth=None,
             trotter='first',
+            op_type='fermi',
             ):
 
         '''
@@ -15,13 +17,26 @@ class Ansatz:
         of ansatz terms can be defined.
 
         A closed ansatz is one in which the inner layers of the ansatz cannot be accessed
+
+        TODO: changes ACSE ansatz to FermiAnsatz in the CQE class
         '''
         self.A = [] #instead of strings, holds operators at each place
         self.closed = closed
+        if type(p_depth)==type(None):
+            if closed==1 or closed==True:
+                self.p = 0
+            elif closed==0:
+                self.p = 1000
+            else:
+                self.p = -closed
+        else:
+            self.p = p_depth
+
         self.trotter = trotter
         self._store = []
-        if closed>1:
-            sys.exit('Need to specify closed <=1')
+        assert closed <= 1, 'Need to specify closed paramter <=1'
+        assert self.p >=0, 'p-depth must be positive!'
+    
 
     def truncate(self,d='default'):
         '''
@@ -34,6 +49,8 @@ class Ansatz:
         self.A = self.A[:d]
         self._store = self._store[:d]
 
+    def transform(self,T):
+        return [p for o in self.A for p in o.transform(T)]
 
     def norm(self):
         return [a.norm() for a in self]
@@ -126,4 +143,5 @@ class Ansatz:
             O.c = O.c*(-1)
             new+= O
         return self+new
+
 

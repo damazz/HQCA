@@ -8,13 +8,13 @@ from math import pi
 class Circuit(ABC):
     @abstractmethod
     def __init__(self,
-            QuantStore,
+            quantstore,
             Nq=None,
             _name=False,
             ):
-        self.qs = QuantStore
+        self.qs = quantstore
         if type(Nq)==type(None):
-            self.Nq = QuantStore.Nq_tot
+            self.Nq = self.qs.Nq_tot
         else:
             self.Nq = Nq
         self.q = QuantumRegister(self.Nq,name='q')

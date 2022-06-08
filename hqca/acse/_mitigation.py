@@ -5,7 +5,7 @@ from copy import deepcopy as copy
 def check_mitigation(acse):
     '''
     '''
-    if 'shift' in acse.QuantStore.method:
+    if 'shift' in acse.qs.method:
         _calculate_zo_correction(acse)
 
 def _calculate_zo_correction(acse):
@@ -23,18 +23,18 @@ def _calculate_zo_correction(acse):
     print('checking ansatz length')
     print('--------------')
     print('Assessing error mitigation.')
-    if acse.QuantStore.shift_protocol=='full':
+    if acse.qs.shift_protocol=='full':
         _find_zo_full(acse)
-    elif acse.QuantStore.shift_protocol=='current':
+    elif acse.qs.shift_protocol=='current':
         _find_zo_current(acse)
-    elif acse.QuantStore.shift_protocol=='zero':
+    elif acse.qs.shift_protocol=='zero':
         _find_zo_zero(acse)
     else:
         pass
 
 
 def _find_zo_full(acse):
-    acse.QuantStore.Gamma = None
+    acse.qs.Gamma = None
     testS = copy(acse.A)
     currS = copy(acse.S)
     total = currS+testS
@@ -44,10 +44,10 @@ def _find_zo_full(acse):
         f.c*=0.000001
     print('initial step: ')
     print(s1)
-    Circ = acse._generate_real_circuit(s1)
-    Gamma = acse.Store.hf_rdm-Circ.rdm
-    e0 = acse.Store.evaluate(acse.Store.hf_rdm)
-    e1 = acse.Store.evaluate(Circ.rdm)
+    Circ = acse._generate_circuit(s1)
+    Gamma = acse.store.hf_rdm-Circ.rdm
+    e0 = acse.store.evaluate(acse.store.hf_rdm)
+    e1 = acse.store.evaluate(Circ.rdm)
     et = e1-e0
     print('Energies: ')
     print('E0 (HF): {:.8f}'.format(np.real(e0)))
@@ -66,11 +66,11 @@ def _find_zo_full(acse):
         print(S0)
         print('Adjusted operator 1: ')
         print(S1)
-        Circ0 = acse._generate_real_circuit(S0)
-        Circ1 = acse._generate_real_circuit(S1)
+        Circ0 = acse._generate_circuit(S0)
+        Circ1 = acse._generate_circuit(S1)
         Gamma+= (Circ0.rdm-Circ1.rdm)
-        e0 = acse.Store.evaluate(Circ0.rdm)
-        e1 = acse.Store.evaluate(Circ1.rdm)
+        e0 = acse.store.evaluate(Circ0.rdm)
+        e1 = acse.store.evaluate(Circ1.rdm)
         print('Energies: ')
         print('E0 (qc): {:.8f}'.format(np.real(e0)))
         print('E1 (qc): {:.8f}'.format(np.real(e1)))
@@ -82,13 +82,13 @@ def _find_zo_full(acse):
     print('----------------------------------')
     print('Total energy shift: {:.8f}'.format(np.real(et)))
     print('----------------------------------')
-    acse.QuantStore.Gamma = Gamma
+    acse.qs.Gamma = Gamma
     if acse.log:
         acse.log_Gamma.append(Gamma)
 
 
 def _find_zo_current(acse):
-    if type(acse.QuantStore.Gamma)==type(None):
+    if type(acse.qs.Gamma)==type(None):
         testS = copy(acse.A)
         currS = copy(acse.S)
         S = currS+testS
@@ -97,15 +97,15 @@ def _find_zo_current(acse):
             f.c*= 0.0001
         print('initial step: ')
         print(S)
-        Circ1 = acse._generate_real_circuit(S)
-        Circ2 = acse._generate_real_circuit(S)
+        Circ1 = acse._generate_circuit(S)
+        Circ2 = acse._generate_circuit(S)
         gam = (Circ1.rdm+Circ2.rdm)*0.5
-        Gamma = acse.Store.hf_rdm-gam
+        Gamma = acse.store.hf_rdm-gam
 
-        e0 = acse.Store.evaluate(acse.Store.hf_rdm)
-        e1 = acse.Store.evaluate(gam)
+        e0 = acse.store.evaluate(acse.store.hf_rdm)
+        e1 = acse.store.evaluate(gam)
         et = e1-e0
-        acse.QuantStore.Gamma = Gamma
+        acse.qs.Gamma = Gamma
         acse.S._store.append(Gamma)
         print('Energies: ')
         print('E0 (HF): {:.8f}'.format(np.real(e0)))
@@ -128,29 +128,29 @@ def _find_zo_current(acse):
             print('current S: ')
             print(S)
             #  we added one.....new one will be zero
-            Circ1 = acse._generate_real_circuit(S)
-            Circ2 = acse._generate_real_circuit(S)
+            Circ1 = acse._generate_circuit(S)
+            Circ2 = acse._generate_circuit(S)
             # actually...gamma should be the same...ish? 
             gam = (Circ1.rdm+Circ2.rdm)*0.5
-            nGamma = copy(acse.Store.rdm)-gam #-acse.QuantStore.Gamma-acse.QuantStore.Gamma)
+            nGamma = copy(acse.store.rdm)-gam #-acse.qs.Gamma-acse.qs.Gamma)
             # 
-            e0 = copy(acse.Store.evaluate(acse.Store.rdm))
-            e1 = acse.Store.evaluate(gam)
+            e0 = copy(acse.store.evaluate(acse.store.rdm))
+            e1 = acse.store.evaluate(gam)
             print('Energies: ')
             print('E_n(e_n) (qc): {:.8f}'.format(np.real(e0)))
             print('E_n+1(0) (qc): {:.8f}'.format(np.real(e1)))
             print('Gamma shift: {:.8f}'.format(np.real(e1-e0)))
             print('Norm: {}'.format(np.linalg.norm(nGamma.rdm)))
             #nGamma.analysis()
-            acse.QuantStore.Gamma+= nGamma
+            acse.qs.Gamma+= nGamma
             print('- - - -')
             print('Total energy: {:.8f}'.format(
-                acse.Store.evaluate(acse.QuantStore.Gamma).real))
-            print('Norm: {}'.format(np.linalg.norm(acse.QuantStore.Gamma.rdm)))
+                acse.store.evaluate(acse.qs.Gamma).real))
+            print('Norm: {}'.format(np.linalg.norm(acse.qs.Gamma.rdm)))
             print('- - - -')
 
 def _find_zo_zero(acse):
-    acse.QuantStore.Gamma = None
+    acse.qs.Gamma = None
     testS = copy(acse.A)
     currS = copy(acse.S)
     total = currS+testS
@@ -161,10 +161,10 @@ def _find_zo_zero(acse):
         print(f)
     print('Setting shift to H0:')
     print(s1)
-    Circ = acse._generate_real_circuit(S)
-    Gamma = acse.Store.hf_rdm-Circ.rdm
-    e0 = acse.Store.evaluate(acse.Store.hf_rdm)
-    e1 = acse.Store.evaluate(Circ.rdm)
+    Circ = acse._generate_circuit(S)
+    Gamma = acse.store.hf_rdm-Circ.rdm
+    e0 = acse.store.evaluate(acse.store.hf_rdm)
+    e1 = acse.store.evaluate(Circ.rdm)
     et = e1-e0
     print('Energies: ')
     print('E0 (HF): {:.8f}'.format(np.real(e0)))
@@ -176,6 +176,6 @@ def _find_zo_zero(acse):
     print('----------------------------------')
     print('Total energy shift: {:.8f}'.format(np.real(et)))
     print('----------------------------------')
-    acse.QuantStore.Gamma = Gamma
+    acse.qs.Gamma = Gamma
     if acse.log:
         acse.log_Gamma.append(Gamma)

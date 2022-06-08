@@ -39,7 +39,7 @@ def test_acse_h2():
     tomoIm.generate(real=False,imag=True,transform=Tr,use_multiprocessing=False,)
     proc = StandardProcess()
     norm = []
-    for method in ['newton','euler','bfgs','cg']:
+    for method in ['newton','euler','bfgs','cg','lbfgs']:
         st = StorageACSE(ham,closed_ansatz=-1)
         acse = RunACSE(
                 st,qs,ins,processor=proc,
@@ -88,7 +88,7 @@ def test_norm_h2():
     tomoIm.generate(real=False,imag=True,transform=Tr,use_multiprocessing=False,)
     proc = StandardProcess()
     norm = []
-    for method in ['newton','euler','bfgs','cg']:
+    for method in ['newton','euler','bfgs','cg','lbfgs',]:
         st = StorageACSE(ham,closed_ansatz=-1)
         acse = RunACSE(
                 st,qs,ins,processor=proc,
@@ -112,7 +112,7 @@ def test_norm_h2():
         da.expect(abs(norm[-1]-norm[0])<1e-6,'Norm should be the same!')
     da.assert_expectations()
 
-@pytest.mark.skip('Longer test!')
+#@pytest.mark.skip('Longer test!')
 def test_acse_h3():
     Tr,iTr = get_transform_from_symmetries(
             Transform=JordanWigner,
@@ -136,7 +136,7 @@ def test_acse_h3():
     tomoIm.generate(real=False,imag=True,transform=Tr,use_multiprocessing=False,)
     proc = StandardProcess()
     norm = []
-    for method in ['newton','euler','bfgs','cg']:
+    for method in ['newton','euler','bfgs','cg','lbfgs']:
         st = StorageACSE(ham)
         acse = RunACSE(
                 st,qs,ins,processor=proc,
@@ -162,4 +162,4 @@ def test_acse_h3():
         da.expect(abs(acse.e0-acse.store.H.ef)<=1e-3,msg)
     da.assert_expectations()
 
-test_norm_h2()
+test_acse_h3()
