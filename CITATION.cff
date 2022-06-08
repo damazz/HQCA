@@ -8,5 +8,5 @@ authors:
   given-names: "David A."
   orcid: "https://orcid.org/0000-0000-0000-0000"
 title: "hqca - hybrid quantum computing algorithms for quantum chemistry"
-version: 21.08.24
+version: 22.04
 url: "https://github.com/damazz/HQCA"
