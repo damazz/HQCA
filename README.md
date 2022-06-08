@@ -2,41 +2,37 @@
 
 ## Introduction
 
-This python module is a compilation of tools for performing quantum chemistry simulations on near term quantum computers, with a focus on approaches which based in reduced density matrix (RDM) theories. These include simply variationally modifying the 2-RDM, utilizing properties of RDMs (like the N-representability conditions) or in specific RDM methods, and contracted quantum eigensolvers (CQE), such as the quantum anti-Hermitian Contracted Schroedinger Equation method (qACSE). 
-
-While there is the potential for moderate simulations, say of 6-, 8- or 10- qubit simulations on local devices (with the exception of generating relevant tomographies), much larger simulations will require more memory and the program is not optimized for these sort of runs. Instead HQCA is centered around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
+This python module is a compilation of tools for performing quantum chemistry simulations on near term quantum computers, with a focus on approaches based in reduced density matrix (RDM) theories, namely the contracted quantum eigensolvers. The methods are aimed at circuit based implementations, and can be readily translated to work on a variety of real device architectures. While there is the potential for moderate simulations, say 8-10 qubit simulations on local devices (with the exception of generating relevant tomographies), much larger simulations will require more memory and the program is only loosely optimized. Instead HQCA is centered around practical calculations of smaller molecular systems at a higher accuracy, and as a tool for method development. For instance, the code is written entirely in Python, and does not have many common quantum chemistry practices, including the use of spatial orbitals, universal adoption of symmetry adaptation, frozen core approximations, etc.  The module utilizes [Qiskit](https://qiskit.org) for interacting with, constructing, and running quantum circuits through the IBMQ backends, which can be accessed at the [IBM Quantum Experience page](https://quantum-computing.ibm.com/). 
 
 ## Features and Overview
 
 The following features are included:
 - Implementation of the quantum-ACSE as a contracted quantum eigensolver (CQE), with classical and quantum solutions of the ACSE condition
-- Implentation of basic variational quantum eigensolvers (VQE)
-- Programmable ansatz 
+- Implementation of basic variational quantum eigensolvers (VQE), incldunig the ADAPT-VQE 
 - Different tomography schemes of reduced density matrices with options for traditional or clique based grouping options 
 - Symmetry projection of measurement operators for local qubit measurements
-- Tapering of transformations to allow for qubit reduction schemes 
+- Tapering of qubit symmetries to allow for qubit reduction schemes 
 - Error mitigation techniques, mostly based in post processing RDMs 
-- General tools for dealing with quantum operators, fermionic operators, transformations, and matrix representations 
+- Simple toolkit for dealing with quantum operators, fermionic operators, transformations, and matrix representations 
 
 ## Getting Started 
 
-### Prerequisites 
-python >= 3.7  
-qiskit >= 0.17
-pyscf  >= 1.7.4
+### Installation
 
-Optionally:
-pytest, delayed_assert (running test suite) 
-graph_tool >= 2.35  (conda installation recommended, needed for reduced tomography schemes)
-Maple 2021, with QuantumChemistry module
- 
-### Installing:
-Requires python3 and the above modules. Using the quantum computer should be set up by yourself through the IBM Quantum Experience and running the load_account command. 
+Package requires qiskit, pyscf, and networkx. For default installation, preferred method is to create a test environment, and run:
 
-qiskit-aer should be installed for access to the C++ qasm simulator, and
-ibmq-provider should be obtained for running results on the actual quantum
-computer. qiskit is inclusive of terra, aqua, and ibmq-provider, although the 
-latter two are optional. 
+    pip install . 
+
+For installation that allows local updating, run:
+
+    pip install -e .
+
+
+Additional modules include:
+
+pytest, delayed_assert (for running test suite) 
+graph_tool (conda installation recommended, needed for tomography grouping schemes)
+Maple 2021 or greater, with QuantumChemistry module
 
 ### Operators and QuantumStrings 
 
@@ -49,7 +45,7 @@ The hqca module contains many useful tools for analyzing and handling basic quan
 >>> A+= PauliString('YY',+0.5j)
 ```
 
-The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing a normal ordered representation, while produce a string representation, using the anticommmutation relations. Note `p` and `h` represent the particle and hole operators. 
+The Operator class handles multiplication and addition as expected, and will return an Operator object. FermiStrings are slightly more complicated, and instead of forcing a normal ordered representation, it will produce a string representation, using the anticommmutation relations. Note `p` and `h` represent the particle and hole operators. 
 
 ```
 >>> Af = Operator()
@@ -73,21 +69,44 @@ IIXY: -0.12500000j
 ZIXY: +0.12500000j
 ```
 
+### Conventions used 
+
+Whenever possible, physics notation is used for RDM and integral ordering, as well as in higher RDMS. That is, the integral:
+
+![Image](images/2k.png)
+is stored as: $K[i,k,j,l]$. The integrals generated from pyscf are in chemist notation. 
+
+A similar notation is present with reduced density matrices. The 3-RDM element defined by:
+
+![Image](images/3rdm.png)
+is stored as $D3[i,k,m,j,l,n]$.
+
+The standard RDM class (which simply needs an alpha and beta set of indices to be specified), stores a k x k x k x k array (k^4 elements). 
+
+The CompactRDM stores the RDM as a minimal vector, with excitations and their hermitian conjugates having unique indices. That is, we have all the elements of a complex RDM. For instance, the 2-RDM for a [2,2] system has:
+
+(0 1 0 1) , (0 2 0 2), (0 3 0 3), (1 2 1 2), (1 3 1 3), (2 3 2 3), (0 2 1 2), (1 2 0 2), (0 3 1 3), (1 3 0 3), (0 2 0 3), (0 3 0 2), (1 2 1 3), (1 3 1 2), (0 2 1 3), (1 3 0 2) , (0 3 1 2) , (1 2 0 3)
+
+The UniqueRDM class includes only the lower ordered pair, and not the hermitian conjugate. 
+
+Norms in the CQE are by the Frobenius norm of the compact RDM, which is related to the norm of the standard RDM by a factor of 2. Note, operator norms (in the Pauli or fermionic basis) are not used, as these generally have to be renormalized by a factor depending on the size of the operator space. 
+
+
 ### Molecular Simulation
 
 To perform a molecular simulation, a few objects are first required. /hqca/tests/_generic.py contains some basic objects which can be used as a guideline. 
 
 Simulations do not require a molecule, though it is often used, but instead require a Hamiltonian object (/hqca/hamiltonian). These generate a matrix and operator form of the Hamiltonian, which is the same dimension as the appropriate RDM (either 1- or 2-RDM), or can be a qubit Hamiltonian as well.  
 
-The Storage class, either StorageACSE or StorageVQE, builds off the Hamiltonian and stores and records certain aspects of the calculation. It handles energy evaluation, molecluar proerties and other parameters not related to the quantum computer. 
+The Storage class, either StorageACSE or StorageVQE, builds off the Hamiltonian and stores and records certain aspects of the calculation. It handles energy evaluation, molecular properties and other parameters not related to the quantum computer. 
 
 The QuantumStorage class on the other hand, relates properties of the quantum algorithm, and contains details related to performing an actual quantum simulation. Error mitigation methods are included here, as well as device specifications and options, the number of qubits, and other details pertaining to the quantum computer. 
 
-Two seperate classes, Instructions and Process, can be selected, and provide a why for the algorithm to communicate how the ansatz should be interpreted, and then once results are obtained, how to processes them. 
+Two separate classes, Instructions and Process, can be selected, and provide a way for the algorithm to communicate how the ansatz should be interpreted, and then once results are obtained, how to processes them. 
 
-With all of these, one can construct a Tomography object, which will ascertain the scale of the problem, the type of tomography (1-/2-/3-RDM, real or imaginary, etc.), and the circuits required for the quantum computer. The tomography class uses the Instructions and Process to generate an RDM, which then is fed into the algorithm in question to 
+With all of these, one can construct a Tomography object, which will ascertain the scale of the problem, the type of tomography (1-/2-/3-RDM, real or imaginary, etc.), and the circuits required for the quantum computer. The tomography class uses the Instructions and Process to generate an RDM, which then is fed into the algorithm in question. 
 
-All of these culminate in the QuantumRun class, of which there currently are the RunACSE and RunVQE are built upon. RunACSE takes these inputs and will perform an ACSE calculation. 
+All of these culminate in the QuantumRun class, which the RunACSE and RunVQE are built upon. RunACSE takes these inputs and will perform an ACSE calculation. 
 
 
 Summary and Attributes:
@@ -95,7 +114,7 @@ Summary and Attributes:
 1. Hamiltonian
     - matrix, qubit_operator, fermi_operator (optional)
     - may need a mol object from pyscf 
-2. Storage
+2. Storage (likely to be phase out)
     - evaluate, analysis, update
     - Contains molecular information and stores information on the run 
 3. QuantumStorage
@@ -113,6 +132,9 @@ Summary and Attributes:
 7. QuantumRun
     - Object for running a molecular simulation in order to find ground state energies. 
 
+### Notes
+
+
 ### Examples and Tests 
 
 Examples are included in the /examples/ directory. Tests are included in the /tests/ directory and can be run with the pytest module. From the main directory:
@@ -124,7 +146,7 @@ pytest tests
 
 ## References 
 
-The software was utilized in various forms to obtain results listed in the below. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects quantum simulation for quantum chemistry. While the earlier works might not be exactly replicated with this code, as this project, qiskit, and the quantum devices themselves have all changed significantly, the ideas present in them are accesible, and could be replicated with this module in a straightforward manner. When possible, these are provided as examples. 
+The software was utilized in various forms to obtain results in the below papers. In particular, some of the methods covered here are referenced and explained further in these articles, which cover varying aspects of quantum simulation for quantum chemistry. While the earlier works might not be exactly replicated with this code, as this project, qiskit, and the quantum devices themselves have all changed significantly, the ideas presented in them are accessible, and could be replicated with this module in a straightforward manner. When possible, problems tackled in these papers are provided as examples. 
 
 ### Quantum ACSE
 
@@ -186,6 +208,10 @@ Smart, S. E., & Mazziotti, D. A. (2019). Quantum-classical hybrid algorithm usin
 
 Scott E. Smart, 
 David A. Mazziotti
+
+The views or content expressed here are solely of the authors and do not reflect on any policy or position of IBM or the IBM Q team.
+
+
 
 # License
 
