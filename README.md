@@ -150,6 +150,8 @@ The software was utilized in various forms to obtain results in the below papers
 
 ### Quantum ACSE
 
+Mazziotti, D. A. (2006). Anti-Hermitian Contracted Schrödinger Equation: Direct Determination of the Two-Electron Reduced Density Matrices of Many-Electron Molecules. Physical Review Letters 97, 143002. http://journals.aps.org/prl/abstract/10.1103/PhysRevLett.97.143002 
+
 Mazziotti, D. A. (2007). Anti-Hermitian part of the contracted Schrödinger equation for the direct calculation of two-electron reduced density matrices. Physical Review A - Atomic, Molecular, and Optical Physics, 75(2), 1–12. https://doi.org/10.1103/PhysRevA.75.022505
 
 Smart, S. E., & Mazziotti, D. A. (2021). Quantum Solver of Contracted Eigenvalue Equations for Scalable Molecular Simulations on Quantum Computing Devices. Physical Review Letters, 126(7), 070504. https://doi.org/10.1103/PhysRevLett.126.070504
